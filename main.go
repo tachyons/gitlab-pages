@@ -10,6 +10,9 @@ import (
 	"sync"
 )
 
+var VERSION = "dev"
+var REVISION = "HEAD"
+
 var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
 var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
 var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
@@ -72,6 +75,9 @@ func (a *theApp) UpdateDomains(domains domains) {
 func main() {
 	var wg sync.WaitGroup
 	var app theApp
+
+	fmt.Println("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
+	fmt.Println("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
 	flag.Parse()
 
