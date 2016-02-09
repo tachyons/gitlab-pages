@@ -15,12 +15,16 @@ var REVISION = "HEAD"
 
 var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
 var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
+var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
 var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
-var pagesRootCert = flag.String("root-cert", "", "The default certificate to serve static pages")
-var pagesRootKey = flag.String("root-key", "", "The default certificate to serve static pages")
+var pagesRootCert = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
+var pagesRootKey = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 var serverHTTP = flag.Bool("serve-http", true, "Serve the pages under HTTP")
 var http2proto = flag.Bool("http2", true, "Enable HTTP2 support")
 var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
+
+const XForwardedProto = "X-Forwarded-Proto"
+const XForwardedProtoHttps = "https"
 
 type theApp struct {
 	domains domains
@@ -40,12 +44,12 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return nil, nil
 }
 
-func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
+func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https bool) {
 	w := newLoggingResponseWriter(ww)
 	defer w.Log(r)
 
 	// Add auto redirect
-	if r.TLS == nil && !*serverHTTP {
+	if https && !*serverHTTP {
 		u := *r.URL
 		u.Scheme = "https"
 		u.Host = r.Host
@@ -67,6 +71,17 @@ func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
 	domain.ServeHTTP(&w, r)
 }
 
+func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
+	https := r.TLS != nil
+	a.serveContent(ww, r, https)
+}
+
+func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
+	forwardedProto := r.Header.Get(XForwardedProto)
+	https := forwardedProto == XForwardedProtoHttps
+	a.serveContent(ww, r, https)
+}
+
 func (a *theApp) UpdateDomains(domains domains) {
 	fmt.Printf("Domains: %v", domains)
 	a.domains = domains
@@ -86,7 +101,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := ListenAndServe(*listenHTTP, &app)
+			err := ListenAndServe(*listenHTTP, app.ServeHTTP)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -98,7 +113,19 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := ListenAndServeTLS(*listenHTTPS, *pagesRootCert, *pagesRootKey, &app)
+			err := ListenAndServeTLS(*listenHTTPS, *pagesRootCert, *pagesRootKey, app.ServeHTTP, app.ServeTLS)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}()
+	}
+
+	// Listen for HTTP proxy requests
+	if *listenProxy != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := ListenAndServe(*listenProxy, app.ServeProxy)
 			if err != nil {
 				log.Fatal(err)
 			}
