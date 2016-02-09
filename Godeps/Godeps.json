@@ -1,0 +1,17 @@
+{
+	"ImportPath": "gitlab.com/gitlab-org/gitlab-pages",
+	"GoVersion": "go1.5",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
+		},
+		{
+			"ImportPath": "golang.org/x/net/http2",
+			"Rev": "b4e17d61b15679caf2335da776c614169a1b4643"
+		}
+	]
+}
