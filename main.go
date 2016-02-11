@@ -17,14 +17,6 @@ var VERSION = "dev"
 // REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
 
-func evalSymlinks(directory string) (result string) {
-	result, err := filepath.EvalSymlinks(directory)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return
-}
-
 func readFile(file string) (result []byte) {
 	result, err := ioutil.ReadFile(file)
 	if err != nil {
