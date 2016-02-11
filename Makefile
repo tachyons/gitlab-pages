@@ -35,7 +35,7 @@ lint:
 
 complexity:
 	go get github.com/fzipp/gocyclo
-	gocyclo -over 9 $(wildcard *.go)
+	gocyclo -over 7 $(wildcard *.go)
 
 test:
 	go get golang.org/x/tools/cmd/cover

@@ -40,7 +40,7 @@ func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, fullPath stri
 	return true
 }
 
-func (d *domain) fullPath(w http.ResponseWriter, r *http.Request, projectName, subPath string) (fullPath string, err error) {
+func (d *domain) resolvePath(w http.ResponseWriter, r *http.Request, projectName, subPath string) (fullPath string, err error) {
 	publicPath := filepath.Join(*pagesRoot, d.Group, projectName, "public")
 
 	fullPath = filepath.Join(publicPath, subPath)
@@ -53,7 +53,11 @@ func (d *domain) fullPath(w http.ResponseWriter, r *http.Request, projectName, s
 		err = fmt.Errorf("%q should be in %q", fullPath, publicPath)
 		return
 	}
+	return
+}
 
+func (d *domain) checkPath(w http.ResponseWriter, r *http.Request, path string) (fullPath string, err error) {
+	fullPath = path
 	fi, err := os.Lstat(fullPath)
 	if err != nil {
 		return
@@ -77,11 +81,15 @@ func (d *domain) fullPath(w http.ResponseWriter, r *http.Request, projectName, s
 }
 
 func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, subPath string) bool {
-	fullPath, err := d.fullPath(w, r, projectName, subPath)
+	path, err := d.resolvePath(w, r, projectName, subPath)
 	if err != nil {
 		return false
 	}
-	return d.serveFile(w, r, fullPath)
+	path, err = d.checkPath(w, r, path)
+	if err != nil {
+		return false
+	}
+	return d.serveFile(w, r, path)
 }
 
 func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {

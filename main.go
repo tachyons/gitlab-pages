@@ -102,6 +102,14 @@ func (a *theApp) UpdateDomains(domains domains) {
 	a.lock.Unlock()
 }
 
+func resolve() {
+	fullPath, err := filepath.EvalSymlinks(*pagesRoot)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	*pagesRoot = fullPath
+}
+
 func main() {
 	var wg sync.WaitGroup
 	var app theApp
@@ -109,12 +117,7 @@ func main() {
 	fmt.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
 	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 	flag.Parse()
-
-	fullPath, err := filepath.EvalSymlinks(*pagesRoot)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	*pagesRoot = fullPath
+	resolve()
 
 	// Listen for HTTP
 	if *listenHTTP != "" {
