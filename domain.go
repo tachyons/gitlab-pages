@@ -10,10 +10,11 @@ import (
 )
 
 type domain struct {
-	Group       string
-	Project     string
-	Config      *domainConfig
-	certificate *tls.Certificate
+	Group            string
+	Project          string
+	Config           *domainConfig
+	certificate      *tls.Certificate
+	certificateError error
 }
 
 func (d *domain) notFound(w http.ResponseWriter, r *http.Request) {
@@ -23,8 +24,13 @@ func (d *domain) notFound(w http.ResponseWriter, r *http.Request) {
 func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, subPath string) bool {
 	publicPath := filepath.Join(*pagesRoot, d.Group, projectName, "public")
 	fullPath := filepath.Join(publicPath, subPath)
-	fullPath = filepath.Clean(fullPath)
-	if !strings.HasPrefix(fullPath, publicPath) {
+	fullPath, err := filepath.EvalSymlinks(fullPath)
+	if err != nil {
+		return false
+	}
+
+	if !strings.HasPrefix(fullPath, publicPath+"/") && fullPath != publicPath {
+		println("The", fullPath, "should be in", publicPath)
 		return false
 	}
 
@@ -59,6 +65,7 @@ func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, su
 		return false
 	}
 
+	println("Serving", fullPath, "for", r.URL.Path)
 	http.ServeContent(w, r, filepath.Base(file.Name()), fi.ModTime(), file)
 	return true
 }
@@ -77,7 +84,7 @@ func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if d.tryFile(w, r, strings.ToLower(r.Host), r.URL.Path) {
+	if r.Host != "" && d.tryFile(w, r, strings.ToLower(r.Host), r.URL.Path) {
 		return
 	}
 
@@ -97,12 +104,13 @@ func (d *domain) ensureCertificate() (*tls.Certificate, error) {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
-	if d.certificate != nil {
-		return d.certificate, nil
+	if d.certificate != nil || d.certificateError != nil {
+		return d.certificate, d.certificateError
 	}
 
 	tls, err := tls.X509KeyPair([]byte(d.Config.Certificate), []byte(d.Config.Key))
 	if err != nil {
+		d.certificateError = err
 		return nil, err
 	}
 

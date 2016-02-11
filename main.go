@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"path/filepath"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -108,6 +109,12 @@ func main() {
 	fmt.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
 	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 	flag.Parse()
+
+	fullPath, err := filepath.EvalSymlinks(*pagesRoot)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	*pagesRoot = fullPath
 
 	// Listen for HTTP
 	if *listenHTTP != "" {
