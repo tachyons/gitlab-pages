@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"log"
@@ -22,19 +21,19 @@ func isDomainAllowed(domain string) bool {
 	}
 	// TODO: better sanitize domain
 	domain = strings.ToLower(domain)
-	pagesDomain = "." + strings.ToLower(pagesDomain)
-	return !strings.HasPrefix(domain, pagesDomain)
+	rootDomain := "." + strings.ToLower(*pagesDomain)
+	return !strings.HasPrefix(domain, rootDomain)
 }
 
 func (d domains) addDomain(group, project string, config *domainConfig) error {
-	newDomain := &domain{
+	newDomain := domain{
 		Group:   group,
 		Project: project,
-		Config:  domainConfig,
+		Config:  config,
 	}
 
 	if config != nil {
-		if !isDomainAllowed(domainConfig.Domain) {
+		if !isDomainAllowed(config.Domain) {
 			return errors.New("domain name is not allowed")
 		}
 
@@ -43,7 +42,7 @@ func (d domains) addDomain(group, project string, config *domainConfig) error {
 		domainName := group + "." + *pagesDomain
 		d[domainName] = newDomain
 	}
-	return
+	return nil
 }
 
 func (d domains) readProjects(group string) (count int) {
@@ -74,7 +73,7 @@ func (d domains) readProjects(group string) (count int) {
 			continue
 		}
 
-		for _, domainConfig := range domainsConfig.Domains {
+		for _, domainConfig := range config.Domains {
 			d.addDomain(group, project.Name(), &domainConfig)
 		}
 	}
@@ -103,14 +102,14 @@ func (d domains) ReadGroups() error {
 
 		count := d.readProjects(group.Name())
 		if count > 0 {
-			d.addDomain(group, "", &domainConfig)
+			d.addDomain(group.Name(), "", nil)
 		}
 	}
 	return nil
 }
 
 func watchDomains(updater domainsUpdater) {
-	lastUpdate := "no-configuration"
+	lastUpdate := []byte("no-update")
 
 	for {
 		update, err := ioutil.ReadFile(filepath.Join(*pagesRoot, ".update"))

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"syscall"
 )
 
 // VERSION stores the information about the semantic version of application

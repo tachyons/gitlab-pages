@@ -19,3 +19,24 @@ gitlab-pages: $(GO_FILES)
 
 update:
 	godep save ./...
+
+verify: fmt vet lint complexity test
+
+fmt:
+	go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'
+
+vet:
+	go get golang.org/x/tools/cmd/vet
+	go vet
+
+lint:
+	go get github.com/golang/lint/golint
+	golint . | ( ! grep -v "^$$" )
+
+complexity:
+	go get github.com/fzipp/gocyclo
+	gocyclo -over 9 $(wildcard *.go)
+
+test:
+	go get golang.org/x/tools/cmd/cover
+	go test ./... -cover

@@ -93,7 +93,7 @@ func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *domain) ensureCertificate() (*tls.Certificate, error) {
-	if !d.Config {
+	if d.Config == nil {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
