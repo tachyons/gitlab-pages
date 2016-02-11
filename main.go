@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
-	"path/filepath"
 )
 
 // VERSION stores the information about the semantic version of application

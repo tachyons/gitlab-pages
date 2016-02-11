@@ -1,13 +1,13 @@
 package main
 
 import (
-	"testing"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/assert"
-	"time"
-	"io/ioutil"
 	"crypto/rand"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"os"
+	"testing"
+	"time"
 )
 
 const updateFile = "shared/pages/.update"
@@ -20,7 +20,7 @@ func TestReadProjects(t *testing.T) {
 	require.NoError(t, err)
 
 	var domains []string
-	for domain, _ := range d {
+	for domain := range d {
 		domains = append(domains, domain)
 	}
 

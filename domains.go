@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -30,6 +31,34 @@ func (d domains) addDomain(group, project string, config *domainConfig) error {
 	return nil
 }
 
+func (d domains) readProject(group, project string) error {
+	if strings.HasPrefix(project, ".") {
+		return errors.New("hidden project")
+	}
+
+	// Ignore projects that have .deleted in name
+	if strings.HasSuffix(project, ".deleted") {
+		return errors.New("deleted project")
+	}
+
+	_, err := os.Lstat(filepath.Join(*pagesRoot, group, project, "public"))
+	if err != nil {
+		return errors.New("missing public/ in project")
+	}
+
+	var config domainsConfig
+	err = config.Read(group, project)
+	log.Println(err)
+	if err == nil {
+		for _, domainConfig := range config.Domains {
+			if domainConfig.Valid() {
+				d.addDomain(group, project, &domainConfig)
+			}
+		}
+	}
+	return nil
+}
+
 func (d domains) readProjects(group string) (count int) {
 	projects, err := os.Open(filepath.Join(*pagesRoot, group))
 	if err != nil {
@@ -48,33 +77,9 @@ func (d domains) readProjects(group string) (count int) {
 			continue
 		}
 
-		// Ignore hidden projects
-		if strings.HasPrefix(project.Name(), ".") {
-			continue
-		}
-
-		// Ignore projects that have .deleted in name
-		if strings.HasSuffix(project.Name(), ".deleted") {
-			continue
-		}
-
-		// Ignore projects without public
-		_, err := os.Lstat(filepath.Join(*pagesRoot, group, project.Name(), "public"))
-		if err != nil {
-			continue
-		}
-
-		count++
-
-		var config domainsConfig
-		err = config.Read(group, project.Name())
-		log.Println(err)
+		err := d.readProject(group, project.Name())
 		if err == nil {
-			for _, domainConfig := range config.Domains {
-				if domainConfig.Valid() {
-					d.addDomain(group, project.Name(), &domainConfig)
-				}
-			}
+			count++
 		}
 	}
 	return

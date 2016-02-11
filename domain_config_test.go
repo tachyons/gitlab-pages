@@ -1,9 +1,9 @@
 package main
 
 import (
-	"testing"
-	"os"
 	"io/ioutil"
+	"os"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"path/filepath"

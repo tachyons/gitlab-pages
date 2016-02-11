@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -21,38 +22,7 @@ func (d *domain) notFound(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, subPath string) bool {
-	publicPath := filepath.Join(*pagesRoot, d.Group, projectName, "public")
-	fullPath := filepath.Join(publicPath, subPath)
-	fullPath, err := filepath.EvalSymlinks(fullPath)
-	if err != nil {
-		return false
-	}
-
-	if !strings.HasPrefix(fullPath, publicPath+"/") && fullPath != publicPath {
-		println("The", fullPath, "should be in", publicPath)
-		return false
-	}
-
-	fi, err := os.Lstat(fullPath)
-	if err != nil {
-		return false
-	}
-
-	// If this file is directory, open the index.html
-	if fi.IsDir() {
-		fullPath = filepath.Join(fullPath, "index.html")
-		fi, err = os.Lstat(fullPath)
-		if err != nil {
-			return false
-		}
-	}
-
-	// We don't allow to open non-regular files
-	if !fi.Mode().IsRegular() {
-		return false
-	}
-
+func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, fullPath string) bool {
 	// Open and serve content of file
 	file, err := os.Open(fullPath)
 	if err != nil {
@@ -60,7 +30,7 @@ func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, su
 	}
 	defer file.Close()
 
-	fi, err = file.Stat()
+	fi, err := file.Stat()
 	if err != nil {
 		return false
 	}
@@ -68,6 +38,50 @@ func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, su
 	println("Serving", fullPath, "for", r.URL.Path)
 	http.ServeContent(w, r, filepath.Base(file.Name()), fi.ModTime(), file)
 	return true
+}
+
+func (d *domain) fullPath(w http.ResponseWriter, r *http.Request, projectName, subPath string) (fullPath string, err error) {
+	publicPath := filepath.Join(*pagesRoot, d.Group, projectName, "public")
+
+	fullPath = filepath.Join(publicPath, subPath)
+	fullPath, err = filepath.EvalSymlinks(fullPath)
+	if err != nil {
+		return
+	}
+
+	if !strings.HasPrefix(fullPath, publicPath+"/") && fullPath != publicPath {
+		err = fmt.Errorf("%q should be in %q", fullPath, publicPath)
+		return
+	}
+
+	fi, err := os.Lstat(fullPath)
+	if err != nil {
+		return
+	}
+
+	// If this file is directory, open the index.html
+	if fi.IsDir() {
+		fullPath = filepath.Join(fullPath, "index.html")
+		fi, err = os.Lstat(fullPath)
+		if err != nil {
+			return
+		}
+	}
+
+	// We don't allow to open non-regular files
+	if !fi.Mode().IsRegular() {
+		err = fmt.Errorf("%s: is not a regular file", fullPath)
+		return
+	}
+	return
+}
+
+func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, subPath string) bool {
+	fullPath, err := d.fullPath(w, r, projectName, subPath)
+	if err != nil {
+		return false
+	}
+	return d.serveFile(w, r, fullPath)
 }
 
 func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
