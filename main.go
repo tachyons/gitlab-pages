@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"sync"
-	"time"
+	"io/ioutil"
+	"net"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -15,70 +15,81 @@ var VERSION = "dev"
 // REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
 
-var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
-var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
-var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
 var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
-var pagesRootCert = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
-var pagesRootKey = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 var serverHTTP = flag.Bool("serve-http", true, "Serve the pages under HTTP")
 var http2proto = flag.Bool("http2", true, "Enable HTTP2 support")
 var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 
-func resolve() {
-	fullPath, err := filepath.EvalSymlinks(*pagesRoot)
+func evalSymlinks(directory string) (result string) {
+	result, err := filepath.EvalSymlinks(directory)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	*pagesRoot = fullPath
+	return
+}
+
+func readFile(file string) (result []byte) {
+	result, err := ioutil.ReadFile(file)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return
+}
+
+func createSocket(addr string) (l net.Listener, fd uintptr) {
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	f, err := l.(*net.TCPListener).File()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fd = f.Fd()
+	return
 }
 
 func main() {
-	var wg sync.WaitGroup
-	var app theApp
+	var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
+	var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
+	var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
+	var pagesRootCert = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
+	var pagesRootKey = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 
 	fmt.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
 	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 	flag.Parse()
-	resolve()
 
-	// Listen for HTTP
+	var app theApp
+
+	app.Domain = *pagesDomain
+	app.RootDir = evalSymlinks(*pagesRoot)
+
+	if *pagesRootCert != "" {
+		app.RootCertificate = readFile(*pagesRootCert)
+	}
+
+	if *pagesRootKey != "" {
+		app.RootKey = readFile(*pagesRootKey)
+	}
+
 	if *listenHTTP != "" {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			err := listenAndServe(*listenHTTP, app.ServeHTTP)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}()
+		var l net.Listener
+		l, app.ListenHTTP = createSocket(*listenHTTP)
+		defer l.Close()
 	}
 
-	// Listen for HTTPS
 	if *listenHTTPS != "" {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			err := listenAndServeTLS(*listenHTTPS, *pagesRootCert, *pagesRootKey, app.ServeHTTP, app.ServeTLS)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}()
+		var l net.Listener
+		l, app.ListenHTTPS = createSocket(*listenHTTPS)
+		defer l.Close()
 	}
 
-	// Listen for HTTP proxy requests
 	if *listenProxy != "" {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			err := listenAndServe(*listenProxy, app.ServeProxy)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}()
+		var l net.Listener
+		l, app.ListenHTTPS = createSocket(*listenProxy)
+		defer l.Close()
 	}
-
-	go watchDomains(app.UpdateDomains, time.Second)
-
-	wg.Wait()
 }

@@ -4,29 +4,31 @@ import (
 	"crypto/tls"
 	"golang.org/x/net/http2"
 	"net/http"
+"net"
+	"time"
+	"os"
+	"fmt"
 )
 
 type tlsHandlerFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 
-func listenAndServe(addr string, handler http.HandlerFunc) error {
-	// create server
-	server := &http.Server{Addr: addr, Handler: handler}
-
-	if *http2proto {
-		err := http2.ConfigureServer(server, &http2.Server{})
-		if err != nil {
-			return err
-		}
-	}
-
-	return server.ListenAndServe()
+type tcpKeepAliveListener struct {
+	*net.TCPListener
 }
 
-func listenAndServeTLS(addr string, certFile, keyFile string, handler http.HandlerFunc, tlsHandler tlsHandlerFunc) error {
+func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
+	tc, err := ln.AcceptTCP()
+	if err != nil {
+		return
+	}
+	tc.SetKeepAlive(true)
+	tc.SetKeepAlivePeriod(3 * time.Minute)
+	return tc, nil
+}
+
+func listenAndServe(fd uintptr, handler http.HandlerFunc, tlsConfig *tls.Config) error {
 	// create server
-	server := &http.Server{Addr: addr, Handler: handler}
-	server.TLSConfig = &tls.Config{}
-	server.TLSConfig.GetCertificate = tlsHandler
+	server := &http.Server{Handler: handler, TLSConfig: tlsConfig}
 
 	if *http2proto {
 		err := http2.ConfigureServer(server, &http2.Server{})
@@ -35,5 +37,32 @@ func listenAndServeTLS(addr string, certFile, keyFile string, handler http.Handl
 		}
 	}
 
-	return server.ListenAndServeTLS(certFile, keyFile)
+	l, err := net.FileListener(os.NewFile(fd, "[socket]"))
+	if err != nil {
+		return fmt.Errorf("failed to listen on FD %d: %v", fd, err)
+	}
+
+	if tlsConfig != nil {
+		tlsListener := tls.NewListener(tcpKeepAliveListener{l.(*net.TCPListener)}, server.TLSConfig)
+		return server.Serve(tlsListener)
+	} else {
+		return server.Serve(&tcpKeepAliveListener{l.(*net.TCPListener)})
+	}
+}
+
+func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, tlsHandler tlsHandlerFunc) error {
+	certificate, err := tls.X509KeyPair(cert, key)
+	if err != nil {
+		return err
+	}
+
+	tlsConfig := &tls.Config{}
+	tlsConfig.GetCertificate = tlsHandler
+	tlsConfig.NextProtos = []string {
+		"http/1.1",
+	}
+	tlsConfig.Certificates = []tls.Certificate{
+		certificate,
+	}
+	return listenAndServe(fd, handler, tlsConfig)
 }
