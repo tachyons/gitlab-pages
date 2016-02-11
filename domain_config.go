@@ -29,7 +29,7 @@ func (c *domainConfig) Valid() bool {
 }
 
 func (c *domainsConfig) Read(group, project string) (err error) {
-	configFile, err := os.Open(filepath.Join(*pagesRoot, group, project, "config.json"))
+	configFile, err := os.Open(filepath.Join(group, project, "config.json"))
 	if err != nil {
 		return err
 	}

@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
-	"path/filepath"
 	"io/ioutil"
+	"log"
 	"net"
+	"os"
+	"path/filepath"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -16,7 +17,6 @@ var VERSION = "dev"
 var REVISION = "HEAD"
 
 var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
-var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 
 func evalSymlinks(directory string) (result string) {
 	result, err := filepath.EvalSymlinks(directory)
@@ -57,6 +57,7 @@ func main() {
 	var pagesRootKey = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 	var redirectHTTP = flag.Bool("redirect-http", true, "Serve the pages under HTTP")
 	var useHTTP2 = flag.Bool("use-http2", true, "Enable HTTP2 support")
+	var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 
 	fmt.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
 	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
@@ -68,6 +69,11 @@ func main() {
 	app.RootDir = evalSymlinks(*pagesRoot)
 	app.RedirectHTTP = *redirectHTTP
 	app.HTTP2 = *useHTTP2
+
+	err := os.Chdir(app.RootDir)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	if *pagesRootCert != "" {
 		app.RootCertificate = readFile(*pagesRootCert)

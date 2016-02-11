@@ -58,7 +58,7 @@ func (d domains) readProject(group, project string) error {
 		return errors.New("deleted project")
 	}
 
-	_, err := os.Lstat(filepath.Join(*pagesRoot, group, project, "public"))
+	_, err := os.Lstat(filepath.Join(group, project, "public"))
 	if err != nil {
 		return errors.New("missing public/ in project")
 	}
@@ -68,7 +68,7 @@ func (d domains) readProject(group, project string) error {
 }
 
 func (d domains) readProjects(group string) (count int) {
-	projects, err := os.Open(filepath.Join(*pagesRoot, group))
+	projects, err := os.Open(group)
 	if err != nil {
 		return
 	}
@@ -76,7 +76,7 @@ func (d domains) readProjects(group string) (count int) {
 
 	fis, err := projects.Readdir(0)
 	if err != nil {
-		log.Println("Failed to Readdir for ", *pagesRoot, ":", err)
+		log.Println("Failed to Readdir for ", group, ":", err)
 	}
 
 	for _, project := range fis {
@@ -94,7 +94,7 @@ func (d domains) readProjects(group string) (count int) {
 }
 
 func (d domains) ReadGroups() error {
-	groups, err := os.Open(*pagesRoot)
+	groups, err := os.Open(".")
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func (d domains) ReadGroups() error {
 
 	fis, err := groups.Readdir(0)
 	if err != nil {
-		log.Println("Failed to Readdir for ", *pagesRoot, ":", err)
+		log.Println("Failed to Readdir for .:", err)
 	}
 
 	for _, group := range fis {
@@ -125,7 +125,7 @@ func watchDomains(updater domainsUpdater, interval time.Duration) {
 	lastUpdate := []byte("no-update")
 
 	for {
-		update, err := ioutil.ReadFile(filepath.Join(*pagesRoot, ".update"))
+		update, err := ioutil.ReadFile(".update")
 		if bytes.Equal(lastUpdate, update) {
 			if err != nil {
 				log.Println("Failed to read update timestamp:", err)

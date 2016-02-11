@@ -41,7 +41,7 @@ func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, fullPath stri
 }
 
 func (d *domain) resolvePath(w http.ResponseWriter, r *http.Request, projectName, subPath string) (fullPath string, err error) {
-	publicPath := filepath.Join(*pagesRoot, d.Group, projectName, "public")
+	publicPath := filepath.Join(d.Group, projectName, "public")
 
 	fullPath = filepath.Join(publicPath, subPath)
 	fullPath, err = filepath.EvalSymlinks(fullPath)
