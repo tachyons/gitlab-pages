@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,32 +10,18 @@ import (
 	"time"
 )
 
-type domains map[string]domain
+type domains map[string]*domain
 
 type domainsUpdater func(domains domains)
 
-func isDomainAllowed(domain string) bool {
-	if domain == "" {
-		return false
-	}
-	// TODO: better sanitize domain
-	domain = strings.ToLower(domain)
-	rootDomain := "." + strings.ToLower(*pagesDomain)
-	return !strings.HasPrefix(domain, rootDomain)
-}
-
 func (d domains) addDomain(group, project string, config *domainConfig) error {
-	newDomain := domain{
+	newDomain := &domain{
 		Group:   group,
 		Project: project,
 		Config:  config,
 	}
 
 	if config != nil {
-		if !isDomainAllowed(config.Domain) {
-			return errors.New("domain name is not allowed")
-		}
-
 		d[config.Domain] = newDomain
 	} else {
 		domainName := group + "." + *pagesDomain
@@ -58,23 +43,38 @@ func (d domains) readProjects(group string) (count int) {
 	}
 
 	for _, project := range fis {
+		// Ignore non directories
 		if !project.IsDir() {
 			continue
 		}
+
+		// Ignore hidden projects
 		if strings.HasPrefix(project.Name(), ".") {
+			continue
+		}
+
+		// Ignore projects that have .deleted in name
+		if strings.HasSuffix(project.Name(), ".deleted") {
+			continue
+		}
+
+		// Ignore projects without public
+		_, err := os.Lstat(filepath.Join(*pagesRoot, group, project.Name(), "public"))
+		if err != nil {
 			continue
 		}
 
 		count++
 
 		var config domainsConfig
-		err := config.Read(group, project.Name())
-		if err != nil {
-			continue
-		}
-
-		for _, domainConfig := range config.Domains {
-			d.addDomain(group, project.Name(), &domainConfig)
+		err = config.Read(group, project.Name())
+		log.Println(err)
+		if err == nil {
+			for _, domainConfig := range config.Domains {
+				if domainConfig.Valid() {
+					d.addDomain(group, project.Name(), &domainConfig)
+				}
+			}
 		}
 	}
 	return
@@ -108,7 +108,7 @@ func (d domains) ReadGroups() error {
 	return nil
 }
 
-func watchDomains(updater domainsUpdater) {
+func watchDomains(updater domainsUpdater, interval time.Duration) {
 	lastUpdate := []byte("no-update")
 
 	for {
@@ -116,7 +116,7 @@ func watchDomains(updater domainsUpdater) {
 		if bytes.Equal(lastUpdate, update) {
 			if err != nil {
 				log.Println("Failed to read update timestamp:", err)
-				time.Sleep(time.Second)
+				time.Sleep(interval)
 			}
 			continue
 		}
@@ -131,5 +131,6 @@ func watchDomains(updater domainsUpdater) {
 		if updater != nil {
 			updater(domains)
 		}
+		time.Sleep(interval)
 	}
 }

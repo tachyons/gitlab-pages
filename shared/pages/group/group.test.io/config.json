@@ -1,0 +1,15 @@
+{
+  "Domains": [
+    {
+      "Domain": "test.domain.com"
+    },
+    {
+      "Domain": "my.test.io"
+    },
+    {
+      "Domain": "other.domain.com",
+      "Certificate": "test",
+      "Certificate": "key"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -31,6 +32,14 @@ const xForwardedProtoHTTPS = "https"
 
 type theApp struct {
 	domains domains
+	lock    sync.RWMutex
+}
+
+func (a *theApp) domain(host string) *domain {
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+	domain, _ := a.domains[host]
+	return domain
 }
 
 func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -39,7 +48,7 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	}
 
 	host := strings.ToLower(ch.ServerName)
-	if domain, ok := a.domains[host]; ok {
+	if domain := a.domain(host); domain != nil {
 		tls, _ := domain.ensureCertificate()
 		return tls, nil
 	}
@@ -63,9 +72,9 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	}
 
 	host := strings.ToLower(r.Host)
-	domain, ok := a.domains[host]
+	domain := a.domain(host)
 
-	if !ok {
+	if domain == nil {
 		http.NotFound(&w, r)
 		return
 	}
@@ -87,7 +96,9 @@ func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
 
 func (a *theApp) UpdateDomains(domains domains) {
 	fmt.Printf("Domains: %v", domains)
+	a.lock.Lock()
 	a.domains = domains
+	a.lock.Unlock()
 }
 
 func main() {
@@ -134,7 +145,7 @@ func main() {
 		}()
 	}
 
-	go watchDomains(app.UpdateDomains)
+	go watchDomains(app.UpdateDomains, time.Second)
 
 	wg.Wait()
 }

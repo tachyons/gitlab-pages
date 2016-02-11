@@ -1,0 +1,64 @@
+package main
+
+import (
+	"testing"
+	"os"
+	"io/ioutil"
+
+	"github.com/stretchr/testify/assert"
+	"path/filepath"
+)
+
+const configFile = "shared/pages/test-group/test-project/config.json"
+const invalidConfig = `{"Domains":{}}`
+const validConfig = `{"Domains":[{"Domain":"test"}]}`
+
+func TestDomainConfigValidness(t *testing.T) {
+	d := domainConfig{}
+	assert.False(t, d.Valid())
+
+	d = domainConfig{Domain: "test"}
+	assert.True(t, d.Valid())
+
+	*pagesDomain = "gitlab.io"
+
+	d = domainConfig{Domain: "test"}
+	assert.True(t, d.Valid())
+
+	d = domainConfig{Domain: "test.gitlab.io"}
+	assert.False(t, d.Valid())
+
+	d = domainConfig{Domain: "test.test.gitlab.io"}
+	assert.False(t, d.Valid())
+
+	d = domainConfig{Domain: "test.testgitlab.io"}
+	assert.True(t, d.Valid())
+
+	d = domainConfig{Domain: "test.GitLab.Io"}
+	assert.False(t, d.Valid())
+}
+
+func TestDomainConfigRead(t *testing.T) {
+	d := domainsConfig{}
+	err := d.Read("test-group", "test-project")
+	assert.Error(t, err)
+
+	os.MkdirAll(filepath.Dir(configFile), 0700)
+	defer os.RemoveAll("shared/pages/test-group")
+
+	d = domainsConfig{}
+	err = d.Read("test-group", "test-project")
+	assert.Error(t, err)
+
+	err = ioutil.WriteFile(configFile, []byte(invalidConfig), 0600)
+	assert.NoError(t, err)
+	d = domainsConfig{}
+	err = d.Read("test-group", "test-project")
+	assert.Error(t, err)
+
+	err = ioutil.WriteFile(configFile, []byte(validConfig), 0600)
+	assert.NoError(t, err)
+	d = domainsConfig{}
+	err = d.Read("test-group", "test-project")
+	assert.NoError(t, err)
+}
