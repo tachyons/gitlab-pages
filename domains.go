@@ -31,6 +31,21 @@ func (d domains) addDomain(group, project string, config *domainConfig) error {
 	return nil
 }
 
+func (d domains) readProjectConfig(group, project string) (err error) {
+	var config domainsConfig
+	err = config.Read(group, project)
+	if err != nil {
+		return
+	}
+
+	for _, domainConfig := range config.Domains {
+		if domainConfig.Valid() {
+			d.addDomain(group, project, &domainConfig)
+		}
+	}
+	return
+}
+
 func (d domains) readProject(group, project string) error {
 	if strings.HasPrefix(project, ".") {
 		return errors.New("hidden project")
@@ -46,16 +61,7 @@ func (d domains) readProject(group, project string) error {
 		return errors.New("missing public/ in project")
 	}
 
-	var config domainsConfig
-	err = config.Read(group, project)
-	log.Println(err)
-	if err == nil {
-		for _, domainConfig := range config.Domains {
-			if domainConfig.Valid() {
-				d.addDomain(group, project, &domainConfig)
-			}
-		}
-	}
+	d.readProjectConfig(group, project)
 	return nil
 }
 
