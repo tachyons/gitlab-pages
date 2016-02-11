@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -13,76 +16,119 @@ type domains map[string]domain
 
 type domainsUpdater func(domains domains)
 
-func readGroups(domains domains) error {
-	groups, err := filepath.Glob(filepath.Join(*pagesRoot, "*/"))
-	if err != nil {
-		return err
+func isDomainAllowed(domain string) bool {
+	if domain == "" {
+		return false
 	}
-
-	for _, groupDir := range groups {
-		group := filepath.Base(groupDir)
-		groupName := strings.ToLower(group)
-		domains[groupName+"."+*pagesDomain] = domain{
-			Group: group,
-			CNAME: false,
-		}
-	}
-	return nil
+	// TODO: better sanitize domain
+	domain = strings.ToLower(domain)
+	pagesDomain = "." + strings.ToLower(pagesDomain)
+	return !strings.HasPrefix(domain, pagesDomain)
 }
 
-func readCnames(domains domains) error {
-	cnames, err := filepath.Glob(filepath.Join(*pagesRoot, "*/*/CNAME"))
-	if err != nil {
-		return err
+func (d domains) addDomain(group, project string, config *domainConfig) error {
+	newDomain := &domain{
+		Group:   group,
+		Project: project,
+		Config:  domainConfig,
 	}
 
-	for _, cnamePath := range cnames {
-		cnameData, err := ioutil.ReadFile(cnamePath)
+	if config != nil {
+		if !isDomainAllowed(domainConfig.Domain) {
+			return errors.New("domain name is not allowed")
+		}
+
+		d[config.Domain] = newDomain
+	} else {
+		domainName := group + "." + *pagesDomain
+		d[domainName] = newDomain
+	}
+	return
+}
+
+func (d domains) readProjects(group string) (count int) {
+	projects, err := os.Open(filepath.Join(*pagesRoot, group))
+	if err != nil {
+		return
+	}
+	defer projects.Close()
+
+	fis, err := projects.Readdir(0)
+	if err != nil {
+		log.Println("Failed to Readdir for ", *pagesRoot, ":", err)
+	}
+
+	for _, project := range fis {
+		if !project.IsDir() {
+			continue
+		}
+		if strings.HasPrefix(project.Name(), ".") {
+			continue
+		}
+
+		count++
+
+		var config domainsConfig
+		err := config.Read(group, project.Name())
 		if err != nil {
 			continue
 		}
 
-		for _, cname := range strings.Fields(string(cnameData)) {
-			cname := strings.ToLower(cname)
-			if strings.HasSuffix(cname, "."+*pagesDomain) {
-				continue
-			}
+		for _, domainConfig := range domainsConfig.Domains {
+			d.addDomain(group, project.Name(), &domainConfig)
+		}
+	}
+	return
+}
 
-			domains[cname] = domain{
-				// TODO: make it nicer
-				Group:   filepath.Base(filepath.Dir(filepath.Dir(cnamePath))),
-				Project: filepath.Base(filepath.Dir(cnamePath)),
-				CNAME:   true,
-			}
+func (d domains) ReadGroups() error {
+	groups, err := os.Open(*pagesRoot)
+	if err != nil {
+		return err
+	}
+	defer groups.Close()
+
+	fis, err := groups.Readdir(0)
+	if err != nil {
+		log.Println("Failed to Readdir for ", *pagesRoot, ":", err)
+	}
+
+	for _, group := range fis {
+		if !group.IsDir() {
+			continue
+		}
+		if strings.HasPrefix(group.Name(), ".") {
+			continue
+		}
+
+		count := d.readProjects(group.Name())
+		if count > 0 {
+			d.addDomain(group, "", &domainConfig)
 		}
 	}
 	return nil
 }
 
 func watchDomains(updater domainsUpdater) {
-	var lastModified time.Time
+	lastUpdate := "no-configuration"
 
 	for {
-		fi, err := os.Stat(*pagesRoot)
-		if err != nil || !fi.IsDir() {
-			log.Println("Failed to read domains from", *pagesRoot, "due to:", err, fi.IsDir())
-			time.Sleep(time.Second)
+		update, err := ioutil.ReadFile(filepath.Join(*pagesRoot, ".update"))
+		if bytes.Equal(lastUpdate, update) {
+			if err != nil {
+				log.Println("Failed to read update timestamp:", err)
+				time.Sleep(time.Second)
+			}
 			continue
 		}
-
-		// If directory did not get modified we will reload
-		if !lastModified.Before(fi.ModTime()) {
-			time.Sleep(time.Second)
-			continue
-		}
-		lastModified = fi.ModTime()
+		lastUpdate = update
 
 		started := time.Now()
 		domains := make(domains)
-		readGroups(domains)
-		readCnames(domains)
+		domains.ReadGroups()
 		duration := time.Since(started)
 		log.Println("Updated", len(domains), "domains in", duration)
+
 		if updater != nil {
 			updater(domains)
 		}

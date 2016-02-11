@@ -1,18 +1,18 @@
 package main
 
 import (
+	"crypto/tls"
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"crypto/tls"
-	"errors"
 )
 
 type domain struct {
 	Group       string
 	Project     string
-	CNAME       bool
+	Config      *domainConfig
 	certificate *tls.Certificate
 }
 
@@ -63,7 +63,7 @@ func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, su
 	return true
 }
 
-func (d *domain) serverGroup(w http.ResponseWriter, r *http.Request) {
+func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	// The Path always contains "/" at the beggining
 	split := strings.SplitN(r.URL.Path, "/", 3)
 
@@ -84,7 +84,7 @@ func (d *domain) serverGroup(w http.ResponseWriter, r *http.Request) {
 	d.notFound(w, r)
 }
 
-func (d *domain) serveCNAME(w http.ResponseWriter, r *http.Request) {
+func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
 	if d.tryFile(w, r, d.Project, r.URL.Path) {
 		return
 	}
@@ -93,18 +93,15 @@ func (d *domain) serveCNAME(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *domain) ensureCertificate() (*tls.Certificate, error) {
-	if !d.CNAME {
-		return nil, errors.New("tls certificates can be loaded only for pages with CNAME")
+	if !d.Config {
+		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
 	if d.certificate != nil {
 		return d.certificate, nil
 	}
 
-	// Load keypair from shared/pages/group/project/domain.{crt,key}
-	certificateFile := filepath.Join(*pagesRoot, d.Group, d.Project, "domain.crt")
-	keyFile := filepath.Join(*pagesRoot, d.Group, d.Project, "domain.key")
-	tls, err := tls.LoadX509KeyPair(certificateFile, keyFile)
+	tls, err := tls.X509KeyPair([]byte(d.Config.Certificate), []byte(d.Config.Key))
 	if err != nil {
 		return nil, err
 	}
@@ -114,9 +111,9 @@ func (d *domain) ensureCertificate() (*tls.Certificate, error) {
 }
 
 func (d *domain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if d.CNAME {
-		d.serveCNAME(w, r)
+	if d.Config != nil {
+		d.serveFromConfig(w, r)
 	} else {
-		d.serverGroup(w, r)
+		d.serveFromGroup(w, r)
 	}
 }

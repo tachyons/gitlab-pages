@@ -8,9 +8,13 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"syscall"
 )
 
+// VERSION stores the information about the semantic version of application
 var VERSION = "dev"
+
+// REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
 
 var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
@@ -23,8 +27,8 @@ var serverHTTP = flag.Bool("serve-http", true, "Serve the pages under HTTP")
 var http2proto = flag.Bool("http2", true, "Enable HTTP2 support")
 var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 
-const XForwardedProto = "X-Forwarded-Proto"
-const XForwardedProtoHttps = "https"
+const xForwardedProto = "X-Forwarded-Proto"
+const xForwardedProtoHTTPS = "https"
 
 type theApp struct {
 	domains domains
@@ -77,8 +81,8 @@ func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
 }
 
 func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
-	forwardedProto := r.Header.Get(XForwardedProto)
-	https := forwardedProto == XForwardedProtoHttps
+	forwardedProto := r.Header.Get(xForwardedProto)
+	https := forwardedProto == xForwardedProtoHTTPS
 	a.serveContent(ww, r, https)
 }
 
@@ -91,9 +95,8 @@ func main() {
 	var wg sync.WaitGroup
 	var app theApp
 
-	fmt.Println("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
-	fmt.Println("URL: https://gitlab.com/gitlab-org/gitlab-pages")
-
+	fmt.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
+	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 	flag.Parse()
 
 	// Listen for HTTP
@@ -101,7 +104,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := ListenAndServe(*listenHTTP, app.ServeHTTP)
+			err := listenAndServe(*listenHTTP, app.ServeHTTP)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -113,7 +116,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := ListenAndServeTLS(*listenHTTPS, *pagesRootCert, *pagesRootKey, app.ServeHTTP, app.ServeTLS)
+			err := listenAndServeTLS(*listenHTTPS, *pagesRootCert, *pagesRootKey, app.ServeHTTP, app.ServeTLS)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -125,7 +128,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := ListenAndServe(*listenProxy, app.ServeProxy)
+			err := listenAndServe(*listenProxy, app.ServeProxy)
 			if err != nil {
 				log.Fatal(err)
 			}

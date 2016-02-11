@@ -6,9 +6,9 @@ import (
 	"net/http"
 )
 
-type TLSHandlerFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
+type tlsHandlerFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 
-func ListenAndServe(addr string, handler http.HandlerFunc) error {
+func listenAndServe(addr string, handler http.HandlerFunc) error {
 	// create server
 	server := &http.Server{Addr: addr, Handler: handler}
 
@@ -22,7 +22,7 @@ func ListenAndServe(addr string, handler http.HandlerFunc) error {
 	return server.ListenAndServe()
 }
 
-func ListenAndServeTLS(addr string, certFile, keyFile string, handler http.HandlerFunc, tlsHandler TLSHandlerFunc) error {
+func listenAndServeTLS(addr string, certFile, keyFile string, handler http.HandlerFunc, tlsHandler tlsHandlerFunc) error {
 	// create server
 	server := &http.Server{Addr: addr, Handler: handler}
 	server.TLSConfig = &tls.Config{}
