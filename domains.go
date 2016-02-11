@@ -22,12 +22,14 @@ func (d domains) addDomain(group, project string, config *domainConfig) error {
 		Config:  config,
 	}
 
+	var domainName string
 	if config != nil {
-		d[config.Domain] = newDomain
+		domainName = config.Domain
 	} else {
-		domainName := group + "." + *pagesDomain
-		d[domainName] = newDomain
+		domainName = group + "." + *pagesDomain
 	}
+	domainName = strings.ToLower(domainName)
+	d[domainName] = newDomain
 	return nil
 }
 

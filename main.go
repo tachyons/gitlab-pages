@@ -1,13 +1,10 @@
 package main
 
 import (
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
@@ -27,80 +24,6 @@ var pagesRootKey = flag.String("root-key", "", "The default path to file certifi
 var serverHTTP = flag.Bool("serve-http", true, "Serve the pages under HTTP")
 var http2proto = flag.Bool("http2", true, "Enable HTTP2 support")
 var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
-
-const xForwardedProto = "X-Forwarded-Proto"
-const xForwardedProtoHTTPS = "https"
-
-type theApp struct {
-	domains domains
-	lock    sync.RWMutex
-}
-
-func (a *theApp) domain(host string) *domain {
-	a.lock.RLock()
-	defer a.lock.RUnlock()
-	domain, _ := a.domains[host]
-	return domain
-}
-
-func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	if ch.ServerName == "" {
-		return nil, nil
-	}
-
-	host := strings.ToLower(ch.ServerName)
-	if domain := a.domain(host); domain != nil {
-		tls, _ := domain.ensureCertificate()
-		return tls, nil
-	}
-
-	return nil, nil
-}
-
-func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https bool) {
-	w := newLoggingResponseWriter(ww)
-	defer w.Log(r)
-
-	// Add auto redirect
-	if https && !*serverHTTP {
-		u := *r.URL
-		u.Scheme = "https"
-		u.Host = r.Host
-		u.User = nil
-
-		http.Redirect(&w, r, u.String(), 307)
-		return
-	}
-
-	host := strings.ToLower(r.Host)
-	domain := a.domain(host)
-
-	if domain == nil {
-		http.NotFound(&w, r)
-		return
-	}
-
-	// Serve static file
-	domain.ServeHTTP(&w, r)
-}
-
-func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
-	https := r.TLS != nil
-	a.serveContent(ww, r, https)
-}
-
-func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
-	forwardedProto := r.Header.Get(xForwardedProto)
-	https := forwardedProto == xForwardedProtoHTTPS
-	a.serveContent(ww, r, https)
-}
-
-func (a *theApp) UpdateDomains(domains domains) {
-	fmt.Printf("Domains: %v", domains)
-	a.lock.Lock()
-	a.domains = domains
-	a.lock.Unlock()
-}
 
 func resolve() {
 	fullPath, err := filepath.EvalSymlinks(*pagesRoot)
