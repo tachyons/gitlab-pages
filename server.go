@@ -2,12 +2,12 @@ package main
 
 import (
 	"crypto/tls"
-	"golang.org/x/net/http2"
-	"net/http"
-"net"
-	"time"
-	"os"
 	"fmt"
+	"golang.org/x/net/http2"
+	"net"
+	"net/http"
+	"os"
+	"time"
 )
 
 type tlsHandlerFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
@@ -45,12 +45,11 @@ func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConf
 	if tlsConfig != nil {
 		tlsListener := tls.NewListener(tcpKeepAliveListener{l.(*net.TCPListener)}, server.TLSConfig)
 		return server.Serve(tlsListener)
-	} else {
-		return server.Serve(&tcpKeepAliveListener{l.(*net.TCPListener)})
 	}
+	return server.Serve(&tcpKeepAliveListener{l.(*net.TCPListener)})
 }
 
-func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc,tlsHandler tlsHandlerFunc, useHTTP2 bool) error {
+func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, tlsHandler tlsHandlerFunc, useHTTP2 bool) error {
 	certificate, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		return err
@@ -58,7 +57,7 @@ func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc,tl
 
 	tlsConfig := &tls.Config{}
 	tlsConfig.GetCertificate = tlsHandler
-	tlsConfig.NextProtos = []string {
+	tlsConfig.NextProtos = []string{
 		"http/1.1",
 	}
 	tlsConfig.Certificates = []tls.Certificate{

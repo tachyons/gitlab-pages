@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
-	"path/filepath"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -63,17 +63,16 @@ func main() {
 	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 	flag.Parse()
 
-	var app theApp
-
-	app.Domain = strings.ToLower(*pagesDomain)
-	app.RootDir = evalSymlinks(*pagesRoot)
-	app.RedirectHTTP = *redirectHTTP
-	app.HTTP2 = *useHTTP2
-
-	err := os.Chdir(app.RootDir)
+	err := os.Chdir(*pagesRoot)
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	var app theApp
+
+	app.Domain = strings.ToLower(*pagesDomain)
+	app.RedirectHTTP = *redirectHTTP
+	app.HTTP2 = *useHTTP2
 
 	if *pagesRootCert != "" {
 		app.RootCertificate = readFile(*pagesRootCert)
