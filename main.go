@@ -16,8 +16,6 @@ var VERSION = "dev"
 var REVISION = "HEAD"
 
 var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
-var serverHTTP = flag.Bool("serve-http", true, "Serve the pages under HTTP")
-var http2proto = flag.Bool("http2", true, "Enable HTTP2 support")
 var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 
 func evalSymlinks(directory string) (result string) {
@@ -57,6 +55,8 @@ func main() {
 	var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
 	var pagesRootCert = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
 	var pagesRootKey = flag.String("root-key", "", "The default path to file certificate to serve static pages")
+	var redirectHTTP = flag.Bool("redirect-http", true, "Serve the pages under HTTP")
+	var useHTTP2 = flag.Bool("use-http2", true, "Enable HTTP2 support")
 
 	fmt.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
 	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
@@ -66,6 +66,8 @@ func main() {
 
 	app.Domain = *pagesDomain
 	app.RootDir = evalSymlinks(*pagesRoot)
+	app.RedirectHTTP = *redirectHTTP
+	app.HTTP2 = *useHTTP2
 
 	if *pagesRootCert != "" {
 		app.RootCertificate = readFile(*pagesRootCert)

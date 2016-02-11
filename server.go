@@ -26,11 +26,11 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func listenAndServe(fd uintptr, handler http.HandlerFunc, tlsConfig *tls.Config) error {
+func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConfig *tls.Config) error {
 	// create server
 	server := &http.Server{Handler: handler, TLSConfig: tlsConfig}
 
-	if *http2proto {
+	if useHTTP2 {
 		err := http2.ConfigureServer(server, &http2.Server{})
 		if err != nil {
 			return err
@@ -50,7 +50,7 @@ func listenAndServe(fd uintptr, handler http.HandlerFunc, tlsConfig *tls.Config)
 	}
 }
 
-func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, tlsHandler tlsHandlerFunc) error {
+func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc,tlsHandler tlsHandlerFunc, useHTTP2 bool) error {
 	certificate, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		return err
@@ -64,5 +64,5 @@ func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, t
 	tlsConfig.Certificates = []tls.Certificate{
 		certificate,
 	}
-	return listenAndServe(fd, handler, tlsConfig)
+	return listenAndServe(fd, handler, useHTTP2, tlsConfig)
 }

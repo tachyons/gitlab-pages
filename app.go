@@ -44,7 +44,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	defer w.Log(r)
 
 	// Add auto redirect
-	if https && !*serverHTTP {
+	if https && !a.RedirectHTTP {
 		u := *r.URL
 		u.Scheme = "https"
 		u.Host = r.Host
@@ -89,7 +89,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := listenAndServe(a.ListenHTTP, a.ServeHTTP, nil)
+			err := listenAndServe(a.ListenHTTP, a.ServeHTTP, a.HTTP2, nil)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -101,7 +101,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := listenAndServeTLS(a.ListenHTTPS, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS)
+			err := listenAndServeTLS(a.ListenHTTPS, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.HTTP2)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -113,7 +113,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := listenAndServe(a.listenProxy, a.ServeProxy, nil)
+			err := listenAndServe(a.listenProxy, a.ServeProxy, a.HTTP2, nil)
 			if err != nil {
 				log.Fatal(err)
 			}
