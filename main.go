@@ -25,6 +25,7 @@ func main() {
 	var useHTTP2 = flag.Bool("use-http2", true, "Enable HTTP2 support")
 	var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 	var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
+	var pagesUser = flag.String("pages-user", "", "Drop privileges to this user")
 
 	fmt.Printf("GitLab Pages Daemon %s (%s)\n", VERSION, REVISION)
 	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
@@ -48,6 +49,28 @@ func main() {
 		app.RootKey = readFile(*pagesRootKey)
 	}
 
+<<<<<<< 9042f5171c4bddc3da330b0e236e5faa78e657c3
+=======
+	//daemonize()
+
+	fmt.Println("Starting...")
+
+	// We don't need root privileges any more
+	//	if err := syscall.Setgid(33); err != nil {
+	//		log.Fatalln("setgid:", err)
+	//	}
+	if err := syscall.Setuid(33); err != nil {
+		log.Fatalln("setuid:", err)
+	}
+
+	err := syscall.Chroot(*pagesRoot)
+	if err != nil {
+		log.Fatalln("chroot:", err)
+	}
+	*pagesRoot = "/"
+
+	// Listen for HTTP
+>>>>>>> Daemonize
 	if *listenHTTP != "" {
 		var l net.Listener
 		l, app.ListenHTTP = createSocket(*listenHTTP)
