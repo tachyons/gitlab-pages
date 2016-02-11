@@ -15,27 +15,25 @@ const validConfig = `{"Domains":[{"Domain":"test"}]}`
 
 func TestDomainConfigValidness(t *testing.T) {
 	d := domainConfig{}
-	assert.False(t, d.Valid())
+	assert.False(t, d.Valid("gitlab.io"))
 
 	d = domainConfig{Domain: "test"}
-	assert.True(t, d.Valid())
-
-	*pagesDomain = "gitlab.io"
+	assert.True(t, d.Valid("gitlab.io"))
 
 	d = domainConfig{Domain: "test"}
-	assert.True(t, d.Valid())
+	assert.True(t, d.Valid("gitlab.io"))
 
 	d = domainConfig{Domain: "test.gitlab.io"}
-	assert.False(t, d.Valid())
+	assert.False(t, d.Valid("gitlab.io"))
 
 	d = domainConfig{Domain: "test.test.gitlab.io"}
-	assert.False(t, d.Valid())
+	assert.False(t, d.Valid("gitlab.io"))
 
 	d = domainConfig{Domain: "test.testgitlab.io"}
-	assert.True(t, d.Valid())
+	assert.True(t, d.Valid("gitlab.io"))
 
 	d = domainConfig{Domain: "test.GitLab.Io"}
-	assert.False(t, d.Valid())
+	assert.False(t, d.Valid("gitlab.io"))
 }
 
 func TestDomainConfigRead(t *testing.T) {

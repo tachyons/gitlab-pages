@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"path/filepath"
+	"io/ioutil"
 	"net"
 	"os"
-	"path/filepath"
+	"strings"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -15,8 +16,6 @@ var VERSION = "dev"
 
 // REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
-
-var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
 
 func evalSymlinks(directory string) (result string) {
 	result, err := filepath.EvalSymlinks(directory)
@@ -58,6 +57,7 @@ func main() {
 	var redirectHTTP = flag.Bool("redirect-http", true, "Serve the pages under HTTP")
 	var useHTTP2 = flag.Bool("use-http2", true, "Enable HTTP2 support")
 	var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
+	var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
 
 	fmt.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
 	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
@@ -65,7 +65,7 @@ func main() {
 
 	var app theApp
 
-	app.Domain = *pagesDomain
+	app.Domain = strings.ToLower(*pagesDomain)
 	app.RootDir = evalSymlinks(*pagesRoot)
 	app.RedirectHTTP = *redirectHTTP
 	app.HTTP2 = *useHTTP2

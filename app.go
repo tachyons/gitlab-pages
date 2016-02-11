@@ -120,7 +120,7 @@ func (a *theApp) Run() {
 		}()
 	}
 
-	go watchDomains(a.UpdateDomains, time.Second)
+	go watchDomains(a.Domain, a.UpdateDomains, time.Second)
 
 	wg.Wait()
 }

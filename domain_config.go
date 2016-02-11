@@ -17,14 +17,14 @@ type domainsConfig struct {
 	Domains []domainConfig
 }
 
-func (c *domainConfig) Valid() bool {
+func (c *domainConfig) Valid(rootDomain string) bool {
 	if c.Domain == "" {
 		return false
 	}
 
 	// TODO: better sanitize domain
 	domain := strings.ToLower(c.Domain)
-	rootDomain := "." + strings.ToLower(*pagesDomain)
+	rootDomain = "." + rootDomain
 	return !strings.HasSuffix(domain, rootDomain)
 }
 

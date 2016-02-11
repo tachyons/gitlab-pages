@@ -15,10 +15,8 @@ const updateFile = ".update"
 func TestReadProjects(t *testing.T) {
 	setUpTests()
 
-	*pagesDomain = "test.io"
-
 	d := make(domains)
-	err := d.ReadGroups()
+	err := d.ReadGroups("test.io")
 	require.NoError(t, err)
 
 	var domains []string
@@ -52,7 +50,7 @@ func TestWatchDomains(t *testing.T) {
 	setUpTests()
 
 	update := make(chan domains)
-	go watchDomains(func(domains domains) {
+	go watchDomains("gitlab.io", func(domains domains) {
 		update <- domains
 	}, time.Microsecond * 50)
 
