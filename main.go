@@ -59,8 +59,8 @@ func main() {
 	var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 	var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
 
-	fmt.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
-	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
+	fmt.Printf("GitLab Pages Daemon %s (%s)\n", VERSION, REVISION)
+	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
 	flag.Parse()
 
 	err := os.Chdir(*pagesRoot)
@@ -69,7 +69,6 @@ func main() {
 	}
 
 	var app theApp
-
 	app.Domain = strings.ToLower(*pagesDomain)
 	app.RedirectHTTP = *redirectHTTP
 	app.HTTP2 = *useHTTP2
@@ -99,4 +98,6 @@ func main() {
 		l, app.ListenHTTPS = createSocket(*listenProxy)
 		defer l.Close()
 	}
+
+	app.Run()
 }

@@ -65,6 +65,14 @@ func (d *domain) checkPath(w http.ResponseWriter, r *http.Request, path string) 
 
 	// If this file is directory, open the index.html
 	if fi.IsDir() {
+		// If the URL doesn't end with /, send location to client
+		if !strings.HasSuffix(r.URL.Path, "/") {
+			newURL := *r.URL
+			newURL.Path += "/"
+			http.Redirect(w, r, newURL.String(), 302)
+			return
+		}
+
 		fullPath = filepath.Join(fullPath, "index.html")
 		fi, err = os.Lstat(fullPath)
 		if err != nil {
