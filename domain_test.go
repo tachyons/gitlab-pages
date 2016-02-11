@@ -6,6 +6,8 @@ import (
 )
 
 func TestGroupServeHTTP(t *testing.T) {
+	setUpTests()
+
 	testGroup := &domain{
 		Group:   "group",
 		Project: "",
@@ -28,6 +30,8 @@ func TestGroupServeHTTP(t *testing.T) {
 }
 
 func TestDomainServeHTTP(t *testing.T) {
+	setUpTests()
+
 	testDomain := &domain{
 		Group:   "group",
 		Project: "project2",

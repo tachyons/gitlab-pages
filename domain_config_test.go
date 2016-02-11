@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-const configFile = "shared/pages/test-group/test-project/config.json"
+const configFile = "test-group/test-project/config.json"
 const invalidConfig = `{"Domains":{}}`
 const validConfig = `{"Domains":[{"Domain":"test"}]}`
 
@@ -39,12 +39,14 @@ func TestDomainConfigValidness(t *testing.T) {
 }
 
 func TestDomainConfigRead(t *testing.T) {
+	setUpTests()
+
 	d := domainsConfig{}
 	err := d.Read("test-group", "test-project")
 	assert.Error(t, err)
 
 	os.MkdirAll(filepath.Dir(configFile), 0700)
-	defer os.RemoveAll("shared/pages/test-group")
+	defer os.RemoveAll("test-group")
 
 	d = domainsConfig{}
 	err = d.Read("test-group", "test-project")

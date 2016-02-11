@@ -10,9 +10,11 @@ import (
 	"time"
 )
 
-const updateFile = "shared/pages/.update"
+const updateFile = ".update"
 
 func TestReadProjects(t *testing.T) {
+	setUpTests()
+
 	*pagesDomain = "test.io"
 
 	d := make(domains)
@@ -47,10 +49,12 @@ func writeRandomTimestamp() {
 }
 
 func TestWatchDomains(t *testing.T) {
+	setUpTests()
+
 	update := make(chan domains)
 	go watchDomains(func(domains domains) {
 		update <- domains
-	}, time.Microsecond)
+	}, time.Microsecond * 50)
 
 	defer os.Remove(updateFile)
 
