@@ -21,7 +21,7 @@ func daemonMain() {
 		return
 	}
 
-	fmt.Printf("Starting the daemon as unprivileged user...\n")
+	fmt.Printf("Starting the daemon as unprivileged user (uid: %d, gid: %d)...\n", syscall.Getuid(), syscall.Getgid())
 
 	// read the configuration from the pipe "ExtraFiles"
 	var config appConfig
