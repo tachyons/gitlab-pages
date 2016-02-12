@@ -3,11 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -16,29 +14,6 @@ var VERSION = "dev"
 
 // REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
-
-func readFile(file string) (result []byte) {
-	result, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return
-}
-
-func createSocket(addr string) (l net.Listener, fd uintptr) {
-	l, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	f, err := l.(*net.TCPListener).File()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fd = f.Fd()
-	return
-}
 
 func main() {
 	var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
