@@ -13,7 +13,7 @@ import (
 	"github.com/kardianos/osext"
 )
 
-const daemonRunProgram = "daemon-run"
+const daemonRunProgram = "gitlab-pages-unprivileged"
 
 func daemonMain() {
 	if os.Args[0] != daemonRunProgram {
