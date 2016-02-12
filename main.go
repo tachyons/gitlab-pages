@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -15,7 +14,7 @@ var VERSION = "dev"
 // REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
 
-func main() {
+func appMain() {
 	var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
 	var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
 	var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
@@ -25,9 +24,10 @@ func main() {
 	var useHTTP2 = flag.Bool("use-http2", true, "Enable HTTP2 support")
 	var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 	var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
+	var pagesUser = flag.String("pages-user", "", "Drop privileges to this user")
 
-	fmt.Printf("GitLab Pages Daemon %s (%s)\n", VERSION, REVISION)
-	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
+	log.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
+	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
 	flag.Parse()
 
 	err := os.Chdir(*pagesRoot)
@@ -35,36 +35,48 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	var app theApp
-	app.Domain = strings.ToLower(*pagesDomain)
-	app.RedirectHTTP = *redirectHTTP
-	app.HTTP2 = *useHTTP2
+	var config appConfig
+	config.Domain = strings.ToLower(*pagesDomain)
+	config.RedirectHTTP = *redirectHTTP
+	config.HTTP2 = *useHTTP2
 
 	if *pagesRootCert != "" {
-		app.RootCertificate = readFile(*pagesRootCert)
+		config.RootCertificate = readFile(*pagesRootCert)
 	}
 
 	if *pagesRootKey != "" {
-		app.RootKey = readFile(*pagesRootKey)
+		config.RootKey = readFile(*pagesRootKey)
 	}
 
 	if *listenHTTP != "" {
 		var l net.Listener
-		l, app.ListenHTTP = createSocket(*listenHTTP)
+		l, config.ListenHTTP = createSocket(*listenHTTP)
 		defer l.Close()
 	}
 
 	if *listenHTTPS != "" {
 		var l net.Listener
-		l, app.ListenHTTPS = createSocket(*listenHTTPS)
+		l, config.ListenHTTPS = createSocket(*listenHTTPS)
 		defer l.Close()
 	}
 
 	if *listenProxy != "" {
 		var l net.Listener
-		l, app.ListenHTTPS = createSocket(*listenProxy)
+		l, config.ListenHTTPS = createSocket(*listenProxy)
 		defer l.Close()
 	}
 
-	app.Run()
+	if *pagesUser != "" {
+		daemonize(config, *pagesUser)
+		return
+	}
+
+	runApp(config)
+}
+
+func main() {
+	log.SetOutput(os.Stderr)
+
+	daemonMain()
+	appMain()
 }

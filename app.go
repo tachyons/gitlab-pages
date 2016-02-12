@@ -124,3 +124,8 @@ func (a *theApp) Run() {
 
 	wg.Wait()
 }
+
+func runApp(config appConfig) {
+	a := theApp{appConfig: config}
+	a.Run()
+}
