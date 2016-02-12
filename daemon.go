@@ -1,17 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"os"
 	"os/exec"
-	"os/user"
-
-	"encoding/json"
-	"fmt"
-	"github.com/kardianos/osext"
 	"os/signal"
+	"os/user"
 	"strconv"
 	"syscall"
+
+	"github.com/kardianos/osext"
 )
 
 const daemonRunProgram = "daemon-run"
@@ -21,7 +20,7 @@ func daemonMain() {
 		return
 	}
 
-	fmt.Printf("Starting the daemon as unprivileged user (uid: %d, gid: %d)...\n", syscall.Getuid(), syscall.Getgid())
+	log.Printf("Starting the daemon as unprivileged user (uid: %d, gid: %d)...", syscall.Getuid(), syscall.Getgid())
 
 	// read the configuration from the pipe "ExtraFiles"
 	var config appConfig
@@ -113,7 +112,7 @@ func daemonize(config appConfig, cmdUser string) {
 			log.Fatalln(err)
 		}
 	}()
-	fmt.Printf("Running the daemon as unprivileged user: %v...\n", cmdUser)
+	log.Printf("Running the daemon as unprivileged user: %v...", cmdUser)
 
 	cmd, err := daemonReexec(cmdUser, daemonRunProgram)
 	if err != nil {

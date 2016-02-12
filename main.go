@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -15,9 +14,7 @@ var VERSION = "dev"
 // REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
 
-func main() {
-	daemonMain()
-
+func appMain() {
 	var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
 	var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
 	var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
@@ -29,8 +26,8 @@ func main() {
 	var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
 	var pagesUser = flag.String("pages-user", "", "Drop privileges to this user")
 
-	fmt.Printf("GitLab Pages Daemon %s (%s)\n", VERSION, REVISION)
-	fmt.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
+	log.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
+	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
 	flag.Parse()
 
 	err := os.Chdir(*pagesRoot)
@@ -71,7 +68,15 @@ func main() {
 
 	if *pagesUser != "" {
 		daemonize(config, *pagesUser)
-	} else {
-		runApp(config)
+		return
 	}
+
+	runApp(config)
+}
+
+func main() {
+	log.SetOutput(os.Stderr)
+
+	daemonMain()
+	appMain()
 }
