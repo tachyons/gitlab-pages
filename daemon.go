@@ -93,7 +93,7 @@ func killProcess(cmd *exec.Cmd) {
 
 func passSignals(cmd *exec.Cmd) {
 	s := make(chan os.Signal)
-	signal.Notify(s, syscall.SIGTERM)
+	signal.Notify(s, syscall.SIGTERM, os.Interrupt, os.Kill)
 
 	go func() {
 		for {
