@@ -16,6 +16,8 @@ var VERSION = "dev"
 var REVISION = "HEAD"
 
 func main() {
+	daemonMain()
+
 	var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
 	var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
 	var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
@@ -36,58 +38,40 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	var app theApp
-	app.Domain = strings.ToLower(*pagesDomain)
-	app.RedirectHTTP = *redirectHTTP
-	app.HTTP2 = *useHTTP2
+	var config appConfig
+	config.Domain = strings.ToLower(*pagesDomain)
+	config.RedirectHTTP = *redirectHTTP
+	config.HTTP2 = *useHTTP2
 
 	if *pagesRootCert != "" {
-		app.RootCertificate = readFile(*pagesRootCert)
+		config.RootCertificate = readFile(*pagesRootCert)
 	}
 
 	if *pagesRootKey != "" {
-		app.RootKey = readFile(*pagesRootKey)
+		config.RootKey = readFile(*pagesRootKey)
 	}
 
-<<<<<<< 9042f5171c4bddc3da330b0e236e5faa78e657c3
-=======
-	//daemonize()
-
-	fmt.Println("Starting...")
-
-	// We don't need root privileges any more
-	//	if err := syscall.Setgid(33); err != nil {
-	//		log.Fatalln("setgid:", err)
-	//	}
-	if err := syscall.Setuid(33); err != nil {
-		log.Fatalln("setuid:", err)
-	}
-
-	err := syscall.Chroot(*pagesRoot)
-	if err != nil {
-		log.Fatalln("chroot:", err)
-	}
-	*pagesRoot = "/"
-
-	// Listen for HTTP
->>>>>>> Daemonize
 	if *listenHTTP != "" {
 		var l net.Listener
-		l, app.ListenHTTP = createSocket(*listenHTTP)
+		l, config.ListenHTTP = createSocket(*listenHTTP)
 		defer l.Close()
 	}
 
 	if *listenHTTPS != "" {
 		var l net.Listener
-		l, app.ListenHTTPS = createSocket(*listenHTTPS)
+		l, config.ListenHTTPS = createSocket(*listenHTTPS)
 		defer l.Close()
 	}
 
 	if *listenProxy != "" {
 		var l net.Listener
-		l, app.ListenHTTPS = createSocket(*listenProxy)
+		l, config.ListenHTTPS = createSocket(*listenProxy)
 		defer l.Close()
 	}
 
-	app.Run()
+	if *pagesUser != "" {
+		daemonize(config, *pagesUser)
+	} else {
+		runApp(config)
+	}
 }
