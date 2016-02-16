@@ -199,7 +199,7 @@ func daemonize(config appConfig, uid, gid uint) {
 	// Create a new file and store the FD
 	daemonUpdateFd(cmd, &config.ListenHTTP)
 	daemonUpdateFd(cmd, &config.ListenHTTPS)
-	daemonUpdateFd(cmd, &config.listenProxy)
+	daemonUpdateFd(cmd, &config.ListenProxy)
 
 	// Start the process
 	if err = cmd.Start(); err != nil {
