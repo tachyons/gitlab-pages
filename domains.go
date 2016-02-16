@@ -139,7 +139,7 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		domains := make(domains)
 		domains.ReadGroups(rootDomain)
 		duration := time.Since(started)
-		log.Println("Updated", len(domains), "domains in", duration)
+		log.Println("Updated", len(domains), "domains in", duration, "Hash:", update)
 
 		if updater != nil {
 			updater(domains)

@@ -24,7 +24,8 @@ func appMain() {
 	var useHTTP2 = flag.Bool("use-http2", true, "Enable HTTP2 support")
 	var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 	var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
-	var pagesUser = flag.String("pages-user", "", "Drop privileges to this user")
+	var daemonUID = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
+	var daemonGID = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 
 	log.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
@@ -66,8 +67,8 @@ func appMain() {
 		defer l.Close()
 	}
 
-	if *pagesUser != "" {
-		daemonize(config, *pagesUser)
+	if *daemonUID != 0 || *daemonGID != 0 {
+		daemonize(config, *daemonUID, *daemonGID)
 		return
 	}
 

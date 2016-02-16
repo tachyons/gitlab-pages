@@ -1,13 +1,15 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
-	"os/user"
-	"strconv"
+	"path/filepath"
 	"syscall"
 
 	"github.com/kardianos/osext"
@@ -31,23 +33,8 @@ func daemonMain() {
 	os.Exit(0)
 }
 
-func daemonReexec(cmdUser string, args ...string) (cmd *exec.Cmd, err error) {
+func daemonReexec(uid, gid uint, args ...string) (cmd *exec.Cmd, err error) {
 	path, err := osext.Executable()
-	if err != nil {
-		return
-	}
-
-	u, err := user.Lookup(cmdUser)
-	if err != nil {
-		return
-	}
-
-	uid, err := strconv.Atoi(u.Uid)
-	if err != nil {
-		return
-	}
-
-	gid, err := strconv.Atoi(u.Gid)
 	if err != nil {
 		return
 	}
@@ -105,20 +92,101 @@ func passSignals(cmd *exec.Cmd) {
 	}()
 }
 
-func daemonize(config appConfig, cmdUser string) {
+func copyFile(dest, src string, perm os.FileMode) (err error) {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_EXCL, perm)
+	if err != nil {
+		return
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, srcFile)
+	return
+}
+
+func daemonCreateExecutable(name string, perm os.FileMode) (file *os.File, err error) {
+	// We assume that crypto random generates true random, non-colliding hash
+	b := make([]byte, 16)
+	_, err = rand.Read(b)
+	if err != nil {
+		return
+	}
+
+	path := fmt.Sprintf("%s.%x", name, b)
+	file, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, perm)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func daemonChroot(cmd *exec.Cmd) (path string, err error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return
+	}
+
+	// Generate temporary file
+	temporaryExecutable, err := daemonCreateExecutable(".daemon", 0755)
+	if err != nil {
+		return
+	}
+	defer temporaryExecutable.Close()
+	defer func() {
+		// Remove the temporary file in case of failure
+		if err != nil {
+			os.Remove(temporaryExecutable.Name())
+		}
+	}()
+
+	// Open current executable
+	executableFile, err := os.Open(cmd.Path)
+	if err != nil {
+		return
+	}
+	defer executableFile.Close()
+
+	// Copy the executable content
+	_, err = io.Copy(temporaryExecutable, executableFile)
+	if err != nil {
+		return
+	}
+
+	// Update command to use chroot
+	cmd.SysProcAttr.Chroot = wd
+	cmd.Path = temporaryExecutable.Name()
+	cmd.Dir = "/"
+	path = filepath.Join(wd, temporaryExecutable.Name())
+	return
+}
+
+func daemonize(config appConfig, uid, gid uint) {
 	var err error
 	defer func() {
 		if err != nil {
 			log.Fatalln(err)
 		}
 	}()
-	log.Printf("Running the daemon as unprivileged user: %v...", cmdUser)
+	log.Printf("Running the daemon as unprivileged user (uid:%d, gid: %d)...", uid, gid)
 
-	cmd, err := daemonReexec(cmdUser, daemonRunProgram)
+	cmd, err := daemonReexec(uid, gid, daemonRunProgram)
 	if err != nil {
 		return
 	}
 	defer killProcess(cmd)
+
+	// Run daemon in chroot environment
+	temporaryExecutable, err := daemonChroot(cmd)
+	if err != nil {
+		println("Chroot failed", err)
+		return
+	}
+	defer os.Remove(temporaryExecutable)
 
 	// Create a pipe to pass the configuration
 	configReader, configWriter, err := os.Pipe()
@@ -135,6 +203,7 @@ func daemonize(config appConfig, cmdUser string) {
 
 	// Start the process
 	if err = cmd.Start(); err != nil {
+		println("Start failed", err)
 		return
 	}
 
@@ -143,6 +212,9 @@ func daemonize(config appConfig, cmdUser string) {
 		return
 	}
 	configWriter.Close()
+
+	// Remove executable
+	os.Remove(temporaryExecutable)
 
 	// Pass through signals
 	passSignals(cmd)
