@@ -1,0 +1,13 @@
+image: golang:2.1
+
+# Put the go sources in GOPATH
+# This is required to make the vendor working
+before_script:
+- GODIR=$GOPATH/src/gitlab.com/gitlab-org/gitlab-pages
+- mkdir -p "$(dirname "$GODIR")"
+- ln -sfv "$(pwd -P)" "$GODIR"
+- cd "$GODIR"
+
+test:
+  script:
+  - make verify
