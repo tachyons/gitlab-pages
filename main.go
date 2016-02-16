@@ -15,7 +15,7 @@ var VERSION = "dev"
 var REVISION = "HEAD"
 
 func appMain() {
-	var listenHTTP = flag.String("listen-http", ":80", "The address to listen for HTTP requests")
+	var listenHTTP = flag.String("listen-http", "", "The address to listen for HTTP requests")
 	var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
 	var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
 	var pagesRootCert = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
@@ -63,7 +63,7 @@ func appMain() {
 
 	if *listenProxy != "" {
 		var l net.Listener
-		l, config.ListenHTTPS = createSocket(*listenProxy)
+		l, config.ListenProxy = createSocket(*listenProxy)
 		defer l.Close()
 	}
 

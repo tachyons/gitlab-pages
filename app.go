@@ -109,11 +109,11 @@ func (a *theApp) Run() {
 	}
 
 	// Listen for HTTP proxy requests
-	if a.listenProxy != 0 {
+	if a.ListenProxy != 0 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := listenAndServe(a.listenProxy, a.ServeProxy, a.HTTP2, nil)
+			err := listenAndServe(a.ListenProxy, a.ServeProxy, a.HTTP2, nil)
 			if err != nil {
 				log.Fatal(err)
 			}

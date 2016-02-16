@@ -125,12 +125,15 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 	lastUpdate := []byte("no-update")
 
 	for {
+		// Read the update file
 		update, err := ioutil.ReadFile(".update")
+		if err != nil && !os.IsNotExist(err) {
+			log.Println("Failed to read update timestamp:", err)
+		}
+
+		// If it's the same ignore
 		if bytes.Equal(lastUpdate, update) {
-			if err != nil {
-				log.Println("Failed to read update timestamp:", err)
-				time.Sleep(interval)
-			}
+			time.Sleep(interval)
 			continue
 		}
 		lastUpdate = update
