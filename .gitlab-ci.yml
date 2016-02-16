@@ -1,4 +1,4 @@
-image: golang:2.1
+image: golang:1.5
 
 # Put the go sources in GOPATH
 # This is required to make the vendor working
