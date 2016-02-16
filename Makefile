@@ -11,6 +11,7 @@ GO_LDFLAGS ?= -X main.VERSION=$(VERSION) -X main.REVISION=$(REVISION)
 GO_FILES ?= $(shell find . -name '*.go')
 
 export GO15VENDOREXPERIMENT := 1
+export CGO_ENABLED := 0
 
 all: gitlab-pages
 
@@ -35,7 +36,7 @@ lint:
 
 complexity:
 	go get github.com/fzipp/gocyclo
-	gocyclo -over 8 $(wildcard *.go)
+	gocyclo -over 9 $(wildcard *.go)
 
 test:
 	go get golang.org/x/tools/cmd/cover

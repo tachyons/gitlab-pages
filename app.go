@@ -26,7 +26,6 @@ func (a *theApp) domain(host string) *domain {
 	return domain
 }
 
-
 func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	if ch.ServerName == "" {
 		return nil, nil
