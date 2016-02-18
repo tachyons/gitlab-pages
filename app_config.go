@@ -1,15 +1,15 @@
 package main
 
 type appConfig struct {
-	Domain          string
+	Domain string
 
 	RootCertificate []byte
 	RootKey         []byte
 
-	ListenHTTP      uintptr
-	ListenHTTPS     uintptr
-	ListenProxy     uintptr
+	ListenHTTP  uintptr
+	ListenHTTPS uintptr
+	ListenProxy uintptr
 
-	HTTP2           bool
-	RedirectHTTP    bool
+	HTTP2        bool
+	RedirectHTTP bool
 }
