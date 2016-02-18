@@ -8,17 +8,16 @@ In large environment it can be time consuming to list all directories, and CNAME
 ### How it generates routes
 
 1. It reads the `pages-root` directory to list all groups
-2. It looks for `CNAME` files in `pages-root/group/project` directory, reads them and creates mapping for custom CNAMEs.
+2. It looks for `config.json` file in `pages-root/group/project` directory, reads them and creates mapping for custom domains and certificates.
 3. It generates virtual-host from these data.
-4. Periodically (every second) it checks the `pages-root` directory if it was modified to reload all mappings.
+4. Periodically (every second) it checks the `pages-root/.update` file and reads its content to verify if there was update.
 
-To force route refresh, CNAME reload or TLS certificate reload: `touch pages-root`.
-It will be done asynchronously, not interrupting current requests. 
+To force route refresh, reload of configs fill the `pages-root/.update` with random content.
+The reload will be done asynchronously, and it will not interrupt the current requests. 
 
 ### How it serves content
 
-1. When client initiates the TLS connection, the GitLab-Pages daemon looks in hash map for virtual hosts and tries to load TLS certificate from:
-`pages-root/group/project/domain.{crt,key}`.
+1. When client initiates the TLS connection, the GitLab-Pages daemon looks in hash map for virtual hosts and tries to use loaded from `config.json` certificate.
 
 2. When client asks HTTP server the GitLab-Pages daemon looks in hash map for registered virtual hosts.
 
@@ -38,9 +37,27 @@ If load balancer is run in SSL-offloading mode the custom TLS certificate will n
 
 ### How to run it
 
+Example:
 ```
 go build
-./gitlab-pages -listen-https "" -listen-http ":8090" -pages-root path/to/gitlab/shared/pages
+./gitlab-pages -listen-https "" -listen-http ":8090" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
+```
+
+### Run daemon **in secure mode**
+
+The daemon can be run in chroot with dropped privileges.
+
+Run daemon as root user and pass the `-daemon-uid` and `-daemon-gid`.
+
+The daemon start listening on ports as root, reads certificates as root and re-executes itself as specified user.
+When re-executing it copies it's own binary to `pages-root` and changes root to that directory.
+
+This make it possible to listen on privileged ports and makes it harded the process to read files outside of `pages-root`.
+
+Example:
+```
+go build
+sudo ./gitlab-pages -listen-http ":80" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -daemon-uid 1000 -daemon-gid 1000
 ```
 
 ### License
