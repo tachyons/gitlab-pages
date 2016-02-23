@@ -1,0 +1,8 @@
+v 0.2.0
+- Execute the unprivileged pages daemon in chroot
+
+v 0.1.0
+- Allow to run the pages daemon unprivileged (-daemon-uid, -daemon-gid)
+
+v 0.0.0
+- Initial release
