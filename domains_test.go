@@ -29,6 +29,8 @@ func TestReadProjects(t *testing.T) {
 		"group.internal.test.io",
 		"test.domain.com", // from config.json
 		"other.domain.com",
+		"domain.404.com",
+		"group.404.test.io",
 	}
 
 	for _, expected := range domains {

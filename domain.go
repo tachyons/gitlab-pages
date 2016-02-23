@@ -68,10 +68,10 @@ func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code in
 	return nil
 }
 
-func (d *domain) resolvePath(projectName, subPath string) (fullPath string, err error) {
+func (d *domain) resolvePath(projectName string, subPath ...string) (fullPath string, err error) {
 	publicPath := filepath.Join(d.Group, projectName, "public")
 
-	fullPath = filepath.Join(publicPath, subPath)
+	fullPath = filepath.Join(publicPath, filepath.Join(subPath...))
 	fullPath, err = filepath.EvalSymlinks(fullPath)
 	if err != nil {
 		return
@@ -132,8 +132,8 @@ func (d *domain) checkPath(w http.ResponseWriter, r *http.Request, path string) 
 	return
 }
 
-func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, subPath string) error {
-	path, err := d.resolvePath(projectName, subPath)
+func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName string, subPath ...string) error {
+	path, err := d.resolvePath(projectName, subPath...)
 	if err != nil {
 		return err
 	}
@@ -149,14 +149,8 @@ func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	split := strings.SplitN(r.URL.Path, "/", 3)
 
 	// Try to serve file for http://group.example.com/subpath/... => /group/subpath/...
-	if len(split) >= 2 {
-		subPath := ""
-		if len(split) >= 3 {
-			subPath = split[2]
-		}
-		if d.tryFile(w, r, split[1], subPath) == nil {
-			return
-		}
+	if len(split) >= 2 && d.tryFile(w, r, split[1], split[2:]...) == nil {
+		return
 	}
 
 	// Try to serve file for http://group.example.com/... => /group/group.example.com/...
@@ -170,7 +164,7 @@ func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Try serving not found page for http://group.example.com/ => /group/group.example.com/404.html
-	if r.Host != "" && d.tryFile(w, r, strings.ToLower(r.Host), r.URL.Path) == nil {
+	if r.Host != "" && d.tryNotFound(w, r, strings.ToLower(r.Host)) == nil {
 		return
 	}
 
