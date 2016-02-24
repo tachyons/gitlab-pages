@@ -159,7 +159,7 @@ func daemonChroot(cmd *exec.Cmd) (path string, err error) {
 
 	// Update command to use chroot
 	cmd.SysProcAttr.Chroot = wd
-	cmd.Path = temporaryExecutable.Name()
+	cmd.Path = "/" + temporaryExecutable.Name()
 	cmd.Dir = "/"
 	path = filepath.Join(wd, temporaryExecutable.Name())
 	return
