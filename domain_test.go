@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -44,6 +46,48 @@ func TestDomainServeHTTP(t *testing.T) {
 	assert.HTTPRedirect(t, testDomain.ServeHTTP, "GET", "/subdir", nil)
 	assert.HTTPBodyContains(t, testDomain.ServeHTTP, "GET", "/subdir/", nil, "project2-subdir")
 	assert.HTTPError(t, testDomain.ServeHTTP, "GET", "/not-existing-file", nil)
+}
+
+func testHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, str interface{}) bool {
+	if !assert.HTTPError(t, handler, mode, url, values) {
+		return false
+	}
+	if !assert.HTTPBodyContains(t, handler, mode, url, values, str) {
+		return false
+	}
+	return true
+}
+
+func TestGroup404ServeHTTP(t *testing.T) {
+	setUpTests()
+
+	testGroup := &domain{
+		Group:   "group.404",
+		Project: "",
+	}
+
+	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404/not/existing-file", nil, "Custom 404 project page")
+	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404/", nil, "Custom 404 project page")
+	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.no.404/not/existing-file", nil, "Custom 404 group page")
+	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/not/existing-file", nil, "Custom 404 group page")
+	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
+	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
+	assert.HTTPBodyNotContains(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404.symlink/not/existing-file", nil, "Custom 404 project page")
+}
+
+func TestDomain404ServeHTTP(t *testing.T) {
+	setUpTests()
+
+	testDomain := &domain{
+		Group:   "group.404",
+		Project: "domain.404",
+		Config: &domainConfig{
+			Domain: "domain.404.com",
+		},
+	}
+
+	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
+	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
 }
 
 func TestGroupCertificate(t *testing.T) {
