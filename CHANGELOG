@@ -1,4 +1,5 @@
 v 0.2.1
+- Serve nice GitLab branded 404 page
 - Present user's error page for 404: put the 404.html in root of your pages
 
 v 0.2.0
