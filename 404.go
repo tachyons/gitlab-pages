@@ -1,5 +1,10 @@
 package main
 
+import (
+	"net/http"
+	"fmt"
+)
+
 const predefined404 = `
 <!DOCTYPE html>
 <html>
@@ -56,3 +61,10 @@ const predefined404 = `
   </body>
 </html>
 `
+
+func serve404(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusNotFound)
+	fmt.Fprintln(w, predefined404)
+}

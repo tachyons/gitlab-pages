@@ -169,7 +169,7 @@ func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Serve generic not found
-	http.Error(w, predefined404, http.StatusNotFound)
+	serve404(w)
 }
 
 func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +184,7 @@ func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Serve generic not found
-	http.Error(w, predefined404, http.StatusNotFound)
+	serve404(w)
 }
 
 func (d *domain) ensureCertificate() (*tls.Certificate, error) {

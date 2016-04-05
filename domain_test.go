@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"net/http/httptest"
+	"github.com/stretchr/testify/require"
+	"mime"
 )
 
 func TestGroupServeHTTP(t *testing.T) {
@@ -48,14 +51,16 @@ func TestDomainServeHTTP(t *testing.T) {
 	assert.HTTPError(t, testDomain.ServeHTTP, "GET", "/not-existing-file", nil)
 }
 
-func testHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, str interface{}) bool {
-	if !assert.HTTPError(t, handler, mode, url, values) {
-		return false
-	}
-	if !assert.HTTPBodyContains(t, handler, mode, url, values, str) {
-		return false
-	}
-	return true
+func testHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, str interface{}) {
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(mode, url+"?"+values.Encode(), nil)
+	require.NoError(t, err)
+	handler(w, req)
+
+	contentType, _, _ := mime.ParseMediaType(w.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusNotFound, w.Code, "HTTP status")
+	assert.Equal(t, "text/html", contentType, "Content-Type")
+	assert.Contains(t, w.Body.String(), str)
 }
 
 func TestGroup404ServeHTTP(t *testing.T) {

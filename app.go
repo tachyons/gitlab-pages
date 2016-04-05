@@ -56,7 +56,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	domain := a.domain(r.Host)
 	if domain == nil {
-		http.NotFound(&w, r)
+		serve404(&w)
 		return
 	}
 
