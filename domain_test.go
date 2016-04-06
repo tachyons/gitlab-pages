@@ -2,12 +2,12 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/url"
-	"testing"
-	"net/http/httptest"
 	"github.com/stretchr/testify/require"
 	"mime"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
 )
 
 func TestGroupServeHTTP(t *testing.T) {
