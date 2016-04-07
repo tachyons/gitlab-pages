@@ -30,15 +30,11 @@ func appMain() {
 
 	flag.Parse()
 
-	version := VERSION + "-" + REVISION
-	if *showVersion {
-		log.SetFlags(0)
-		log.Printf(version)
-		os.Exit(0)
-	}
+	printVersion(*showVersion, VERSION)
 
 	log.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
+
 	err := os.Chdir(*pagesRoot)
 	if err != nil {
 		log.Fatalln(err)
@@ -81,6 +77,14 @@ func appMain() {
 	}
 
 	runApp(config)
+}
+
+func printVersion(showVersion bool, version string) {
+	if showVersion {
+		log.SetFlags(0)
+		log.Printf(version)
+		os.Exit(0)
+	}
 }
 
 func main() {
