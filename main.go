@@ -15,6 +15,7 @@ var VERSION = "dev"
 var REVISION = "HEAD"
 
 func appMain() {
+	var showVersion = flag.Bool("version", false, "Show version")
 	var listenHTTP = flag.String("listen-http", "", "The address to listen for HTTP requests")
 	var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
 	var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
@@ -27,9 +28,12 @@ func appMain() {
 	var daemonUID = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	var daemonGID = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 
+	flag.Parse()
+
+	printVersion(*showVersion, VERSION)
+
 	log.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
-	flag.Parse()
 
 	err := os.Chdir(*pagesRoot)
 	if err != nil {
@@ -73,6 +77,14 @@ func appMain() {
 	}
 
 	runApp(config)
+}
+
+func printVersion(showVersion bool, version string) {
+	if showVersion {
+		log.SetFlags(0)
+		log.Printf(version)
+		os.Exit(0)
+	}
 }
 
 func main() {

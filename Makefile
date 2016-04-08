@@ -27,8 +27,7 @@ fmt:
 	go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'
 
 vet:
-	go get golang.org/x/tools/cmd/vet
-	go vet
+	go tool vet *.go
 
 lint:
 	go get github.com/golang/lint/golint
