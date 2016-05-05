@@ -95,6 +95,16 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
 }
 
+func TestPredefined404ServeHTTP(t *testing.T) {
+	setUpTests()
+
+	testDomain := &domain{
+		Group: "group",
+	}
+
+	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
+}
+
 func TestGroupCertificate(t *testing.T) {
 	testGroup := &domain{
 		Group:   "group",

@@ -112,7 +112,7 @@ func (d *domain) checkPath(w http.ResponseWriter, r *http.Request, path string) 
 
 	switch {
 	// If the URL doesn't end with /, send location to client
-	case fi.IsDir() && !strings.HasSuffix(r.URL.Path, "/"):
+	case fi.IsDir() && !endsWithSlash(r.URL.Path):
 		newURL := *r.URL
 		newURL.Path += "/"
 		http.Redirect(w, r, newURL.String(), 302)
