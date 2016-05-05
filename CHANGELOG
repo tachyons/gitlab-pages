@@ -1,3 +1,9 @@
+v 0.2.4
+- Fix predefined 404 page content-type
+
+v 0.2.3
+- Add `-version` to command line
+
 v 0.2.2
 - Fix predefined 404 page content-type
 
