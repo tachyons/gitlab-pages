@@ -2,12 +2,12 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/url"
-	"testing"
-	"net/http/httptest"
 	"github.com/stretchr/testify/require"
 	"mime"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
 )
 
 func TestGroupServeHTTP(t *testing.T) {
@@ -93,6 +93,16 @@ func TestDomain404ServeHTTP(t *testing.T) {
 
 	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
 	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
+}
+
+func TestPredefined404ServeHTTP(t *testing.T) {
+	setUpTests()
+
+	testDomain := &domain{
+		Group: "group",
+	}
+
+	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
 
 func TestGroupCertificate(t *testing.T) {
