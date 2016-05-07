@@ -60,6 +60,18 @@ go build
 sudo ./gitlab-pages -listen-http ":80" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -daemon-uid 1000 -daemon-gid 1000
 ```
 
+### Listen on multiple ports
+
+Each of the `listen-http`, `listen-https` and `listen-proxy` arguments can be provided multiple times. Gitlab Pages will accept connections to them all.
+
+Example:
+```
+go build
+./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
+```
+
+This is most useful in dual-stack environments (IPv4+IPv6) where both Gitlab Pages and another HTTP server have to co-exist on the same server.
+
 ### License
 
 MIT
