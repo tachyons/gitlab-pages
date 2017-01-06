@@ -21,7 +21,8 @@ gitlab-pages: $(GO_FILES)
 update:
 	godep save ./...
 
-verify: fmt vet lint complexity test
+verify-lite: fmt vet complexity test # lint does not work on go1.5 any more
+verify: verify-lite lint
 
 fmt:
 	go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'

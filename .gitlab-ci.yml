@@ -8,6 +8,17 @@ before_script:
 - ln -sfv "$(pwd -P)" "$GODIR"
 - cd "$GODIR"
 
-test:
+test:1.5:
+  image: golang:1.5
+  script:
+  - make verify-lite
+
+test:1.6:
+  image: golang:1.6
+  script:
+  - make verify
+
+test:1.7:
+  image: golang:1.7
   script:
   - make verify
