@@ -1,3 +1,6 @@
+v 0.2.5
+- Allow listen-http, listen-https and listen-proxy to be specified multiple times
+
 v 0.2.4
 - Fix predefined 404 page content-type
 

@@ -42,5 +42,8 @@ test:
 	go get golang.org/x/tools/cmd/cover
 	go test ./... -cover
 
+acceptance: gitlab-pages
+	go test ./... -run-acceptance-tests
+
 docker:
 	docker run --rm -it -v ${PWD}:/go/src/pages -w /go/src/pages golang:1.5 /bin/bash

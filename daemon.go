@@ -56,15 +56,20 @@ func daemonReexec(uid, gid uint, args ...string) (cmd *exec.Cmd, err error) {
 	return
 }
 
-func daemonUpdateFd(cmd *exec.Cmd, fd *uintptr) {
-	if *fd == 0 {
-		return
-	}
+func daemonUpdateFd(cmd *exec.Cmd, fd uintptr) (childFd uintptr) {
+	file := os.NewFile(fd, "[socket]")
 
-	file := os.NewFile(*fd, "[socket]")
 	// we add 3 since, we have a 3 predefined FDs
-	*fd = uintptr(3 + len(cmd.ExtraFiles))
+	childFd = uintptr(3 + len(cmd.ExtraFiles))
 	cmd.ExtraFiles = append(cmd.ExtraFiles, file)
+
+	return
+}
+
+func daemonUpdateFds(cmd *exec.Cmd, fds []uintptr) {
+	for idx, fd := range fds {
+		fds[idx] = daemonUpdateFd(cmd, fd)
+	}
 }
 
 func killProcess(cmd *exec.Cmd) {
@@ -196,10 +201,10 @@ func daemonize(config appConfig, uid, gid uint) {
 	defer configWriter.Close()
 	cmd.ExtraFiles = append(cmd.ExtraFiles, configReader)
 
-	// Create a new file and store the FD
-	daemonUpdateFd(cmd, &config.ListenHTTP)
-	daemonUpdateFd(cmd, &config.ListenHTTPS)
-	daemonUpdateFd(cmd, &config.ListenProxy)
+	// Create a new file and store the FD for each listener
+	daemonUpdateFds(cmd, config.ListenHTTP)
+	daemonUpdateFds(cmd, config.ListenHTTPS)
+	daemonUpdateFds(cmd, config.ListenProxy)
 
 	// Start the process
 	if err = cmd.Start(); err != nil {

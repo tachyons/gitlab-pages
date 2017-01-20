@@ -85,39 +85,40 @@ func (a *theApp) UpdateDomains(domains domains) {
 func (a *theApp) Run() {
 	var wg sync.WaitGroup
 
-	if a.ListenHTTP != 0 {
+	// Listen for HTTP
+	for _, fd := range a.ListenHTTP {
 		wg.Add(1)
-		go func() {
+		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(a.ListenHTTP, a.ServeHTTP, a.HTTP2, nil)
+			err := listenAndServe(fd, a.ServeHTTP, a.HTTP2, nil)
 			if err != nil {
 				log.Fatal(err)
 			}
-		}()
+		}(fd)
 	}
 
 	// Listen for HTTPS
-	if a.ListenHTTPS != 0 {
+	for _, fd := range a.ListenHTTPS {
 		wg.Add(1)
-		go func() {
+		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServeTLS(a.ListenHTTPS, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.HTTP2)
+			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.HTTP2)
 			if err != nil {
 				log.Fatal(err)
 			}
-		}()
+		}(fd)
 	}
 
 	// Listen for HTTP proxy requests
-	if a.ListenProxy != 0 {
+	for _, fd := range a.ListenProxy {
 		wg.Add(1)
-		go func() {
+		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(a.ListenProxy, a.ServeProxy, a.HTTP2, nil)
+			err := listenAndServe(fd, a.ServeProxy, a.HTTP2, nil)
 			if err != nil {
 				log.Fatal(err)
 			}
-		}()
+		}(fd)
 	}
 
 	go watchDomains(a.Domain, a.UpdateDomains, time.Second)

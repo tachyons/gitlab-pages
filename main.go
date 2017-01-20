@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"net"
 	"os"
 	"strings"
 )
@@ -16,9 +15,12 @@ var REVISION = "HEAD"
 
 func appMain() {
 	var showVersion = flag.Bool("version", false, "Show version")
-	var listenHTTP = flag.String("listen-http", "", "The address to listen for HTTP requests")
-	var listenHTTPS = flag.String("listen-https", "", "The address to listen for HTTPS requests")
-	var listenProxy = flag.String("listen-proxy", "", "The address to listen for proxy requests")
+	var listenHTTP, listenHTTPS, listenProxy MultiStringFlag
+
+	flag.Var(&listenHTTP, "listen-http", "The address(es) to listen on for HTTP requests")
+	flag.Var(&listenHTTPS, "listen-https", "The address(es) to listen on for HTTPS requests")
+	flag.Var(&listenProxy, "listen-proxy", "The address(es) to listen on for proxy requests")
+
 	var pagesRootCert = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
 	var pagesRootKey = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 	var redirectHTTP = flag.Bool("redirect-http", true, "Serve the pages under HTTP")
@@ -53,22 +55,22 @@ func appMain() {
 		config.RootKey = readFile(*pagesRootKey)
 	}
 
-	if *listenHTTP != "" {
-		var l net.Listener
-		l, config.ListenHTTP = createSocket(*listenHTTP)
+	for _, addr := range listenHTTP {
+		l, fd := createSocket(addr)
 		defer l.Close()
+		config.ListenHTTP = append(config.ListenHTTP, fd)
 	}
 
-	if *listenHTTPS != "" {
-		var l net.Listener
-		l, config.ListenHTTPS = createSocket(*listenHTTPS)
+	for _, addr := range listenHTTPS {
+		l, fd := createSocket(addr)
 		defer l.Close()
+		config.ListenHTTPS = append(config.ListenHTTPS, fd)
 	}
 
-	if *listenProxy != "" {
-		var l net.Listener
-		l, config.ListenProxy = createSocket(*listenProxy)
+	for _, addr := range listenProxy {
+		l, fd := createSocket(addr)
 		defer l.Close()
+		config.ListenProxy = append(config.ListenProxy, fd)
 	}
 
 	if *daemonUID != 0 || *daemonGID != 0 {
