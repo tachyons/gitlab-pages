@@ -27,6 +27,7 @@ func appMain() {
 	var useHTTP2 = flag.Bool("use-http2", true, "Enable HTTP2 support")
 	var pagesRoot = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 	var pagesDomain = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
+	var metricsAdress = flag.String("metrics-address", "", "The adress to server metrics to")
 	var daemonUID = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	var daemonGID = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 
@@ -46,6 +47,7 @@ func appMain() {
 	config.Domain = strings.ToLower(*pagesDomain)
 	config.RedirectHTTP = *redirectHTTP
 	config.HTTP2 = *useHTTP2
+	config.MetricsAddress = *metricsAdress
 
 	if *pagesRootCert != "" {
 		config.RootCertificate = readFile(*pagesRootCert)

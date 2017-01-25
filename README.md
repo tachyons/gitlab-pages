@@ -13,7 +13,7 @@ In large environment it can be time consuming to list all directories, and CNAME
 4. Periodically (every second) it checks the `pages-root/.update` file and reads its content to verify if there was update.
 
 To force route refresh, reload of configs fill the `pages-root/.update` with random content.
-The reload will be done asynchronously, and it will not interrupt the current requests. 
+The reload will be done asynchronously, and it will not interrupt the current requests.
 
 ### How it serves content
 

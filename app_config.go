@@ -6,9 +6,10 @@ type appConfig struct {
 	RootCertificate []byte
 	RootKey         []byte
 
-	ListenHTTP  []uintptr
-	ListenHTTPS []uintptr
-	ListenProxy []uintptr
+	ListenHTTP     []uintptr
+	ListenHTTPS    []uintptr
+	ListenProxy    []uintptr
+	MetricsAddress string
 
 	HTTP2        bool
 	RedirectHTTP bool

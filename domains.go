@@ -30,6 +30,8 @@ func (d domains) addDomain(rootDomain, group, project string, config *domainConf
 	}
 	domainName = strings.ToLower(domainName)
 	d[domainName] = newDomain
+
+	domainsServed.Inc()
 	return nil
 }
 
@@ -147,6 +149,12 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		if updater != nil {
 			updater(domains)
 		}
+
+		// Update prometheus metrics
+		domainLastUpdateTime.Set(float64(time.Now().UTC().Unix()))
+		domainsServed.Set(float64(len(domains)))
+		domainUpdates.Inc()
+
 		time.Sleep(interval)
 	}
 }

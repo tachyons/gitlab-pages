@@ -124,7 +124,7 @@ func (l ListenSpec) JoinHostPort() string {
 // GetPageFromProcess to do a HTTP GET against a listener.
 //
 // If run as root via sudo, the gitlab-pages process will drop privileges
-func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec) (teardown func()) {
+func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) (teardown func()) {
 	var tempfiles []string
 	var args []string
 	var hasHTTPS bool
@@ -146,14 +146,18 @@ func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec) (te
 		args = append(args, "-root-key", key, "-root-cert", cert)
 	}
 
+	if promPort != "" {
+		args = append(args, "-metrics-address", promPort)
+	}
+
 	if os.Geteuid() == 0 && os.Getenv("SUDO_UID") != "" && os.Getenv("SUDO_GID") != "" {
 		t.Log("Pages process will drop privileges")
 		args = append(args, "-daemon-uid", os.Getenv("SUDO_UID"), "-daemon-gid", os.Getenv("SUDO_GID"))
 	}
 
 	cmd := exec.Command(pagesPath, args...)
-	t.Logf("Running %s %v", pagesPath, args)
 	cmd.Start()
+	fmt.Println("Running %s %v", pagesPath, args)
 
 	// Wait for all TCP servers to be open. Even with this, gitlab-pages
 	// will sometimes return 404 if a HTTP request comes in before it has

@@ -4,9 +4,12 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const xForwardedProto = "X-Forwarded-Proto"
@@ -43,6 +46,9 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	w := newLoggingResponseWriter(ww)
 	defer w.Log(r)
 
+	sessionsActive.Inc()
+	defer sessionsActive.Dec()
+
 	// Add auto redirect
 	if https && !a.RedirectHTTP {
 		u := *r.URL
@@ -62,6 +68,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	// Serve static file
 	domain.ServeHTTP(&w, r)
+	processedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
 }
 
 func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
@@ -119,6 +126,14 @@ func (a *theApp) Run() {
 				log.Fatal(err)
 			}
 		}(fd)
+	}
+
+	// Serve metrics for Prometheus
+	if a.MetricsAddress != "" {
+		go func() {
+			http.Handle("/metrics", promhttp.Handler())
+			log.Fatal(http.ListenAndServe(a.MetricsAddress, nil))
+		}()
 	}
 
 	go watchDomains(a.Domain, a.UpdateDomains, time.Second)

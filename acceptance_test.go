@@ -2,9 +2,13 @@ package main
 
 import (
 	"flag"
-	"github.com/stretchr/testify/assert"
+	"fmt"
+	"io/ioutil"
 	"net/http"
+	"regexp"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var shouldRun = flag.Bool("run-acceptance-tests", false, "Run the acceptance tests?")
@@ -33,7 +37,7 @@ func skipUnlessEnabled(t *testing.T) {
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	for _, spec := range listeners {
@@ -48,7 +52,7 @@ func TestUnknownHostReturnsNotFound(t *testing.T) {
 
 func TestKnownHostReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	for _, spec := range listeners {
@@ -58,5 +62,22 @@ func TestKnownHostReturns200(t *testing.T) {
 			rsp.Body.Close()
 			assert.Equal(t, http.StatusOK, rsp.StatusCode)
 		}
+	}
+}
+
+func TestPrometheusMetricsCanBeScraped(t *testing.T) {
+	skipUnlessEnabled(t)
+	listener := []ListenSpec{{"http", "127.0.0.1", "37003"}}
+	fmt.Println("Start pages process")
+	teardown := RunPagesProcess(t, *pagesBinary, listener, ":42345")
+	defer teardown()
+
+	resp, err := http.Get("http://localhost:42345/metrics")
+
+	if assert.NoError(t, err) {
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+
+		assert.Regexp(t, regexp.MustCompile("gitlab_pages_http_sessions_active 0"), string(body))
 	}
 }
