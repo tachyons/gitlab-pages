@@ -9,7 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const xForwardedProto = "X-Forwarded-Proto"
@@ -46,8 +48,8 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	w := newLoggingResponseWriter(ww)
 	defer w.Log(r)
 
-	sessionsActive.Inc()
-	defer sessionsActive.Dec()
+	metrics.SessionsActive.Inc()
+	defer metrics.SessionsActive.Dec()
 
 	// Add auto redirect
 	if https && !a.RedirectHTTP {
@@ -68,7 +70,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	// Serve static file
 	domain.ServeHTTP(&w, r)
-	processedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
+	metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
 }
 
 func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
@@ -129,11 +131,17 @@ func (a *theApp) Run() {
 	}
 
 	// Serve metrics for Prometheus
-	if a.MetricsAddress != "" {
-		go func() {
-			http.Handle("/metrics", promhttp.Handler())
-			log.Fatal(http.ListenAndServe(a.MetricsAddress, nil))
-		}()
+	if a.ListenMetrics != 0 {
+		wg.Add(1)
+		go func(fd uintptr) {
+			defer wg.Done()
+
+			handler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP
+			err := listenAndServe(fd, handler, false, nil)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(a.ListenMetrics)
 	}
 
 	go watchDomains(a.Domain, a.UpdateDomains, time.Second)

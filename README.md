@@ -72,6 +72,17 @@ go build
 
 This is most useful in dual-stack environments (IPv4+IPv6) where both Gitlab Pages and another HTTP server have to co-exist on the same server.
 
+### Enable Prometheus Metrics
+
+For monitoring purposes, one could pass the `-metrics-address` flag when 
+starting. This will expose general metrics about the Go runtime and pages 
+application for [Prometheus](https://prometheus.io/) to scrape.
+
+Example:
+```
+./gitlab-pages -listen-http ":8090" -metrics-address ":9101" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
+```
+
 ### License
 
 MIT

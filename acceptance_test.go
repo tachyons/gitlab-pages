@@ -2,10 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -68,7 +66,6 @@ func TestKnownHostReturns200(t *testing.T) {
 func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	skipUnlessEnabled(t)
 	listener := []ListenSpec{{"http", "127.0.0.1", "37003"}}
-	fmt.Println("Start pages process")
 	teardown := RunPagesProcess(t, *pagesBinary, listener, ":42345")
 	defer teardown()
 
@@ -78,6 +75,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
 
-		assert.Regexp(t, regexp.MustCompile("gitlab_pages_http_sessions_active 0"), string(body))
+		assert.Contains(t, string(body), "gitlab_pages_http_sessions_active 0")
+		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 7")
 	}
 }

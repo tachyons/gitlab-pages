@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
 	"net"
@@ -12,6 +11,8 @@ import (
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var chdirSet = false
@@ -125,12 +126,37 @@ func (l ListenSpec) JoinHostPort() string {
 //
 // If run as root via sudo, the gitlab-pages process will drop privileges
 func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) (teardown func()) {
-	var tempfiles []string
-	var args []string
-	var hasHTTPS bool
-
 	_, err := os.Stat(pagesPath)
 	assert.NoError(t, err)
+
+	args, tempfiles := getPagesArgs(t, listeners, promPort)
+	cmd := exec.Command(pagesPath, args...)
+	cmd.Start()
+	t.Logf("Running %s %v", pagesPath, args)
+
+	// Wait for all TCP servers to be open. Even with this, gitlab-pages
+	// will sometimes return 404 if a HTTP request comes in before it has
+	// updated its set of domains. This usually takes < 1ms, hence the sleep
+	// for now. Without it, intermittent failures occur.
+	//
+	// TODO: replace this with explicit status from the pages binary
+	// TODO: fix the first-request race
+	for _, spec := range listeners {
+		spec.WaitUntilListening()
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	return func() {
+		cmd.Process.Kill()
+		cmd.Process.Wait()
+		for _, tempfile := range tempfiles {
+			os.Remove(tempfile)
+		}
+	}
+}
+
+func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string) (args, tempfiles []string) {
+	var hasHTTPS bool
 
 	for _, spec := range listeners {
 		args = append(args, "-listen-"+spec.Type, spec.JoinHostPort())
@@ -155,29 +181,7 @@ func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, pro
 		args = append(args, "-daemon-uid", os.Getenv("SUDO_UID"), "-daemon-gid", os.Getenv("SUDO_GID"))
 	}
 
-	cmd := exec.Command(pagesPath, args...)
-	cmd.Start()
-	fmt.Println("Running %s %v", pagesPath, args)
-
-	// Wait for all TCP servers to be open. Even with this, gitlab-pages
-	// will sometimes return 404 if a HTTP request comes in before it has
-	// updated its set of domains. This usually takes < 1ms, hence the sleep
-	// for now. Without it, intermittent failures occur.
-	//
-	// TODO: replace this with explicit status from the pages binary
-	// TODO: fix the first-request race
-	for _, spec := range listeners {
-		spec.WaitUntilListening()
-	}
-	time.Sleep(50 * time.Millisecond)
-
-	return func() {
-		cmd.Process.Kill()
-		cmd.Process.Wait()
-		for _, tempfile := range tempfiles {
-			os.Remove(tempfile)
-		}
-	}
+	return
 }
 
 // Does an insecure HTTP GET against the listener specified, setting a fake
