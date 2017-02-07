@@ -1,13 +1,58 @@
 {
 	"ImportPath": "gitlab.com/gitlab-org/gitlab-pages",
 	"GoVersion": "go1.5",
+	"GodepVersion": "v79",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/beorn7/perks/quantile",
+			"Rev": "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "f592bd283e9ef86337a432eb50e592278c3d534d"
+		},
+		{
 			"ImportPath": "github.com/kardianos/osext",
 			"Rev": "efacde03154693404c65e7aa7d461ac9014acd0c"
+		},
+		{
+			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
+			"Comment": "v1.0.0-2-gc12348c",
+			"Rev": "c12348ce28de40eed0136aa2b644d0ee0650e56c"
+		},
+		{
+			"ImportPath": "github.com/prometheus/client_golang/prometheus",
+			"Comment": "v0.8.0-9-g334af01",
+			"Rev": "334af0119a8f8fb6af5bb950d535c482cac7f836"
+		},
+		{
+			"ImportPath": "github.com/prometheus/client_golang/prometheus/promhttp",
+			"Comment": "v0.8.0-9-g334af01",
+			"Rev": "334af0119a8f8fb6af5bb950d535c482cac7f836"
+		},
+		{
+			"ImportPath": "github.com/prometheus/client_model/go",
+			"Comment": "model-0.0.2-12-gfa8ad6f",
+			"Rev": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6"
+		},
+		{
+			"ImportPath": "github.com/prometheus/common/expfmt",
+			"Rev": "ebdfc6da46522d58825777cf1f90490a5b1ef1d8"
+		},
+		{
+			"ImportPath": "github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg",
+			"Rev": "ebdfc6da46522d58825777cf1f90490a5b1ef1d8"
+		},
+		{
+			"ImportPath": "github.com/prometheus/common/model",
+			"Rev": "ebdfc6da46522d58825777cf1f90490a5b1ef1d8"
+		},
+		{
+			"ImportPath": "github.com/prometheus/procfs",
+			"Rev": "abf152e5f3e97f2fafac028d2cc06c1feb87ffa5"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",
@@ -18,12 +63,16 @@
 			"Rev": "1297dc01ed0a819ff634c89707081a4df43baf6b"
 		},
 		{
-			"ImportPath": "golang.org/x/crypto/ssh/terminal",
-			"Rev": "1351f936d976c60a0a48d728281922cf63eafb8d"
+			"ImportPath": "golang.org/x/net/http2",
+			"Rev": "07b51741c1d6423d4a6abab1c49940ec09cb1aaf"
 		},
 		{
-			"ImportPath": "golang.org/x/net/http2",
-			"Rev": "b4e17d61b15679caf2335da776c614169a1b4643"
+			"ImportPath": "golang.org/x/net/http2/hpack",
+			"Rev": "07b51741c1d6423d4a6abab1c49940ec09cb1aaf"
+		},
+		{
+			"ImportPath": "golang.org/x/net/lex/httplex",
+			"Rev": "07b51741c1d6423d4a6abab1c49940ec09cb1aaf"
 		}
 	]
 }

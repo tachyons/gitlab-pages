@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 type domains map[string]*domain
@@ -30,6 +32,7 @@ func (d domains) addDomain(rootDomain, group, project string, config *domainConf
 	}
 	domainName = strings.ToLower(domainName)
 	d[domainName] = newDomain
+
 	return nil
 }
 
@@ -147,6 +150,12 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		if updater != nil {
 			updater(domains)
 		}
+
+		// Update prometheus metrics
+		metrics.DomainLastUpdateTime.Set(float64(time.Now().UTC().Unix()))
+		metrics.DomainsServed.Set(float64(len(domains)))
+		metrics.DomainUpdates.Inc()
+
 		time.Sleep(interval)
 	}
 }

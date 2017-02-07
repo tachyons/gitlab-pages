@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
 	"net"
@@ -12,6 +11,8 @@ import (
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var chdirSet = false
@@ -124,36 +125,14 @@ func (l ListenSpec) JoinHostPort() string {
 // GetPageFromProcess to do a HTTP GET against a listener.
 //
 // If run as root via sudo, the gitlab-pages process will drop privileges
-func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec) (teardown func()) {
-	var tempfiles []string
-	var args []string
-	var hasHTTPS bool
-
+func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) (teardown func()) {
 	_, err := os.Stat(pagesPath)
 	assert.NoError(t, err)
 
-	for _, spec := range listeners {
-		args = append(args, "-listen-"+spec.Type, spec.JoinHostPort())
-
-		if spec.Type == "https" {
-			hasHTTPS = true
-		}
-	}
-
-	if hasHTTPS {
-		key, cert := CreateHTTPSFixtureFiles(t)
-		tempfiles = []string{key, cert}
-		args = append(args, "-root-key", key, "-root-cert", cert)
-	}
-
-	if os.Geteuid() == 0 && os.Getenv("SUDO_UID") != "" && os.Getenv("SUDO_GID") != "" {
-		t.Log("Pages process will drop privileges")
-		args = append(args, "-daemon-uid", os.Getenv("SUDO_UID"), "-daemon-gid", os.Getenv("SUDO_GID"))
-	}
-
+	args, tempfiles := getPagesArgs(t, listeners, promPort)
 	cmd := exec.Command(pagesPath, args...)
-	t.Logf("Running %s %v", pagesPath, args)
 	cmd.Start()
+	t.Logf("Running %s %v", pagesPath, args)
 
 	// Wait for all TCP servers to be open. Even with this, gitlab-pages
 	// will sometimes return 404 if a HTTP request comes in before it has
@@ -174,6 +153,35 @@ func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec) (te
 			os.Remove(tempfile)
 		}
 	}
+}
+
+func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string) (args, tempfiles []string) {
+	var hasHTTPS bool
+
+	for _, spec := range listeners {
+		args = append(args, "-listen-"+spec.Type, spec.JoinHostPort())
+
+		if spec.Type == "https" {
+			hasHTTPS = true
+		}
+	}
+
+	if hasHTTPS {
+		key, cert := CreateHTTPSFixtureFiles(t)
+		tempfiles = []string{key, cert}
+		args = append(args, "-root-key", key, "-root-cert", cert)
+	}
+
+	if promPort != "" {
+		args = append(args, "-metrics-address", promPort)
+	}
+
+	if os.Geteuid() == 0 && os.Getenv("SUDO_UID") != "" && os.Getenv("SUDO_GID") != "" {
+		t.Log("Pages process will drop privileges")
+		args = append(args, "-daemon-uid", os.Getenv("SUDO_UID"), "-daemon-gid", os.Getenv("SUDO_GID"))
+	}
+
+	return
 }
 
 // Does an insecure HTTP GET against the listener specified, setting a fake
