@@ -1,3 +1,6 @@
+v 0.3.0
+- Prometheus metrics support with `metrics-address`
+
 v 0.2.5
 - Allow listen-http, listen-https and listen-proxy to be specified multiple times
 
