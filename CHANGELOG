@@ -1,3 +1,6 @@
+v 0.3.1
+- Pass the metrics address fd to the child process
+
 v 0.3.0
 - Prometheus metrics support with `metrics-address`
 
