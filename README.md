@@ -80,7 +80,7 @@ application for [Prometheus](https://prometheus.io/) to scrape.
 
 Example:
 ```
-./gitlab-pages -listen-http ":8090" -metrics-address ":9101" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
+./gitlab-pages -listen-http ":8090" -metrics-address ":9235" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
 ### License
