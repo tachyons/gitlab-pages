@@ -205,7 +205,9 @@ func daemonize(config appConfig, uid, gid uint) {
 	daemonUpdateFds(cmd, config.ListenHTTP)
 	daemonUpdateFds(cmd, config.ListenHTTPS)
 	daemonUpdateFds(cmd, config.ListenProxy)
-	config.ListenMetrics = daemonUpdateFd(cmd, config.ListenMetrics)
+	if config.ListenMetrics != 0 {
+		config.ListenMetrics = daemonUpdateFd(cmd, config.ListenMetrics)
+	}
 
 	// Start the process
 	if err = cmd.Start(); err != nil {
