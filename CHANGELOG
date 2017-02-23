@@ -1,3 +1,6 @@
+v 0.3.2
+- Only pass a metrics fd to the daemon child if a metrics address was specified
+
 v 0.3.1
 - Pass the metrics address fd to the child process
 
