@@ -34,7 +34,7 @@ func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, fullPath stri
 		return err
 	}
 
-	println("Serving", fullPath, "for", r.URL.Path)
+	fmt.Println("Serving", fullPath, "for", r.URL.Path)
 	http.ServeContent(w, r, filepath.Base(file.Name()), fi.ModTime(), file)
 	return nil
 }
@@ -52,7 +52,7 @@ func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code in
 		return err
 	}
 
-	println("Serving", fullPath, "for", r.URL.Path, "with", code)
+	fmt.Println("Serving", fullPath, "for", r.URL.Path, "with", code)
 
 	// Serve the file
 	_, haveType := w.Header()["Content-Type"]
