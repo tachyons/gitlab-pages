@@ -12,11 +12,13 @@ test:1.5:
   image: golang:1.5
   script:
   - make verify-lite
+  - make acceptance
 
 test:1.6:
   image: golang:1.6
   script:
   - make verify
+  - make acceptance
 
 test:1.7:
   image: golang:1.7
