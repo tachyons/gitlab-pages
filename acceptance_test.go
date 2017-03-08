@@ -4,12 +4,12 @@ import (
 	"flag"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var shouldRun = flag.Bool("run-acceptance-tests", false, "Run the acceptance tests?")
 var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to the gitlab-pages binary")
 
 // TODO: Use TCP port 0 everywhere to avoid conflicts. The binary could output
@@ -25,12 +25,15 @@ var listeners = []ListenSpec{
 }
 
 func skipUnlessEnabled(t *testing.T) {
-	if *shouldRun {
-		return
+	if testing.Short() {
+		t.Log("Acceptance tests disabled")
+		t.SkipNow()
 	}
 
-	t.Log("Acceptance tests disabled")
-	t.SkipNow()
+	if _, err := os.Stat(*pagesBinary); os.IsNotExist(err) {
+		t.Errorf("Couldn't find gitlab-pages binary at %s", *pagesBinary)
+		t.FailNow()
+	}
 }
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {

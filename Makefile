@@ -40,10 +40,11 @@ complexity:
 
 test:
 	go get golang.org/x/tools/cmd/cover
-	go test ./... -cover
+	go test ./... -short -cover -v -timeout 1m
 
 acceptance: gitlab-pages
-	go test ./... -run-acceptance-tests
+	go get golang.org/x/tools/cmd/cover
+	go test ./... -cover -v -timeout 1m
 
 docker:
 	docker run --rm -it -v ${PWD}:/go/src/pages -w /go/src/pages golang:1.5 /bin/bash

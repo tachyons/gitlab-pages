@@ -39,15 +39,18 @@ If load balancer is run in SSL-offloading mode the custom TLS certificate will n
 
 Example:
 ```
-go build
+CGO_ENABLED=0 GO15VENDOREXPERIMENT=1 go build
 ./gitlab-pages -listen-https "" -listen-http ":8090" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
 ### Run daemon **in secure mode**
 
-The daemon can be run in chroot with dropped privileges.
+When compiled with `CGO_ENABLED=0` (which is the default), `gitlab-pages` is a
+static binary and so can be run in chroot with dropped privileges.
 
-Run daemon as root user and pass the `-daemon-uid` and `-daemon-gid`.
+To enter this mode, run `gitlab-pages` as the root user and pass it the
+`-daemon-uid` and `-daemon-gid` arguments to specify the user you want it to run
+as.
 
 The daemon start listening on ports as root, reads certificates as root and re-executes itself as specified user.
 When re-executing it copies it's own binary to `pages-root` and changes root to that directory.
@@ -74,8 +77,8 @@ This is most useful in dual-stack environments (IPv4+IPv6) where both Gitlab Pag
 
 ### Enable Prometheus Metrics
 
-For monitoring purposes, one could pass the `-metrics-address` flag when 
-starting. This will expose general metrics about the Go runtime and pages 
+For monitoring purposes, one could pass the `-metrics-address` flag when
+starting. This will expose general metrics about the Go runtime and pages
 application for [Prometheus](https://prometheus.io/) to scrape.
 
 Example:

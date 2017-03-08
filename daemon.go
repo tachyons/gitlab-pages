@@ -188,7 +188,7 @@ func daemonize(config appConfig, uid, gid uint) {
 	// Run daemon in chroot environment
 	temporaryExecutable, err := daemonChroot(cmd)
 	if err != nil {
-		println("Chroot failed", err)
+		log.Println("Chroot failed", err)
 		return
 	}
 	defer os.Remove(temporaryExecutable)
@@ -211,7 +211,7 @@ func daemonize(config appConfig, uid, gid uint) {
 
 	// Start the process
 	if err = cmd.Start(); err != nil {
-		println("Start failed", err)
+		log.Println("Start failed", err)
 		return
 	}
 

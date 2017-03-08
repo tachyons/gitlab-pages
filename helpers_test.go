@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -14,6 +15,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+type tWriter struct {
+	t *testing.T
+}
+
+func (t *tWriter) Write(b []byte) (int, error) {
+	t.t.Log(string(bytes.TrimRight(b, "\r\n")))
+
+	return len(b), nil
+}
 
 var chdirSet = false
 
@@ -131,6 +142,8 @@ func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, pro
 
 	args, tempfiles := getPagesArgs(t, listeners, promPort)
 	cmd := exec.Command(pagesPath, args...)
+	cmd.Stdout = &tWriter{t}
+	cmd.Stderr = &tWriter{t}
 	cmd.Start()
 	t.Logf("Running %s %v", pagesPath, args)
 
@@ -144,10 +157,10 @@ func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, pro
 	for _, spec := range listeners {
 		spec.WaitUntilListening()
 	}
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	return func() {
-		cmd.Process.Kill()
+		cmd.Process.Signal(os.Interrupt)
 		cmd.Process.Wait()
 		for _, tempfile := range tempfiles {
 			os.Remove(tempfile)
@@ -176,9 +189,11 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string) (args, 
 		args = append(args, "-metrics-address", promPort)
 	}
 
-	if os.Geteuid() == 0 && os.Getenv("SUDO_UID") != "" && os.Getenv("SUDO_GID") != "" {
-		t.Log("Pages process will drop privileges")
-		args = append(args, "-daemon-uid", os.Getenv("SUDO_UID"), "-daemon-gid", os.Getenv("SUDO_GID"))
+	// At least one of `-daemon-uid` and `-daemon-gid` must be non-zero
+	if os.Geteuid() == 0 {
+		t.Log("Running pages as a daemon")
+		args = append(args, "-daemon-uid", "0")
+		args = append(args, "-daemon-gid", "65534") // Root user can switch to "nobody"
 	}
 
 	return
