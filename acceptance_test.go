@@ -24,6 +24,11 @@ var listeners = []ListenSpec{
 	{"proxy", "::1", "37002"},
 }
 
+var (
+	httpListener  = listeners[0]
+	httpsListener = listeners[2]
+)
+
 func skipUnlessEnabled(t *testing.T) {
 	if testing.Short() {
 		t.Log("Acceptance tests disabled")
@@ -38,16 +43,15 @@ func skipUnlessEnabled(t *testing.T) {
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false")
 	defer teardown()
 
 	for _, spec := range listeners {
 		rsp, err := GetPageFromListener(t, spec, "invalid.invalid", "")
 
-		if assert.NoError(t, err) {
-			rsp.Body.Close()
-			assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
-		}
+		assert.NoError(t, err)
+		rsp.Body.Close()
+		assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
 	}
 }
 
@@ -59,11 +63,44 @@ func TestKnownHostReturns200(t *testing.T) {
 	for _, spec := range listeners {
 		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com", "project/")
 
-		if assert.NoError(t, err) {
-			rsp.Body.Close()
-			assert.Equal(t, http.StatusOK, rsp.StatusCode)
-		}
+		assert.NoError(t, err)
+		rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
+}
+
+func TestHttpToHttpsRedirectDisabled(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+
+	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
+func TestHttpToHttpsRedirectEnabled(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=true")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
+	assert.Equal(t, 1, len(rsp.Header["Location"]))
+	assert.Equal(t, "https://group.gitlab-example.com/project/", rsp.Header.Get("Location"))
+
+	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestPrometheusMetricsCanBeScraped(t *testing.T) {

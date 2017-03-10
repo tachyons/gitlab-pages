@@ -52,7 +52,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	defer metrics.SessionsActive.Dec()
 
 	// Add auto redirect
-	if https && !a.RedirectHTTP {
+	if !https && a.RedirectHTTP {
 		u := *r.URL
 		u.Scheme = "https"
 		u.Host = r.Host

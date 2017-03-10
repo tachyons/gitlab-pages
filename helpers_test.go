@@ -136,11 +136,11 @@ func (l ListenSpec) JoinHostPort() string {
 // GetPageFromProcess to do a HTTP GET against a listener.
 //
 // If run as root via sudo, the gitlab-pages process will drop privileges
-func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) (teardown func()) {
+func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
 	_, err := os.Stat(pagesPath)
 	assert.NoError(t, err)
 
-	args, tempfiles := getPagesArgs(t, listeners, promPort)
+	args, tempfiles := getPagesArgs(t, listeners, promPort, extraArgs)
 	cmd := exec.Command(pagesPath, args...)
 	cmd.Stdout = &tWriter{t}
 	cmd.Stderr = &tWriter{t}
@@ -168,7 +168,7 @@ func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, pro
 	}
 }
 
-func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string) (args, tempfiles []string) {
+func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraArgs []string) (args, tempfiles []string) {
 	var hasHTTPS bool
 
 	for _, spec := range listeners {
@@ -196,6 +196,8 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string) (args, 
 		args = append(args, "-daemon-gid", "65534") // Root user can switch to "nobody"
 	}
 
+	args = append(args, extraArgs...)
+
 	return
 }
 
@@ -213,4 +215,16 @@ func GetPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string) 
 	t.Logf("curl -H'Host: %s' %s", host, url)
 
 	return InsecureHTTPSClient.Do(req)
+}
+
+func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
+	url := spec.URL(urlsuffix)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Host = host
+
+	return InsecureHTTPSClient.Transport.RoundTrip(req)
 }
