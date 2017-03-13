@@ -1,3 +1,6 @@
+v 0.4.0
+- Fix the `-redirect-http` option so it redirects from HTTP to HTTPS when enabled !21
+
 v 0.3.2
 - Only pass a metrics fd to the daemon child if a metrics address was specified
 
