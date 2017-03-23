@@ -1,5 +1,9 @@
 ## GitLab Pages Daemon
 
+[![build status](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/build.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
+
+[![coverage report](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/coverage.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
+
 This is simple HTTP server written in Go made to serve GitLab Pages with CNAMEs and SNI using HTTP/HTTP2.
 
 This is made to work in small-to-medium scale environments.
