@@ -94,6 +94,9 @@ func (a *theApp) UpdateDomains(domains domains) {
 func (a *theApp) Run() {
 	var wg sync.WaitGroup
 
+	lastUpdate := []byte("first-update")
+	updateDomains(a.Domain, a.UpdateDomains, &lastUpdate)
+
 	// Listen for HTTP
 	for _, fd := range a.ListenHTTP {
 		wg.Add(1)
@@ -143,8 +146,7 @@ func (a *theApp) Run() {
 			}
 		}(a.ListenMetrics)
 	}
-
-	go watchDomains(a.Domain, a.UpdateDomains, time.Second)
+	go watchDomains(a.Domain, a.UpdateDomains, time.Second, &lastUpdate)
 
 	wg.Wait()
 }

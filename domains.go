@@ -124,38 +124,39 @@ func (d domains) ReadGroups(rootDomain string) error {
 	return nil
 }
 
-func watchDomains(rootDomain string, updater domainsUpdater, interval time.Duration) {
-	lastUpdate := []byte("no-update")
-
+// We should block other goroutines until the first update has been completed
+func watchDomains(rootDomain string, updater domainsUpdater, interval time.Duration, lastUpdate *[]byte) {
 	for {
-		// Read the update file
-		update, err := ioutil.ReadFile(".update")
-		if err != nil && !os.IsNotExist(err) {
-			log.Println("Failed to read update timestamp:", err)
-		}
-
-		// If it's the same ignore
-		if bytes.Equal(lastUpdate, update) {
-			time.Sleep(interval)
-			continue
-		}
-		lastUpdate = update
-
-		started := time.Now()
-		domains := make(domains)
-		domains.ReadGroups(rootDomain)
-		duration := time.Since(started)
-		log.Println("Updated", len(domains), "domains in", duration, "Hash:", update)
-
-		if updater != nil {
-			updater(domains)
-		}
-
-		// Update prometheus metrics
-		metrics.DomainLastUpdateTime.Set(float64(time.Now().UTC().Unix()))
-		metrics.DomainsServed.Set(float64(len(domains)))
-		metrics.DomainUpdates.Inc()
-
 		time.Sleep(interval)
+		updateDomains(rootDomain, updater, lastUpdate)
 	}
+}
+
+func updateDomains(rootDomain string, updater domainsUpdater, lastUpdate *[]byte) {
+	// Read the update file
+	update, err := ioutil.ReadFile(".update")
+	if err != nil && !os.IsNotExist(err) {
+		log.Println("Failed to read update timestamp:", err)
+	}
+
+	if bytes.Equal(*lastUpdate, update) {
+		return
+	}
+
+	*lastUpdate = update
+
+	started := time.Now()
+	domains := make(domains)
+	domains.ReadGroups(rootDomain)
+	duration := time.Since(started)
+	log.Println("Updated", len(domains), "domains in", duration, "Hash:", update)
+
+	if updater != nil {
+		updater(domains)
+	}
+
+	// Update prometheus metrics
+	metrics.DomainLastUpdateTime.Set(float64(time.Now().UTC().Unix()))
+	metrics.DomainsServed.Set(float64(len(domains)))
+	metrics.DomainUpdates.Inc()
 }

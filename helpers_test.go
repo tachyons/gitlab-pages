@@ -47,6 +47,7 @@ var InsecureHTTPSClient = &http.Client{
 	Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	},
+	Timeout: 10 * time.Second,
 }
 
 var CertificateFixture = `-----BEGIN CERTIFICATE-----
@@ -153,11 +154,9 @@ func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, pro
 	// for now. Without it, intermittent failures occur.
 	//
 	// TODO: replace this with explicit status from the pages binary
-	// TODO: fix the first-request race
 	for _, spec := range listeners {
 		spec.WaitUntilListening()
 	}
-	time.Sleep(500 * time.Millisecond)
 
 	return func() {
 		cmd.Process.Signal(os.Interrupt)

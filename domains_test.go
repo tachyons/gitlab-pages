@@ -52,9 +52,10 @@ func TestWatchDomains(t *testing.T) {
 	setUpTests()
 
 	update := make(chan domains)
+	lastUpdate := []byte("no-update")
 	go watchDomains("gitlab.io", func(domains domains) {
 		update <- domains
-	}, time.Microsecond*50)
+	}, time.Microsecond*50, &lastUpdate)
 
 	defer os.Remove(updateFile)
 
