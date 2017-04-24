@@ -1,3 +1,6 @@
+v 0.4.1
+- Fix reading configuration for multiple custom domains
+
 v 0.4.0
 - Fix the `-redirect-http` option so it redirects from HTTP to HTTPS when enabled !21
 
