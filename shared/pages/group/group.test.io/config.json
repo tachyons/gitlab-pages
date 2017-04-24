@@ -9,7 +9,7 @@
     {
       "Domain": "other.domain.com",
       "Certificate": "test",
-      "Certificate": "key"
+      "Key": "key"
     }
   ]
 }

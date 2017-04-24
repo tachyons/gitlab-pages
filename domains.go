@@ -44,8 +44,9 @@ func (d domains) readProjectConfig(rootDomain, group, project string) (err error
 	}
 
 	for _, domainConfig := range config.Domains {
+		config := domainConfig // domainConfig is reused for each loop iteration
 		if domainConfig.Valid(rootDomain) {
-			d.addDomain(rootDomain, group, project, &domainConfig)
+			d.addDomain(rootDomain, group, project, &config)
 		}
 	}
 	return
