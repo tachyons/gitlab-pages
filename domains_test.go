@@ -40,6 +40,13 @@ func TestReadProjects(t *testing.T) {
 	for _, actual := range domains {
 		assert.Contains(t, expectedDomains, actual)
 	}
+
+	// Check that multiple domains in the same project are recorded faithfully
+	exp1 := &domainConfig{Domain: "test.domain.com"}
+	assert.Equal(t, exp1, d["test.domain.com"].Config)
+
+	exp2 := &domainConfig{Domain: "other.domain.com", Certificate: "test", Key: "key"}
+	assert.Equal(t, exp2, d["other.domain.com"].Config)
 }
 
 func writeRandomTimestamp() {
