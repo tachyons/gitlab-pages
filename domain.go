@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
 
 type domain struct {
@@ -21,8 +23,33 @@ type domain struct {
 	certificateError error
 }
 
+func acceptsGZip(r *http.Request) bool {
+	if r.Header.Get("Range") != "" {
+		return false
+	}
+	offers := []string{"gzip", "identity"}
+	acceptedEncoding := httputil.NegotiateContentEncoding(r, offers)
+	return acceptedEncoding == "gzip"
+}
+
 func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, fullPath string) error {
 	// Open and serve content of file
+	if acceptsGZip(r) {
+		_, err := os.Stat(fullPath + ".gz")
+		if err == nil {
+			// Set the content type based on the non-gzipped extension
+			_, haveType := w.Header()["Content-Type"]
+			if !haveType {
+				ctype := mime.TypeByExtension(filepath.Ext(fullPath))
+				w.Header().Set("Content-Type", ctype)
+			}
+
+			// Serve up the gzipped version
+			fullPath += ".gz"
+			w.Header().Set("Content-Encoding", "gzip")
+		}
+	}
+
 	file, err := os.Open(fullPath)
 	if err != nil {
 		return err
@@ -41,6 +68,15 @@ func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, fullPath stri
 
 func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, fullPath string) error {
 	// Open and serve content of file
+	ext := filepath.Ext(fullPath)
+	if acceptsGZip(r) {
+		_, err := os.Stat(fullPath + ".gz")
+		if err == nil {
+			// Serve up the gzipped version
+			fullPath += ".gz"
+			w.Header().Set("Content-Encoding", "gzip")
+		}
+	}
 	file, err := os.Open(fullPath)
 	if err != nil {
 		return err
@@ -57,7 +93,7 @@ func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code in
 	// Serve the file
 	_, haveType := w.Header()["Content-Type"]
 	if !haveType {
-		ctype := mime.TypeByExtension(filepath.Ext(fullPath))
+		ctype := mime.TypeByExtension(ext)
 		w.Header().Set("Content-Type", ctype)
 	}
 	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))

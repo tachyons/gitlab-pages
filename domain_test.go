@@ -1,13 +1,16 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"compress/gzip"
+	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGroupServeHTTP(t *testing.T) {
@@ -49,6 +52,80 @@ func TestDomainServeHTTP(t *testing.T) {
 	assert.HTTPRedirect(t, testDomain.ServeHTTP, "GET", "/subdir", nil)
 	assert.HTTPBodyContains(t, testDomain.ServeHTTP, "GET", "/subdir/", nil, "project2-subdir")
 	assert.HTTPError(t, testDomain.ServeHTTP, "GET", "/not-existing-file", nil)
+}
+
+func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, acceptEncoding string, str interface{}, ungzip bool) {
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(mode, url+"?"+values.Encode(), nil)
+	require.NoError(t, err)
+	if acceptEncoding != "" {
+		req.Header.Add("Accept-Encoding", acceptEncoding)
+	}
+	handler(w, req)
+
+	if ungzip {
+		reader, err := gzip.NewReader(w.Body)
+		require.NoError(t, err)
+		defer reader.Close()
+
+		contentEncoding := w.Header().Get("Content-Encoding")
+		assert.Equal(t, "gzip", contentEncoding, "Content-Encoding")
+
+		bytes, err := ioutil.ReadAll(reader)
+		require.NoError(t, err)
+		assert.Contains(t, string(bytes), str)
+	} else {
+		assert.Contains(t, w.Body.String(), str)
+	}
+}
+
+func TestGroupServeHTTPGzip(t *testing.T) {
+	setUpTests()
+
+	testGroup := &domain{
+		Group:   "group",
+		Project: "",
+	}
+
+	testSet := []struct {
+		mode           string      // HTTP mode
+		url            string      // Test URL
+		params         url.Values  // Test URL params
+		acceptEncoding string      // Accept encoding header
+		body           interface{} // Expected body at above URL
+		ungzip         bool        // Do we expect the request to require unzip?
+	}{
+		// No gzip encoding requested
+		{"GET", "http://group.test.io/", nil, "", "main-dir", false},
+		{"GET", "http://group.test.io/", nil, "identity", "main-dir", false},
+		{"GET", "http://group.test.io/", nil, "gzip; q=0", "main-dir", false},
+		// gzip encoding requeste},
+		{"GET", "http://group.test.io/", nil, "*", "main-dir", true},
+		{"GET", "http://group.test.io/", nil, "identity, gzip", "main-dir", true},
+		{"GET", "http://group.test.io/", nil, "gzip", "main-dir", true},
+		{"GET", "http://group.test.io/", nil, "gzip; q=1", "main-dir", true},
+		{"GET", "http://group.test.io/", nil, "gzip; q=0.9", "main-dir", true},
+		{"GET", "http://group.test.io/", nil, "gzip, deflate", "main-dir", true},
+		{"GET", "http://group.test.io/", nil, "gzip; q=1, deflate", "main-dir", true},
+		{"GET", "http://group.test.io/", nil, "gzip; q=0.9, deflate", "main-dir", true},
+		// gzip encoding requested, but url does not have compressed content on disk
+		{"GET", "http://group.test.io/project2/", nil, "*", "project2-main", false},
+		{"GET", "http://group.test.io/project2/", nil, "identity, gzip", "project2-main", false},
+		{"GET", "http://group.test.io/project2/", nil, "gzip", "project2-main", false},
+		{"GET", "http://group.test.io/project2/", nil, "gzip; q=1", "project2-main", false},
+		{"GET", "http://group.test.io/project2/", nil, "gzip; q=0.9", "project2-main", false},
+		{"GET", "http://group.test.io/project2/", nil, "gzip, deflate", "project2-main", false},
+		{"GET", "http://group.test.io/project2/", nil, "gzip; q=1, deflate", "project2-main", false},
+		{"GET", "http://group.test.io/project2/", nil, "gzip; q=0.9, deflate", "project2-main", false},
+		// malformed headers
+		{"GET", "http://group.test.io/", nil, ";; gzip", "main-dir", false},
+		{"GET", "http://group.test.io/", nil, "middle-out", "main-dir", false},
+		{"GET", "http://group.test.io/", nil, "gzip; quality=1", "main-dir", false},
+	}
+
+	for _, tt := range testSet {
+		testHTTPGzip(t, testGroup.ServeHTTP, tt.mode, tt.url, tt.params, tt.acceptEncoding, tt.body, tt.ungzip)
+	}
 }
 
 func testHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, str interface{}) {
