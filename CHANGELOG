@@ -1,3 +1,6 @@
+v 0.4.2
+- Support for statically compressed gzip content-encoding
+
 v 0.4.1
 - Fix reading configuration for multiple custom domains
 
