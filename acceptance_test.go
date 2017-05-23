@@ -69,6 +69,21 @@ func TestKnownHostReturns200(t *testing.T) {
 	}
 }
 
+func TestKnownHostWithPortReturns200(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	for _, spec := range listeners {
+		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com:"+spec.Port, "project/")
+
+		assert.NoError(t, err)
+		rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	}
+
+}
+
 func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false")

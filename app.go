@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -62,7 +63,11 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 		return
 	}
 
-	domain := a.domain(r.Host)
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
+	domain := a.domain(host)
 	if domain == nil {
 		serve404(&w)
 		return
