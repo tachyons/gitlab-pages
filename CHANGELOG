@@ -1,3 +1,6 @@
+v 0.4.3
+- Fix domain lookups when Pages is exposed on non-default ports
+
 v 0.4.2
 - Support for statically compressed gzip content-encoding
 
