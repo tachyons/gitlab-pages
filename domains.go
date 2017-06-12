@@ -133,6 +133,8 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		update, err := ioutil.ReadFile(".update")
 		if err != nil && !os.IsNotExist(err) {
 			log.Println("Failed to read update timestamp:", err)
+			time.Sleep(interval)
+			continue
 		}
 
 		// If it's the same ignore
