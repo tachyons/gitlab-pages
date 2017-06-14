@@ -55,6 +55,11 @@
 			"Rev": "abf152e5f3e97f2fafac028d2cc06c1feb87ffa5"
 		},
 		{
+			"ImportPath": "github.com/rs/cors",
+			"Comment": "v1.0-5-g8dd4211",
+			"Rev": "8dd4211afb5d08dbb39a533b9bb9e4b486351df6"
+		},
+		{
 			"ImportPath": "github.com/stretchr/testify/assert",
 			"Rev": "1297dc01ed0a819ff634c89707081a4df43baf6b"
 		},
