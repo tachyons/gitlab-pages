@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to the gitlab-pages binary")
@@ -67,6 +68,67 @@ func TestKnownHostReturns200(t *testing.T) {
 		rsp.Body.Close()
 		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
+}
+
+func TestCORSWhenDisabled(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-disable-cross-origin-requests")
+	defer teardown()
+
+	for _, spec := range listeners {
+		for _, method := range []string{"GET", "OPTIONS"} {
+			rsp := doCrossOriginRequest(t, method, method, spec.URL("project/"))
+
+			assert.Equal(t, http.StatusOK, rsp.StatusCode)
+			assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
+			assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
+		}
+	}
+}
+
+func TestCORSAllowsGET(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	for _, spec := range listeners {
+		for _, method := range []string{"GET", "OPTIONS"} {
+			rsp := doCrossOriginRequest(t, method, method, spec.URL("project/"))
+
+			assert.Equal(t, http.StatusOK, rsp.StatusCode)
+			assert.Equal(t, "*", rsp.Header.Get("Access-Control-Allow-Origin"))
+			assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
+		}
+	}
+}
+
+func TestCORSForbidsPOST(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	for _, spec := range listeners {
+		rsp := doCrossOriginRequest(t, "OPTIONS", "POST", spec.URL("project/"))
+
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+		assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
+		assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
+	}
+}
+
+func doCrossOriginRequest(t *testing.T, method, reqMethod, url string) *http.Response {
+	req, err := http.NewRequest(method, url, nil)
+	require.NoError(t, err)
+
+	req.Host = "group.gitlab-example.com"
+	req.Header.Add("Origin", "example.com")
+	req.Header.Add("Access-Control-Request-Method", reqMethod)
+
+	rsp, err := DoPagesRequest(t, req)
+	require.NoError(t, err)
+
+	rsp.Body.Close()
+	return rsp
 }
 
 func TestKnownHostWithPortReturns200(t *testing.T) {

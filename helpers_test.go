@@ -212,7 +212,11 @@ func GetPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string) 
 
 	req.Host = host
 
-	t.Logf("curl -H'Host: %s' %s", host, url)
+	return DoPagesRequest(t, req)
+}
+
+func DoPagesRequest(t *testing.T, req *http.Request) (*http.Response, error) {
+	t.Logf("curl -X %s -H'Host: %s' %s", req.Method, req.Host, req.URL)
 
 	return InsecureHTTPSClient.Do(req)
 }

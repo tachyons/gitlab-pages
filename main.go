@@ -23,6 +23,8 @@ var (
 	metricsAddress = flag.String("metrics-address", "", "The address to listen on for metrics requests")
 	daemonUID      = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	daemonGID      = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
+
+	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 )
 
 func configFromFlags() appConfig {
@@ -31,6 +33,7 @@ func configFromFlags() appConfig {
 	config.Domain = strings.ToLower(*pagesDomain)
 	config.RedirectHTTP = *redirectHTTP
 	config.HTTP2 = *useHTTP2
+	config.DisableCrossOriginRequests = *disableCrossOriginRequests
 
 	if *pagesRootCert != "" {
 		config.RootCertificate = readFile(*pagesRootCert)

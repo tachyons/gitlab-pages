@@ -12,11 +12,17 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/cors"
+
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const xForwardedProto = "X-Forwarded-Proto"
 const xForwardedProtoHTTPS = "https"
+
+var (
+	corsHandler = cors.New(cors.Options{AllowedMethods: []string{"GET"}})
+)
 
 type theApp struct {
 	appConfig
@@ -73,8 +79,13 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 		return
 	}
 
-	// Serve static file
-	domain.ServeHTTP(&w, r)
+	// Serve static file, applying CORS headers if necessary
+	if a.DisableCrossOriginRequests {
+		domain.ServeHTTP(&w, r)
+	} else {
+		corsHandler.ServeHTTP(&w, r, domain.ServeHTTP)
+	}
+
 	metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
 }
 

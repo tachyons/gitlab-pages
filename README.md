@@ -90,6 +90,18 @@ Example:
 ./gitlab-pages -listen-http ":8090" -metrics-address ":9235" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
+### Cross-origin requests
+
+GitLab Pages defaults to allowing cross-origin requests for any resource it
+serves. This can be disabled globally by passing `-disable-cross-origin-requests`
+when starting the daemon.
+
+Having cross-origin requests enabled allows third-party websites to make use of
+files stored on the Pages server, which allows various third-party integrations
+to work. However, if it's running on a private network, this may allow websites
+on the public Internet to access its contents *via* your user's browsers -
+assuming they know the URL beforehand.
+
 ### License
 
 MIT
