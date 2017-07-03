@@ -57,9 +57,6 @@ func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, t
 
 	tlsConfig := &tls.Config{}
 	tlsConfig.GetCertificate = tlsHandler
-	tlsConfig.NextProtos = []string{
-		"http/1.1",
-	}
 	tlsConfig.Certificates = []tls.Certificate{
 		certificate,
 	}
