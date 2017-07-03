@@ -5,6 +5,7 @@
 [![coverage report](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/coverage.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
 
 This is simple HTTP server written in Go made to serve GitLab Pages with CNAMEs and SNI using HTTP/HTTP2.
+The minimum supported Go version is 1.8.
 
 This is made to work in small-to-medium scale environments.
 In large environment it can be time consuming to list all directories, and CNAMEs.
@@ -43,8 +44,8 @@ If load balancer is run in SSL-offloading mode the custom TLS certificate will n
 
 Example:
 ```
-CGO_ENABLED=0 GO15VENDOREXPERIMENT=1 go build
-./gitlab-pages -listen-https "" -listen-http ":8090" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
+$ make
+$ ./gitlab-pages -listen-https "" -listen-http ":8090" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
 ### Run daemon **in secure mode**
@@ -63,8 +64,8 @@ This make it possible to listen on privileged ports and makes it harded the proc
 
 Example:
 ```
-go build
-sudo ./gitlab-pages -listen-http ":80" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -daemon-uid 1000 -daemon-gid 1000
+$ make
+$ sudo ./gitlab-pages -listen-http ":80" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -daemon-uid 1000 -daemon-gid 1000
 ```
 
 ### Listen on multiple ports
@@ -73,8 +74,8 @@ Each of the `listen-http`, `listen-https` and `listen-proxy` arguments can be pr
 
 Example:
 ```
-go build
-./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
+$ make
+$ ./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
 This is most useful in dual-stack environments (IPv4+IPv6) where both Gitlab Pages and another HTTP server have to co-exist on the same server.
@@ -87,7 +88,8 @@ application for [Prometheus](https://prometheus.io/) to scrape.
 
 Example:
 ```
-./gitlab-pages -listen-http ":8090" -metrics-address ":9235" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
+$ make
+$ ./gitlab-pages -listen-http ":8090" -metrics-address ":9235" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
 ### Cross-origin requests

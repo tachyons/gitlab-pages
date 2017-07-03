@@ -10,7 +10,6 @@ endif
 GO_LDFLAGS ?= -X main.VERSION=$(VERSION) -X main.REVISION=$(REVISION)
 GO_FILES ?= $(shell find . -name '*.go')
 
-export GO15VENDOREXPERIMENT := 1
 export CGO_ENABLED := 0
 
 all: gitlab-pages
@@ -21,8 +20,7 @@ gitlab-pages: $(GO_FILES)
 update:
 	godep save ./...
 
-verify-lite: fmt vet complexity test # lint does not work on go1.5 any more
-verify: verify-lite lint
+verify: fmt vet complexity lint test
 
 fmt:
 	go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'
