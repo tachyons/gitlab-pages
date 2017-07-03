@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -225,4 +226,25 @@ func TestDomainCertificate(t *testing.T) {
 	tls, err := testDomain.ensureCertificate()
 	assert.NotNil(t, tls)
 	assert.NoError(t, err)
+}
+
+func TestCacheControlHeaders(t *testing.T) {
+	testGroup := &domain{Group: "group"}
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "http://group.test.io/", nil)
+	require.NoError(t, err)
+
+	now := time.Now()
+	testGroup.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "max-age=600", w.Header().Get("Cache-Control"))
+
+	expires := w.Header().Get("Expires")
+	require.NotEmpty(t, expires)
+
+	expiresTime, err := time.Parse(time.RFC1123, expires)
+	require.NoError(t, err)
+
+	assert.WithinDuration(t, now.UTC().Add(10*time.Minute), expiresTime.UTC(), time.Minute)
 }

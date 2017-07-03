@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
@@ -71,6 +72,10 @@ func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, origPath stri
 	if err != nil {
 		return err
 	}
+
+	// Set caching headers
+	w.Header().Set("Cache-Control", "max-age=600")
+	w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 
 	fmt.Println("Serving", fullPath, "for", r.URL.Path)
 
