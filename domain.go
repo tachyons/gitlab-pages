@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
@@ -27,28 +28,39 @@ func acceptsGZip(r *http.Request) bool {
 	if r.Header.Get("Range") != "" {
 		return false
 	}
+
 	offers := []string{"gzip", "identity"}
 	acceptedEncoding := httputil.NegotiateContentEncoding(r, offers)
 	return acceptedEncoding == "gzip"
 }
 
-func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, fullPath string) error {
-	// Open and serve content of file
-	if acceptsGZip(r) {
-		_, err := os.Stat(fullPath + ".gz")
-		if err == nil {
-			// Set the content type based on the non-gzipped extension
-			_, haveType := w.Header()["Content-Type"]
-			if !haveType {
-				ctype := mime.TypeByExtension(filepath.Ext(fullPath))
-				w.Header().Set("Content-Type", ctype)
-			}
-
-			// Serve up the gzipped version
-			fullPath += ".gz"
-			w.Header().Set("Content-Encoding", "gzip")
-		}
+func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string {
+	if !acceptsGZip(r) {
+		return fullPath
 	}
+
+	gzipPath := fullPath + ".gz"
+
+	_, err := os.Stat(gzipPath)
+	if err != nil {
+		return fullPath
+	}
+
+	w.Header().Set("Content-Encoding", "gzip")
+
+	return gzipPath
+}
+
+func setContentType(w http.ResponseWriter, fullPath string) {
+	ext := filepath.Ext(fullPath)
+	ctype := mime.TypeByExtension(ext)
+	if ctype != "" {
+		w.Header().Set("Content-Type", ctype)
+	}
+}
+
+func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
+	fullPath := handleGZip(w, r, origPath)
 
 	file, err := os.Open(fullPath)
 	if err != nil {
@@ -61,22 +73,21 @@ func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, fullPath stri
 		return err
 	}
 
+	// Set caching headers
+	w.Header().Set("Cache-Control", "max-age=600")
+	w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
+
 	fmt.Println("Serving", fullPath, "for", r.URL.Path)
-	http.ServeContent(w, r, filepath.Base(file.Name()), fi.ModTime(), file)
+
+	// ServeContent sets Content-Type for us
+	http.ServeContent(w, r, origPath, fi.ModTime(), file)
 	return nil
 }
 
-func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, fullPath string) error {
+func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, origPath string) error {
+	fullPath := handleGZip(w, r, origPath)
+
 	// Open and serve content of file
-	ext := filepath.Ext(fullPath)
-	if acceptsGZip(r) {
-		_, err := os.Stat(fullPath + ".gz")
-		if err == nil {
-			// Serve up the gzipped version
-			fullPath += ".gz"
-			w.Header().Set("Content-Encoding", "gzip")
-		}
-	}
 	file, err := os.Open(fullPath)
 	if err != nil {
 		return err
@@ -88,19 +99,18 @@ func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code in
 		return err
 	}
 
-	fmt.Println("Serving", fullPath, "for", r.URL.Path, "with", code)
+	setContentType(w, origPath)
+	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
 
 	// Serve the file
-	_, haveType := w.Header()["Content-Type"]
-	if !haveType {
-		ctype := mime.TypeByExtension(ext)
-		w.Header().Set("Content-Type", ctype)
-	}
-	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
+	fmt.Println("Serving", fullPath, "for", r.URL.Path, "with", code)
 	w.WriteHeader(code)
+
 	if r.Method != "HEAD" {
-		io.CopyN(w, file, fi.Size())
+		_, err := io.CopyN(w, file, fi.Size())
+		return err
 	}
+
 	return nil
 }
 
