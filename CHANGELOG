@@ -1,3 +1,12 @@
+v 0.5.0
+- Don't try to update domains if reading the update file fails !32
+- Add CORS support to GET requests !33
+- Add CONTRIBUTING.md !34
+- Add basic cache directives to gitlab-pages !35
+- Go 1.8 is the minimum supported version !36
+- Fix HTTP/2 ALPN negotiation !37
+- Add disabled-by-default status check endpoint !39
+
 v 0.4.3
 - Fix domain lookups when Pages is exposed on non-default ports
 
