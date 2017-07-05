@@ -1,9 +1,9 @@
 ## Contributor license agreement
 
 By submitting code as an individual you agree to the
-[individual contributor license agreement](doc/legal/individual_contributor_license_agreement.md).
+[individual contributor license agreement](https://docs.gitlab.com/ee/legal/individual_contributor_license_agreement.html).
 By submitting code as an entity you agree to the
-[corporate contributor license agreement](doc/legal/corporate_contributor_license_agreement.md).
+[corporate contributor license agreement](https://docs.gitlab.com/ee//legal/corporate_contributor_license_agreement.html).
 
 _This notice should stay as the first item in the CONTRIBUTING.MD file._
 
@@ -55,7 +55,7 @@ edition. Throughout this guide you will see references to CE and EE for
 abbreviation.
 
 If you have read this guide and want to know how the GitLab [core team]
-operates please see [the GitLab contributing process](PROCESS.md).
+operates please see [the GitLab contributing process](https://gitlab.com/gitlab-org/gitlab-ce/blob/master/PROCESS.md).
 
 - [GitLab Inc engineers should refer to the engineering workflow document](https://about.gitlab.com/handbook/engineering/workflow/)
 
@@ -122,8 +122,8 @@ All labels, their meaning and priority are defined on the
 If you come across an issue that has none of these, and you're allowed to set
 labels, you can _always_ add the team and type, and often also the subject.
 
-[milestones-page]: https://gitlab.com/gitlab-org/gitlab-ce/milestones
-[labels-page]: https://gitlab.com/gitlab-org/gitlab-ce/labels
+[milestones-page]: https://gitlab.com/gitlab-org/gitlab-pages/milestones
+[labels-page]: https://gitlab.com/gitlab-org/gitlab-pages/labels
 
 ### Type labels (~"feature proposal", ~bug, ~customer, etc.)
 
@@ -221,8 +221,8 @@ know how difficult the issue is. Additionally:
 - We encourage people that have never contributed to any open source project to
   look for [~"Accepting Merge Requests" issues with a weight of 1][firt-timers]
 
-[up-for-grabs]: https://gitlab.com/gitlab-org/gitlab-ce/issues?label_name=Accepting+Merge+Requests&scope=all&sort=weight_asc&state=opened
-[firt-timers]: https://gitlab.com/gitlab-org/gitlab-ce/issues?label_name%5B%5D=Accepting+Merge+Requests&scope=all&sort=upvotes_desc&state=opened&weight=1
+[up-for-grabs]: https://gitlab.com/gitlab-org/gitlab-pages/issues?label_name=Accepting+Merge+Requests&scope=all&sort=weight_asc&state=opened
+[firt-timers]: https://gitlab.com/gitlab-org/gitlab-pages/issues?label_name%5B%5D=Accepting+Merge+Requests&scope=all&sort=upvotes_desc&state=opened&weight=1
 
 ## Implement design & UI elements
 
@@ -233,8 +233,8 @@ Please see the [UX Guide for GitLab].
 To get support for your particular problem please use the
 [getting help channels](https://about.gitlab.com/getting-help/).
 
-The [GitLab CE issue tracker on GitLab.com][ce-tracker] is for bugs concerning
-the latest GitLab release and [feature proposals](#feature-proposals).
+The [GitLab Pages issue tracker on GitLab.com][pages-tracker] is for bugs concerning
+the latest GitLab Pages release and [feature proposals](#feature-proposals).
 
 When submitting an issue please conform to the issue submission guidelines
 listed below. Not all issues will be addressed and your issue is more likely to
@@ -267,11 +267,8 @@ the commit history for the affected files to find someone.
 
 ### Feature proposals
 
-To create a feature proposal for CE, open an issue on the
-[issue tracker of CE][ce-tracker].
-
-For feature proposals for EE, open an issue on the
-[issue tracker of EE][ee-tracker].
+To create a feature proposal for GitLab Pages, open an issue on the
+[GitLab Pages issue tracker][pages-tracker].
 
 In order to help track the feature proposals, we have created a
 [`feature proposal`][fpl] label. For the time being, users that are not members
@@ -282,23 +279,16 @@ code snippet right after your description in a new line: `~"feature proposal"`.
 Please keep feature proposals as small and simple as possible, complex ones
 might be edited to make them small and simple.
 
-Please submit Feature Proposals using the ['Feature Proposal' issue template](.gitlab/issue_templates/Feature Proposal.md) provided on the issue tracker.
-
 For changes in the interface, it can be helpful to create a mockup first.
 If you want to create something yourself, consider opening an issue first to
 discuss whether it is interesting to include this in GitLab.
 
 ### Issue tracker guidelines
 
-**[Search the issue tracker][ce-tracker]** for similar entries before
+**[Search the issue tracker][pages-tracker]** for similar entries before
 submitting your own, there's a good chance somebody else had the same issue or
 feature proposal. Show your support with an award emoji and/or join the
 discussion.
-
-Please submit bugs using the ['Bug' issue template](.gitlab/issue_templates/Bug.md) provided on the issue tracker.
-The text in the parenthesis is there to help you with what to include. Omit it
-when submitting the actual issue. You can copy-paste it and then edit as you
-see fit.
 
 ### Issue weight
 
@@ -345,7 +335,7 @@ addressed.
 ### Technical debt
 
 In order to track things that can be improved in GitLab's codebase, we created
-the ~"technical debt" label in [GitLab's issue tracker][ce-tracker].
+the ~"technical debt" label in [GitLab's issue tracker][pages-tracker].
 
 This label should be added to issues that describe things that can be improved,
 shortcuts that have been taken, code that needs refactoring, features that need
@@ -384,9 +374,8 @@ A recent example of this was the issue for
 We welcome merge requests with fixes and improvements to GitLab code, tests,
 and/or documentation. The issues that are specifically suitable for
 community contributions are listed with the label
-[`Accepting Merge Requests` on our issue tracker for CE][accepting-mrs-ce]
-and [EE][accepting-mrs-ee], but you are free to contribute to any other issue
-you want.
+[`Accepting Merge Requests` on our issue tracker for Pages][accepting-mrs],
+but you are free to contribute to any other issue you want.
 
 Please note that if an issue is marked for the current milestone either before
 or while you are working on it, a team member may take over the merge request
@@ -397,14 +386,14 @@ a feedback issue (if there isn't one already) and leave a comment asking for it
 to be marked as `Accepting Merge Requests`. Please include screenshots or
 wireframes if the feature will also change the UI.
 
-Merge requests should be opened at [GitLab.com][gitlab-mr-tracker].
+Merge requests should be opened at [GitLab.com][pages-mr-tracker].
 
 If you are new to GitLab development (or web development in general), see the
 [I want to contribute!](#i-want-to-contribute) section to get you started with
 some potentially easy issues.
 
 To start with GitLab development download the [GitLab Development Kit][gdk] and
-see the [Development section](doc/development/README.md) for some guidelines.
+see the [Development section](https://docs.gitlab.com/ee/development/README.html) for some guidelines.
 
 ### Merge request guidelines
 
@@ -418,53 +407,33 @@ request is as follows:
 1. Fork the project into your personal space on GitLab.com
 1. Create a feature branch, branch away from `master`
 1. Write [tests](https://gitlab.com/gitlab-org/gitlab-development-kit#running-the-tests) and code
-1. [Generate a changelog entry with `bin/changelog`][changelog]
 1. If you are writing documentation, make sure to follow the
    [documentation styleguide][doc-styleguide]
 1. If you have multiple commits please combine them into a few logically
   organized commits by [squashing them][git-squash]
 1. Push the commit(s) to your fork
 1. Submit a merge request (MR) to the `master` branch
-  1. Your merge request needs at least 1 approval but feel free to require more.
-    For instance if you're touching backend and frontend code, it's a good idea
-    to require 2 approvals: 1 from a backend maintainer and 1 from a frontend
-    maintainer
   1. You don't have to select any approvers, but you can if you really want
     specific people to approve your merge request
 1. The MR title should describe the change you want to make
 1. The MR description should give a motive for your change and the method you
    used to achieve it.
-  1. If you are contributing code, fill in the template already provided in the
-     "Description" field.
-  1. If you are contributing documentation, choose `Documentation` from the
-     "Choose a template" menu and fill in the template.
   1. Mention the issue(s) your merge request solves, using the `Solves #XXX` or
     `Closes #XXX` syntax to auto-close the issue(s) once the merge request will
     be merged.
 1. If you're allowed to, set a relevant milestone and labels
-1. If the MR changes the UI it should include *Before* and *After* screenshots
-1. If the MR changes CSS classes please include the list of affected pages,
-   `grep css-class ./app -R`
 1. Be prepared to answer questions and incorporate feedback even if requests
    for this arrive weeks or months after your MR submission
   1. If a discussion has been addressed, select the "Resolve discussion" button
     beneath it to mark it resolved.
 1. If your MR touches code that executes shell commands, reads or opens files or
    handles paths to files on disk, make sure it adheres to the
-   [shell command guidelines](doc/development/shell_commands.md)
+   [shell command guidelines](https://docs.gitlab.com/ee/development/shell_commands.html)
 1. If your code creates new files on disk please read the
-   [shared files guidelines](doc/development/shared_files.md).
+   [shared files guidelines](https://docs.gitlab.com/ee/development/shared_files.html).
 1. When writing commit messages please follow
    [these](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
    [guidelines](http://chris.beams.io/posts/git-commit/).
-1. If your merge request adds one or more migrations, make sure to execute all
-   migrations on a fresh database before the MR is reviewed. If the review leads
-   to large changes in the MR, do this again once the review is complete.
-1. For more complex migrations, write tests.
-1. Merge requests **must** adhere to the [merge request performance
-   guidelines](doc/development/merge_request_performance_guidelines.md).
-1. For tests that use Capybara or PhantomJS, see this [article on how
-   to write reliable asynchronous tests](https://robots.thoughtbot.com/write-reliable-asynchronous-integration-tests-with-capybara).
 
 Please keep the change in a single MR **as small as possible**. If you want to
 contribute a large feature think very hard what the minimum viable change is.
@@ -482,7 +451,7 @@ of the [Merge request coaches][team].
 Please ensure that your merge request meets the contribution acceptance criteria.
 
 When having your code reviewed and when reviewing merge requests please take the
-[code review guidelines](doc/development/code_review.md) into account.
+[code review guidelines](https://docs.gitlab.com/ee/development/code_review.html) into account.
 
 ### Contribution acceptance criteria
 
@@ -500,18 +469,13 @@ When having your code reviewed and when reviewing merge requests please take the
 1. Does not break any existing functionality
 1. Fixes one specific issue or implements one specific feature (do not combine
    things, send separate merge requests if needed)
-1. Migrations should do only one thing (e.g., either create a table, move data
-   to a new table or remove an old table) to aid retrying on failure
 1. Keeps the GitLab code base clean and well structured
 1. Contains functionality we think other users will benefit from too
 1. Doesn't add configuration options or settings options since they complicate
    making and testing future changes
 1. Changes do not adversely degrade performance.
    - Avoid repeated polling of endpoints that require a significant amount of overhead
-   - Check for N+1 queries via the SQL log or [`QueryRecorder`](https://docs.gitlab.com/ce/development/merge_request_performance_guidelines.html)
    - Avoid repeated access of filesystem
-1. If you need polling to support real-time features, please use
-   [polling with ETag caching][polling-etag].
 1. Changes after submitting the merge request should be in separate commits
    (no squashing).
 1. It conforms to the [style guides](#style-guides) and the following:
@@ -521,8 +485,6 @@ When having your code reviewed and when reviewing merge requests please take the
       refactoring modifications may leave style non-compliant.
 1. If the merge request adds any new libraries (gems, JavaScript libraries,
    etc.), they should conform to our [Licensing guidelines][license-finder-doc].
-   See the instructions in that document for help if your MR fails the
-   "license-finder" test with a "Dependencies that need approval" error.
 
 ## Definition of done
 
@@ -535,7 +497,6 @@ the feature you contribute through all of these steps.
 1. [Unit and system tests][testing] that pass on the CI server
 1. Performance/scalability implications have been considered, addressed, and tested
 1. [Documented][doc-styleguide] in the `/doc` directory
-1. [Changelog entry added][changelog], if necessary
 1. Reviewed and any concerns are addressed
 1. Merged by a project maintainer
 1. Added to the release blog article, if relevant
@@ -616,32 +577,29 @@ available at [http://contributor-covenant.org/version/1/1/0/](http://contributor
 [team]: https://about.gitlab.com/team/
 [getting-help]: https://about.gitlab.com/getting-help/
 [codetriage]: http://www.codetriage.com/gitlabhq/gitlabhq
-[accepting-mrs-weight]: https://gitlab.com/gitlab-org/gitlab-ce/issues?assignee_id=0&label_name[]=Accepting%20Merge%20Requests&sort=weight_asc
-[ce-tracker]: https://gitlab.com/gitlab-org/gitlab-ce/issues
-[ee-tracker]: https://gitlab.com/gitlab-org/gitlab-ee/issues
+[accepting-mrs-weight]: https://gitlab.com/gitlab-org/gitlab-pages/issues?assignee_id=0&label_name[]=Accepting%20Merge%20Requests&sort=weight_asc
+[pages-tracker]: https://gitlab.com/gitlab-org/gitlab-pages/issues
 [google-group]: https://groups.google.com/forum/#!forum/gitlabhq
 [stackoverflow]: https://stackoverflow.com/questions/tagged/gitlab
 [fpl]: https://gitlab.com/gitlab-org/gitlab-ce/issues?label_name=feature+proposal
-[accepting-mrs-ce]: https://gitlab.com/gitlab-org/gitlab-ce/issues?label_name=Accepting+Merge+Requests
-[accepting-mrs-ee]: https://gitlab.com/gitlab-org/gitlab-ee/issues?label_name=Accepting+Merge+Requests
-[gitlab-mr-tracker]: https://gitlab.com/gitlab-org/gitlab-ce/merge_requests
+[accepting-mrs]: https://gitlab.com/gitlab-org/gitlab-pages/issues?label_name=Accepting+Merge+Requests
+[pages-mr-tracker]: https://gitlab.com/gitlab-org/gitlab-pages/merge_requests
 [gdk]: https://gitlab.com/gitlab-org/gitlab-development-kit
 [git-squash]: https://git-scm.com/book/en/Git-Tools-Rewriting-History#Squashing-Commits
-[closed-merge-requests]: https://gitlab.com/gitlab-org/gitlab-ce/merge_requests?assignee_id=&label_name=&milestone_id=&scope=&sort=&state=closed
+[closed-merge-requests]: https://gitlab.com/gitlab-org/gitlab-pages/merge_requests?assignee_id=&label_name=&milestone_id=&scope=&sort=&state=closed
 [definition-of-done]: http://guide.agilealliance.org/guide/definition-of-done.html
 [contributor-covenant]: http://contributor-covenant.org
 [rss-source]: https://github.com/bbatsov/ruby-style-guide/blob/master/README.md#source-code-layout
 [rss-naming]: https://github.com/bbatsov/ruby-style-guide/blob/master/README.md#naming
-[changelog]: doc/development/changelog.md "Generate a changelog entry"
-[doc-styleguide]: doc/development/doc_styleguide.md "Documentation styleguide"
-[js-styleguide]: doc/development/fe_guide/style_guide_js.md "JavaScript styleguide"
-[scss-styleguide]: doc/development/fe_guide/style_guide_scss.md "SCSS styleguide"
-[newlines-styleguide]: doc/development/newlines_styleguide.md "Newlines styleguide"
+[doc-styleguide]: https://docs.gitlab.com/ee/development/doc_styleguide.html "Documentation styleguide"
+[js-styleguide]: https://docs.gitlab.com/ee/development/fe_guide/style_guide_js.html "JavaScript styleguide"
+[scss-styleguide]: https://docs.gitlab.com/ee/development/fe_guide/style_guide_scss.html "SCSS styleguide"
+[newlines-styleguide]: https://docs.gitlab.com/ee/development/newlines_styleguide.html "Newlines styleguide"
 [UX Guide for GitLab]: http://docs.gitlab.com/ce/development/ux_guide/
-[license-finder-doc]: doc/development/licensing.md
+[license-finder-doc]: https://docs.gitlab.com/ee/development/licensing.html
 [GitLab Inc engineering workflow]: https://about.gitlab.com/handbook/engineering/workflow/#labelling-issues
 [polling-etag]: https://docs.gitlab.com/ce/development/polling.html
-[testing]: doc/development/testing.md
+[testing]: https://docs.gitlab.com/ee/development/testing.html
 
 [^1]: Please note that specs other than JavaScript specs are considered backend
       code.
