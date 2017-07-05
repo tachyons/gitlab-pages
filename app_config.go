@@ -13,6 +13,7 @@ type appConfig struct {
 
 	HTTP2        bool
 	RedirectHTTP bool
+	StatusPath   string
 
 	DisableCrossOriginRequests bool
 }

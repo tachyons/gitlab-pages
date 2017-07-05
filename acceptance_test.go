@@ -196,3 +196,14 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 7")
 	}
 }
+
+func TestStatusPage(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false", "-pages-status=/@statuscheck")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
