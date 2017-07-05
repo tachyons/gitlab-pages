@@ -20,6 +20,7 @@ var (
 	useHTTP2       = flag.Bool("use-http2", true, "Enable HTTP2 support")
 	pagesRoot      = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 	pagesDomain    = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
+	pagesStatus    = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")
 	metricsAddress = flag.String("metrics-address", "", "The address to listen on for metrics requests")
 	daemonUID      = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	daemonGID      = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
@@ -34,6 +35,7 @@ func configFromFlags() appConfig {
 	config.RedirectHTTP = *redirectHTTP
 	config.HTTP2 = *useHTTP2
 	config.DisableCrossOriginRequests = *disableCrossOriginRequests
+	config.StatusPath = *pagesStatus
 
 	if *pagesRootCert != "" {
 		config.RootCertificate = readFile(*pagesRootCert)

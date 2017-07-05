@@ -58,6 +58,12 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	metrics.SessionsActive.Inc()
 	defer metrics.SessionsActive.Dec()
 
+	// short circuit content serving to check for a status page
+	if r.RequestURI == a.appConfig.StatusPath {
+		w.Write([]byte("success"))
+		return
+	}
+
 	// Add auto redirect
 	if !https && a.RedirectHTTP {
 		u := *r.URL
