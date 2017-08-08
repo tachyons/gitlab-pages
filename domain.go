@@ -35,8 +35,7 @@ func acceptsGZip(r *http.Request) bool {
 func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, fullPath string) error {
 	// Open and serve content of file
 	if acceptsGZip(r) {
-		_, err := os.Stat(fullPath + ".gz")
-		if err == nil {
+		if fi, err := os.Lstat(fullPath + ".gz"); err == nil && fi.Mode().IsRegular() {
 			// Set the content type based on the non-gzipped extension
 			_, haveType := w.Header()["Content-Type"]
 			if !haveType {
@@ -70,8 +69,7 @@ func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code in
 	// Open and serve content of file
 	ext := filepath.Ext(fullPath)
 	if acceptsGZip(r) {
-		_, err := os.Stat(fullPath + ".gz")
-		if err == nil {
+		if fi, err := os.Lstat(fullPath + ".gz"); err == nil && fi.Mode().IsRegular() {
 			// Serve up the gzipped version
 			fullPath += ".gz"
 			w.Header().Set("Content-Encoding", "gzip")
