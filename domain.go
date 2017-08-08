@@ -41,8 +41,8 @@ func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string 
 
 	gzipPath := fullPath + ".gz"
 
-	_, err := os.Stat(gzipPath)
-	if err != nil {
+	// Ensure the .gz file is not a symlink
+	if fi, err := os.Lstat(gzipPath); err != nil || !fi.Mode().IsRegular() {
 		return fullPath
 	}
 
