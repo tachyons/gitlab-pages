@@ -1,3 +1,6 @@
+v 0.5.1
+- Don't serve statically-compiled `.gz` files that are symlinks
+
 v 0.5.0
 - Don't try to update domains if reading the update file fails !32
 - Add CORS support to GET requests !33
