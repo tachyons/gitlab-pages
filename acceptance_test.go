@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/namsral/flag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -303,4 +303,25 @@ func TestProxyRequest(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEnvironmentVariablesConfig(t *testing.T) {
+	skipUnlessEnabled(t)
+	os.Setenv("REDIRECT_HTTP", "true")
+	defer func() { os.Unsetenv("REDIRECT_HTTP") }()
+
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
+	assert.Equal(t, 1, len(rsp.Header["Location"]))
+	assert.Equal(t, "https://group.gitlab-example.com/project/", rsp.Header.Get("Location"))
+
+	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
