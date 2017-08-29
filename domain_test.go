@@ -121,6 +121,8 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 		{"GET", "http://group.test.io/", nil, ";; gzip", "main-dir", false},
 		{"GET", "http://group.test.io/", nil, "middle-out", "main-dir", false},
 		{"GET", "http://group.test.io/", nil, "gzip; quality=1", "main-dir", false},
+		// Symlinked .gz files are not supported
+		{"GET", "http://group.test.io/gz-symlink", nil, "*", "data", false},
 	}
 
 	for _, tt := range testSet {

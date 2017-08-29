@@ -1,3 +1,6 @@
+v 0.4.4
+- Don't serve statically-compiled `.gz` files that are symlinks
+
 v 0.4.3
 - Fix domain lookups when Pages is exposed on non-default ports
 
