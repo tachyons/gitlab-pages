@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -307,21 +308,52 @@ func TestProxyRequest(t *testing.T) {
 
 func TestEnvironmentVariablesConfig(t *testing.T) {
 	skipUnlessEnabled(t)
-	os.Setenv("REDIRECT_HTTP", "true")
-	defer func() { os.Unsetenv("REDIRECT_HTTP") }()
+	os.Setenv("LISTEN_HTTP", net.JoinHostPort(httpListener.Host, httpListener.Port))
+	defer func() { os.Unsetenv("LISTEN_HTTP") }()
 
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{}, "")
 	defer teardown()
 
-	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
-	assert.NoError(t, err)
-	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
-	assert.Equal(t, 1, len(rsp.Header["Location"]))
-	assert.Equal(t, "https://group.gitlab-example.com/project/", rsp.Header.Get("Location"))
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com:", "project/")
 
-	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
 	assert.NoError(t, err)
-	defer rsp.Body.Close()
+	rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
+func TestMixedConfigSources(t *testing.T) {
+	skipUnlessEnabled(t)
+	os.Setenv("LISTEN_HTTP", net.JoinHostPort(httpListener.Host, httpListener.Port))
+	defer func() { os.Unsetenv("LISTEN_HTTP") }()
+
+	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{httpsListener}, "")
+	defer teardown()
+
+	for _, listener := range []ListenSpec{httpListener, httpsListener} {
+		rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
+
+		assert.NoError(t, err)
+		rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	}
+}
+
+func TestMultiFlagEnvironmentVariables(t *testing.T) {
+	skipUnlessEnabled(t)
+	listenSpec := []ListenSpec{{"http", "127.0.0.1", "37001"}, {"http", "127.0.0.1", "37002"}}
+	envVarValue := fmt.Sprintf("%s,%s", net.JoinHostPort("127.0.0.1", "37001"), net.JoinHostPort("127.0.0.1", "37002"))
+
+	os.Setenv("LISTEN_HTTP", envVarValue)
+	defer func() { os.Unsetenv("LISTEN_HTTP") }()
+
+	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{}, "")
+	defer teardown()
+
+	for _, listener := range listenSpec {
+		rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
+
+		assert.NoError(t, err)
+		rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	}
 }

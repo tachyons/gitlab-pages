@@ -99,19 +99,19 @@ func appMain() {
 
 	config := configFromFlags()
 
-	for _, addr := range listenHTTP {
+	for _, addr := range listenHTTP.Split() {
 		l, fd := createSocket(addr)
 		defer l.Close()
 		config.ListenHTTP = append(config.ListenHTTP, fd)
 	}
 
-	for _, addr := range listenHTTPS {
+	for _, addr := range listenHTTPS.Split() {
 		l, fd := createSocket(addr)
 		defer l.Close()
 		config.ListenHTTPS = append(config.ListenHTTPS, fd)
 	}
 
-	for _, addr := range listenProxy {
+	for _, addr := range listenProxy.Split() {
 		l, fd := createSocket(addr)
 		defer l.Close()
 		config.ListenProxy = append(config.ListenProxy, fd)
