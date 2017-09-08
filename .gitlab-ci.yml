@@ -1,4 +1,4 @@
-image: golang:1.5
+image: golang:1.8
 
 # Put the go sources in GOPATH
 # This is required to make the vendor working
@@ -8,8 +8,16 @@ before_script:
 - ln -sfv "$(pwd -P)" "$GODIR"
 - cd "$GODIR"
 
-test:1.8:
-  image: golang:1.8
+.test: &test
   script:
   - make verify
   - make acceptance
+
+
+test:1.8:
+  <<: *test
+  
+test:1.9:
+  image: golang:1.9
+  <<: *test
+   
