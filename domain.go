@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
 
@@ -215,7 +216,7 @@ func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Serve generic not found
-	serve404(w)
+	httperrors.Serve404(w)
 }
 
 func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
@@ -230,7 +231,7 @@ func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Serve generic not found
-	serve404(w)
+	httperrors.Serve404(w)
 }
 
 func (d *domain) ensureCertificate() (*tls.Certificate, error) {

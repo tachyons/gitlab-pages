@@ -1,10 +1,11 @@
 package main
 
 type appConfig struct {
-	Domain string
-
-	RootCertificate []byte
-	RootKey         []byte
+	Domain                 string
+	ArtifactsServer        string
+	ArtifactsServerTimeout int
+	RootCertificate        []byte
+	RootKey                []byte
 
 	ListenHTTP    []uintptr
 	ListenHTTPS   []uintptr
