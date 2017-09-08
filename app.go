@@ -14,6 +14,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -26,8 +28,9 @@ var (
 
 type theApp struct {
 	appConfig
-	domains domains
-	lock    sync.RWMutex
+	domains  domains
+	lock     sync.RWMutex
+	Artifact *artifact.Artifact
 }
 
 func (a *theApp) domain(host string) *domain {
@@ -79,9 +82,16 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	if err != nil {
 		host = r.Host
 	}
+
+	// In the event a host is prefixed with the artifact prefix an artifact
+	// value is created, and an attempt to proxy the request is made
+	if a.Artifact.TryMakeRequest(host, &w, r) {
+		return
+	}
+
 	domain := a.domain(host)
 	if domain == nil {
-		serve404(&w)
+		httperrors.Serve404(&w)
 		return
 	}
 
@@ -173,5 +183,9 @@ func (a *theApp) Run() {
 
 func runApp(config appConfig) {
 	a := theApp{appConfig: config}
+
+	if config.ArtifactsServer != "" {
+		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
+	}
 	a.Run()
 }

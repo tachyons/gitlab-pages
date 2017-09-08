@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -14,18 +16,22 @@ var VERSION = "dev"
 var REVISION = "HEAD"
 
 var (
-	pagesRootCert  = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
-	pagesRootKey   = flag.String("root-key", "", "The default path to file certificate to serve static pages")
-	redirectHTTP   = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
-	useHTTP2       = flag.Bool("use-http2", true, "Enable HTTP2 support")
-	pagesRoot      = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
-	pagesDomain    = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
-	pagesStatus    = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")
-	metricsAddress = flag.String("metrics-address", "", "The address to listen on for metrics requests")
-	daemonUID      = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
-	daemonGID      = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
+	pagesRootCert          = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
+	pagesRootKey           = flag.String("root-key", "", "The default path to file certificate to serve static pages")
+	redirectHTTP           = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
+	useHTTP2               = flag.Bool("use-http2", true, "Enable HTTP2 support")
+	pagesRoot              = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
+	pagesDomain            = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
+	artifactsServer        = flag.String("artifacts-server", "", "API URL to proxy artifact requests to, e.g.: 'https://gitlab.com/api/v4'")
+	artifactsServerTimeout = flag.Int("artifacts-server-timeout", 10, "Timeout (in seconds) for a proxied request to the artifacts server")
+	pagesStatus            = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")
+	metricsAddress         = flag.String("metrics-address", "", "The address to listen on for metrics requests")
+	daemonUID              = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
+	daemonGID              = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 
-	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
+	disableCrossOriginRequests     = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
+	errArtifactSchemaUnsupported   = errors.New("artifacts-server scheme must be either http:// or https://")
+	errArtifactsServerTimeoutValue = errors.New("artifacts-server-timeout must be greater than or equal to 1")
 )
 
 func configFromFlags() appConfig {
@@ -45,6 +51,27 @@ func configFromFlags() appConfig {
 		config.RootKey = readFile(*pagesRootKey)
 	}
 
+	if *artifactsServerTimeout < 1 {
+		log.Fatal(errArtifactsServerTimeoutValue)
+	}
+
+	if *artifactsServer != "" {
+		u, err := url.Parse(*artifactsServer)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// url.Parse ensures that the Scheme arttribute is always lower case.
+		if u.Scheme != "http" && u.Scheme != "https" {
+			log.Fatal(errArtifactSchemaUnsupported)
+		}
+
+		if *artifactsServerTimeout < 1 {
+			log.Fatal(errArtifactsServerTimeoutValue)
+		}
+
+		config.ArtifactsServerTimeout = *artifactsServerTimeout
+		config.ArtifactsServer = *artifactsServer
+	}
 	return config
 }
 

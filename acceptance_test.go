@@ -2,10 +2,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -206,4 +209,98 @@ func TestStatusPage(t *testing.T) {
 	assert.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
+func TestProxyRequest(t *testing.T) {
+	skipUnlessEnabled(t)
+	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
+	contentLength := int64(len(content))
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/projects/1/jobs/2/artifacts/delayed_200.html":
+			time.Sleep(2 * time.Second)
+		case "/projects/1/jobs/2/artifacts/200.html":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			fmt.Fprint(w, content)
+		case "/projects/1/jobs/2/artifacts/500.html":
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, content)
+		default:
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, content)
+		}
+	}))
+	defer testServer.Close()
+	cases := []struct {
+		Path         string
+		Status       int
+		BinaryOption string
+		Content      string
+		Length       int64
+		CacheControl string
+		ContentType  string
+		Description  string
+	}{
+		{
+			"200.html",
+			http.StatusOK,
+			"",
+			content,
+			contentLength,
+			"max-age=3600",
+			"text/html; charset=utf-8",
+			"basic proxied request",
+		},
+		{
+			"delayed_200.html",
+			http.StatusBadGateway,
+			"-artifacts-server-timeout=1",
+			"",
+			0,
+			"",
+			"text/html; charset=utf-8",
+			"502 error while attempting to proxy",
+		},
+		{
+			"404.html",
+			http.StatusNotFound,
+			"",
+			"",
+			0,
+			"",
+			"text/html; charset=utf-8",
+			"Proxying 404 from server",
+		},
+		{
+			"500.html",
+			http.StatusInternalServerError,
+			"",
+			"",
+			0,
+			"",
+			"text/html; charset=utf-8",
+			"Proxying 500 from server",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Proxy Request Test: %s", c.Description), func(t *testing.T) {
+			teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-artifacts-server="+testServer.URL, c.BinaryOption)
+			defer teardown()
+			resp, err := GetPageFromListener(t, httpListener, "artifact~1~2.gitlab-example.com", c.Path)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.Equal(t, c.Status, resp.StatusCode)
+			assert.Equal(t, c.ContentType, resp.Header.Get("Content-Type"))
+			if !((c.Status == http.StatusBadGateway) || (c.Status == http.StatusNotFound) || (c.Status == http.StatusInternalServerError)) {
+				body, err := ioutil.ReadAll(resp.Body)
+				require.NoError(t, err)
+				assert.Equal(t, c.Content, string(body))
+				assert.Equal(t, c.Length, resp.ContentLength)
+				assert.Equal(t, c.CacheControl, resp.Header.Get("Cache-Control"))
+			}
+		})
+	}
 }
