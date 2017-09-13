@@ -1,10 +1,7 @@
 {
 	"ImportPath": "gitlab.com/gitlab-org/gitlab-pages",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.8",
 	"GodepVersion": "v79",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/beorn7/perks/quantile",
@@ -22,6 +19,11 @@
 			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
 			"Comment": "v1.0.0-2-gc12348c",
 			"Rev": "c12348ce28de40eed0136aa2b644d0ee0650e56c"
+		},
+		{
+			"ImportPath": "github.com/namsral/flag",
+			"Comment": "v1.7.4-alpha-4-g67f268f",
+			"Rev": "67f268f20922975c067ed799e4be6bacf152208c"
 		},
 		{
 			"ImportPath": "github.com/prometheus/client_golang/prometheus",

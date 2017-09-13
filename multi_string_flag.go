@@ -20,3 +20,12 @@ func (s *MultiStringFlag) Set(value string) error {
 	*s = append(*s, value)
 	return nil
 }
+
+// Split each flag
+func (s *MultiStringFlag) Split() (result []string) {
+	for _, str := range *s {
+		result = append(result, strings.Split(str, ",")...)
+	}
+
+	return
+}

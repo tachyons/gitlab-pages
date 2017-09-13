@@ -2,11 +2,12 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"log"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/namsral/flag"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -82,6 +83,7 @@ func appMain() {
 	flag.Var(&listenHTTP, "listen-http", "The address(es) to listen on for HTTP requests")
 	flag.Var(&listenHTTPS, "listen-https", "The address(es) to listen on for HTTPS requests")
 	flag.Var(&listenProxy, "listen-proxy", "The address(es) to listen on for proxy requests")
+	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
 
 	flag.Parse()
 
@@ -97,19 +99,19 @@ func appMain() {
 
 	config := configFromFlags()
 
-	for _, addr := range listenHTTP {
+	for _, addr := range listenHTTP.Split() {
 		l, fd := createSocket(addr)
 		defer l.Close()
 		config.ListenHTTP = append(config.ListenHTTP, fd)
 	}
 
-	for _, addr := range listenHTTPS {
+	for _, addr := range listenHTTPS.Split() {
 		l, fd := createSocket(addr)
 		defer l.Close()
 		config.ListenHTTPS = append(config.ListenHTTPS, fd)
 	}
 
-	for _, addr := range listenProxy {
+	for _, addr := range listenProxy.Split() {
 		l, fd := createSocket(addr)
 		defer l.Close()
 		config.ListenProxy = append(config.ListenProxy, fd)

@@ -104,6 +104,38 @@ to work. However, if it's running on a private network, this may allow websites
 on the public Internet to access its contents *via* your user's browsers -
 assuming they know the URL beforehand.
 
+### Configuration
+
+The daemon can be configured with any combination of these methods:
+1. Command-line options
+1. Environment variables
+1. Configuration file
+1. Compile-time defaults
+
+To see the available options and defaults, run:
+
+```
+./gitlab-pages -help
+```
+
+When using more than one method (e.g., configuration file and command-line
+options), they follow the order of precedence given above.
+
+To convert a flag name into an environment variable name:
+- Drop the leading -
+- Convert all - characters into _
+- Uppercase the flag
+
+e.g., `-pages-domain=example.com` becomes `PAGES_DOMAIN=example.com`
+
+A configuration file is specified with the `-config` flag (or `CONFIG`
+environment variable). Directives are specified in `key=value` format, like:
+
+```
+pages-domain=example.com
+use-http2=false
+```
+
 ### License
 
 MIT

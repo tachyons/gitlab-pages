@@ -142,6 +142,7 @@ func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, pro
 
 	args, tempfiles := getPagesArgs(t, listeners, promPort, extraArgs)
 	cmd := exec.Command(pagesPath, args...)
+	cmd.Env = os.Environ()
 	cmd.Stdout = &tWriter{t}
 	cmd.Stderr = &tWriter{t}
 	cmd.Start()

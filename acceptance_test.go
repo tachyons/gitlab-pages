@@ -1,15 +1,16 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/namsral/flag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -302,5 +303,57 @@ func TestProxyRequest(t *testing.T) {
 				assert.Equal(t, c.CacheControl, resp.Header.Get("Cache-Control"))
 			}
 		})
+	}
+}
+
+func TestEnvironmentVariablesConfig(t *testing.T) {
+	skipUnlessEnabled(t)
+	os.Setenv("LISTEN_HTTP", net.JoinHostPort(httpListener.Host, httpListener.Port))
+	defer func() { os.Unsetenv("LISTEN_HTTP") }()
+
+	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{}, "")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com:", "project/")
+
+	assert.NoError(t, err)
+	rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
+func TestMixedConfigSources(t *testing.T) {
+	skipUnlessEnabled(t)
+	os.Setenv("LISTEN_HTTP", net.JoinHostPort(httpListener.Host, httpListener.Port))
+	defer func() { os.Unsetenv("LISTEN_HTTP") }()
+
+	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{httpsListener}, "")
+	defer teardown()
+
+	for _, listener := range []ListenSpec{httpListener, httpsListener} {
+		rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
+
+		assert.NoError(t, err)
+		rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	}
+}
+
+func TestMultiFlagEnvironmentVariables(t *testing.T) {
+	skipUnlessEnabled(t)
+	listenSpec := []ListenSpec{{"http", "127.0.0.1", "37001"}, {"http", "127.0.0.1", "37002"}}
+	envVarValue := fmt.Sprintf("%s,%s", net.JoinHostPort("127.0.0.1", "37001"), net.JoinHostPort("127.0.0.1", "37002"))
+
+	os.Setenv("LISTEN_HTTP", envVarValue)
+	defer func() { os.Unsetenv("LISTEN_HTTP") }()
+
+	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{}, "")
+	defer teardown()
+
+	for _, listener := range listenSpec {
+		rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
+
+		assert.NoError(t, err)
+		rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
 }
