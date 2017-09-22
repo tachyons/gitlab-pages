@@ -1,48 +1,34 @@
-REVISION := $(shell git rev-parse --short HEAD || echo unknown)
-LAST_TAG := $(shell git describe --tags --abbrev=0)
-COMMITS := $(shell echo `git log --oneline $(LAST_TAG)..HEAD | wc -l`)
-VERSION := $(shell cat VERSION)
+IMPORT_PATH := gitlab.com/gitlab-org/gitlab-pages
+V := 1
 
-ifneq (v$(VERSION),$(LAST_TAG))
-    VERSION := $(shell echo $(VERSION)~beta.$(COMMITS).g$(REVISION))
-endif
+# Space separated patterns of packages to skip in list, test, fmt.
+IGNORED_PACKAGES := /vendor/ /internal/httputil/
 
-GO_LDFLAGS ?= -X main.VERSION=$(VERSION) -X main.REVISION=$(REVISION)
-GO_FILES ?= $(shell find . -name '*.go')
-
+# GitLab Pages is statically compiled without CGO to help it in chroot mode
 export CGO_ENABLED := 0
 
-all: gitlab-pages
+include Makefile.build.mk
+include Makefile.util.mk
+include Makefile.internal.mk
 
-gitlab-pages: $(GO_FILES)
-	go build -o gitlab-pages --ldflags="$(GO_LDFLAGS)"
-
-update:
-	godep save ./...
-
-verify: fmt vet complexity lint test
-
-fmt:
-	go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'
-
-vet:
-	go tool vet *.go
-
-lint:
-	go get github.com/golang/lint/golint
-	golint . | ( ! grep -v "^$$" )
-
-complexity:
-	go get github.com/fzipp/gocyclo
-	gocyclo -over 9 $(wildcard *.go)
-
-test:
-	go get golang.org/x/tools/cmd/cover
-	go test . -short -cover -v -timeout 1m
-
-acceptance: gitlab-pages
-	go get golang.org/x/tools/cmd/cover
-	go test . -cover -v -timeout 1m
-
-docker:
-	docker run --rm -it -v ${PWD}:/go/src/pages -w /go/src/pages golang:1.5 /bin/bash
+# Based on https://github.com/cloudflare/hellogopher - v1.1 - MIT License
+#
+# Copyright (c) 2017 Cloudflare
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
