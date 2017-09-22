@@ -2,8 +2,9 @@ package main
 
 import (
 	"flag"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMultiStringFlagAppendsOnSet(t *testing.T) {
