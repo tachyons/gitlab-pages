@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -112,6 +113,8 @@ func (l ListenSpec) URL(suffix string) string {
 	if l.Type == "https" {
 		scheme = "https"
 	}
+
+	suffix = strings.TrimPrefix(suffix, "/")
 
 	return fmt.Sprintf("%s://%s/%s", scheme, l.JoinHostPort(), suffix)
 }

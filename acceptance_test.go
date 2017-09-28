@@ -212,22 +212,25 @@ func TestStatusPage(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
-func TestProxyRequest(t *testing.T) {
+func TestArtifactProxyRequest(t *testing.T) {
 	skipUnlessEnabled(t)
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
 	contentLength := int64(len(content))
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/projects/1/jobs/2/artifacts/delayed_200.html":
+		switch r.URL.RawPath {
+		case "/api/v4/projects/group%2Fproject/jobs/1/artifacts/delayed_200.html":
 			time.Sleep(2 * time.Second)
-		case "/projects/1/jobs/2/artifacts/200.html":
+			fallthrough
+		case "/api/v4/projects/group%2Fproject/jobs/1/artifacts/200.html",
+			"/api/v4/projects/group%2Fsubgroup%2Fproject/jobs/1/artifacts/200.html":
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fmt.Fprint(w, content)
-		case "/projects/1/jobs/2/artifacts/500.html":
+		case "/api/v4/projects/group%2Fproject/jobs/1/artifacts/500.html":
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, content)
 		default:
+			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.RawPath)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(w, content)
@@ -235,6 +238,7 @@ func TestProxyRequest(t *testing.T) {
 	}))
 	defer testServer.Close()
 	cases := []struct {
+		Host         string
 		Path         string
 		Status       int
 		BinaryOption string
@@ -245,7 +249,8 @@ func TestProxyRequest(t *testing.T) {
 		Description  string
 	}{
 		{
-			"200.html",
+			"group.gitlab-example.com",
+			"/-/project/-/jobs/1/artifacts/200.html",
 			http.StatusOK,
 			"",
 			content,
@@ -255,7 +260,19 @@ func TestProxyRequest(t *testing.T) {
 			"basic proxied request",
 		},
 		{
-			"delayed_200.html",
+			"group.gitlab-example.com",
+			"/-/subgroup/project/-/jobs/1/artifacts/200.html",
+			http.StatusOK,
+			"",
+			content,
+			contentLength,
+			"max-age=3600",
+			"text/html; charset=utf-8",
+			"basic proxied request for subgroup",
+		},
+		{
+			"group.gitlab-example.com",
+			"/-/project/-/jobs/1/artifacts/delayed_200.html",
 			http.StatusBadGateway,
 			"-artifacts-server-timeout=1",
 			"",
@@ -265,7 +282,8 @@ func TestProxyRequest(t *testing.T) {
 			"502 error while attempting to proxy",
 		},
 		{
-			"404.html",
+			"group.gitlab-example.com",
+			"/-/project/-/jobs/1/artifacts/404.html",
 			http.StatusNotFound,
 			"",
 			"",
@@ -275,7 +293,8 @@ func TestProxyRequest(t *testing.T) {
 			"Proxying 404 from server",
 		},
 		{
-			"500.html",
+			"group.gitlab-example.com",
+			"/-/project/-/jobs/1/artifacts/500.html",
 			http.StatusInternalServerError,
 			"",
 			"",
@@ -288,9 +307,9 @@ func TestProxyRequest(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("Proxy Request Test: %s", c.Description), func(t *testing.T) {
-			teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-artifacts-server="+testServer.URL, c.BinaryOption)
+			teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-artifacts-server="+testServer.URL+"/api/v4", c.BinaryOption)
 			defer teardown()
-			resp, err := GetPageFromListener(t, httpListener, "artifact~1~2.gitlab-example.com", c.Path)
+			resp, err := GetPageFromListener(t, httpListener, c.Host, c.Path)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 			assert.Equal(t, c.Status, resp.StatusCode)
