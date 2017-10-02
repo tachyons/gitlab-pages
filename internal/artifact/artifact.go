@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,58 +15,68 @@ import (
 )
 
 const (
-	baseURL             = "/projects/%s/jobs/%s/artifacts"
-	hostPatternTemplate = `(?i)\Aartifact~(\d+)~(\d+)\.%s\z`
-	minStatusCode       = 200
-	maxStatusCode       = 299
+	// Format a non-/-suffixed URL, an escaped project full_path, a job ID and
+	// a /-prefixed file path into an URL string
+	apiURLTemplate = "%s/projects/%s/jobs/%s/artifacts%s"
+
+	minStatusCode = 200
+	maxStatusCode = 299
 )
 
-// Artifact is a struct that is made up of a url.URL, http.Client, and
-// regexp.Regexp that is used to proxy requests where applicable.
+var (
+	// Captures subgroup + project, job ID and artifacts path
+	pathExtractor = regexp.MustCompile(`(?i)\A/-/(.*)/-/jobs/(\d+)/artifacts(/[^?]*)\z`)
+)
+
+// Artifact proxies requests for artifact files to the GitLab artifacts API
 type Artifact struct {
-	server  string
-	client  *http.Client
-	pattern *regexp.Regexp
+	server string
+	suffix string
+	client *http.Client
 }
 
 // New when provided the arguments defined herein, returns a pointer to an
 // Artifact that is used to proxy requests.
-func New(s string, timeout int, pagesDomain string) *Artifact {
+func New(server string, timeoutSeconds int, pagesDomain string) *Artifact {
 	return &Artifact{
-		server:  s,
-		client:  &http.Client{Timeout: time.Second * time.Duration(timeout)},
-		pattern: hostPatternGen(pagesDomain),
+		server: strings.TrimRight(server, "/"),
+		suffix: "." + strings.ToLower(pagesDomain),
+		client: &http.Client{Timeout: time.Second * time.Duration(timeoutSeconds)},
 	}
-
 }
 
 // TryMakeRequest will attempt to proxy a request and write it to the argument
 // http.ResponseWriter, ultimately returning a bool that indicates if the
 // http.ResponseWriter has been written to in any capacity.
 func (a *Artifact) TryMakeRequest(host string, w http.ResponseWriter, r *http.Request) bool {
-	if a == nil || a.server == "" {
+	if a == nil || a.server == "" || host == "" {
 		return false
 	}
 
-	reqURL, ok := a.buildURL(host, r.URL.Path)
+	reqURL, ok := a.BuildURL(host, r.URL.Path)
 	if !ok {
 		return false
 	}
 
+	a.makeRequest(w, reqURL)
+	return true
+}
+
+func (a *Artifact) makeRequest(w http.ResponseWriter, reqURL *url.URL) {
 	resp, err := a.client.Get(reqURL.String())
 	if err != nil {
 		httperrors.Serve502(w)
-		return true
+		return
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
 		httperrors.Serve404(w)
-		return true
+		return
 	}
 
 	if resp.StatusCode == http.StatusInternalServerError {
 		httperrors.Serve500(w)
-		return true
+		return
 	}
 
 	// we only cache responses within the 2xx series response codes
@@ -77,44 +88,43 @@ func (a *Artifact) TryMakeRequest(host string, w http.ResponseWriter, r *http.Re
 	w.Header().Set("Content-Length", strconv.FormatInt(resp.ContentLength, 10))
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
-	return true
+	return
 }
 
-// buildURL returns a pointer to a url.URL for where the request should be
+// BuildURL returns a pointer to a url.URL for where the request should be
 // proxied to. The returned bool will indicate if there is some sort of issue
 // with the url while it is being generated.
-func (a *Artifact) buildURL(host, path string) (*url.URL, bool) {
-	ids := a.pattern.FindAllStringSubmatch(host, -1)
-	if len(ids) != 1 || len(ids[0]) != 3 {
+//
+// The URL is generated from the host (which contains the top-level group and
+// ends with the pagesDomain) and the path (which contains any subgroups, the
+// project, a job ID and a path
+// for the artifact file we want to download)
+func (a *Artifact) BuildURL(host, requestPath string) (*url.URL, bool) {
+	if !strings.HasSuffix(strings.ToLower(host), a.suffix) {
 		return nil, false
 	}
 
-	strippedIds := ids[0][1:3]
-	body := fmt.Sprintf(baseURL, strippedIds[0], strippedIds[1])
-	ourPath := a.server
-	if strings.HasSuffix(ourPath, "/") {
-		ourPath = ourPath[0:len(ourPath)-1] + body
-	} else {
-		ourPath = ourPath + body
+	topGroup := host[0 : len(host)-len(a.suffix)]
+
+	parts := pathExtractor.FindAllStringSubmatch(requestPath, 1)
+	if len(parts) != 1 || len(parts[0]) != 4 {
+		return nil, false
 	}
 
-	if len(path) == 0 || strings.HasPrefix(path, "/") {
-		ourPath = ourPath + path
-	} else {
-		ourPath = ourPath + "/" + path
+	restOfPath := strings.TrimLeft(strings.TrimRight(parts[0][1], "/"), "/")
+	if len(restOfPath) == 0 {
+		return nil, false
 	}
 
-	u, err := url.Parse(ourPath)
+	jobID := parts[0][2]
+	artifactPath := parts[0][3]
+
+	projectID := url.PathEscape(path.Join(topGroup, restOfPath))
+	generated := fmt.Sprintf(apiURLTemplate, a.server, projectID, jobID, artifactPath)
+
+	u, err := url.Parse(generated)
 	if err != nil {
 		return nil, false
 	}
 	return u, true
-}
-
-// hostPatternGen returns a pointer to a regexp.Regexp that is made up of
-// the constant hostPatternTemplate and the argument which represents the pages domain.
-// This is used to ensure that the requested page meets not only the hostPatternTemplate
-// requirements, but is suffixed with the proper pagesDomain.
-func hostPatternGen(pagesDomain string) *regexp.Regexp {
-	return regexp.MustCompile(fmt.Sprintf(hostPatternTemplate, regexp.QuoteMeta(pagesDomain)))
 }

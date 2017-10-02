@@ -1,15 +1,15 @@
-package artifact
+package artifact_test
 
 import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"regexp"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 )
 
 func TestTryMakeRequest(t *testing.T) {
@@ -17,17 +17,20 @@ func TestTryMakeRequest(t *testing.T) {
 	contentType := "text/html; charset=utf-8"
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", contentType)
-		switch r.URL.Path {
-		case "/projects/1/jobs/2/artifacts/200.html":
+		switch r.URL.RawPath {
+		case "/projects/group%2Fsubgroup%2Fproject/jobs/1/artifacts/200.html":
 			w.WriteHeader(http.StatusOK)
-		case "/projects/1/jobs/2/artifacts/max-caching.html":
+		case "/projects/group%2Fsubgroup%2Fproject/jobs/1/artifacts/max-caching.html":
 			w.WriteHeader(http.StatusIMUsed)
-		case "/projects/1/jobs/2/artifacts/non-caching.html":
+		case "/projects/group%2Fsubgroup%2Fproject/jobs/1/artifacts/non-caching.html":
 			w.WriteHeader(http.StatusTeapot)
-		case "/projects/1/jobs/2/artifacts/500.html":
+		case "/projects/group%2Fsubgroup%2Fproject/jobs/1/artifacts/500.html":
 			w.WriteHeader(http.StatusInternalServerError)
-		case "/projects/1/jobs/2/artifacts/404.html":
+		case "/projects/group%2Fsubgroup%2Fgroup%2Fproject/jobs/1/artifacts/404.html":
 			w.WriteHeader(http.StatusNotFound)
+		default:
+			t.Log("Surprising r.URL.RawPath", r.URL.RawPath)
+			w.WriteHeader(999)
 		}
 		fmt.Fprint(w, content)
 	}))
@@ -72,22 +75,21 @@ func TestTryMakeRequest(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		result := httptest.NewRecorder()
-		reqURL, err := url.Parse(c.Path)
-		assert.NoError(t, err)
-		r := &http.Request{URL: reqURL}
-		art := &Artifact{
-			server:  testServer.URL,
-			client:  &http.Client{Timeout: time.Second * time.Duration(1)},
-			pattern: regexp.MustCompile(fmt.Sprintf(hostPatternTemplate, "gitlab-example.io")),
-		}
+		t.Run(c.Description, func(t *testing.T) {
+			result := httptest.NewRecorder()
+			reqURL, err := url.Parse("/-/subgroup/project/-/jobs/1/artifacts" + c.Path)
+			assert.NoError(t, err)
+			r := &http.Request{URL: reqURL}
+			art := artifact.New(testServer.URL, 1, "gitlab-example.io")
 
-		assert.True(t, art.TryMakeRequest("artifact~1~2.gitlab-example.io", result, r))
-		assert.Equal(t, c.ContentType, result.Header().Get("Content-Type"))
-		assert.Equal(t, c.Length, result.Header().Get("Content-Length"))
-		assert.Equal(t, c.CacheControl, result.Header().Get("Cache-Control"))
-		assert.Equal(t, c.Content, string(result.Body.Bytes()))
-		assert.Equal(t, c.Status, result.Code)
+			assert.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r))
+			assert.Equal(t, c.Status, result.Code)
+			assert.Equal(t, c.ContentType, result.Header().Get("Content-Type"))
+			assert.Equal(t, c.Length, result.Header().Get("Content-Length"))
+			assert.Equal(t, c.CacheControl, result.Header().Get("Cache-Control"))
+			assert.Equal(t, c.Content, string(result.Body.Bytes()))
+
+		})
 	}
 }
 
@@ -103,201 +105,146 @@ func TestBuildURL(t *testing.T) {
 	}{
 		{
 			"https://gitlab.com/api/v4",
-			"artifact~1~2.gitlab.io",
-			"/path/to/file.txt",
-			"https://gitlab.com/api/v4/projects/1/jobs/2/artifacts/path/to/file.txt",
+			"group.gitlab.io",
+			"/-/project/-/jobs/1/artifacts/",
+			`https://gitlab.com/api/v4/projects/group%2Fproject/jobs/1/artifacts/`,
 			"gitlab.io",
 			true,
-			"basic case",
+			"Basic case",
 		},
 		{
 			"https://gitlab.com/api/v4/",
-			"artifact~1~2.gitlab.io",
-			"/path/to/file.txt",
-			"https://gitlab.com/api/v4/projects/1/jobs/2/artifacts/path/to/file.txt",
+			"group.gitlab.io",
+			"/-/project/-/jobs/1/artifacts/",
+			"https://gitlab.com/api/v4/projects/group%2Fproject/jobs/1/artifacts/",
 			"gitlab.io",
 			true,
-			"basic case 2",
-		},
-		{
-			"https://gitlab.com/api/v4",
-			"artifact~1~2.gitlab.io",
-			"path/to/file.txt",
-			"https://gitlab.com/api/v4/projects/1/jobs/2/artifacts/path/to/file.txt",
-			"gitlab.io",
-			true,
-			"basic case 3",
+			"API URL has trailing slash",
 		},
 		{
 			"https://gitlab.com/api/v4/",
-			"artifact~1~2.gitlab.io",
-			"path/to/file.txt",
-			"https://gitlab.com/api/v4/projects/1/jobs/2/artifacts/path/to/file.txt",
+			"GROUP.GITLAB.IO",
+			"/-/SUBGROUP/PROJECT/-/JOBS/1/ARTIFACTS/PATH/TO/FILE.txt",
+			"https://gitlab.com/api/v4/projects/GROUP%2FSUBGROUP%2FPROJECT/jobs/1/artifacts/PATH/TO/FILE.txt",
 			"gitlab.io",
 			true,
-			"basic case 4",
+			"Uppercase names",
 		},
 		{
 			"https://gitlab.com/api/v4",
-			"artifact~1~2.gitlab.io",
+			"group.gitlab.io",
+			"/-/project/-/jobs/1foo1/artifacts/",
 			"",
-			"https://gitlab.com/api/v4/projects/1/jobs/2/artifacts",
 			"gitlab.io",
-			true,
-			"basic case 5",
+			false,
+			"Job ID has letters",
 		},
 		{
-			"https://gitlab.com/api/v4/",
-			"artifact~1~2.gitlab.io",
+			"https://gitlab.com/api/v4",
+			"group.gitlab.io",
+			"/-/project/-/jobs/1$1/artifacts/",
 			"",
-			"https://gitlab.com/api/v4/projects/1/jobs/2/artifacts",
 			"gitlab.io",
-			true,
-			"basic case 6",
+			false,
+			"Job ID has special characters",
 		},
 		{
 			"https://gitlab.com/api/v4",
-			"artifact~1~2.gitlab.io",
-			"/",
-			"https://gitlab.com/api/v4/projects/1/jobs/2/artifacts/",
+			"group.gitlab.io",
+			"/-/project/-/jobs/1/artifacts/path/to/file.txt",
+			"https://gitlab.com/api/v4/projects/group%2Fproject/jobs/1/artifacts/path/to/file.txt",
 			"gitlab.io",
 			true,
-			"basic case 7",
-		},
-		{
-			"https://gitlab.com/api/v4/",
-			"artifact~1~2.gitlab.io",
-			"/",
-			"https://gitlab.com/api/v4/projects/1/jobs/2/artifacts/",
-			"gitlab.io",
-			true,
-			"basic case 8",
+			"Artifact in subdirectory",
 		},
 		{
 			"https://gitlab.com/api/v4",
-			"artifact~100000~200000.gitlab.io",
-			"/file.txt",
-			"https://gitlab.com/api/v4/projects/100000/jobs/200000/artifacts/file.txt",
+			"group.gitlab.io",
+			"/-/subgroup1/sub.group2/project/-/jobs/1/artifacts/path/to/file.txt",
+			"https://gitlab.com/api/v4/projects/group%2Fsubgroup1%2Fsub.group2%2Fproject/jobs/1/artifacts/path/to/file.txt",
 			"gitlab.io",
 			true,
-			"expanded case",
-		},
-		{
-			"https://gitlab.com/api/v4/",
-			"artifact~1~2.gitlab.io",
-			"/file.txt",
-			"https://gitlab.com/api/v4/projects/1/jobs/2/artifacts/file.txt",
-			"gitlab.io",
-			true,
-			"server with tailing slash",
+			"Basic subgroup case",
 		},
 		{
 			"https://gitlab.com/api/v4",
-			"artifact~A~B.gitlab.io",
+			"group.gitlab.io",
+			"/-//project/-/jobs/1/artifacts/",
+			"https://gitlab.com/api/v4/projects/group%2Fproject/jobs/1/artifacts/",
+			"gitlab.io",
+			true,
+			"Leading / in remainder of project path",
+		},
+		{
+			"https://gitlab.com/api/v4",
+			"group.gitlab.io",
+			"/-/subgroup/project//-/jobs/1/artifacts/",
+			"https://gitlab.com/api/v4/projects/group%2Fsubgroup%2Fproject/jobs/1/artifacts/",
+			"gitlab.io",
+			true,
+			"Trailing / in remainder of project path",
+		},
+		{
+			"https://gitlab.com/api/v4",
+			"group.gitlab.io",
+			"/-//subgroup/project//-/jobs/1/artifacts/",
+			"https://gitlab.com/api/v4/projects/group%2Fsubgroup%2Fproject/jobs/1/artifacts/",
+			"gitlab.io",
+			true,
+			"Leading and trailing /",
+		},
+		{
+			"https://gitlab.com/api/v4",
+			"group.name.gitlab.io",
+			"/-/subgroup/project/-/jobs/1/artifacts/",
+			"https://gitlab.com/api/v4/projects/group.name%2Fsubgroup%2Fproject/jobs/1/artifacts/",
+			"gitlab.io",
+			true,
+			"Toplevel group has period",
+		},
+		{
+			"https://gitlab.com/api/v4",
+			"gitlab.io.gitlab.io",
+			"/-/project/-/jobs/1/artifacts/",
+			"https://gitlab.com/api/v4/projects/gitlab.io%2Fproject/jobs/1/artifacts/",
+			"gitlab.io",
+			true,
+			"Toplevel group matches pages domain",
+		},
+		{
+			"https://gitlab.com/api/v4",
+			"group.gitlab.io",
+			"/-/project/-/jobs/1/artifacts",
+			"",
+			"gitlab.io",
+			false,
+			"No artifact specified",
+		},
+		{
+			"https://gitlab.com/api/v4",
+			"group.gitlab.io",
 			"/index.html",
 			"",
 			"example.com",
 			false,
 			"non matching domain and request",
 		},
-		{
-			"",
-			"artifact~A~B.gitlab.io",
-			"",
-			"",
-			"",
-			false,
-			"un-parseable Host",
-		},
 	}
 
 	for _, c := range cases {
-		a := &Artifact{server: c.RawServer, pattern: regexp.MustCompile(fmt.Sprintf(hostPatternTemplate, c.PagesDomain))}
-		u, ok := a.buildURL(c.Host, c.Path)
-		assert.Equal(t, c.Ok, ok, c.Description)
-		if c.Ok {
-			assert.Equal(t, c.Expected, u.String(), c.Description)
-		}
-	}
-}
+		t.Run(c.Description, func(t *testing.T) {
+			a := artifact.New(c.RawServer, 1, c.PagesDomain)
+			u, ok := a.BuildURL(c.Host, c.Path)
 
-func TestMatchHostGen(t *testing.T) {
-	cases := []struct {
-		URLHost     string
-		PagesDomain string
-		Expected    bool
-		Description string
-	}{
-		{
-			"artifact~1~2.gitlab.io",
-			"gitlab.io",
-			true,
-			"basic case",
-		},
-		{
-			"ARTIFACT~1~2.gitlab.io",
-			"gitlab.io",
-			true,
-			"capital letters case",
-		},
-		{
-			"ARTIFACT~11234~2908908.gitlab.io",
-			"gitlab.io",
-			true,
-			"additional capital letters case",
-		},
-		{
-			"artifact~10000~20000.gitlab.io",
-			"gitlab.io",
-			true,
-			"expanded case",
-		},
-		{
-			"artifact~86753095555~55550935768.gitlab.io",
-			"gitlab.io",
-			true,
-			"large number case",
-		},
-		{
-			"artifact~one~two.gitlab.io",
-			"gitlab.io",
-			false,
-			"letters rather than numbers",
-		},
-		{
-			"artifact~One111~tWo222.gitlab.io",
-			"gitlab.io",
-			false,
-			"Mixture of alphanumeric",
-		},
-		{
-			"artifact~!@#$%~%$#@!.gitlab.io",
-			"gitlab.io",
-			false,
-			"special characters",
-		},
-		{
-			"artifact~1.gitlab.io",
-			"gitlab.io",
-			false,
-			"not enough ids",
-		},
-		{
-			"artifact~1~2~34444~1~4.gitlab.io",
-			"gitlab.io",
-			false,
-			"too many ids",
-		},
-		{
-			"artifact~1~2.gitlab.io",
-			"otherhost.io",
-			false,
-			"different domain / suffix",
-		},
-	}
+			msg := c.Description + " - generated URL: "
+			if u != nil {
+				msg = msg + u.String()
+			}
 
-	for _, c := range cases {
-		reg := hostPatternGen(c.PagesDomain)
-		assert.Equal(t, c.Expected, reg.MatchString(c.URLHost), c.Description)
+			assertOk := assert.Equal(t, c.Ok, ok, msg)
+			if assertOk && c.Ok {
+				assert.Equal(t, c.Expected, u.String(), c.Description)
+			}
+		})
 	}
 }
