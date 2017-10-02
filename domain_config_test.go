@@ -3,10 +3,10 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"path/filepath"
 )
 
 const configFile = "test-group/test-project/config.json"

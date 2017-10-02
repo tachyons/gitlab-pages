@@ -3,11 +3,12 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"golang.org/x/net/http2"
 	"net"
 	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/net/http2"
 )
 
 type tlsHandlerFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
