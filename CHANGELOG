@@ -1,3 +1,10 @@
+v 0.6.0
+
+- Use namsral/flag to support environment vars for config !40
+- Cleanup the README file !41
+- Add an artifacts proxy to GitLab Pages !44 !46
+- Resolve "'cannot find package' when running make" !45
+
 v 0.5.1
 - Don't serve statically-compiled `.gz` files that are symlinks
 
