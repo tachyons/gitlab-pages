@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 shared/pages/.update
 /gitlab-pages
+/gitlab-pages-deployer
 
 # Used by the makefile
 /.GOPATH
