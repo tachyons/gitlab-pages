@@ -33,8 +33,8 @@ var (
 	redisServer    = flag.String("redis-server", "localhost:6379", "The address of Redis Server")
 	redisDatabase  = flag.String("redis-database", "0", "The name of Redis Database")
 	redisPassword  = flag.String("redis-password", "", "The password to Redis Database")
-	redisNamespace = flag.String("redis-namespace", "", "The namespace to use")
-	redisPool      = flag.Int("redis-password", 10, "The connection pool to Redis Database")
+	redisNamespace = flag.String("redis-namespace", "resque:gitlab", "The namespace to use")
+	redisPool      = flag.Int("redis-pool", 10, "The connection pool to Redis Database")
 )
 
 func runStatsServer() {
@@ -62,11 +62,12 @@ func appMain() {
 	runStatsServer()
 
 	workers.Configure(map[string]string{
-		"server":   *redisServer,
-		"database": *redisDatabase,
-		"password": *redisPassword,
-		"pool":     strconv.Itoa(*redisPool),
-		"process":  *deployerID,
+		"server":    *redisServer,
+		"database":  *redisDatabase,
+		"password":  *redisPassword,
+		"namespace": *redisNamespace,
+		"pool":      strconv.Itoa(*redisPool),
+		"process":   *deployerID,
 	})
 
 	workers.Middleware.Append(&myMiddleware{})

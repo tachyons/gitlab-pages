@@ -1,7 +1,12 @@
 package main
 
-import workers "github.com/jrallison/go-workers"
+import (
+	"time"
+
+	workers "github.com/jrallison/go-workers"
+)
 
 func pagesJob(message *workers.Msg) {
-	println(message.ToJson())
+	time.Sleep(time.Minute)
+	println(message.Args())
 }
