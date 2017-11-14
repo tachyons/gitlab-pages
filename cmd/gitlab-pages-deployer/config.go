@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/json"
 	"io/ioutil"
@@ -24,17 +25,25 @@ func saveConfig(projectID int64, projectPath string, config map[string]interface
 }
 
 func replaceFile(path, filename string, data []byte) bool {
+	targetFile := filepath.Join(path, filename)
+
 	err := os.MkdirAll(path, 0750)
 	panicOnFileSystemError(err)
+
+	dataWas, err := ioutil.ReadFile(targetFile)
+	if err == nil && bytes.Equal(data, dataWas) {
+		return false
+	}
 
 	f, err := ioutil.TempFile(path, "config")
 	panicOnError(err)
 	defer f.Close()
 	defer os.Remove(f.Name())
 
-	println(f.Name())
+	_, err = f.Write(data)
+	panicOnError(err)
 
-	err = os.Rename(f.Name(), filepath.Join(path, filename))
+	err = os.Rename(f.Name(), targetFile)
 	panicOnFileSystemError(err)
 	return true
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func panicOnFileSystemError(err error) {
-	if err == nil && !os.IsNotExist(err) {
+	if err != nil && !os.IsNotExist(err) {
 		panic(err)
 	}
 }
