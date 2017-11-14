@@ -18,7 +18,8 @@ func pagesJob(message *workers.Msg) {
 			args.GetIndex(1).MustInt64(),
 			args.GetIndex(2).MustString(),
 			args.GetIndex(3).MustInt64(),
-			args.GetIndex(4).MustMap(),
+			args.GetIndex(4).MustInt64(),
+			args.GetIndex(5).MustMap(),
 		)
 
 	case "remove":
