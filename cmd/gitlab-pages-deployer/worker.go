@@ -15,17 +15,17 @@ func pagesJob(message *workers.Msg) {
 	case "deploy":
 		deployJob(
 			message,
-			args.GetIndex(1).MustInt64(),
+			args.GetIndex(1).MustInt(),
 			args.GetIndex(2).MustString(),
-			args.GetIndex(3).MustInt64(),
-			args.GetIndex(4).MustInt64(),
+			args.GetIndex(3).MustInt(),
+			args.GetIndex(4).MustInt(),
 			args.GetIndex(5).MustMap(),
 		)
 
 	case "remove":
 		removeJob(
 			message,
-			args.GetIndex(1).MustInt64(),
+			args.GetIndex(1).MustInt(),
 			args.GetIndex(2).MustString(),
 			args.GetIndex(3).MustString(),
 		)
@@ -33,7 +33,7 @@ func pagesJob(message *workers.Msg) {
 	case "config":
 		configJob(
 			message,
-			args.GetIndex(1).MustInt64(),
+			args.GetIndex(1).MustInt(),
 			args.GetIndex(2).MustString(),
 			args.GetIndex(3).MustMap(),
 		)
@@ -41,7 +41,7 @@ func pagesJob(message *workers.Msg) {
 	case "rename_namespace":
 		renameNamespaceJob(
 			message,
-			args.GetIndex(1).MustInt64(),
+			args.GetIndex(1).MustInt(),
 			args.GetIndex(2).MustString(),
 			args.GetIndex(3).MustString(),
 		)
@@ -49,7 +49,7 @@ func pagesJob(message *workers.Msg) {
 	case "rename_project":
 		renameProjectJob(
 			message,
-			args.GetIndex(1).MustInt64(),
+			args.GetIndex(1).MustInt(),
 			args.GetIndex(2).MustString(),
 			args.GetIndex(3).MustString(),
 			args.GetIndex(4).MustString(),
@@ -58,7 +58,7 @@ func pagesJob(message *workers.Msg) {
 	case "move_project":
 		moveProjectJob(
 			message,
-			args.GetIndex(1).MustInt64(),
+			args.GetIndex(1).MustInt(),
 			args.GetIndex(2).MustString(),
 			args.GetIndex(3).MustString(),
 			args.GetIndex(4).MustString(),

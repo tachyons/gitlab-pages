@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	workers "github.com/jrallison/go-workers"
+	gitlab "github.com/xanzy/go-gitlab"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -16,6 +17,8 @@ var VERSION = "dev"
 
 // REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
+
+var api *gitlab.Client
 
 var (
 	showVersion = flag.Bool("version", false, "Show version")
@@ -55,6 +58,9 @@ func appMain() {
 	flag.Parse()
 
 	printVersion(*showVersion, VERSION)
+
+	api = gitlab.NewClient(nil, *apiAccessToken)
+	api.SetBaseURL(*apiURL)
 
 	log.Printf("GitLab Pages Deployer %s (%s)", VERSION, REVISION)
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")

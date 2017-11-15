@@ -15,7 +15,7 @@ func panicOnError(err error) {
 	}
 }
 
-func saveConfig(projectID int64, projectPath string, config map[string]interface{}) {
+func saveConfig(projectID int, projectPath string, config map[string]interface{}) {
 	data, err := json.MarshalIndent(config, "", "\t")
 	panicOnError(err)
 
