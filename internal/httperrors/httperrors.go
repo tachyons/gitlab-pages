@@ -40,6 +40,15 @@ var (
 		`<p>Try refreshing the page, or going back and attempting the action again.</p>
      <p>Please contact your GitLab administrator if this problem persists.</p>`,
 	}
+
+	content503 = content{
+		http.StatusServiceUnavailable,
+		"Service Unavailable (503)",
+		"503",
+		"Whoops, something went wrong on our end.",
+		`<p>Try refreshing the page, or going back and attempting the action again.</p>
+     <p>Please contact your GitLab administrator if this problem persists.</p>`,
+	}
 )
 
 const predefinedErrorPage = `
@@ -159,4 +168,9 @@ func Serve500(w http.ResponseWriter) {
 // Serve502 returns a 502 error response / HTML page to the http.ResponseWriter
 func Serve502(w http.ResponseWriter) {
 	serveErrorPage(w, content502)
+}
+
+// Serve503 returns a 503 error response / HTML page to the http.ResponseWriter
+func Serve503(w http.ResponseWriter) {
+	serveErrorPage(w, content503)
 }
