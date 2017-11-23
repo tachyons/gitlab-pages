@@ -33,6 +33,10 @@ type theApp struct {
 	Artifact *artifact.Artifact
 }
 
+func (a *theApp) isReady() bool {
+	return a.domains != nil
+}
+
 func (a *theApp) domain(host string) *domain {
 	host = strings.ToLower(host)
 	a.lock.RLock()
@@ -54,6 +58,14 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return nil, nil
 }
 
+func (a *theApp) healthCheck(w http.ResponseWriter, r *http.Request, https bool) {
+	if a.isReady() {
+		w.Write([]byte("success"))
+	} else {
+		http.Error(w, "not yet ready", http.StatusServiceUnavailable)
+	}
+}
+
 func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https bool) {
 	w := newLoggingResponseWriter(ww)
 	defer w.Log(r)
@@ -63,7 +75,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	// short circuit content serving to check for a status page
 	if r.RequestURI == a.appConfig.StatusPath {
-		w.Write([]byte("success"))
+		a.healthCheck(&w, r, https)
 		return
 	}
 
@@ -86,6 +98,11 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	// In the event a host is prefixed with the artifact prefix an artifact
 	// value is created, and an attempt to proxy the request is made
 	if a.Artifact.TryMakeRequest(host, &w, r) {
+		return
+	}
+
+	if !a.isReady() {
+		httperrors.Serve503(&w)
 		return
 	}
 

@@ -212,6 +212,28 @@ func TestStatusPage(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
+func TestStatusNotYetReady(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false", "-pages-status=/@statuscheck", "-pages-root=shared/invalid-pages")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
+}
+
+func TestPageNotAvailableIfNotLoaded(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false", "-pages-root=shared/invalid-pages")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "index.html")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
+}
+
 func TestArtifactProxyRequest(t *testing.T) {
 	skipUnlessEnabled(t)
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
