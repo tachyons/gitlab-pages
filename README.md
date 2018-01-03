@@ -45,6 +45,24 @@ current requests.
    a `Content-Encoding: gzip` header. This allows compressed versions of the
    files to be precalculated, saving CPU time and network bandwidth.
 
+### HTTPS only domains
+
+Users have the option to enable "HTTPS only pages" on a per-project basis.
+This option is also enabled by default for all newly-created projects.
+
+When the option is enabled, a project's `config.json` will contain an
+`https_only` attribute.
+
+When the `https_only` attribute is found in the root context, any project pages
+served over HTTP via the group domain (i.e. `username.gitlab.io`) will be 301
+redirected to HTTPS.
+
+When the attribute is found in a custom domain's configuration, any HTTP
+requests to this domain will likewise be redirected.
+
+If the attribute's value is false, or the attribute is missing, then
+the content will be served to the client over HTTP.
+
 ### How it should be run?
 
 Ideally the GitLab Pages should run without any load balancer in front of it.

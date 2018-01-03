@@ -1,0 +1,8 @@
+{
+  "domains": [
+    {
+      "domain": "test.my-domain.com",
+      "https_only": true
+    }
+  ]
+}

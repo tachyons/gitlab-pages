@@ -48,7 +48,7 @@ func skipUnlessEnabled(t *testing.T) {
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false")
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	for _, spec := range listeners {
@@ -152,7 +152,7 @@ func TestKnownHostWithPortReturns200(t *testing.T) {
 
 func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false")
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
@@ -184,6 +184,61 @@ func TestHttpToHttpsRedirectEnabled(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
+func TestHttpsOnlyGroupEnabled(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpListener, "group.https-only.gitlab-example.com", "project1/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
+}
+
+func TestHttpsOnlyGroupDisabled(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "group.https-only.gitlab-example.com", "project2/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
+func TestHttpsOnlyProjectEnabled(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpListener, "test.my-domain.com", "/index.html")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
+}
+
+func TestHttpsOnlyProjectDisabled(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "test2.my-domain.com", "/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
+func TestHttpsOnlyDomainDisabled(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "no.cert.com", "/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
 func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	skipUnlessEnabled(t)
 	listener := []ListenSpec{{"http", "127.0.0.1", "37003"}}
@@ -197,13 +252,13 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		assert.Contains(t, string(body), "gitlab_pages_http_sessions_active 0")
-		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 7")
+		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 11")
 	}
 }
 
 func TestStatusPage(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false", "-pages-status=/@statuscheck")
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-pages-status=/@statuscheck")
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
@@ -214,7 +269,7 @@ func TestStatusPage(t *testing.T) {
 
 func TestStatusNotYetReady(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false", "-pages-status=/@statuscheck", "-pages-root=shared/invalid-pages")
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-pages-status=/@statuscheck", "-pages-root=shared/invalid-pages")
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
@@ -225,7 +280,7 @@ func TestStatusNotYetReady(t *testing.T) {
 
 func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-redirect-http=false", "-pages-root=shared/invalid-pages")
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-pages-root=shared/invalid-pages")
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "index.html")

@@ -22,16 +22,27 @@ type locationDirectoryError struct {
 	RelativePath string
 }
 
-func (l *locationDirectoryError) Error() string {
-	return "location error accessing directory where file expected"
+type project struct {
+	HTTPSOnly bool
 }
 
+type projects map[string]*project
+
 type domain struct {
-	Group            string
-	Project          string
+	Group string
+
+	// custom domains:
+	ProjectName      string
 	Config           *domainConfig
 	certificate      *tls.Certificate
 	certificateError error
+
+	// group domains:
+	Projects projects
+}
+
+func (l *locationDirectoryError) Error() string {
+	return "location error accessing directory where file expected"
 }
 
 func acceptsGZip(r *http.Request) bool {
@@ -67,6 +78,20 @@ func setContentType(w http.ResponseWriter, fullPath string) {
 	if ctype != "" {
 		w.Header().Set("Content-Type", ctype)
 	}
+}
+
+func (d *domain) isHTTPSOnly(r *http.Request) bool {
+	if d.Config != nil {
+		return d.Config.HTTPSOnly
+	}
+
+	split := strings.SplitN(r.URL.Path, "/", 3)
+	if len(split) < 2 {
+		return false
+	}
+
+	project := d.Projects[split[1]]
+	return project.HTTPSOnly
 }
 
 func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
@@ -234,12 +259,12 @@ func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 
 func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
 	// Try to serve file for http://host/... => /group/project/...
-	if d.tryFile(w, r, d.Project, "", r.URL.Path) == nil {
+	if d.tryFile(w, r, d.ProjectName, "", r.URL.Path) == nil {
 		return
 	}
 
 	// Try serving not found page for http://host/ => /group/project/404.html
-	if d.tryNotFound(w, r, d.Project) == nil {
+	if d.tryNotFound(w, r, d.ProjectName) == nil {
 		return
 	}
 
