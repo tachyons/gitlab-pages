@@ -1,5 +1,7 @@
-v 0.6.0
+v 0.6.1
+- Sanitize redirects by issuing a complete URI
 
+v 0.6.0
 - Use namsral/flag to support environment vars for config !40
 - Cleanup the README file !41
 - Add an artifacts proxy to GitLab Pages !44 !46

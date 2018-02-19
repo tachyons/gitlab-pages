@@ -17,6 +17,15 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
 
+type locationDirectoryError struct {
+	FullPath     string
+	RelativePath string
+}
+
+func (l *locationDirectoryError) Error() string {
+	return "location error accessing directory where file expected"
+}
+
 type domain struct {
 	Group            string
 	Project          string
@@ -115,31 +124,50 @@ func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code in
 	return nil
 }
 
-func (d *domain) resolvePath(projectName string, subPath ...string) (fullPath string, err error) {
+// Resolve the HTTP request to a path on disk, converting requests for
+// directories to requests for index.html inside the directory if appropriate.
+func (d *domain) resolvePath(projectName string, subPath ...string) (string, error) {
 	publicPath := filepath.Join(d.Group, projectName, "public")
 
-	fullPath = filepath.Join(publicPath, filepath.Join(subPath...))
-	fullPath, err = filepath.EvalSymlinks(fullPath)
+	// Don't use filepath.Join as cleans the path,
+	// where we want to traverse full path as supplied by user
+	// (including ..)
+	testPath := publicPath + "/" + strings.Join(subPath, "/")
+	fullPath, err := filepath.EvalSymlinks(testPath)
 	if err != nil {
-		return
+		return "", err
 	}
 
+	// The requested path resolved to somewhere outside of the public/ directory
 	if !strings.HasPrefix(fullPath, publicPath+"/") && fullPath != publicPath {
-		err = fmt.Errorf("%q should be in %q", fullPath, publicPath)
-		return
+		return "", fmt.Errorf("%q should be in %q", fullPath, publicPath)
 	}
-	return
+
+	fi, err := os.Lstat(fullPath)
+	if err != nil {
+		return "", err
+	}
+
+	// The requested path is a directory, so try index.html via recursion
+	if fi.IsDir() {
+		return "", &locationDirectoryError{
+			FullPath:     fullPath,
+			RelativePath: strings.TrimPrefix(fullPath, publicPath),
+		}
+	}
+
+	// The file exists, but is not a supported type to serve. Perhaps a block
+	// special device or something else that may be a security risk.
+	if !fi.Mode().IsRegular() {
+		return "", fmt.Errorf("%s: is not a regular file", fullPath)
+	}
+
+	return fullPath, nil
 }
 
 func (d *domain) tryNotFound(w http.ResponseWriter, r *http.Request, projectName string) error {
 	page404, err := d.resolvePath(projectName, "404.html")
 	if err != nil {
-		return err
-	}
-
-	// Make sure that file is not symlink
-	fi, err := os.Lstat(page404)
-	if err != nil && !fi.Mode().IsRegular() {
 		return err
 	}
 
@@ -150,45 +178,30 @@ func (d *domain) tryNotFound(w http.ResponseWriter, r *http.Request, projectName
 	return nil
 }
 
-func (d *domain) checkPath(w http.ResponseWriter, r *http.Request, path string) (fullPath string, err error) {
-	fullPath = path
-	fi, err := os.Lstat(fullPath)
-	if err != nil {
-		return
-	}
+func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, pathSuffix string, subPath ...string) error {
+	fullPath, err := d.resolvePath(projectName, subPath...)
 
-	switch {
-	// If the URL doesn't end with /, send location to client
-	case fi.IsDir() && !endsWithSlash(r.URL.Path):
-		newURL := *r.URL
-		newURL.Path += "/"
-		http.Redirect(w, r, newURL.String(), 302)
-
-		// If this is directory, we try the index.html
-	case fi.IsDir():
-		fullPath = filepath.Join(fullPath, "index.html")
-		fi, err = os.Lstat(fullPath)
-		if err != nil {
-			return
+	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
+		if endsWithSlash(r.URL.Path) {
+			fullPath, err = d.resolvePath(projectName, filepath.Join(subPath...), "index.html")
+		} else {
+			redirectPath := "//" + r.Host + "/"
+			if pathSuffix != "" {
+				redirectPath += pathSuffix + "/"
+			}
+			if locationError.RelativePath != "" {
+				redirectPath += strings.TrimPrefix(locationError.RelativePath, "/") + "/"
+			}
+			http.Redirect(w, r, redirectPath, 302)
+			return nil
 		}
-
-		// We don't allow to open the regular file
-	case !fi.Mode().IsRegular():
-		err = fmt.Errorf("%s: is not a regular file", fullPath)
 	}
-	return
-}
 
-func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName string, subPath ...string) error {
-	path, err := d.resolvePath(projectName, subPath...)
 	if err != nil {
 		return err
 	}
-	path, err = d.checkPath(w, r, path)
-	if err != nil {
-		return err
-	}
-	return d.serveFile(w, r, path)
+
+	return d.serveFile(w, r, fullPath)
 }
 
 func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
@@ -196,12 +209,12 @@ func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	split := strings.SplitN(r.URL.Path, "/", 3)
 
 	// Try to serve file for http://group.example.com/subpath/... => /group/subpath/...
-	if len(split) >= 2 && d.tryFile(w, r, split[1], split[2:]...) == nil {
+	if len(split) >= 2 && d.tryFile(w, r, split[1], split[1], split[2:]...) == nil {
 		return
 	}
 
 	// Try to serve file for http://group.example.com/... => /group/group.example.com/...
-	if r.Host != "" && d.tryFile(w, r, strings.ToLower(r.Host), r.URL.Path) == nil {
+	if r.Host != "" && d.tryFile(w, r, strings.ToLower(r.Host), "", r.URL.Path) == nil {
 		return
 	}
 
@@ -221,7 +234,7 @@ func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 
 func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
 	// Try to serve file for http://host/... => /group/project/...
-	if d.tryFile(w, r, d.Project, r.URL.Path) == nil {
+	if d.tryFile(w, r, d.Project, "", r.URL.Path) == nil {
 		return
 	}
 
