@@ -1,0 +1,103 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "spyv5/YFBjYyZLZa1U2LBfDR8PM=",
+			"path": "github.com/beorn7/perks/quantile",
+			"revision": "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
+		},
+		{
+			"checksumSHA1": "XnbEHQRzINRKXKmu9GcaqGkK4Lg=",
+			"path": "github.com/golang/protobuf/proto",
+			"revision": "f592bd283e9ef86337a432eb50e592278c3d534d"
+		},
+		{
+			"checksumSHA1": "LJA9zeZ+AZS9LHDacPd9OemVRDk=",
+			"path": "github.com/kardianos/osext",
+			"revision": "efacde03154693404c65e7aa7d461ac9014acd0c"
+		},
+		{
+			"checksumSHA1": "bKMZjd2wPw13VwoE7mBeSv5djFA=",
+			"comment": "v1.0.0-2-gc12348c",
+			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
+			"revision": "c12348ce28de40eed0136aa2b644d0ee0650e56c"
+		},
+		{
+			"checksumSHA1": "l53Jm3mtlea/RzeydlryqPLeuL0=",
+			"comment": "v1.7.4-alpha-4-g67f268f",
+			"path": "github.com/namsral/flag",
+			"revision": "67f268f20922975c067ed799e4be6bacf152208c"
+		},
+		{
+			"checksumSHA1": "Ph+qmEo8RdBKBHZUhx0y5Oyk/U0=",
+			"comment": "v0.8.0-9-g334af01",
+			"path": "github.com/prometheus/client_golang/prometheus",
+			"revision": "334af0119a8f8fb6af5bb950d535c482cac7f836"
+		},
+		{
+			"checksumSHA1": "lG3//eDlwqA4IOuAPrNtLh9G0TA=",
+			"comment": "v0.8.0-9-g334af01",
+			"path": "github.com/prometheus/client_golang/prometheus/promhttp",
+			"revision": "334af0119a8f8fb6af5bb950d535c482cac7f836"
+		},
+		{
+			"checksumSHA1": "DvwvOlPNAgRntBzt3b3OSRMS2N4=",
+			"comment": "model-0.0.2-12-gfa8ad6f",
+			"path": "github.com/prometheus/client_model/go",
+			"revision": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6"
+		},
+		{
+			"checksumSHA1": "OFZ6f2tsxQ+pk+wl7474eIxBs80=",
+			"path": "github.com/prometheus/common/expfmt",
+			"revision": "ebdfc6da46522d58825777cf1f90490a5b1ef1d8"
+		},
+		{
+			"checksumSHA1": "GWlM3d2vPYyNATtTFgftS10/A9w=",
+			"path": "github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg",
+			"revision": "ebdfc6da46522d58825777cf1f90490a5b1ef1d8"
+		},
+		{
+			"checksumSHA1": "Jx0GXl5hGnO25s3ryyvtdWHdCpw=",
+			"path": "github.com/prometheus/common/model",
+			"revision": "ebdfc6da46522d58825777cf1f90490a5b1ef1d8"
+		},
+		{
+			"checksumSHA1": "W218eJZPXJG783fUr/z6IaAZyes=",
+			"path": "github.com/prometheus/procfs",
+			"revision": "abf152e5f3e97f2fafac028d2cc06c1feb87ffa5"
+		},
+		{
+			"checksumSHA1": "lZmPAbekxLbMFQirB/vzbdI+5O8=",
+			"comment": "v1.0-5-g8dd4211",
+			"path": "github.com/rs/cors",
+			"revision": "8dd4211afb5d08dbb39a533b9bb9e4b486351df6"
+		},
+		{
+			"checksumSHA1": "4uEmekuD2eHuhPbwKVh/X9Y/ESo=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "1297dc01ed0a819ff634c89707081a4df43baf6b"
+		},
+		{
+			"checksumSHA1": "6uKFd53ZAwUlXLwarorVT6upajU=",
+			"path": "github.com/stretchr/testify/require",
+			"revision": "1297dc01ed0a819ff634c89707081a4df43baf6b"
+		},
+		{
+			"checksumSHA1": "g4lA8FNetHh8as26V8cLl5EGy78=",
+			"path": "golang.org/x/net/http2",
+			"revision": "07b51741c1d6423d4a6abab1c49940ec09cb1aaf"
+		},
+		{
+			"checksumSHA1": "EYNaHp7XdLWRydUCE0amEkKAtgk=",
+			"path": "golang.org/x/net/http2/hpack",
+			"revision": "07b51741c1d6423d4a6abab1c49940ec09cb1aaf"
+		},
+		{
+			"checksumSHA1": "yhndhWXMs/VSEDLks4dNyFMQStA=",
+			"path": "golang.org/x/net/lex/httplex",
+			"revision": "07b51741c1d6423d4a6abab1c49940ec09cb1aaf"
+		}
+	],
+	"rootPath": "gitlab.com/gitlab-org/gitlab-pages"
+}
