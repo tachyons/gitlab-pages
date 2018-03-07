@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/tls"
-	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
+	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -151,7 +151,7 @@ func (a *theApp) Run() {
 			defer wg.Done()
 			err := listenAndServe(fd, a.ServeHTTP, a.HTTP2, nil)
 			if err != nil {
-				log.Fatal(err)
+				fatal(err)
 			}
 		}(fd)
 	}
@@ -163,7 +163,7 @@ func (a *theApp) Run() {
 			defer wg.Done()
 			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.HTTP2)
 			if err != nil {
-				log.Fatal(err)
+				fatal(err)
 			}
 		}(fd)
 	}
@@ -175,7 +175,7 @@ func (a *theApp) Run() {
 			defer wg.Done()
 			err := listenAndServe(fd, a.ServeProxy, a.HTTP2, nil)
 			if err != nil {
-				log.Fatal(err)
+				fatal(err)
 			}
 		}(fd)
 	}
@@ -189,7 +189,7 @@ func (a *theApp) Run() {
 			handler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP
 			err := listenAndServe(fd, handler, false, nil)
 			if err != nil {
-				log.Fatal(err)
+				fatal(err)
 			}
 		}(a.ListenMetrics)
 	}
@@ -200,14 +200,17 @@ func (a *theApp) Run() {
 }
 
 func runApp(config appConfig) {
-	if err := mimedb.LoadTypes(); err != nil {
-		log.Printf("WARNING: Loading extended MIME database failed: %v", err)
-	}
-
 	a := theApp{appConfig: config}
 
 	if config.ArtifactsServer != "" {
 		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
 	}
+
+	configureLogging(config.LogFormat)
+
+	if err := mimedb.LoadTypes(); err != nil {
+		log.WithError(err).Warn("Loading extended MIME database failed")
+	}
+
 	a.Run()
 }

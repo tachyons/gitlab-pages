@@ -2,12 +2,14 @@ package main
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
 
 	"github.com/namsral/flag"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -29,6 +31,7 @@ var (
 	metricsAddress         = flag.String("metrics-address", "", "The address to listen on for metrics requests")
 	daemonUID              = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	daemonGID              = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
+	logFormat              = flag.String("log-format", "text", "The log output format: 'text' or 'json'")
 
 	disableCrossOriginRequests     = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 	errArtifactSchemaUnsupported   = errors.New("artifacts-server scheme must be either http:// or https://")
@@ -43,6 +46,7 @@ func configFromFlags() appConfig {
 	config.HTTP2 = *useHTTP2
 	config.DisableCrossOriginRequests = *disableCrossOriginRequests
 	config.StatusPath = *pagesStatus
+	config.LogFormat = *logFormat
 
 	if *pagesRootCert != "" {
 		config.RootCertificate = readFile(*pagesRootCert)
@@ -89,12 +93,17 @@ func appMain() {
 
 	printVersion(*showVersion, VERSION)
 
-	log.Printf("GitLab Pages Daemon %s (%s)", VERSION, REVISION)
-	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages\n")
+	configureLogging(*logFormat)
+
+	log.WithFields(log.Fields{
+		"version":  VERSION,
+		"revision": REVISION,
+	}).Print("GitLab Pages Daemon")
+	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
 	err := os.Chdir(*pagesRoot)
 	if err != nil {
-		log.Fatalln(err)
+		fatal(err)
 	}
 
 	config := configFromFlags()
@@ -133,8 +142,7 @@ func appMain() {
 
 func printVersion(showVersion bool, version string) {
 	if showVersion {
-		log.SetFlags(0)
-		log.Printf(version)
+		fmt.Fprintf(os.Stderr, version)
 		os.Exit(0)
 	}
 }
