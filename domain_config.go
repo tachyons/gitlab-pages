@@ -31,7 +31,7 @@ func (c *domainConfig) Valid(rootDomain string) bool {
 }
 
 func (c *domainsConfig) Read(group, project string) (err error) {
-	configFile, err := os.Open(filepath.Join(group, project, "config.json"))
+	configFile, err := os.Open(filepath.Join(rootDir, group, project, "config.json"))
 	if err != nil {
 		return err
 	}

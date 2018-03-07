@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/karrick/godirwalk"
 	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -76,21 +78,15 @@ func (d domains) readProject(rootDomain, group, projectName string) {
 		return
 	}
 
-	if _, err := os.Lstat(filepath.Join(group, projectName, "public")); err != nil {
+	if _, err := os.Lstat(filepath.Join(rootDir, group, projectName, "public")); err != nil {
 		return
 	}
 
 	d.readProjectConfig(rootDomain, group, projectName)
 }
 
-func (d domains) readProjects(rootDomain, group string) {
-	projects, err := os.Open(group)
-	if err != nil {
-		return
-	}
-	defer projects.Close()
-
-	fis, err := projects.Readdir(0)
+func (d domains) readProjects(rootDomain, group string, buf []byte) {
+	fis, err := godirwalk.ReadDirents(filepath.Join(rootDir, group), buf)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"group": group,
@@ -108,14 +104,12 @@ func (d domains) readProjects(rootDomain, group string) {
 	}
 }
 
-func (d domains) ReadGroups(rootDomain string) error {
-	groups, err := os.Open(".")
-	if err != nil {
-		return err
-	}
-	defer groups.Close()
+var rootDir = "."
 
-	fis, err := groups.Readdir(0)
+func (d domains) ReadGroups(rootDomain string) error {
+	buf := make([]byte, 2*os.Getpagesize())
+
+	fis, err := godirwalk.ReadDirents(rootDir, buf)
 	if err != nil {
 		return err
 	}
@@ -128,7 +122,7 @@ func (d domains) ReadGroups(rootDomain string) error {
 			continue
 		}
 
-		d.readProjects(rootDomain, group.Name())
+		d.readProjects(rootDomain, group.Name(), buf)
 	}
 
 	return nil
