@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	mimedb "github.com/lupine/go-mimedb"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
@@ -199,6 +200,10 @@ func (a *theApp) Run() {
 }
 
 func runApp(config appConfig) {
+	if err := mimedb.LoadTypes(); err != nil {
+		log.Printf("WARNING: Loading extended MIME database failed: %v", err)
+	}
+
 	a := theApp{appConfig: config}
 
 	if config.ArtifactsServer != "" {
