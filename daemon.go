@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -13,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/kardianos/osext"
+	log "github.com/sirupsen/logrus"
 )
 
 const daemonRunProgram = "gitlab-pages-unprivileged"
@@ -22,12 +22,15 @@ func daemonMain() {
 		return
 	}
 
-	log.Printf("Starting the daemon as unprivileged user (uid: %d, gid: %d)...", syscall.Getuid(), syscall.Getgid())
+	log.WithFields(log.Fields{
+		"uid": syscall.Getuid(),
+		"gid": syscall.Getgid(),
+	}).Print("starting the daemon as unprivileged user")
 
 	// read the configuration from the pipe "ExtraFiles"
 	var config appConfig
 	if err := json.NewDecoder(os.NewFile(3, "options")).Decode(&config); err != nil {
-		log.Fatalln(err)
+		fatal(err)
 	}
 	runApp(config)
 	os.Exit(0)
@@ -174,10 +177,14 @@ func daemonize(config appConfig, uid, gid uint) {
 	var err error
 	defer func() {
 		if err != nil {
-			log.Fatalln(err)
+			fatal(err)
 		}
 	}()
-	log.Printf("Running the daemon as unprivileged user (uid:%d, gid: %d)...", uid, gid)
+
+	log.WithFields(log.Fields{
+		"uid": uid,
+		"gid": gid,
+	}).Print("running the daemon as unprivileged user")
 
 	cmd, err := daemonReexec(uid, gid, daemonRunProgram)
 	if err != nil {
@@ -188,7 +195,7 @@ func daemonize(config appConfig, uid, gid uint) {
 	// Run daemon in chroot environment
 	temporaryExecutable, err := daemonChroot(cmd)
 	if err != nil {
-		log.Println("Chroot failed", err)
+		log.WithError(err).Print("chroot failed")
 		return
 	}
 	defer os.Remove(temporaryExecutable)
@@ -211,7 +218,7 @@ func daemonize(config appConfig, uid, gid uint) {
 
 	// Start the process
 	if err = cmd.Start(); err != nil {
-		log.Println("Start failed", err)
+		log.WithError(err).Print("start failed")
 		return
 	}
 

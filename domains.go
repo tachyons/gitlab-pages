@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -80,7 +80,9 @@ func (d domains) readProjects(rootDomain, group string) (count int) {
 
 	fis, err := projects.Readdir(0)
 	if err != nil {
-		log.Println("Failed to Readdir for ", group, ":", err)
+		log.WithError(err).WithFields(log.Fields{
+			"group": group,
+		}).Print("readdir failed")
 	}
 
 	for _, project := range fis {
@@ -106,7 +108,7 @@ func (d domains) ReadGroups(rootDomain string) error {
 
 	fis, err := groups.Readdir(0)
 	if err != nil {
-		log.Println("Failed to Readdir for .:", err)
+		log.WithError(err).Print("readdir failed")
 	}
 
 	for _, group := range fis {
@@ -132,7 +134,7 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		// Read the update file
 		update, err := ioutil.ReadFile(".update")
 		if err != nil && !os.IsNotExist(err) {
-			log.Println("Failed to read update timestamp:", err)
+			log.WithError(err).Print("failed to read update timestamp")
 			time.Sleep(interval)
 			continue
 		}
@@ -147,8 +149,13 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		started := time.Now()
 		domains := make(domains)
 		domains.ReadGroups(rootDomain)
-		duration := time.Since(started)
-		log.Println("Updated", len(domains), "domains in", duration, "Hash:", update)
+		duration := time.Since(started).Seconds()
+
+		log.WithFields(log.Fields{
+			"domains":  len(domains),
+			"duration": duration,
+			"hash":     update,
+		}).Print("updated domains")
 
 		if updater != nil {
 			updater(domains)

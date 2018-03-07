@@ -4,7 +4,25 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
+
+var (
+	accessLogFormat = "text"
+	logrusEntry     = log.WithField("system", "http")
+)
+
+func configureLogging(format string) {
+	switch format {
+	case "json":
+		log.SetFormatter(&log.JSONFormatter{})
+		accessLogFormat = "json"
+	default:
+		log.SetFormatter(&log.TextFormatter{})
+		accessLogFormat = "text"
+	}
+}
 
 type loggingResponseWriter struct {
 	rw      http.ResponseWriter
@@ -43,10 +61,33 @@ func (l *loggingResponseWriter) WriteHeader(status int) {
 }
 
 func (l *loggingResponseWriter) Log(r *http.Request) {
-	duration := time.Since(l.started)
-	fmt.Printf("%s %s - - [%s] %q %d %d %q %q %f\n",
-		r.Host, r.RemoteAddr, l.started,
-		fmt.Sprintf("%s %s %s", r.Method, r.RequestURI, r.Proto),
-		l.status, l.written, r.Referer(), r.UserAgent(), duration.Seconds(),
-	)
+	fields := log.Fields{
+		"host":       r.Host,
+		"remoteAddr": r.RemoteAddr,
+		"method":     r.Method,
+		"uri":        r.RequestURI,
+		"proto":      r.Proto,
+		"status":     l.status,
+		"written":    l.written,
+		"referer":    r.Referer(),
+		"userAgent":  r.UserAgent(),
+		"duration":   time.Since(l.started).Seconds(),
+	}
+
+	switch accessLogFormat {
+	case "text":
+		fmt.Printf("%s %s - - [%s] %q %d %d %q %q %f\n",
+			fields["host"], fields["remoteAddr"], l.started,
+			fmt.Sprintf("%s %s %s", fields["method"], fields["uri"], fields["proto"]),
+			fields["status"], fields["written"], fields["referer"], fields["userAgent"], fields["duration"],
+		)
+	case "json":
+		logrusEntry.WithFields(fields).Info("access")
+	default:
+		panic("invalid access log format")
+	}
+}
+
+func fatal(err error) {
+	log.WithError(err).Fatal()
 }

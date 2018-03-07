@@ -17,4 +17,6 @@ type appConfig struct {
 	StatusPath   string
 
 	DisableCrossOriginRequests bool
+
+	LogFormat string
 }

@@ -109,6 +109,12 @@ $ make
 $ ./gitlab-pages -listen-http ":8090" -metrics-address ":9235" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
+### Structured logging
+
+You can use the `-log-format json` option to make GitLab Pages output
+JSON-structured logs. This makes it easer to parse and search logs
+with tools such as [ELK](https://www.elastic.co/elk-stack).
+
 ### Cross-origin requests
 
 GitLab Pages defaults to allowing cross-origin requests for any resource it

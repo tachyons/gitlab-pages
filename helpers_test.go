@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +36,7 @@ func setUpTests() {
 
 	err := os.Chdir("shared/pages")
 	if err != nil {
-		log.Println("Chdir:", err)
+		log.WithError(err).Print("chdir")
 	} else {
 		chdirSet = true
 	}

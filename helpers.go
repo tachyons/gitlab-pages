@@ -2,7 +2,6 @@ package main
 
 import (
 	"io/ioutil"
-	"log"
 	"net"
 	"strings"
 )
@@ -10,7 +9,7 @@ import (
 func readFile(file string) (result []byte) {
 	result, err := ioutil.ReadFile(file)
 	if err != nil {
-		log.Fatalln(err)
+		fatal(err)
 	}
 	return
 }
@@ -18,12 +17,12 @@ func readFile(file string) (result []byte) {
 func createSocket(addr string) (l net.Listener, fd uintptr) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatalln(err)
+		fatal(err)
 	}
 
 	f, err := l.(*net.TCPListener).File()
 	if err != nil {
-		log.Fatalln(err)
+		fatal(err)
 	}
 
 	fd = f.Fd()
