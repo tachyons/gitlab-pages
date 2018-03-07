@@ -1,3 +1,10 @@
+v 0.7.0
+- HTTPS-only pages !50
+- Switch to govendor !54
+- Add logrus !55
+- Structured logging !56
+- Use https://github.com/jshttp/mime-db to populate the mimedb !57
+
 v 0.6.1
 - Sanitize redirects by issuing a complete URI
 
