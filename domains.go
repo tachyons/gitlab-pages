@@ -17,57 +17,77 @@ type domains map[string]*domain
 
 type domainsUpdater func(domains domains)
 
-func (d domains) addDomain(rootDomain, group, project string, config *domainConfig) error {
+func (d domains) addDomain(rootDomain, group, projectName string, config *domainConfig) error {
 	newDomain := &domain{
-		Group:   group,
-		Project: project,
-		Config:  config,
+		Group:       group,
+		ProjectName: projectName,
+		Config:      config,
 	}
 
 	var domainName string
-	if config != nil {
-		domainName = config.Domain
-	} else {
-		domainName = group + "." + rootDomain
-	}
-	domainName = strings.ToLower(domainName)
+	domainName = strings.ToLower(config.Domain)
 	d[domainName] = newDomain
 
 	return nil
 }
 
-func (d domains) readProjectConfig(rootDomain, group, project string) (err error) {
+func (d domains) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool) error {
+	domainName := strings.ToLower(group + "." + rootDomain)
+	groupDomain := d[domainName]
+
+	if groupDomain == nil {
+		groupDomain = &domain{
+			Group:    group,
+			Projects: make(projects),
+		}
+	}
+
+	groupDomain.Projects[projectName] = &project{
+		HTTPSOnly: httpsOnly,
+	}
+	d[domainName] = groupDomain
+
+	return nil
+}
+
+func (d domains) readProjectConfig(rootDomain, group, projectName string) (err error) {
 	var config domainsConfig
-	err = config.Read(group, project)
+	err = config.Read(group, projectName)
 	if err != nil {
+		// This is necessary to preserve the previous behaviour where a
+		// group domain is created even if no config.json files are
+		// loaded successfully. Is it safe to remove this?
+		d.updateGroupDomain(rootDomain, group, projectName, false)
 		return
 	}
+
+	d.updateGroupDomain(rootDomain, group, projectName, config.HTTPSOnly)
 
 	for _, domainConfig := range config.Domains {
 		config := domainConfig // domainConfig is reused for each loop iteration
 		if domainConfig.Valid(rootDomain) {
-			d.addDomain(rootDomain, group, project, &config)
+			d.addDomain(rootDomain, group, projectName, &config)
 		}
 	}
 	return
 }
 
-func (d domains) readProject(rootDomain, group, project string) error {
-	if strings.HasPrefix(project, ".") {
+func (d domains) readProject(rootDomain, group, projectName string) error {
+	if strings.HasPrefix(projectName, ".") {
 		return errors.New("hidden project")
 	}
 
 	// Ignore projects that have .deleted in name
-	if strings.HasSuffix(project, ".deleted") {
+	if strings.HasSuffix(projectName, ".deleted") {
 		return errors.New("deleted project")
 	}
 
-	_, err := os.Lstat(filepath.Join(group, project, "public"))
+	_, err := os.Lstat(filepath.Join(group, projectName, "public"))
 	if err != nil {
 		return errors.New("missing public/ in project")
 	}
 
-	d.readProjectConfig(rootDomain, group, project)
+	d.readProjectConfig(rootDomain, group, projectName)
 	return nil
 }
 
@@ -119,10 +139,7 @@ func (d domains) ReadGroups(rootDomain string) error {
 			continue
 		}
 
-		count := d.readProjects(rootDomain, group.Name())
-		if count > 0 {
-			d.addDomain(rootDomain, group.Name(), "", nil)
-		}
+		d.readProjects(rootDomain, group.Name())
 	}
 	return nil
 }

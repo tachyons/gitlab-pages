@@ -11,10 +11,12 @@ type domainConfig struct {
 	Domain      string
 	Certificate string
 	Key         string
+	HTTPSOnly   bool `json:"https_only"`
 }
 
 type domainsConfig struct {
-	Domains []domainConfig
+	Domains   []domainConfig
+	HTTPSOnly bool `json:"https_only"`
 }
 
 func (c *domainConfig) Valid(rootDomain string) bool {

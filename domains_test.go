@@ -32,6 +32,10 @@ func TestReadProjects(t *testing.T) {
 		"other.domain.com",
 		"domain.404.com",
 		"group.404.test.io",
+		"group.https-only.test.io",
+		"test.my-domain.com",
+		"test2.my-domain.com",
+		"no.cert.com",
 	}
 
 	for _, expected := range domains {

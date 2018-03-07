@@ -67,6 +67,61 @@ func (a *theApp) healthCheck(w http.ResponseWriter, r *http.Request, https bool)
 	}
 }
 
+func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
+	u := *r.URL
+	u.Scheme = "https"
+	u.Host = r.Host
+	u.User = nil
+
+	http.Redirect(w, r, u.String(), statusCode)
+}
+
+func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain) {
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
+
+	return host, a.domain(host)
+}
+
+func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain) bool {
+	// short circuit content serving to check for a status page
+	if r.RequestURI == a.appConfig.StatusPath {
+		a.healthCheck(w, r, https)
+		return true
+	}
+
+	// Add auto redirect
+	if !https && a.RedirectHTTP {
+		a.redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
+		return true
+	}
+
+	// In the event a host is prefixed with the artifact prefix an artifact
+	// value is created, and an attempt to proxy the request is made
+	if a.Artifact.TryMakeRequest(host, w, r) {
+		return true
+	}
+
+	if !a.isReady() {
+		httperrors.Serve503(w)
+		return true
+	}
+
+	if domain == nil {
+		httperrors.Serve404(w)
+		return true
+	}
+
+	if !https && domain.isHTTPSOnly(r) {
+		a.redirectToHTTPS(w, r, http.StatusMovedPermanently)
+		return true
+	}
+
+	return false
+}
+
 func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https bool) {
 	w := newLoggingResponseWriter(ww)
 	defer w.Log(r)
@@ -74,42 +129,9 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	metrics.SessionsActive.Inc()
 	defer metrics.SessionsActive.Dec()
 
-	// short circuit content serving to check for a status page
-	if r.RequestURI == a.appConfig.StatusPath {
-		a.healthCheck(&w, r, https)
-		return
-	}
+	host, domain := a.getHostAndDomain(r)
 
-	// Add auto redirect
-	if !https && a.RedirectHTTP {
-		u := *r.URL
-		u.Scheme = "https"
-		u.Host = r.Host
-		u.User = nil
-
-		http.Redirect(&w, r, u.String(), 307)
-		return
-	}
-
-	host, _, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		host = r.Host
-	}
-
-	// In the event a host is prefixed with the artifact prefix an artifact
-	// value is created, and an attempt to proxy the request is made
-	if a.Artifact.TryMakeRequest(host, &w, r) {
-		return
-	}
-
-	if !a.isReady() {
-		httperrors.Serve503(&w)
-		return
-	}
-
-	domain := a.domain(host)
-	if domain == nil {
-		httperrors.Serve404(&w)
+	if a.tryAuxiliaryHandlers(&w, r, https, host, domain) {
 		return
 	}
 

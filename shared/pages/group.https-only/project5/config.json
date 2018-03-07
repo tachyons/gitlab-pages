@@ -1,0 +1,11 @@
+{
+  "httpsonly": true,
+  "domains": [
+    {
+      "domain": "no.cert.com",
+      "certificate": "test",
+      "key": "test",
+      "httpsonly": false
+    }
+  ]
+}

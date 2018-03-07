@@ -18,8 +18,8 @@ func TestGroupServeHTTP(t *testing.T) {
 	setUpTests()
 
 	testGroup := &domain{
-		Group:   "group",
-		Project: "",
+		Group:       "group",
+		ProjectName: "",
 	}
 
 	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/", nil, "main-dir")
@@ -48,8 +48,8 @@ func TestDomainServeHTTP(t *testing.T) {
 	setUpTests()
 
 	testDomain := &domain{
-		Group:   "group",
-		Project: "project2",
+		Group:       "group",
+		ProjectName: "project2",
 		Config: &domainConfig{
 			Domain: "test.domain.com",
 		},
@@ -95,8 +95,8 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	setUpTests()
 
 	testGroup := &domain{
-		Group:   "group",
-		Project: "",
+		Group:       "group",
+		ProjectName: "",
 	}
 
 	testSet := []struct {
@@ -158,8 +158,8 @@ func TestGroup404ServeHTTP(t *testing.T) {
 	setUpTests()
 
 	testGroup := &domain{
-		Group:   "group.404",
-		Project: "",
+		Group:       "group.404",
+		ProjectName: "",
 	}
 
 	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404/not/existing-file", nil, "Custom 404 project page")
@@ -175,8 +175,8 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	setUpTests()
 
 	testDomain := &domain{
-		Group:   "group.404",
-		Project: "domain.404",
+		Group:       "group.404",
+		ProjectName: "domain.404",
 		Config: &domainConfig{
 			Domain: "domain.404.com",
 		},
@@ -198,8 +198,8 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 
 func TestGroupCertificate(t *testing.T) {
 	testGroup := &domain{
-		Group:   "group",
-		Project: "",
+		Group:       "group",
+		ProjectName: "",
 	}
 
 	tls, err := testGroup.ensureCertificate()
@@ -209,8 +209,8 @@ func TestGroupCertificate(t *testing.T) {
 
 func TestDomainNoCertificate(t *testing.T) {
 	testDomain := &domain{
-		Group:   "group",
-		Project: "project2",
+		Group:       "group",
+		ProjectName: "project2",
 		Config: &domainConfig{
 			Domain: "test.domain.com",
 		},
@@ -227,8 +227,8 @@ func TestDomainNoCertificate(t *testing.T) {
 
 func TestDomainCertificate(t *testing.T) {
 	testDomain := &domain{
-		Group:   "group",
-		Project: "project2",
+		Group:       "group",
+		ProjectName: "project2",
 		Config: &domainConfig{
 			Domain:      "test.domain.com",
 			Certificate: CertificateFixture,
