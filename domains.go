@@ -62,7 +62,7 @@ func (d domains) readProject(rootDomain, group, project string) error {
 		return errors.New("deleted project")
 	}
 
-	_, err := os.Lstat(filepath.Join(group, project, "public"))
+	_, err := os.Lstat(filepath.Join(domainRoot, group, project, "public"))
 	if err != nil {
 		return errors.New("missing public/ in project")
 	}
@@ -72,7 +72,7 @@ func (d domains) readProject(rootDomain, group, project string) error {
 }
 
 func (d domains) readProjects(rootDomain, group string) (count int) {
-	projects, err := os.Open(group)
+	projects, err := os.Open(filepath.Join(domainRoot, group))
 	if err != nil {
 		return
 	}
@@ -97,8 +97,10 @@ func (d domains) readProjects(rootDomain, group string) (count int) {
 	return
 }
 
+var domainRoot = "."
+
 func (d domains) ReadGroups(rootDomain string) error {
-	groups, err := os.Open(".")
+	groups, err := os.Open(domainRoot)
 	if err != nil {
 		return err
 	}

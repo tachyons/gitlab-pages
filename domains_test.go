@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -80,4 +81,35 @@ func TestWatchDomains(t *testing.T) {
 	os.Remove(updateFile)
 	domains = <-update
 	assert.NotNil(t, domains, "if the domains are updated after the timestamp removal")
+}
+
+func BenchmarkReadGroups(b *testing.B) {
+	testRoot, err := ioutil.TempDir("", "gitlab-pages-test")
+	require.NoError(b, err)
+	defer os.RemoveAll(testRoot)
+
+	defer func(d string) {
+		domainRoot = d
+	}(domainRoot)
+	domainRoot = testRoot
+
+	nGroups := 10000
+	b.Logf("creating fake domains directory with %d groups", nGroups)
+	fakeConfig := []byte(`{"Domains":[{"Domain":"foo","Certificate":"bar","Key":"baz"}]}`)
+	for i := 0; i < nGroups; i++ {
+		for j := 0; j < 5; j++ {
+			dir := fmt.Sprintf("%s/group-%d/project-%d/public", testRoot, i, j)
+			require.NoError(b, os.MkdirAll(dir, 0755))
+			require.NoError(b, ioutil.WriteFile(dir+"/config.json", fakeConfig, 0644))
+		}
+		if i%100 == 0 {
+			fmt.Print(".")
+		}
+	}
+
+	b.Run("ReadGroups", func(b *testing.B) {
+		testDomains := domains(make(map[string]*domain))
+		require.NoError(b, testDomains.ReadGroups("example.com"))
+		b.Logf("found %d domains", len(testDomains))
+	})
 }
