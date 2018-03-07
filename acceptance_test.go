@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -232,6 +233,21 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	assert.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
+}
+
+func TestObscureMIMEType(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/file.webmanifest")
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
+	mt, _, err := mime.ParseMediaType(rsp.Header.Get("Content-Type"))
+	require.NoError(t, err)
+	assert.Equal(t, "application/manifest+json", mt)
 }
 
 func TestArtifactProxyRequest(t *testing.T) {
