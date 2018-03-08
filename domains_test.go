@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -91,18 +90,17 @@ func TestWatchDomains(t *testing.T) {
 func BenchmarkReadGroups(b *testing.B) {
 	testRoot, err := ioutil.TempDir("", "gitlab-pages-test")
 	require.NoError(b, err)
-	testRoot, err = filepath.EvalSymlinks(testRoot)
+
+	cwd, err := os.Getwd()
 	require.NoError(b, err)
 
-	defer func(dir string) {
-		fmt.Printf("cleaning up test directory %s\n", dir)
-		os.RemoveAll(dir)
-	}(testRoot)
+	defer func(oldWd, testWd string) {
+		os.Chdir(oldWd)
+		fmt.Printf("cleaning up test directory %s\n", testWd)
+		os.RemoveAll(testWd)
+	}(cwd, testRoot)
 
-	defer func(d string) {
-		rootDir = d
-	}(rootDir)
-	rootDir = testRoot
+	require.NoError(b, os.Chdir(testRoot))
 
 	nGroups := 10000
 	b.Logf("creating fake domains directory with %d groups", nGroups)
