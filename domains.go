@@ -134,12 +134,16 @@ func (d domains) ReadGroups(rootDomain string) error {
 	return nil
 }
 
+const (
+	updateFile = ".update"
+)
+
 func watchDomains(rootDomain string, updater domainsUpdater, interval time.Duration) {
 	lastUpdate := []byte("no-update")
 
 	for {
 		// Read the update file
-		update, err := ioutil.ReadFile(".update")
+		update, err := ioutil.ReadFile(updateFile)
 		if err != nil && !os.IsNotExist(err) {
 			log.WithError(err).Print("failed to read update timestamp")
 			time.Sleep(interval)
