@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/karrick/godirwalk"
@@ -47,10 +48,8 @@ func (d domains) updateGroupDomain(rootDomain, group, projectName string, httpsO
 	d[domainName] = groupDomain
 }
 
-func (d domains) readProjectConfig(rootDomain, group, projectName string) {
-	var config domainsConfig
-	err := config.Read(group, projectName)
-	if err != nil {
+func (d domains) readProjectConfig(rootDomain string, group, projectName string, config *domainsConfig) {
+	if config == nil {
 		// This is necessary to preserve the previous behaviour where a
 		// group domain is created even if no config.json files are
 		// loaded successfully. Is it safe to remove this?
@@ -68,7 +67,7 @@ func (d domains) readProjectConfig(rootDomain, group, projectName string) {
 	}
 }
 
-func (d domains) readProject(rootDomain, group, projectName string) {
+func readProject(group, projectName string, fanIn chan<- jobResult) {
 	if strings.HasPrefix(projectName, ".") {
 		return
 	}
@@ -82,10 +81,17 @@ func (d domains) readProject(rootDomain, group, projectName string) {
 		return
 	}
 
-	d.readProjectConfig(rootDomain, group, projectName)
+	// We read the config.json file _before_ fanning in, because it does disk
+	// IO and it does not need access to the domains map.
+	config := &domainsConfig{}
+	if err := config.Read(group, projectName); err != nil {
+		config = nil
+	}
+
+	fanIn <- jobResult{group: group, project: projectName, config: config}
 }
 
-func (d domains) readProjects(rootDomain, group string, buf []byte) {
+func readProjects(group string, buf []byte, fanIn chan<- jobResult) {
 	fis, err := godirwalk.ReadDirents(group, buf)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
@@ -100,17 +106,52 @@ func (d domains) readProjects(rootDomain, group string, buf []byte) {
 			continue
 		}
 
-		d.readProject(rootDomain, group, project.Name())
+		readProject(group, project.Name(), fanIn)
 	}
 }
 
-func (d domains) ReadGroups(rootDomain string) error {
-	buf := make([]byte, 2*os.Getpagesize())
+type jobResult struct {
+	group   string
+	project string
+	config  *domainsConfig
+}
 
-	fis, err := godirwalk.ReadDirents(".", buf)
+func (d domains) ReadGroups(rootDomain string) error {
+	fis, err := godirwalk.ReadDirents(".", nil)
 	if err != nil {
 		return err
 	}
+
+	fanOutGroups := make(chan string)
+	fanIn := make(chan jobResult)
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+
+		go func() {
+			buf := make([]byte, 2*os.Getpagesize())
+
+			for group := range fanOutGroups {
+				readProjects(group, buf, fanIn)
+			}
+
+			wg.Done()
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(fanIn)
+	}()
+
+	done := make(chan struct{})
+	go func() {
+		for result := range fanIn {
+			d.readProjectConfig(rootDomain, result.group, result.project, result.config)
+		}
+
+		close(done)
+	}()
 
 	for _, group := range fis {
 		if !group.IsDir() {
@@ -119,10 +160,11 @@ func (d domains) ReadGroups(rootDomain string) error {
 		if strings.HasPrefix(group.Name(), ".") {
 			continue
 		}
-
-		d.readProjects(rootDomain, group.Name(), buf)
+		fanOutGroups <- group.Name()
 	}
+	close(fanOutGroups)
 
+	<-done
 	return nil
 }
 
