@@ -112,8 +112,6 @@ func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, origPath stri
 	w.Header().Set("Cache-Control", "max-age=600")
 	w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 
-	fmt.Println("Serving", fullPath, "for", r.URL.Path)
-
 	// ServeContent sets Content-Type for us
 	http.ServeContent(w, r, origPath, fi.ModTime(), file)
 	return nil
@@ -136,9 +134,6 @@ func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code in
 
 	setContentType(w, origPath)
 	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
-
-	// Serve the file
-	fmt.Println("Serving", fullPath, "for", r.URL.Path, "with", code)
 	w.WriteHeader(code)
 
 	if r.Method != "HEAD" {
