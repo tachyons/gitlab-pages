@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const updateFile = ".update"
-
 func TestReadProjects(t *testing.T) {
 	setUpTests()
 
@@ -54,14 +52,28 @@ func TestReadProjects(t *testing.T) {
 	assert.Equal(t, exp2, d["other.domain.com"].Config)
 }
 
-func writeRandomTimestamp() {
+// This write must be atomic, otherwise we cannot predict the state of the
+// domain watcher goroutine. We cannot use ioutil.WriteFile because that
+// has a race condition where the file is empty, which can get picked up
+// by the domain watcher.
+func writeRandomTimestamp(t *testing.T) {
 	b := make([]byte, 10)
-	rand.Read(b)
-	ioutil.WriteFile(updateFile, b, 0600)
+	n, _ := rand.Read(b)
+	require.True(t, n > 0, "read some random bytes")
+
+	temp, err := ioutil.TempFile(".", "TestWatchDomains")
+	require.NoError(t, err)
+	_, err = temp.Write(b)
+	require.NoError(t, err, "write to tempfile")
+	require.NoError(t, temp.Close(), "close tempfile")
+
+	require.NoError(t, os.Rename(temp.Name(), updateFile), "rename tempfile")
 }
 
 func TestWatchDomains(t *testing.T) {
 	setUpTests()
+
+	require.NoError(t, os.RemoveAll(updateFile))
 
 	update := make(chan domains)
 	go watchDomains("gitlab.io", func(domains domains) {
@@ -70,18 +82,26 @@ func TestWatchDomains(t *testing.T) {
 
 	defer os.Remove(updateFile)
 
-	domains := <-update
+	domains := recvTimeout(t, update)
 	assert.NotNil(t, domains, "if the domains are fetched on start")
 
-	writeRandomTimestamp()
-	domains = <-update
+	writeRandomTimestamp(t)
+	domains = recvTimeout(t, update)
 	assert.NotNil(t, domains, "if the domains are updated after the creation")
 
-	writeRandomTimestamp()
-	domains = <-update
+	writeRandomTimestamp(t)
+	domains = recvTimeout(t, update)
 	assert.NotNil(t, domains, "if the domains are updated after the timestamp change")
+}
 
-	os.Remove(updateFile)
-	domains = <-update
-	assert.NotNil(t, domains, "if the domains are updated after the timestamp removal")
+func recvTimeout(t *testing.T, ch <-chan domains) domains {
+	timeout := 5 * time.Second
+
+	select {
+	case d := <-ch:
+		return d
+	case <-time.After(timeout):
+		t.Fatalf("timeout after %v waiting for domain update", timeout)
+		return nil
+	}
 }
