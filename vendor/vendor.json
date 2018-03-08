@@ -18,6 +18,14 @@
 			"revision": "efacde03154693404c65e7aa7d461ac9014acd0c"
 		},
 		{
+			"checksumSHA1": "qqDRn7g1iElj298JH8gecN0mrdE=",
+			"path": "github.com/karrick/godirwalk",
+			"revision": "08cab4384b8f99517f23f3c829a1155465a548fc",
+			"revisionTime": "2018-03-02T10:10:21Z",
+			"version": "v1.5.0",
+			"versionExact": "v1.5.0"
+		},
+		{
 			"checksumSHA1": "sxHnA1plNXr5NVB2HYPGExA22U0=",
 			"path": "github.com/lupine/go-mimedb",
 			"revision": "e8af1d65987739a7ab277dedd9772c7398154ff3",
@@ -34,6 +42,12 @@
 			"comment": "v1.7.4-alpha-4-g67f268f",
 			"path": "github.com/namsral/flag",
 			"revision": "67f268f20922975c067ed799e4be6bacf152208c"
+		},
+		{
+			"checksumSHA1": "ljd3FhYRJ91cLZz3wsH9BQQ2JbA=",
+			"path": "github.com/pkg/errors",
+			"revision": "30136e27e2ac8d167177e8a583aa4c3fea5be833",
+			"revisionTime": "2018-01-27T01:58:12Z"
 		},
 		{
 			"checksumSHA1": "Ph+qmEo8RdBKBHZUhx0y5Oyk/U0=",

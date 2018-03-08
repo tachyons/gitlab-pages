@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/karrick/godirwalk"
 	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -83,14 +85,8 @@ func (d domains) readProject(rootDomain, group, projectName string) {
 	d.readProjectConfig(rootDomain, group, projectName)
 }
 
-func (d domains) readProjects(rootDomain, group string) {
-	projects, err := os.Open(group)
-	if err != nil {
-		return
-	}
-	defer projects.Close()
-
-	fis, err := projects.Readdir(0)
+func (d domains) readProjects(rootDomain, group string, buf []byte) {
+	fis, err := godirwalk.ReadDirents(group, buf)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"group": group,
@@ -109,13 +105,9 @@ func (d domains) readProjects(rootDomain, group string) {
 }
 
 func (d domains) ReadGroups(rootDomain string) error {
-	groups, err := os.Open(".")
-	if err != nil {
-		return err
-	}
-	defer groups.Close()
+	buf := make([]byte, 2*os.Getpagesize())
 
-	fis, err := groups.Readdir(0)
+	fis, err := godirwalk.ReadDirents(".", buf)
 	if err != nil {
 		return err
 	}
@@ -128,7 +120,7 @@ func (d domains) ReadGroups(rootDomain string) error {
 			continue
 		}
 
-		d.readProjects(rootDomain, group.Name())
+		d.readProjects(rootDomain, group.Name(), buf)
 	}
 
 	return nil

@@ -17,6 +17,9 @@ complexity: .GOPATH/.ok bin/gocyclo
 test: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) -timeout=1m $(allpackages)
 
+bench: .GOPATH/.ok gitlab-pages
+	go test -bench=. -run=^$$ $(allpackages)
+
 # The acceptance tests cannot count for coverage
 cover: bin/gocovmerge .GOPATH/.ok
 	@echo "NOTE: make cover does not exit 1 on failure, don't use it to check for tests success!"

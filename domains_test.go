@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -104,4 +105,44 @@ func recvTimeout(t *testing.T, ch <-chan domains) domains {
 		t.Fatalf("timeout after %v waiting for domain update", timeout)
 		return nil
 	}
+}
+
+func BenchmarkReadGroups(b *testing.B) {
+	testRoot, err := ioutil.TempDir("", "gitlab-pages-test")
+	require.NoError(b, err)
+
+	cwd, err := os.Getwd()
+	require.NoError(b, err)
+
+	defer func(oldWd, testWd string) {
+		os.Chdir(oldWd)
+		fmt.Printf("cleaning up test directory %s\n", testWd)
+		os.RemoveAll(testWd)
+	}(cwd, testRoot)
+
+	require.NoError(b, os.Chdir(testRoot))
+
+	nGroups := 10000
+	b.Logf("creating fake domains directory with %d groups", nGroups)
+	for i := 0; i < nGroups; i++ {
+		for j := 0; j < 5; j++ {
+			dir := fmt.Sprintf("%s/group-%d/project-%d", testRoot, i, j)
+			require.NoError(b, os.MkdirAll(dir+"/public", 0755))
+
+			fakeConfig := fmt.Sprintf(`{"Domains":[{"Domain":"foo.%d.%d.example.io","Certificate":"bar","Key":"baz"}]}`, i, j)
+			require.NoError(b, ioutil.WriteFile(dir+"/config.json", []byte(fakeConfig), 0644))
+		}
+		if i%100 == 0 {
+			fmt.Print(".")
+		}
+	}
+
+	b.Run("ReadGroups", func(b *testing.B) {
+		var testDomains domains
+		for i := 0; i < 2; i++ {
+			testDomains = domains(make(map[string]*domain))
+			require.NoError(b, testDomains.ReadGroups("example.com"))
+		}
+		b.Logf("found %d domains", len(testDomains))
+	})
 }
