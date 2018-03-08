@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,7 +16,7 @@ type domains map[string]*domain
 
 type domainsUpdater func(domains domains)
 
-func (d domains) addDomain(rootDomain, group, projectName string, config *domainConfig) error {
+func (d domains) addDomain(rootDomain, group, projectName string, config *domainConfig) {
 	newDomain := &domain{
 		Group:       group,
 		ProjectName: projectName,
@@ -27,11 +26,9 @@ func (d domains) addDomain(rootDomain, group, projectName string, config *domain
 	var domainName string
 	domainName = strings.ToLower(config.Domain)
 	d[domainName] = newDomain
-
-	return nil
 }
 
-func (d domains) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool) error {
+func (d domains) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool) {
 	domainName := strings.ToLower(group + "." + rootDomain)
 	groupDomain := d[domainName]
 
@@ -46,13 +43,11 @@ func (d domains) updateGroupDomain(rootDomain, group, projectName string, httpsO
 		HTTPSOnly: httpsOnly,
 	}
 	d[domainName] = groupDomain
-
-	return nil
 }
 
-func (d domains) readProjectConfig(rootDomain, group, projectName string) (err error) {
+func (d domains) readProjectConfig(rootDomain, group, projectName string) {
 	var config domainsConfig
-	err = config.Read(group, projectName)
+	err := config.Read(group, projectName)
 	if err != nil {
 		// This is necessary to preserve the previous behaviour where a
 		// group domain is created even if no config.json files are
@@ -69,29 +64,26 @@ func (d domains) readProjectConfig(rootDomain, group, projectName string) (err e
 			d.addDomain(rootDomain, group, projectName, &config)
 		}
 	}
-	return
 }
 
-func (d domains) readProject(rootDomain, group, projectName string) error {
+func (d domains) readProject(rootDomain, group, projectName string) {
 	if strings.HasPrefix(projectName, ".") {
-		return errors.New("hidden project")
+		return
 	}
 
 	// Ignore projects that have .deleted in name
 	if strings.HasSuffix(projectName, ".deleted") {
-		return errors.New("deleted project")
+		return
 	}
 
-	_, err := os.Lstat(filepath.Join(group, projectName, "public"))
-	if err != nil {
-		return errors.New("missing public/ in project")
+	if _, err := os.Lstat(filepath.Join(group, projectName, "public")); err != nil {
+		return
 	}
 
 	d.readProjectConfig(rootDomain, group, projectName)
-	return nil
 }
 
-func (d domains) readProjects(rootDomain, group string) (count int) {
+func (d domains) readProjects(rootDomain, group string) {
 	projects, err := os.Open(group)
 	if err != nil {
 		return
@@ -103,6 +95,7 @@ func (d domains) readProjects(rootDomain, group string) (count int) {
 		log.WithError(err).WithFields(log.Fields{
 			"group": group,
 		}).Print("readdir failed")
+		return
 	}
 
 	for _, project := range fis {
@@ -111,12 +104,8 @@ func (d domains) readProjects(rootDomain, group string) (count int) {
 			continue
 		}
 
-		err := d.readProject(rootDomain, group, project.Name())
-		if err == nil {
-			count++
-		}
+		d.readProject(rootDomain, group, project.Name())
 	}
-	return
 }
 
 func (d domains) ReadGroups(rootDomain string) error {
@@ -128,7 +117,7 @@ func (d domains) ReadGroups(rootDomain string) error {
 
 	fis, err := groups.Readdir(0)
 	if err != nil {
-		log.WithError(err).Print("readdir failed")
+		return err
 	}
 
 	for _, group := range fis {
@@ -141,6 +130,7 @@ func (d domains) ReadGroups(rootDomain string) error {
 
 		d.readProjects(rootDomain, group.Name())
 	}
+
 	return nil
 }
 
@@ -165,7 +155,9 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 
 		started := time.Now()
 		domains := make(domains)
-		domains.ReadGroups(rootDomain)
+		if err := domains.ReadGroups(rootDomain); err != nil {
+			log.WithError(err).Warn("domain scan failed")
+		}
 		duration := time.Since(started).Seconds()
 
 		log.WithFields(log.Fields{
