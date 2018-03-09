@@ -14,7 +14,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type tWriter struct {
@@ -85,17 +85,17 @@ MwE1w2r4Deww
 
 func CreateHTTPSFixtureFiles(t *testing.T) (key string, cert string) {
 	keyfile, err := ioutil.TempFile("", "https-fixture")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	key = keyfile.Name()
 	keyfile.Close()
 
 	certfile, err := ioutil.TempFile("", "https-fixture")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	cert = certfile.Name()
 	certfile.Close()
 
-	assert.NoError(t, ioutil.WriteFile(key, []byte(KeyFixture), 0644))
-	assert.NoError(t, ioutil.WriteFile(cert, []byte(CertificateFixture), 0644))
+	require.NoError(t, ioutil.WriteFile(key, []byte(KeyFixture), 0644))
+	require.NoError(t, ioutil.WriteFile(cert, []byte(CertificateFixture), 0644))
 
 	return keyfile.Name(), certfile.Name()
 }
@@ -141,7 +141,7 @@ func (l ListenSpec) JoinHostPort() string {
 // If run as root via sudo, the gitlab-pages process will drop privileges
 func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
 	_, err := os.Stat(pagesPath)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	args, tempfiles := getPagesArgs(t, listeners, promPort, extraArgs)
 	cmd := exec.Command(pagesPath, args...)

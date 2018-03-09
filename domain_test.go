@@ -238,7 +238,7 @@ func TestDomainCertificate(t *testing.T) {
 
 	tls, err := testDomain.ensureCertificate()
 	assert.NotNil(t, tls)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestCacheControlHeaders(t *testing.T) {

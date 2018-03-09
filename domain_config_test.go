@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const configFile = "test-group/test-project/config.json"
@@ -51,14 +52,14 @@ func TestDomainConfigRead(t *testing.T) {
 	assert.Error(t, err)
 
 	err = ioutil.WriteFile(configFile, []byte(invalidConfig), 0600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	d = domainsConfig{}
 	err = d.Read("test-group", "test-project")
 	assert.Error(t, err)
 
 	err = ioutil.WriteFile(configFile, []byte(validConfig), 0600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	d = domainsConfig{}
 	err = d.Read("test-group", "test-project")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
