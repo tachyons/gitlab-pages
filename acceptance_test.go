@@ -55,7 +55,7 @@ func TestUnknownHostReturnsNotFound(t *testing.T) {
 	for _, spec := range listeners {
 		rsp, err := GetPageFromListener(t, spec, "invalid.invalid", "")
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		rsp.Body.Close()
 		assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
 	}
@@ -69,7 +69,7 @@ func TestKnownHostReturns200(t *testing.T) {
 	for _, spec := range listeners {
 		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com", "project/")
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		rsp.Body.Close()
 		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
@@ -144,7 +144,7 @@ func TestKnownHostWithPortReturns200(t *testing.T) {
 	for _, spec := range listeners {
 		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com:"+spec.Port, "project/")
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		rsp.Body.Close()
 		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
@@ -157,12 +157,12 @@ func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 
 	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
@@ -173,14 +173,14 @@ func TestHttpToHttpsRedirectEnabled(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
 	assert.Equal(t, 1, len(rsp.Header["Location"]))
 	assert.Equal(t, "https://group.gitlab-example.com/project/", rsp.Header.Get("Location"))
 
 	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
@@ -191,7 +191,7 @@ func TestHttpsOnlyGroupEnabled(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.https-only.gitlab-example.com", "project1/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
 }
@@ -202,7 +202,7 @@ func TestHttpsOnlyGroupDisabled(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.https-only.gitlab-example.com", "project2/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
@@ -213,7 +213,7 @@ func TestHttpsOnlyProjectEnabled(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpListener, "test.my-domain.com", "/index.html")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
 }
@@ -224,7 +224,7 @@ func TestHttpsOnlyProjectDisabled(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "test2.my-domain.com", "/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
@@ -235,7 +235,7 @@ func TestHttpsOnlyDomainDisabled(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "no.cert.com", "/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
@@ -263,7 +263,7 @@ func TestStatusPage(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
@@ -274,7 +274,7 @@ func TestStatusNotYetReady(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
 }
@@ -285,7 +285,7 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "index.html")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
 }
@@ -428,7 +428,7 @@ func TestEnvironmentVariablesConfig(t *testing.T) {
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com:", "project/")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
@@ -444,7 +444,7 @@ func TestMixedConfigSources(t *testing.T) {
 	for _, listener := range []ListenSpec{httpListener, httpsListener} {
 		rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		rsp.Body.Close()
 		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
@@ -464,7 +464,7 @@ func TestMultiFlagEnvironmentVariables(t *testing.T) {
 	for _, listener := range listenSpec {
 		rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		rsp.Body.Close()
 		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}

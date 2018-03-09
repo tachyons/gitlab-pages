@@ -4,7 +4,7 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMultiStringFlagAppendsOnSet(t *testing.T) {
@@ -13,8 +13,8 @@ func TestMultiStringFlagAppendsOnSet(t *testing.T) {
 
 	iface = &concrete
 
-	assert.NoError(t, iface.Set("foo"))
-	assert.NoError(t, iface.Set("bar"))
+	require.NoError(t, iface.Set("foo"))
+	require.NoError(t, iface.Set("bar"))
 
-	assert.Equal(t, MultiStringFlag{"foo", "bar"}, concrete)
+	require.Equal(t, MultiStringFlag{"foo", "bar"}, concrete)
 }
