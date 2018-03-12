@@ -46,7 +46,8 @@ func setUpTests() {
 // so it can talk to servers using it.
 var InsecureHTTPSClient = &http.Client{
 	Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		ResponseHeaderTimeout: 100 * time.Millisecond,
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 	},
 }
 
@@ -120,14 +121,34 @@ func (l ListenSpec) URL(suffix string) string {
 }
 
 // Returns only once this spec points at a working TCP server
-func (l ListenSpec) WaitUntilListening() {
-	for {
-		conn, _ := net.Dial("tcp", l.JoinHostPort())
-		if conn != nil {
-			conn.Close()
-			break
+func (l ListenSpec) WaitUntilRequestSucceeds(done chan struct{}) error {
+	timeout := 5 * time.Second
+	for start := time.Now(); time.Since(start) < timeout; {
+		select {
+		case <-done:
+			return fmt.Errorf("server has shut down already")
+		default:
 		}
+
+		req, err := http.NewRequest("GET", l.URL("/"), nil)
+		if err != nil {
+			return err
+		}
+
+		response, err := InsecureHTTPSClient.Transport.RoundTrip(req)
+		if err != nil {
+			continue
+		}
+		response.Body.Close()
+
+		if code := response.StatusCode; code >= 200 && code < 500 {
+			return nil
+		}
+
+		time.Sleep(100 * time.Millisecond)
 	}
+
+	return fmt.Errorf("timed out after %v waiting for listener %v", timeout, l)
 }
 
 func (l ListenSpec) JoinHostPort() string {
@@ -140,6 +161,14 @@ func (l ListenSpec) JoinHostPort() string {
 //
 // If run as root via sudo, the gitlab-pages process will drop privileges
 func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, extraArgs...)
+}
+
+func RunPagesProcessWithoutWait(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
+	return runPagesProcess(t, false, pagesPath, listeners, promPort, extraArgs...)
+}
+
+func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
 	_, err := os.Stat(pagesPath)
 	require.NoError(t, err)
 
@@ -148,27 +177,29 @@ func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, pro
 	cmd.Env = os.Environ()
 	cmd.Stdout = &tWriter{t}
 	cmd.Stderr = &tWriter{t}
-	cmd.Start()
+	require.NoError(t, cmd.Start())
 	t.Logf("Running %s %v", pagesPath, args)
 
-	// Wait for all TCP servers to be open. Even with this, gitlab-pages
-	// will sometimes return 404 if a HTTP request comes in before it has
-	// updated its set of domains. This usually takes < 1ms, hence the sleep
-	// for now. Without it, intermittent failures occur.
-	//
-	// TODO: replace this with explicit status from the pages binary
-	// TODO: fix the first-request race
-	for _, spec := range listeners {
-		spec.WaitUntilListening()
-	}
-	time.Sleep(500 * time.Millisecond)
-
-	return func() {
-		cmd.Process.Signal(os.Interrupt)
-		cmd.Process.Wait()
+	waitCh := make(chan struct{})
+	go func() {
+		cmd.Wait()
 		for _, tempfile := range tempfiles {
 			os.Remove(tempfile)
 		}
+		close(waitCh)
+	}()
+
+	if wait {
+		for _, spec := range listeners {
+			if err := spec.WaitUntilRequestSucceeds(waitCh); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	return func() {
+		cmd.Process.Signal(os.Interrupt)
+		<-waitCh
 	}
 }
 
@@ -235,4 +266,19 @@ func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*ht
 	req.Host = host
 
 	return InsecureHTTPSClient.Transport.RoundTrip(req)
+}
+
+func waitForTCPListeners(t *testing.T, listeners []ListenSpec, timeout time.Duration) {
+	nListening := 0
+	start := time.Now()
+	for _, spec := range listeners {
+		for time.Since(start) < timeout {
+			if _, err := net.DialTimeout("tcp", spec.JoinHostPort(), 100*time.Millisecond); err == nil {
+				nListening++
+				break
+			}
+		}
+	}
+
+	require.Equal(t, len(listeners), nListening, "all listeners must be accepting TCP connections")
 }
