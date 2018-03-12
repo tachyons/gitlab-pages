@@ -15,7 +15,7 @@ complexity: .GOPATH/.ok bin/gocyclo
 	$Q ./bin/gocyclo -over 9 $(allfiles)
 
 test: .GOPATH/.ok gitlab-pages
-	go test $(if $V,-v) -timeout=1m $(allpackages)
+	go test $(if $V,-v) $(allpackages)
 
 bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ $(allpackages)

@@ -129,7 +129,15 @@ func doCrossOriginRequest(t *testing.T, method, reqMethod, url string) *http.Res
 	req.Header.Add("Origin", "example.com")
 	req.Header.Add("Access-Control-Request-Method", reqMethod)
 
-	rsp, err := DoPagesRequest(t, req)
+	var rsp *http.Response
+	err = fmt.Errorf("no request was made")
+	for start := time.Now(); time.Since(start) < 1*time.Second; {
+		rsp, err = DoPagesRequest(t, req)
+		if err == nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 	require.NoError(t, err)
 
 	rsp.Body.Close()
@@ -270,9 +278,10 @@ func TestStatusPage(t *testing.T) {
 
 func TestStatusNotYetReady(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-pages-status=/@statuscheck", "-pages-root=shared/invalid-pages")
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-status=/@statuscheck", "-pages-root=shared/invalid-pages")
 	defer teardown()
 
+	waitForTCPListeners(t, listeners, 5*time.Second)
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -281,8 +290,9 @@ func TestStatusNotYetReady(t *testing.T) {
 
 func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-pages-root=shared/invalid-pages")
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-root=shared/invalid-pages")
 	defer teardown()
+	waitForTCPListeners(t, listeners, 5*time.Second)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "index.html")
 	require.NoError(t, err)
@@ -292,8 +302,10 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 
 func TestObscureMIMEType(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "")
 	defer teardown()
+
+	require.NoError(t, httpListener.WaitUntilRequestSucceeds(nil))
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/file.webmanifest")
 	require.NoError(t, err)
@@ -307,6 +319,12 @@ func TestObscureMIMEType(t *testing.T) {
 
 func TestArtifactProxyRequest(t *testing.T) {
 	skipUnlessEnabled(t)
+
+	defer func(rt http.RoundTripper) {
+		InsecureHTTPSClient.Transport = rt
+	}(InsecureHTTPSClient.Transport)
+	(InsecureHTTPSClient.Transport).(*http.Transport).ResponseHeaderTimeout = 5 * time.Second
+
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
 	contentLength := int64(len(content))
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -423,8 +441,9 @@ func TestEnvironmentVariablesConfig(t *testing.T) {
 	os.Setenv("LISTEN_HTTP", net.JoinHostPort(httpListener.Host, httpListener.Port))
 	defer func() { os.Unsetenv("LISTEN_HTTP") }()
 
-	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{}, "")
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, []ListenSpec{}, "")
 	defer teardown()
+	require.NoError(t, httpListener.WaitUntilRequestSucceeds(nil))
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com:", "project/")
 
@@ -438,21 +457,22 @@ func TestMixedConfigSources(t *testing.T) {
 	os.Setenv("LISTEN_HTTP", net.JoinHostPort(httpListener.Host, httpListener.Port))
 	defer func() { os.Unsetenv("LISTEN_HTTP") }()
 
-	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{httpsListener}, "")
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, []ListenSpec{httpsListener}, "")
 	defer teardown()
 
 	for _, listener := range []ListenSpec{httpListener, httpsListener} {
+		require.NoError(t, listener.WaitUntilRequestSucceeds(nil))
 		rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
-
 		require.NoError(t, err)
 		rsp.Body.Close()
+
 		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
 }
 
 func TestMultiFlagEnvironmentVariables(t *testing.T) {
 	skipUnlessEnabled(t)
-	listenSpec := []ListenSpec{{"http", "127.0.0.1", "37001"}, {"http", "127.0.0.1", "37002"}}
+	listenSpecs := []ListenSpec{{"http", "127.0.0.1", "37001"}, {"http", "127.0.0.1", "37002"}}
 	envVarValue := fmt.Sprintf("%s,%s", net.JoinHostPort("127.0.0.1", "37001"), net.JoinHostPort("127.0.0.1", "37002"))
 
 	os.Setenv("LISTEN_HTTP", envVarValue)
@@ -461,7 +481,8 @@ func TestMultiFlagEnvironmentVariables(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{}, "")
 	defer teardown()
 
-	for _, listener := range listenSpec {
+	for _, listener := range listenSpecs {
+		require.NoError(t, listener.WaitUntilRequestSucceeds(nil))
 		rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
 
 		require.NoError(t, err)
