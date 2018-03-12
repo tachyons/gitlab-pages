@@ -320,10 +320,11 @@ func TestObscureMIMEType(t *testing.T) {
 func TestArtifactProxyRequest(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	defer func(rt http.RoundTripper) {
-		InsecureHTTPSClient.Transport = rt
-	}(InsecureHTTPSClient.Transport)
-	(InsecureHTTPSClient.Transport).(*http.Transport).ResponseHeaderTimeout = 5 * time.Second
+	transport := (InsecureHTTPSClient.Transport).(*http.Transport)
+	defer func(t time.Duration) {
+		transport.ResponseHeaderTimeout = t
+	}(transport.ResponseHeaderTimeout)
+	transport.ResponseHeaderTimeout = 5 * time.Second
 
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
 	contentLength := int64(len(content))
