@@ -13,7 +13,11 @@ var (
 	logrusEntry     = log.WithField("system", "http")
 )
 
-func configureLogging(format string) {
+func configureLogging(format string, verbose bool) {
+	if verbose {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	switch format {
 	case "json":
 		log.SetFormatter(&log.JSONFormatter{})

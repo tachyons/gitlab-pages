@@ -228,7 +228,7 @@ func runApp(config appConfig) {
 		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
 	}
 
-	configureLogging(config.LogFormat)
+	configureLogging(config.LogFormat, config.LogVerbose)
 
 	if err := mimedb.LoadTypes(); err != nil {
 		log.WithError(err).Warn("Loading extended MIME database failed")

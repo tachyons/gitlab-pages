@@ -41,6 +41,18 @@ type domain struct {
 	Projects projects
 }
 
+func (d *domain) String() string {
+	if d.Group != "" && d.ProjectName != "" {
+		return d.Group + "/" + d.ProjectName
+	}
+
+	if d.Group != "" {
+		return d.Group
+	}
+
+	return d.ProjectName
+}
+
 func (l *locationDirectoryError) Error() string {
 	return "location error accessing directory where file expected"
 }

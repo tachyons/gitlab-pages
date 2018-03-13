@@ -45,6 +45,7 @@ func (d domains) updateGroupDomain(rootDomain, group, projectName string, httpsO
 	groupDomain.Projects[projectName] = &project{
 		HTTPSOnly: httpsOnly,
 	}
+
 	d[domainName] = groupDomain
 }
 
@@ -132,7 +133,14 @@ func (d domains) ReadGroups(rootDomain string) error {
 			buf := make([]byte, 2*os.Getpagesize())
 
 			for group := range fanOutGroups {
+				started := time.Now()
+
 				readProjects(group, buf, fanIn)
+
+				log.WithFields(log.Fields{
+					"group":    group,
+					"duration": time.Since(started).Seconds(),
+				}).Debug("Loaded projects for group")
 			}
 
 			wg.Done()
@@ -198,11 +206,20 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		}
 		duration := time.Since(started).Seconds()
 
+		var hash string
+		if len(update) < 1 {
+			hash = "<empty>"
+		} else {
+			hash = strings.TrimSpace(string(update))
+		}
+
+		logConfiguredDomains(domains)
+
 		log.WithFields(log.Fields{
-			"domains":  len(domains),
-			"duration": duration,
-			"hash":     update,
-		}).Print("updated domains")
+			"count(domains)": len(domains),
+			"duration":       duration,
+			"hash":           hash,
+		}).Info("Updated all domains")
 
 		if updater != nil {
 			updater(domains)
@@ -214,5 +231,18 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		metrics.DomainUpdates.Inc()
 
 		time.Sleep(interval)
+	}
+}
+
+func logConfiguredDomains(ds domains) {
+	if log.GetLevel() == log.DebugLevel {
+		return
+	}
+
+	for h, d := range ds {
+		log.WithFields(log.Fields{
+			"domain": d,
+			"host":   h,
+		}).Debug("Configured domain")
 	}
 }
