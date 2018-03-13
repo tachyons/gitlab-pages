@@ -1,3 +1,6 @@
+v 0.7.1
+- Fix nil reference error when project is not in config.json !70
+
 v 0.7.0
 - HTTPS-only pages !50
 - Switch to govendor !54
