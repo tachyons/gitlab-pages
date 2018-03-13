@@ -103,7 +103,12 @@ func (d *domain) isHTTPSOnly(r *http.Request) bool {
 	}
 
 	project := d.Projects[split[1]]
-	return project.HTTPSOnly
+
+	if project != nil {
+		return project.HTTPSOnly
+	}
+
+	return false
 }
 
 func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
