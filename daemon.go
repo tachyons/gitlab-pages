@@ -25,7 +25,7 @@ func daemonMain() {
 	log.WithFields(log.Fields{
 		"uid": syscall.Getuid(),
 		"gid": syscall.Getgid(),
-	}).Print("starting the daemon as unprivileged user")
+	}).Info("starting the daemon as unprivileged user")
 
 	// read the configuration from the pipe "ExtraFiles"
 	var config appConfig
@@ -184,7 +184,7 @@ func daemonize(config appConfig, uid, gid uint) {
 	log.WithFields(log.Fields{
 		"uid": uid,
 		"gid": gid,
-	}).Print("running the daemon as unprivileged user")
+	}).Info("running the daemon as unprivileged user")
 
 	cmd, err := daemonReexec(uid, gid, daemonRunProgram)
 	if err != nil {
@@ -195,7 +195,7 @@ func daemonize(config appConfig, uid, gid uint) {
 	// Run daemon in chroot environment
 	temporaryExecutable, err := daemonChroot(cmd)
 	if err != nil {
-		log.WithError(err).Print("chroot failed")
+		log.WithError(err).Error("chroot failed")
 		return
 	}
 	defer os.Remove(temporaryExecutable)
@@ -218,7 +218,7 @@ func daemonize(config appConfig, uid, gid uint) {
 
 	// Start the process
 	if err = cmd.Start(); err != nil {
-		log.WithError(err).Print("start failed")
+		log.WithError(err).Error("start failed")
 		return
 	}
 

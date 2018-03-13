@@ -32,6 +32,7 @@ var (
 	daemonUID              = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	daemonGID              = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 	logFormat              = flag.String("log-format", "text", "The log output format: 'text' or 'json'")
+	logVerbose             = flag.Bool("log-verbose", false, "Verbose logging")
 
 	disableCrossOriginRequests     = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 	errArtifactSchemaUnsupported   = errors.New("artifacts-server scheme must be either http:// or https://")
@@ -47,6 +48,7 @@ func configFromFlags() appConfig {
 	config.DisableCrossOriginRequests = *disableCrossOriginRequests
 	config.StatusPath = *pagesStatus
 	config.LogFormat = *logFormat
+	config.LogVerbose = *logVerbose
 
 	if *pagesRootCert != "" {
 		config.RootCertificate = readFile(*pagesRootCert)
@@ -93,7 +95,7 @@ func appMain() {
 
 	printVersion(*showVersion, VERSION)
 
-	configureLogging(*logFormat)
+	configureLogging(*logFormat, *logVerbose)
 
 	log.WithFields(log.Fields{
 		"version":  VERSION,
@@ -108,27 +110,70 @@ func appMain() {
 
 	config := configFromFlags()
 
+	log.WithFields(log.Fields{
+		"artifacts-server":              *artifactsServer,
+		"artifacts-server-timeout":      *artifactsServerTimeout,
+		"daemon-gid":                    *daemonGID,
+		"daemon-uid":                    *daemonUID,
+		"default-config-filename":       flag.DefaultConfigFlagname,
+		"disable-cross-origin-requests": *disableCrossOriginRequests,
+		"domain":                        config.Domain,
+		"listen-http":                   strings.Join(listenHTTP, ","),
+		"listen-https":                  strings.Join(listenHTTPS, ","),
+		"listen-proxy":                  strings.Join(listenProxy, ","),
+		"log-format":                    *logFormat,
+		"metrics-address":               *metricsAddress,
+		"pages-domain":                  *pagesDomain,
+		"pages-root":                    *pagesRoot,
+		"pages-status":                  *pagesStatus,
+		"redirect-http":                 config.RedirectHTTP,
+		"root-cert":                     *pagesRootKey,
+		"root-key":                      *pagesRootCert,
+		"status_path":                   config.StatusPath,
+		"use-http-2":                    config.HTTP2,
+	}).Debug("Start daemon with configuration")
+
 	for _, addr := range listenHTTP.Split() {
 		l, fd := createSocket(addr)
 		defer l.Close()
+
+		log.WithFields(log.Fields{
+			"listener": addr,
+		}).Debug("Set up HTTP listener")
+
 		config.ListenHTTP = append(config.ListenHTTP, fd)
 	}
 
 	for _, addr := range listenHTTPS.Split() {
 		l, fd := createSocket(addr)
 		defer l.Close()
+
+		log.WithFields(log.Fields{
+			"listener": addr,
+		}).Debug("Set up HTTPS listener")
+
 		config.ListenHTTPS = append(config.ListenHTTPS, fd)
 	}
 
 	for _, addr := range listenProxy.Split() {
 		l, fd := createSocket(addr)
 		defer l.Close()
+
+		log.WithFields(log.Fields{
+			"listener": addr,
+		}).Debug("Set up proxy listener")
+
 		config.ListenProxy = append(config.ListenProxy, fd)
 	}
 
 	if *metricsAddress != "" {
 		l, fd := createSocket(*metricsAddress)
 		defer l.Close()
+
+		log.WithFields(log.Fields{
+			"listener": *metricsAddress,
+		}).Debug("Set up metrics listener")
+
 		config.ListenMetrics = fd
 	}
 

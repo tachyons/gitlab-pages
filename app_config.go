@@ -18,5 +18,6 @@ type appConfig struct {
 
 	DisableCrossOriginRequests bool
 
-	LogFormat string
+	LogFormat  string
+	LogVerbose bool
 }
