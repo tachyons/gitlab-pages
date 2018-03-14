@@ -61,6 +61,28 @@ func TestUnknownHostReturnsNotFound(t *testing.T) {
 	}
 }
 
+func TestUnknownProjectReturnsNotFound(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
+}
+
+func TestGroupDomainReturns200(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/")
+	assert.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
 func TestKnownHostReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
