@@ -268,15 +268,23 @@ func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*ht
 	return InsecureHTTPSClient.Transport.RoundTrip(req)
 }
 
-func waitForTCPListeners(t *testing.T, listeners []ListenSpec, timeout time.Duration) {
+func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Duration) {
 	nListening := 0
 	start := time.Now()
 	for _, spec := range listeners {
 		for time.Since(start) < timeout {
-			if _, err := net.DialTimeout("tcp", spec.JoinHostPort(), 100*time.Millisecond); err == nil {
+			req, err := http.NewRequest("GET", spec.URL("/"), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if response, err := InsecureHTTPSClient.Transport.RoundTrip(req); err == nil {
 				nListening++
+				response.Body.Close()
 				break
 			}
+
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
