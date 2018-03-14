@@ -303,7 +303,7 @@ func TestStatusNotYetReady(t *testing.T) {
 	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-status=/@statuscheck", "-pages-root=shared/invalid-pages")
 	defer teardown()
 
-	waitForTCPListeners(t, listeners, 5*time.Second)
+	waitForRoundtrips(t, listeners, 5*time.Second)
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -314,7 +314,7 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-root=shared/invalid-pages")
 	defer teardown()
-	waitForTCPListeners(t, listeners, 5*time.Second)
+	waitForRoundtrips(t, listeners, 5*time.Second)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "index.html")
 	require.NoError(t, err)
