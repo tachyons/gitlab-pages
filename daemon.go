@@ -1,21 +1,23 @@
 package main
 
 import (
-	"crypto/rand"
 	"encoding/json"
-	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/kardianos/osext"
 	log "github.com/sirupsen/logrus"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/jail"
 )
 
-const daemonRunProgram = "gitlab-pages-unprivileged"
+const (
+	daemonRunProgram = "gitlab-pages-unprivileged"
+
+	pagesRootInChroot = "/pages"
+)
 
 func daemonMain() {
 	if os.Args[0] != daemonRunProgram {
@@ -100,77 +102,55 @@ func passSignals(cmd *exec.Cmd) {
 	}()
 }
 
-func copyFile(dest, src string, perm os.FileMode) (err error) {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return
-	}
-	defer srcFile.Close()
+func daemonChroot(cmd *exec.Cmd) (*jail.Jail, error) {
+	cage := jail.TimestampedJail("gitlab-pages", 0755)
 
-	destFile, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_EXCL, perm)
-	if err != nil {
-		return
-	}
-	defer destFile.Close()
-
-	_, err = io.Copy(destFile, srcFile)
-	return
-}
-
-func daemonCreateExecutable(name string, perm os.FileMode) (file *os.File, err error) {
-	// We assume that crypto random generates true random, non-colliding hash
-	b := make([]byte, 16)
-	_, err = rand.Read(b)
-	if err != nil {
-		return
-	}
-
-	path := fmt.Sprintf("%s.%x", name, b)
-	file, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, perm)
-	if err != nil {
-		return
-	}
-	return
-}
-
-func daemonChroot(cmd *exec.Cmd) (path string, err error) {
 	wd, err := os.Getwd()
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	// Generate temporary file
-	temporaryExecutable, err := daemonCreateExecutable(".daemon", 0755)
+	// Add gitlab-pages inside the jail
+	err = cage.CopyTo("/gitlab-pages", cmd.Path)
 	if err != nil {
-		return
+		return nil, err
 	}
-	defer temporaryExecutable.Close()
-	defer func() {
-		// Remove the temporary file in case of failure
+
+	// Add /etc/resolv.conf inside the jail
+	cage.MkDir("/etc", 0755)
+	err = cage.Copy("/etc/resolv.conf")
+	if err != nil {
+		return nil, err
+	}
+
+	// Copy SSL_CERT_FILE inside the jail
+	sslCertFile := os.Getenv("SSL_CERT_FILE")
+	if sslCertFile != "" {
+		cage.MkDir("/etc/ssl", 0755)
+		err = cage.CopyTo("/etc/ssl/ca-bundle.pem", sslCertFile)
 		if err != nil {
-			os.Remove(temporaryExecutable.Name())
+			return nil, err
 		}
-	}()
-
-	// Open current executable
-	executableFile, err := os.Open(cmd.Path)
-	if err != nil {
-		return
+		cmd.Env = append(os.Environ(), "SSL_CERT_FILE=/etc/ssl/ca-bundle.pem")
+	} else {
+		log.Print("Missing SSL_CERT_FILE environment variable. HTTPS requests will fail")
 	}
-	defer executableFile.Close()
 
-	// Copy the executable content
-	_, err = io.Copy(temporaryExecutable, executableFile)
-	if err != nil {
-		return
-	}
+	// Bind mount shared folder
+	cage.MkDir(pagesRootInChroot, 0755)
+	cage.Bind(pagesRootInChroot, wd)
 
 	// Update command to use chroot
-	cmd.SysProcAttr.Chroot = wd
-	cmd.Path = temporaryExecutable.Name()
-	cmd.Dir = "/"
-	path = filepath.Join(wd, temporaryExecutable.Name())
-	return
+	cmd.SysProcAttr.Chroot = cage.Path()
+	cmd.Path = "/gitlab-pages"
+	cmd.Dir = pagesRootInChroot
+
+	err = cage.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return cage, nil
 }
 
 func daemonize(config appConfig, uid, gid uint) {
@@ -193,12 +173,12 @@ func daemonize(config appConfig, uid, gid uint) {
 	defer killProcess(cmd)
 
 	// Run daemon in chroot environment
-	temporaryExecutable, err := daemonChroot(cmd)
+	chroot, err := daemonChroot(cmd)
 	if err != nil {
-		log.WithError(err).Error("chroot failed")
+		log.WithError(err).Print("chroot failed")
 		return
 	}
-	defer os.Remove(temporaryExecutable)
+	defer chroot.Dispose()
 
 	// Create a pipe to pass the configuration
 	configReader, configWriter, err := os.Pipe()
@@ -222,14 +202,17 @@ func daemonize(config appConfig, uid, gid uint) {
 		return
 	}
 
+	//detach binded mountpoints
+	if err = chroot.LazyUnbind(); err != nil {
+		log.WithError(err).Print("chroot lazy umount failed")
+		return
+	}
+
 	// Write the configuration
 	if err = json.NewEncoder(configWriter).Encode(config); err != nil {
 		return
 	}
 	configWriter.Close()
-
-	// Remove executable
-	os.Remove(temporaryExecutable)
 
 	// Pass through signals
 	passSignals(cmd)

@@ -89,8 +89,13 @@ To enter this mode, run `gitlab-pages` as the root user and pass it the
 as.
 
 The daemon starts listening on ports and reads certificates as root, then
-re-executes itself as the specified user. When re-executing it copies its own
-binary to `pages-root` and changes root to that directory.
+re-executes itself as the specified user. When re-executing it creates a chroot jail
+containing a copy of its own binary, `/etc/resolv.conf`, and a bind mount of `pages-root`.
+
+When `-artifacts-server` points to an HTTPS URL we also need a list of certificates for
+the trusted Certification Authorities to copy inside the jail.
+A file containing such list can be specified using `SSL_CERT_FILE` environment variable.
+(`SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` on Debian)
 
 This make it possible to listen on privileged ports and makes it harder for the
 process to read files outside of `pages-root`.
@@ -100,6 +105,8 @@ Example:
 $ make
 $ sudo ./gitlab-pages -listen-http ":80" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -daemon-uid 1000 -daemon-gid 1000
 ```
+
+Please note that changes to `/etc/resolv.conf` or `SSL_CERT_FILE` will be ignored by `gitlab-pages` until restarted.
 
 ### Listen on multiple ports
 

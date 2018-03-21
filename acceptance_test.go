@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"mime"
@@ -350,7 +351,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
 	contentLength := int64(len(content))
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.RawPath {
 		case "/api/v4/projects/group%2Fproject/jobs/1/artifacts/delayed_200.html":
 			time.Sleep(2 * time.Second)
@@ -371,6 +372,17 @@ func TestArtifactProxyRequest(t *testing.T) {
 		}
 	}))
 	defer testServer.Close()
+
+	require.NotEmpty(t, testServer.TLS.Certificates, "testserver must implement TLS")
+	require.NotEmpty(t, testServer.TLS.Certificates[0].Certificate, "testserver TLS config has no certificates")
+	artifactsCert := testServer.TLS.Certificates[0].Certificate[0]
+	pemCert, err := ioutil.TempFile("", "test-server-cert")
+	require.NoError(t, err)
+	defer os.Remove(pemCert.Name())
+	err = pem.Encode(pemCert, &pem.Block{Type: "CERTIFICATE", Bytes: artifactsCert})
+	require.NoError(t, err)
+	pemCert.Close()
+
 	cases := []struct {
 		Host         string
 		Path         string
@@ -441,7 +453,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("Proxy Request Test: %s", c.Description), func(t *testing.T) {
-			teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-artifacts-server="+testServer.URL+"/api/v4", c.BinaryOption)
+			teardown := RunPagesProcessWithSSLCertFile(t, *pagesBinary, listeners, "", pemCert.Name(), "-artifacts-server="+testServer.URL+"/api/v4", c.BinaryOption)
 			defer teardown()
 			resp, err := GetPageFromListener(t, httpListener, c.Host, c.Path)
 			require.NoError(t, err)

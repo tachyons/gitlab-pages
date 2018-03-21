@@ -161,20 +161,24 @@ func (l ListenSpec) JoinHostPort() string {
 //
 // If run as root via sudo, the gitlab-pages process will drop privileges
 func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, extraArgs...)
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, extraArgs...)
 }
 
 func RunPagesProcessWithoutWait(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, false, pagesPath, listeners, promPort, extraArgs...)
+	return runPagesProcess(t, false, pagesPath, listeners, promPort, nil, extraArgs...)
 }
 
-func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
+func RunPagesProcessWithSSLCertFile(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, extraArgs ...string) (teardown func()) {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
+}
+
+func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (teardown func()) {
 	_, err := os.Stat(pagesPath)
 	require.NoError(t, err)
 
 	args, tempfiles := getPagesArgs(t, listeners, promPort, extraArgs)
 	cmd := exec.Command(pagesPath, args...)
-	cmd.Env = os.Environ()
+	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = &tWriter{t}
 	cmd.Stderr = &tWriter{t}
 	require.NoError(t, cmd.Start())
