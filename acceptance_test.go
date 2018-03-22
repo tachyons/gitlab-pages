@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/pem"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"mime"
@@ -351,7 +351,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
 	contentLength := int64(len(content))
-	testServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.RawPath {
 		case "/api/v4/projects/group%2Fproject/jobs/1/artifacts/delayed_200.html":
 			time.Sleep(2 * time.Second)
@@ -371,17 +371,16 @@ func TestArtifactProxyRequest(t *testing.T) {
 			fmt.Fprint(w, content)
 		}
 	}))
-	defer testServer.Close()
 
-	require.NotEmpty(t, testServer.TLS.Certificates, "testserver must implement TLS")
-	require.NotEmpty(t, testServer.TLS.Certificates[0].Certificate, "testserver TLS config has no certificates")
-	artifactsCert := testServer.TLS.Certificates[0].Certificate[0]
-	pemCert, err := ioutil.TempFile("", "test-server-cert")
+	keyFile, certFile := CreateHTTPSFixtureFiles(t)
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.NoError(t, err)
-	defer os.Remove(pemCert.Name())
-	err = pem.Encode(pemCert, &pem.Block{Type: "CERTIFICATE", Bytes: artifactsCert})
-	require.NoError(t, err)
-	pemCert.Close()
+	defer os.Remove(keyFile)
+	defer os.Remove(certFile)
+
+	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+	testServer.StartTLS()
+	defer testServer.Close()
 
 	cases := []struct {
 		Host         string
@@ -451,15 +450,31 @@ func TestArtifactProxyRequest(t *testing.T) {
 		},
 	}
 
+	// Ensure the IP address is used in the URL, as we're relying on IP SANs to
+	// validate
+	artifactServerURL := testServer.URL + "/api/v4"
+	t.Log("Artifact server URL", artifactServerURL)
+
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("Proxy Request Test: %s", c.Description), func(t *testing.T) {
-			teardown := RunPagesProcessWithSSLCertFile(t, *pagesBinary, listeners, "", pemCert.Name(), "-artifacts-server="+testServer.URL+"/api/v4", c.BinaryOption)
+			teardown := RunPagesProcessWithSSLCertFile(
+				t,
+				*pagesBinary,
+				listeners,
+				"",
+				certFile,
+				"-artifacts-server="+artifactServerURL,
+				c.BinaryOption,
+			)
 			defer teardown()
+
 			resp, err := GetPageFromListener(t, httpListener, c.Host, c.Path)
 			require.NoError(t, err)
 			defer resp.Body.Close()
+
 			assert.Equal(t, c.Status, resp.StatusCode)
 			assert.Equal(t, c.ContentType, resp.Header.Get("Content-Type"))
+
 			if !((c.Status == http.StatusBadGateway) || (c.Status == http.StatusNotFound) || (c.Status == http.StatusInternalServerError)) {
 				body, err := ioutil.ReadAll(resp.Body)
 				require.NoError(t, err)
