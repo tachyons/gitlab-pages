@@ -103,6 +103,8 @@ func TestCORSWhenDisabled(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-disable-cross-origin-requests")
 	defer teardown()
 
+	waitForRoundtrips(t, listeners, 5*time.Second)
+
 	for _, spec := range listeners {
 		for _, method := range []string{"GET", "OPTIONS"} {
 			rsp := doCrossOriginRequest(t, method, method, spec.URL("project/"))
