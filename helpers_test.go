@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -229,10 +230,15 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 	}
 
 	// At least one of `-daemon-uid` and `-daemon-gid` must be non-zero
-	if os.Geteuid() == 0 {
-		t.Log("Running pages as a daemon")
-		args = append(args, "-daemon-uid", "0")
-		args = append(args, "-daemon-gid", "65534") // Root user can switch to "nobody"
+	if daemon, _ := strconv.ParseBool(os.Getenv("TEST_DAEMONIZE")); daemon {
+		if os.Geteuid() == 0 {
+			t.Log("Running pages as a daemon")
+			args = append(args, "-daemon-uid", "0")
+			args = append(args, "-daemon-gid", "65534") // Root user can switch to "nobody"
+		} else {
+			t.Log("Privilege-dropping requested but not running as root!")
+			t.FailNow()
+		}
 	}
 
 	args = append(args, extraArgs...)

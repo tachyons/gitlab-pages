@@ -14,8 +14,12 @@ lint: bin/golint
 complexity: .GOPATH/.ok bin/gocyclo
 	$Q ./bin/gocyclo -over 9 $(allfiles)
 
+
 test: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) $(allpackages)
+
+acceptance: .GOPATH/.ok gitlab-pages
+	go test $(if $V,-v) $(IMPORT_PATH)
 
 bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ $(allpackages)

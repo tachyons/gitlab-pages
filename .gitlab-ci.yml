@@ -5,7 +5,10 @@ image: golang:1.8
   - make setup
   - make verify
   - make cover
+  - echo "Running all tests without daemonizing..."
   - make test
+  - echo "Running just the acceptance tests daemonized...."
+  - TEST_DAEMONIZE=1 make acceptance
   artifacts:
     paths:
       - bin/gitlab-pages
