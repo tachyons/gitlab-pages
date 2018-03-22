@@ -14,7 +14,6 @@ lint: bin/golint
 complexity: .GOPATH/.ok bin/gocyclo
 	$Q ./bin/gocyclo -over 9 $(allfiles)
 
-
 test: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) $(allpackages)
 
@@ -30,7 +29,9 @@ cover: bin/gocovmerge .GOPATH/.ok
 	$Q rm -f .GOPATH/cover/*.out .GOPATH/cover/all.merged
 	$(if $V,@echo "-- go test -coverpkg=./... -coverprofile=.GOPATH/cover/... ./...")
 	@for MOD in $(allpackages); do \
-		go test -coverpkg=`echo $(allpackages)|tr " " ","` \
+		go test \
+			-short \
+			-coverpkg=`echo $(allpackages)|tr " " ","` \
 			-coverprofile=.GOPATH/cover/unit-`echo $$MOD|tr "/" "_"`.out \
 			$$MOD 2>&1 | grep -v "no packages being tested depend on"; \
 	done
