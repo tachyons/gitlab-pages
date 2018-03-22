@@ -15,11 +15,11 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-type domains map[string]*domain
+type domainMap map[string]*domain
 
-type domainsUpdater func(domains domains)
+type domainsUpdater func(domainMap)
 
-func (d domains) addDomain(rootDomain, group, projectName string, config *domainConfig) {
+func (dm domainMap) addDomain(rootDomain, group, projectName string, config *domainConfig) {
 	newDomain := &domain{
 		Group:       group,
 		ProjectName: projectName,
@@ -28,12 +28,12 @@ func (d domains) addDomain(rootDomain, group, projectName string, config *domain
 
 	var domainName string
 	domainName = strings.ToLower(config.Domain)
-	d[domainName] = newDomain
+	dm[domainName] = newDomain
 }
 
-func (d domains) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool) {
+func (dm domainMap) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool) {
 	domainName := strings.ToLower(group + "." + rootDomain)
-	groupDomain := d[domainName]
+	groupDomain := dm[domainName]
 
 	if groupDomain == nil {
 		groupDomain = &domain{
@@ -46,24 +46,24 @@ func (d domains) updateGroupDomain(rootDomain, group, projectName string, httpsO
 		HTTPSOnly: httpsOnly,
 	}
 
-	d[domainName] = groupDomain
+	dm[domainName] = groupDomain
 }
 
-func (d domains) readProjectConfig(rootDomain string, group, projectName string, config *domainsConfig) {
+func (dm domainMap) readProjectConfig(rootDomain string, group, projectName string, config *domainsConfig) {
 	if config == nil {
 		// This is necessary to preserve the previous behaviour where a
 		// group domain is created even if no config.json files are
 		// loaded successfully. Is it safe to remove this?
-		d.updateGroupDomain(rootDomain, group, projectName, false)
+		dm.updateGroupDomain(rootDomain, group, projectName, false)
 		return
 	}
 
-	d.updateGroupDomain(rootDomain, group, projectName, config.HTTPSOnly)
+	dm.updateGroupDomain(rootDomain, group, projectName, config.HTTPSOnly)
 
 	for _, domainConfig := range config.Domains {
 		config := domainConfig // domainConfig is reused for each loop iteration
 		if domainConfig.Valid(rootDomain) {
-			d.addDomain(rootDomain, group, projectName, &config)
+			dm.addDomain(rootDomain, group, projectName, &config)
 		}
 	}
 }
@@ -117,7 +117,7 @@ type jobResult struct {
 	config  *domainsConfig
 }
 
-func (d domains) ReadGroups(rootDomain string) error {
+func (dm domainMap) ReadGroups(rootDomain string) error {
 	fis, err := godirwalk.ReadDirents(".", nil)
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func (d domains) ReadGroups(rootDomain string) error {
 	done := make(chan struct{})
 	go func() {
 		for result := range fanIn {
-			d.readProjectConfig(rootDomain, result.group, result.project, result.config)
+			dm.readProjectConfig(rootDomain, result.group, result.project, result.config)
 		}
 
 		close(done)
@@ -200,8 +200,8 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		lastUpdate = update
 
 		started := time.Now()
-		domains := make(domains)
-		if err := domains.ReadGroups(rootDomain); err != nil {
+		dm := make(domainMap)
+		if err := dm.ReadGroups(rootDomain); err != nil {
 			log.WithError(err).Warn("domain scan failed")
 		}
 		duration := time.Since(started).Seconds()
@@ -213,33 +213,33 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 			hash = strings.TrimSpace(string(update))
 		}
 
-		logConfiguredDomains(domains)
+		logConfiguredDomains(dm)
 
 		log.WithFields(log.Fields{
-			"count(domains)": len(domains),
+			"count(domains)": len(dm),
 			"duration":       duration,
 			"hash":           hash,
 		}).Info("Updated all domains")
 
 		if updater != nil {
-			updater(domains)
+			updater(dm)
 		}
 
 		// Update prometheus metrics
 		metrics.DomainLastUpdateTime.Set(float64(time.Now().UTC().Unix()))
-		metrics.DomainsServed.Set(float64(len(domains)))
+		metrics.DomainsServed.Set(float64(len(dm)))
 		metrics.DomainUpdates.Inc()
 
 		time.Sleep(interval)
 	}
 }
 
-func logConfiguredDomains(ds domains) {
+func logConfiguredDomains(dm domainMap) {
 	if log.GetLevel() == log.DebugLevel {
 		return
 	}
 
-	for h, d := range ds {
+	for h, d := range dm {
 		log.WithFields(log.Fields{
 			"domain": d,
 			"host":   h,

@@ -15,13 +15,13 @@ import (
 func TestReadProjects(t *testing.T) {
 	setUpTests()
 
-	d := make(domains)
-	err := d.ReadGroups("test.io")
+	dm := make(domainMap)
+	err := dm.ReadGroups("test.io")
 	require.NoError(t, err)
 
 	var domains []string
-	for domain := range d {
-		domains = append(domains, domain)
+	for d := range dm {
+		domains = append(domains, d)
 	}
 
 	expectedDomains := []string{
@@ -47,10 +47,10 @@ func TestReadProjects(t *testing.T) {
 
 	// Check that multiple domains in the same project are recorded faithfully
 	exp1 := &domainConfig{Domain: "test.domain.com"}
-	assert.Equal(t, exp1, d["test.domain.com"].Config)
+	assert.Equal(t, exp1, dm["test.domain.com"].Config)
 
 	exp2 := &domainConfig{Domain: "other.domain.com", Certificate: "test", Key: "key"}
-	assert.Equal(t, exp2, d["other.domain.com"].Config)
+	assert.Equal(t, exp2, dm["other.domain.com"].Config)
 }
 
 // This write must be atomic, otherwise we cannot predict the state of the
@@ -76,9 +76,9 @@ func TestWatchDomains(t *testing.T) {
 
 	require.NoError(t, os.RemoveAll(updateFile))
 
-	update := make(chan domains)
-	go watchDomains("gitlab.io", func(domains domains) {
-		update <- domains
+	update := make(chan domainMap)
+	go watchDomains("gitlab.io", func(dm domainMap) {
+		update <- dm
 	}, time.Microsecond*50)
 
 	defer os.Remove(updateFile)
@@ -95,12 +95,12 @@ func TestWatchDomains(t *testing.T) {
 	assert.NotNil(t, domains, "if the domains are updated after the timestamp change")
 }
 
-func recvTimeout(t *testing.T, ch <-chan domains) domains {
+func recvTimeout(t *testing.T, ch <-chan domainMap) domainMap {
 	timeout := 5 * time.Second
 
 	select {
-	case d := <-ch:
-		return d
+	case dm := <-ch:
+		return dm
 	case <-time.After(timeout):
 		t.Fatalf("timeout after %v waiting for domain update", timeout)
 		return nil
@@ -138,11 +138,11 @@ func BenchmarkReadGroups(b *testing.B) {
 	}
 
 	b.Run("ReadGroups", func(b *testing.B) {
-		var testDomains domains
+		var dm domainMap
 		for i := 0; i < 2; i++ {
-			testDomains = domains(make(map[string]*domain))
-			require.NoError(b, testDomains.ReadGroups("example.com"))
+			dm = make(domainMap)
+			require.NoError(b, dm.ReadGroups("example.com"))
 		}
-		b.Logf("found %d domains", len(testDomains))
+		b.Logf("found %d domains", len(dm))
 	})
 }

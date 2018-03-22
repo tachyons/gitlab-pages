@@ -29,20 +29,20 @@ var (
 
 type theApp struct {
 	appConfig
-	domains  domains
+	dm       domainMap
 	lock     sync.RWMutex
 	Artifact *artifact.Artifact
 }
 
 func (a *theApp) isReady() bool {
-	return a.domains != nil
+	return a.dm != nil
 }
 
 func (a *theApp) domain(host string) *domain {
 	host = strings.ToLower(host)
 	a.lock.RLock()
 	defer a.lock.RUnlock()
-	domain, _ := a.domains[host]
+	domain, _ := a.dm[host]
 	return domain
 }
 
@@ -157,10 +157,10 @@ func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
 	a.serveContent(ww, r, https)
 }
 
-func (a *theApp) UpdateDomains(domains domains) {
+func (a *theApp) UpdateDomains(dm domainMap) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	a.domains = domains
+	a.dm = dm
 }
 
 func (a *theApp) Run() {
