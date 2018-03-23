@@ -41,7 +41,10 @@ func New(server string, timeoutSeconds int, pagesDomain string) *Artifact {
 	return &Artifact{
 		server: strings.TrimRight(server, "/"),
 		suffix: "." + strings.ToLower(pagesDomain),
-		client: &http.Client{Timeout: time.Second * time.Duration(timeoutSeconds)},
+		client: &http.Client{
+			Timeout:   time.Second * time.Duration(timeoutSeconds),
+			Transport: transport,
+		},
 	}
 }
 
