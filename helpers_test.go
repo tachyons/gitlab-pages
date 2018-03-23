@@ -210,18 +210,21 @@ func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []List
 		close(waitCh)
 	}()
 
+	cleanup := func() {
+		cmd.Process.Signal(os.Interrupt)
+		<-waitCh
+	}
+
 	if wait {
 		for _, spec := range listeners {
 			if err := spec.WaitUntilRequestSucceeds(waitCh); err != nil {
+				cleanup()
 				t.Fatal(err)
 			}
 		}
 	}
 
-	return func() {
-		cmd.Process.Signal(os.Interrupt)
-		<-waitCh
-	}
+	return cleanup
 }
 
 func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraArgs []string) (args, tempfiles []string) {
