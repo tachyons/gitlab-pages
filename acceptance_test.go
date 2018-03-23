@@ -343,7 +343,7 @@ func TestObscureMIMEType(t *testing.T) {
 func TestArtifactProxyRequest(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	transport := (InsecureHTTPSClient.Transport).(*http.Transport)
+	transport := (TestHTTPSClient.Transport).(*http.Transport)
 	defer func(t time.Duration) {
 		transport.ResponseHeaderTimeout = t
 	}(transport.ResponseHeaderTimeout)

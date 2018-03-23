@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -45,61 +46,81 @@ func setUpTests() {
 
 // The HTTPS certificate isn't signed by anyone. This http client is set up
 // so it can talk to servers using it.
-var InsecureHTTPSClient = &http.Client{
-	Transport: &http.Transport{
-		ResponseHeaderTimeout: 100 * time.Millisecond,
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-	},
-}
+var (
+	TestHTTPSClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: TestCertPool},
+		},
+	}
 
-var CertificateFixture = `-----BEGIN CERTIFICATE-----
-MIIDPDCCAiSgAwIBAgIRAJxeIG2dasNCFzigvI3rSSowDQYJKoZIhvcNAQELBQAw
+	// Use HTTP with a very short timeout to repeatedly check for the server to be
+	// up. Again, ignore HTTP
+	QuickTimeoutHTTPSClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig:       &tls.Config{RootCAs: TestCertPool},
+			ResponseHeaderTimeout: 100 * time.Millisecond,
+		},
+	}
+
+	CertificateFixture = `-----BEGIN CERTIFICATE-----
+MIIDZDCCAkygAwIBAgIRAOtN9/zy+gFjdsgpKq3QRdQwDQYJKoZIhvcNAQELBQAw
 MzEUMBIGA1UEChMLTG9nIENvdXJpZXIxGzAZBgNVBAMTEmdpdGxhYi1leGFtcGxl
-LmNvbTAgFw0xODAzMjIxOTE5MjZaGA8yMTE4MDIyNjE5MTkyNlowMzEUMBIGA1UE
+LmNvbTAgFw0xODAzMjMxODMwMDZaGA8yMTE4MDIyNzE4MzAwNlowMzEUMBIGA1UE
 ChMLTG9nIENvdXJpZXIxGzAZBgNVBAMTEmdpdGxhYi1leGFtcGxlLmNvbTCCASIw
-DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKHXQX7TsNTybojzmSzCwC8Hgk21
-VjIZT0aGZAGaQXL9npYq3ic+hIuWO8xid5KoTQJV4SNS+kB5nr4kTfrRbGVo7RWF
-P1HZ5TZoeWPngyz82eYGaiLan4oSzE5wvPcHk90/CLeO/OeILy9w6Q+Ns9vR87RZ
-iaVMivi6MWT/kRGy9KzvKFQKxxfReXAqoKyUk+SSP9vJ5ujX0vvIye9fn0glN2oM
-nR/M4LjXNNJiV+J5rYsek8DL5PrRWWChMP+I+JFhUc4aVI/aqkBCnluxIamS5iLt
-035Q7laqfOKrB3/SI9AEQm5XrYtUBH0LtFOphzXVR1hYeDHr8Df1gBM6YjECAwEA
-AaNJMEcwDgYDVR0PAQH/BAQDAgKkMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA8GA1Ud
-EwEB/wQFMAMBAf8wDwYDVR0RBAgwBocEfwAAATANBgkqhkiG9w0BAQsFAAOCAQEA
-RbJQf+dpgSGnCgHzX0bmESo2RUghFdsZ9RmLOqcIFEPaMLAwUyPsI2UL1bSv9FtW
-BVIOgmNUQexOgJ3rIpKUp3Nbbr7QXDaoyC2teL6NMiYuIM3czX7zU5vhTduLpWEF
-yPSC+5jLksFayhNTDmZHc8jcpuTLBg48iPQQjy84jfCv0PVvQ7TuXYRVgMb7PuHo
-aqH4xpoFHutMUSuIo1naiHjw8wwC+UvFuS1FUowLxWzreOW43vp026SGeoCldKYY
-p+e6LzsqwyIK3BuWJ+2cH4UyCt8Dp758sNZHDoBLKMx8ZpA+Y1WzVohLxk5yEQkl
-QXUumHMXqybXNEi7PPsznw==
------END CERTIFICATE-----`
+DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKULsxpnazXX5RsVzayrAQB+lWwr
+Wef5L5eDhSsIsBLbelYp5YB4TmVRt5x7bWKOOJSBsOfwHZHKJXdu+uuX2RenZlhk
+3Qpq9XGaPZjYm/NHi8gBHPAtz5sG5VaKNvkfTzRGnO9CWA9TM1XtYiOBq94dO+H3
+c+5jP5Yw+mJ+hA+i2058zF8nRlUHArEno2ofrHwE0LMZ11VskpXtWnVfs3voLs8p
+r76KXPBFkMJR4qkWrMDF5Y5MbsQ0zisn6KXrTyV0S4MQh4vSyPdFHnEzvJ07rm5x
+4RTWrjgQeQ2DjZjQvRmaDzlVBK9kaMkJ1Si3agK+gpji6d6WZ/Mb2el1GK8CAwEA
+AaNxMG8wDgYDVR0PAQH/BAQDAgKkMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA8GA1Ud
+EwEB/wQFMAMBAf8wNwYDVR0RBDAwLoIUKi5naXRsYWItZXhhbXBsZS5jb22HBH8A
+AAGHEAAAAAAAAAAAAAAAAAAAAAEwDQYJKoZIhvcNAQELBQADggEBAJ0NM8apK0xI
+YxMstP/dCQXtR0wyREGSD/eOpeY3bWlqCbpRgMFUGjQlrsEozcPZOCSCKX5p+tym
+7GsnYtXkwbsuURoSz+5IlhRPVHcUlUeGRdv3/gCd8fDXiigALCsB6GrkMG5cUfh+
+x5p52AC3eQdWTDoxNou+2gzwkAl8iJc13Ykusst0YUqcsXKqTuei2quxFv0pEBSO
+p8wEixoicLFNqPnIDmgx5894DAn0bccNXgRWtq8lLbdhGUlBbpatevvFMgNvFUbe
+eeGb9D0EfpxmzxUl+L0xZtfg3f7cu5AgLG8tb6l4AK6NPVuXN8DmUgvnauWJjZME
+fgStI+IRNVg=
+-----END CERTIFICATE-----
+`
 
-var KeyFixture = `-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEAoddBftOw1PJuiPOZLMLALweCTbVWMhlPRoZkAZpBcv2elire
-Jz6Ei5Y7zGJ3kqhNAlXhI1L6QHmeviRN+tFsZWjtFYU/UdnlNmh5Y+eDLPzZ5gZq
-ItqfihLMTnC89weT3T8It47854gvL3DpD42z29HztFmJpUyK+LoxZP+REbL0rO8o
-VArHF9F5cCqgrJST5JI/28nm6NfS+8jJ71+fSCU3agydH8zguNc00mJX4nmtix6T
-wMvk+tFZYKEw/4j4kWFRzhpUj9qqQEKeW7EhqZLmIu3TflDuVqp84qsHf9Ij0ARC
-bleti1QEfQu0U6mHNdVHWFh4MevwN/WAEzpiMQIDAQABAoIBABK3TQi4vHtz6dqG
-qVEm2IjXynboIKa8jJFwW0JgL2936w4cuQI61aM65YF2ZbOdKQK7IcUvBGfOaNA+
-bJI0A+AaaUiS10bE9x/6pwcpr97VAvH6De4n8ElMcTolCYVb5/qvHnfz3kV8V1Ca
-MymsTn9+YTubGzL1jiDDj5DJiWJNa6XqJqF9eh4B7nxnrjO8T3NMTI3lvyg/Nkrx
-6l0qhEG+Eu1Gdzv8t1mTb4wcz1lpC152oMtFZqgWEjMHjZryVgjPq8t25b8OhZk3
-e8sYX0JcqHZl/zqVlLoxQbSmH8/ePLH1Si5RFMxxQKhRgp2I068Us15rt2k0PnMh
-C6y1w1ECgYEAw1b8lLtvtm4NrBcqD0THYs+35ua2B23MxoksasvTlpG7Je3HSf6M
-tOIcv32cLjh4/Q1lnzdrO3lOzzDVHcKRXuUSI9C7CUFhnAKLY/0d255RjG7Hm+vv
-OyRXJYIli6+m/fzu/97Eyjs08DO+Rg/ONu+UqWlusSvEwl93Z2u7hn0CgYEA1Bkw
-RQqrOVlFdRv+jfraBVpO2enRzWBHZA+0AWdGZ3vMkyVHxfVOyRjfPOd1N1YnTfqH
-1X+b+lpWULpLH/SVeidWSUcEhtuew1TRGexmz3XCN7i6PiwtXjhOAgY9YwVMiOMy
-CKVIrL6bJAqJwniRiTn6aXj+L0xJcPL1GemMtMUCgYEAsPGJyJxk3CaioeE1yzDt
-P5eTKUiRWPdgB/NX1cGef4SwtvHFlURMZslvaxI4ODIVfnv1Mp07uFrxRYMheVy2
-2/O6U9EOq5qa9XvkkgVFV5v4mLH8hEPap4MKocJbikXpiablQ8eiEOJC2Na2I7bL
-gD3TNwZ3K2vPRpa9jWQsMO0CgYEAy3oSxdmzZIRRT0V5E4raCJKX3RUlcstwEf3C
-qioC8Bpjq7LzRWXOnLxgxlQjLuBXOscj813GLQrnjfD7S3/gu1zruccI/7vIdwpy
-xFT4WQVXOw/clPLa325S4DxOPiYCQ7z67jJrI1aFDbGSceArdyQJKZCrAoNEXbio
-DaDynSUCgYBCaM4rHpfkpCgOCtZg+hbwrmYbpRiZ6LJRi5t8M5c5ERUh8rlvADBv
-S3Tg9fq/TkV8IZKsIjc2Rgs49+/XdlNZdUE59Z/t/OzXv8DylGt5E0YH4kN8qd6e
-zTa+zLrR664UL7KDXSZuY+kHfsQQwxvsGcQma7ig1PUjlPhKLfYrRQ==
+	KeyFixture = `-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEApQuzGmdrNdflGxXNrKsBAH6VbCtZ5/kvl4OFKwiwEtt6Vinl
+gHhOZVG3nHttYo44lIGw5/Adkcold27665fZF6dmWGTdCmr1cZo9mNib80eLyAEc
+8C3PmwblVoo2+R9PNEac70JYD1MzVe1iI4Gr3h074fdz7mM/ljD6Yn6ED6LbTnzM
+XydGVQcCsSejah+sfATQsxnXVWySle1adV+ze+guzymvvopc8EWQwlHiqRaswMXl
+jkxuxDTOKyfopetPJXRLgxCHi9LI90UecTO8nTuubnHhFNauOBB5DYONmNC9GZoP
+OVUEr2RoyQnVKLdqAr6CmOLp3pZn8xvZ6XUYrwIDAQABAoIBAHhP5QnUZeTkMtDh
+vgKmzZ4sqIQnvexKTBUo/MR4GtJESBPTisdx68QUI8LgfsafYkNvnyQUd5m1QEam
+Eif3k3uYvhSlwjQ78BwWEdz/2f8oIo9zsEKtQm+CQWAqdRR5bGVxLCmFtWfGgN+c
+ojO77SuHKAX7OvmGQ+4aWgu+qkoyg/chIpPXMduAjLMtN3eg60ZqJ5KrKuIF63Bb
+xkPQvzJueB9SfUurmKjUltDMx6G/9RZyS0OIRGyL9Qp8MZ8jE23cXOcDgm0HhkPq
+W4LU++aWAOLYziTjnhjJ+4Iz9R7U8sCmk1wgnK/tapVcJf41R98WuGluyjXpsXgA
+k7vmofECgYEAzuGun9lZ7xGwPifp6vGanWXnW+JiZgCTGuHWgQLIXWYcLfoI3kpH
+eLBYINBwvjIQ7P6UxsGSSXd+T82t+8W2LLc2fiKFKE1LVySpH99+cfmIPXxrviOz
+GBX9LTdSCdGkgb54m8aJCpNFnKw5wYgcW1L8CaXXly2Z/KNrGR9R/YUCgYEAzDs4
+19HqlutGLTC30/ziiiIfDaBbX9AzBdUfp9GdT53Mi/7bfxpW/sL4RjG2fGgmN6ua
+fh5npT9AB1ldcEg2qfyOJPt1Ubdi6ek9lx8AB2RMhwdihgX+7bjVMFtjg4b8z5C1
+jQbEr1rhFdpaGyNehtAXDgCbDWQBYnBrmM0rCaMCgYBip1Qyfd9ZFcJJoZb2pofo
+jvOo6Weq5JNBungjxUPu5gaCFj2sYxd6Af3EiCF7UTypBy3DKgOsbQMa4yYYbcvV
+vviJZcTB1zoaMC1GObl+eFPzniVy4mtBDRtSOJMyg3pDNKUnA6HOHTSQ5cAU/ecn
+1YbCwwbv3JsV0of7zue2UQKBgQCVc0j3dd9rLSQfcaUz9bx5RNrgh9YV2S9dN0aA
+8f1iA6FpWMiazFWY/GfeRga6JyTAXE0juXAzFoPuXNDpl46Y+f2yxmhlsgMqFMpD
+SiYlQppVvWu1k7GnmDg5uMarux5JbiXM24UWpTRNX4nMjidgE+qrDnpoZCQ3Ovkh
+yhGSbQKBgD3VEnPiSUmXBo39kPcnPg93E3JfdAOiOwIB2qwfYzg9kpmuTWws+DFz
+lKpMI27YkmnPqROQ2NTUfdxYmw3EHHMAsvnmHeMNGn3ijSUZVKmPfV436Qc8iVci
+s4wKoCRhBUZ52sHki/ieb+5hycT3JnVXMDtbJxgXFW5a86usXEpO
 -----END RSA PRIVATE KEY-----`
+
+	TestCertPool = x509.NewCertPool()
+)
+
+func init() {
+	if ok := TestCertPool.AppendCertsFromPEM([]byte(CertificateFixture)); !ok {
+		fmt.Println("Failed to load cert!")
+	}
+}
 
 func CreateHTTPSFixtureFiles(t *testing.T) (key string, cert string) {
 	keyfile, err := ioutil.TempFile("", "https-fixture")
@@ -152,8 +173,9 @@ func (l ListenSpec) WaitUntilRequestSucceeds(done chan struct{}) error {
 			return err
 		}
 
-		response, err := InsecureHTTPSClient.Transport.RoundTrip(req)
+		response, err := QuickTimeoutHTTPSClient.Transport.RoundTrip(req)
 		if err != nil {
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 		response.Body.Close()
@@ -267,7 +289,7 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 	return
 }
 
-// Does an insecure HTTP GET against the listener specified, setting a fake
+// Does a HTTP(S) GET against the listener specified, setting a fake
 // Host: and constructing the URL from the listener and the URL suffix.
 func GetPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
 	url := spec.URL(urlsuffix)
@@ -284,7 +306,7 @@ func GetPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string) 
 func DoPagesRequest(t *testing.T, req *http.Request) (*http.Response, error) {
 	t.Logf("curl -X %s -H'Host: %s' %s", req.Method, req.Host, req.URL)
 
-	return InsecureHTTPSClient.Do(req)
+	return TestHTTPSClient.Do(req)
 }
 
 func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
@@ -296,7 +318,7 @@ func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*ht
 
 	req.Host = host
 
-	return InsecureHTTPSClient.Transport.RoundTrip(req)
+	return TestHTTPSClient.Transport.RoundTrip(req)
 }
 
 func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Duration) {
@@ -309,7 +331,7 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 				t.Fatal(err)
 			}
 
-			if response, err := InsecureHTTPSClient.Transport.RoundTrip(req); err == nil {
+			if response, err := QuickTimeoutHTTPSClient.Transport.RoundTrip(req); err == nil {
 				nListening++
 				response.Body.Close()
 				break
