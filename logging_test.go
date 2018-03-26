@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,19 @@ func testLogWithDoubleStatus(ww http.ResponseWriter, r *http.Request) {
 	defer w.Log(r)
 	w.WriteHeader(http.StatusOK)
 	http.Redirect(&w, r, "/test", 301)
+}
+
+func TestExtractLogFieldsHidesQueryStrings(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/foo?token=bar", nil)
+	r.Header.Set("Referer", "http://invalid.com/bar?token=baz")
+
+	l := newLoggingResponseWriter(w)
+
+	fields := l.extractLogFields(r)
+
+	assert.Equal(t, fields["uri"], "/foo")
+	assert.Equal(t, fields["referer"], "http://invalid.com/bar")
 }
 
 func TestLoggingWriter(t *testing.T) {

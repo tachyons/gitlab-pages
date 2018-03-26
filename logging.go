@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -64,19 +65,32 @@ func (l *loggingResponseWriter) WriteHeader(status int) {
 	l.rw.WriteHeader(status)
 }
 
-func (l *loggingResponseWriter) Log(r *http.Request) {
-	fields := log.Fields{
+func (l *loggingResponseWriter) extractLogFields(r *http.Request) log.Fields {
+	referer := r.Referer()
+	parsedReferer, err := url.Parse(referer)
+
+	// The referer query string may contain credentials, so remove if possible
+	if err == nil {
+		parsedReferer.RawQuery = ""
+		referer = parsedReferer.String()
+	}
+
+	return log.Fields{
 		"host":       r.Host,
 		"remoteAddr": r.RemoteAddr,
 		"method":     r.Method,
-		"uri":        r.RequestURI,
+		"uri":        r.URL.Path, //The request query string may contain credentials
 		"proto":      r.Proto,
 		"status":     l.status,
 		"written":    l.written,
-		"referer":    r.Referer(),
+		"referer":    referer,
 		"userAgent":  r.UserAgent(),
 		"duration":   time.Since(l.started).Seconds(),
 	}
+}
+
+func (l *loggingResponseWriter) Log(r *http.Request) {
+	fields := l.extractLogFields(r)
 
 	switch accessLogFormat {
 	case "text":
