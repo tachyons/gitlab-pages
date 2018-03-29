@@ -3,7 +3,6 @@ package main
 import (
 	"io/ioutil"
 	"net"
-	"strings"
 )
 
 func readFile(file string) (result []byte) {
@@ -27,8 +26,4 @@ func createSocket(addr string) (l net.Listener, fd uintptr) {
 
 	fd = f.Fd()
 	return
-}
-
-func endsWithSlash(path string) bool {
-	return strings.HasSuffix(path, "/")
 }

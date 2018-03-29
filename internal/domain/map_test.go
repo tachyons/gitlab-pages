@@ -1,4 +1,4 @@
-package main
+package domain
 
 import (
 	"crypto/rand"
@@ -15,7 +15,7 @@ import (
 func TestReadProjects(t *testing.T) {
 	setUpTests()
 
-	dm := make(domainMap)
+	dm := make(Map)
 	err := dm.ReadGroups("test.io")
 	require.NoError(t, err)
 
@@ -47,10 +47,10 @@ func TestReadProjects(t *testing.T) {
 
 	// Check that multiple domains in the same project are recorded faithfully
 	exp1 := &domainConfig{Domain: "test.domain.com"}
-	assert.Equal(t, exp1, dm["test.domain.com"].Config)
+	assert.Equal(t, exp1, dm["test.domain.com"].config)
 
 	exp2 := &domainConfig{Domain: "other.domain.com", Certificate: "test", Key: "key"}
-	assert.Equal(t, exp2, dm["other.domain.com"].Config)
+	assert.Equal(t, exp2, dm["other.domain.com"].config)
 }
 
 // This write must be atomic, otherwise we cannot predict the state of the
@@ -62,7 +62,7 @@ func writeRandomTimestamp(t *testing.T) {
 	n, _ := rand.Read(b)
 	require.True(t, n > 0, "read some random bytes")
 
-	temp, err := ioutil.TempFile(".", "TestWatchDomains")
+	temp, err := ioutil.TempFile(".", "TestWatch")
 	require.NoError(t, err)
 	_, err = temp.Write(b)
 	require.NoError(t, err, "write to tempfile")
@@ -71,13 +71,13 @@ func writeRandomTimestamp(t *testing.T) {
 	require.NoError(t, os.Rename(temp.Name(), updateFile), "rename tempfile")
 }
 
-func TestWatchDomains(t *testing.T) {
+func TestWatch(t *testing.T) {
 	setUpTests()
 
 	require.NoError(t, os.RemoveAll(updateFile))
 
-	update := make(chan domainMap)
-	go watchDomains("gitlab.io", func(dm domainMap) {
+	update := make(chan Map)
+	go Watch("gitlab.io", func(dm Map) {
 		update <- dm
 	}, time.Microsecond*50)
 
@@ -95,7 +95,7 @@ func TestWatchDomains(t *testing.T) {
 	assert.NotNil(t, domains, "if the domains are updated after the timestamp change")
 }
 
-func recvTimeout(t *testing.T, ch <-chan domainMap) domainMap {
+func recvTimeout(t *testing.T, ch <-chan Map) Map {
 	timeout := 5 * time.Second
 
 	select {
@@ -138,9 +138,9 @@ func BenchmarkReadGroups(b *testing.B) {
 	}
 
 	b.Run("ReadGroups", func(b *testing.B) {
-		var dm domainMap
+		var dm Map
 		for i := 0; i < 2; i++ {
-			dm = make(domainMap)
+			dm = make(Map)
 			require.NoError(b, dm.ReadGroups("example.com"))
 		}
 		b.Logf("found %d domains", len(dm))
