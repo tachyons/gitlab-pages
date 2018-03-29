@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -33,10 +34,12 @@ type D struct {
 	group string
 
 	// custom domains:
-	projectName      string
-	config           *domainConfig
+	projectName string
+	config      *domainConfig
+
 	certificate      *tls.Certificate
 	certificateError error
+	certificateOnce  sync.Once
 
 	// group domains:
 	projects projects
@@ -294,18 +297,15 @@ func (d *D) EnsureCertificate() (*tls.Certificate, error) {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
-	if d.certificate != nil || d.certificateError != nil {
-		return d.certificate, d.certificateError
-	}
+	d.certificateOnce.Do(func() {
+		var cert tls.Certificate
+		cert, d.certificateError = tls.X509KeyPair([]byte(d.config.Certificate), []byte(d.config.Key))
+		if d.certificateError == nil {
+			d.certificate = &cert
+		}
+	})
 
-	tls, err := tls.X509KeyPair([]byte(d.config.Certificate), []byte(d.config.Key))
-	if err != nil {
-		d.certificateError = err
-		return nil, err
-	}
-
-	d.certificate = &tls
-	return d.certificate, nil
+	return d.certificate, d.certificateError
 }
 
 // ServeHTTP implements http.Handler.
