@@ -32,6 +32,24 @@ func TestExtractZip(t *testing.T) {
 				return err == ErrNoPublicFiles
 			},
 		},
+		{
+			desc:    "archive with evil symlink",
+			archive: "testdata/test3.zip",
+			mustExist: map[string]string{
+				// The test3.zip archive contains a symlink to /etc/passwd. This test
+				// asserts that instead of that symlink, we get a regular file whose
+				// contents are "/etc/passwd". If the extracted "public/passwd" was an
+				// actual symlink we would get the contents of the /etc/passwd file of
+				// the system where the test runs.
+				"public/passwd": "/etc/passwd",
+				// The "public/bar" symlink tries to point to "foo" but we don't support
+				// symlinks at the moment. Instead it creates a regular file with
+				// contents "bar". TODO: support valid symlinks?
+				"public/bar": "foo",
+				// "foo" is a regular file with contents "not-bar"
+				"public/foo": "not-bar\n",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
