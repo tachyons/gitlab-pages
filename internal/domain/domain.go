@@ -1,4 +1,4 @@
-package main
+package domain
 
 import (
 	"crypto/tls"
@@ -28,29 +28,31 @@ type project struct {
 
 type projects map[string]*project
 
-type domain struct {
-	Group string
+// D is a domain that gitlab-pages can serve.
+type D struct {
+	group string
 
 	// custom domains:
-	ProjectName      string
-	Config           *domainConfig
+	projectName      string
+	config           *domainConfig
 	certificate      *tls.Certificate
 	certificateError error
 
 	// group domains:
-	Projects projects
+	projects projects
 }
 
-func (d *domain) String() string {
-	if d.Group != "" && d.ProjectName != "" {
-		return d.Group + "/" + d.ProjectName
+// String implements Stringer.
+func (d *D) String() string {
+	if d.group != "" && d.projectName != "" {
+		return d.group + "/" + d.projectName
 	}
 
-	if d.Group != "" {
-		return d.Group
+	if d.group != "" {
+		return d.group
 	}
 
-	return d.ProjectName
+	return d.projectName
 }
 
 func (l *locationDirectoryError) Error() string {
@@ -92,9 +94,11 @@ func setContentType(w http.ResponseWriter, fullPath string) {
 	}
 }
 
-func (d *domain) isHTTPSOnly(r *http.Request) bool {
-	if d.Config != nil {
-		return d.Config.HTTPSOnly
+// IsHTTPSOnly figures out if the request should be handled with HTTPS
+// only by looking at group and project level config.
+func (d *D) IsHTTPSOnly(r *http.Request) bool {
+	if d.config != nil {
+		return d.config.HTTPSOnly
 	}
 
 	split := strings.SplitN(r.URL.Path, "/", 3)
@@ -102,7 +106,7 @@ func (d *domain) isHTTPSOnly(r *http.Request) bool {
 		return false
 	}
 
-	project := d.Projects[split[1]]
+	project := d.projects[split[1]]
 
 	if project != nil {
 		return project.HTTPSOnly
@@ -111,7 +115,7 @@ func (d *domain) isHTTPSOnly(r *http.Request) bool {
 	return false
 }
 
-func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
+func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
 	fullPath := handleGZip(w, r, origPath)
 
 	file, err := os.Open(fullPath)
@@ -134,7 +138,7 @@ func (d *domain) serveFile(w http.ResponseWriter, r *http.Request, origPath stri
 	return nil
 }
 
-func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, origPath string) error {
+func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, origPath string) error {
 	fullPath := handleGZip(w, r, origPath)
 
 	// Open and serve content of file
@@ -163,8 +167,8 @@ func (d *domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code in
 
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (d *domain) resolvePath(projectName string, subPath ...string) (string, error) {
-	publicPath := filepath.Join(d.Group, projectName, "public")
+func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
+	publicPath := filepath.Join(d.group, projectName, "public")
 
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
@@ -202,7 +206,7 @@ func (d *domain) resolvePath(projectName string, subPath ...string) (string, err
 	return fullPath, nil
 }
 
-func (d *domain) tryNotFound(w http.ResponseWriter, r *http.Request, projectName string) error {
+func (d *D) tryNotFound(w http.ResponseWriter, r *http.Request, projectName string) error {
 	page404, err := d.resolvePath(projectName, "404.html")
 	if err != nil {
 		return err
@@ -215,7 +219,7 @@ func (d *domain) tryNotFound(w http.ResponseWriter, r *http.Request, projectName
 	return nil
 }
 
-func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, pathSuffix string, subPath ...string) error {
+func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName, pathSuffix string, subPath ...string) error {
 	fullPath, err := d.resolvePath(projectName, subPath...)
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
@@ -241,7 +245,7 @@ func (d *domain) tryFile(w http.ResponseWriter, r *http.Request, projectName, pa
 	return d.serveFile(w, r, fullPath)
 }
 
-func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
+func (d *D) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	// The Path always contains "/" at the beginning
 	split := strings.SplitN(r.URL.Path, "/", 3)
 
@@ -269,14 +273,14 @@ func (d *domain) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	httperrors.Serve404(w)
 }
 
-func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
+func (d *D) serveFromConfig(w http.ResponseWriter, r *http.Request) {
 	// Try to serve file for http://host/... => /group/project/...
-	if d.tryFile(w, r, d.ProjectName, "", r.URL.Path) == nil {
+	if d.tryFile(w, r, d.projectName, "", r.URL.Path) == nil {
 		return
 	}
 
 	// Try serving not found page for http://host/ => /group/project/404.html
-	if d.tryNotFound(w, r, d.ProjectName) == nil {
+	if d.tryNotFound(w, r, d.projectName) == nil {
 		return
 	}
 
@@ -284,8 +288,9 @@ func (d *domain) serveFromConfig(w http.ResponseWriter, r *http.Request) {
 	httperrors.Serve404(w)
 }
 
-func (d *domain) ensureCertificate() (*tls.Certificate, error) {
-	if d.Config == nil {
+// EnsureCertificate parses the PEM-encoded certificate for the domain
+func (d *D) EnsureCertificate() (*tls.Certificate, error) {
+	if d.config == nil {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
@@ -293,7 +298,7 @@ func (d *domain) ensureCertificate() (*tls.Certificate, error) {
 		return d.certificate, d.certificateError
 	}
 
-	tls, err := tls.X509KeyPair([]byte(d.Config.Certificate), []byte(d.Config.Key))
+	tls, err := tls.X509KeyPair([]byte(d.config.Certificate), []byte(d.config.Key))
 	if err != nil {
 		d.certificateError = err
 		return nil, err
@@ -303,10 +308,15 @@ func (d *domain) ensureCertificate() (*tls.Certificate, error) {
 	return d.certificate, nil
 }
 
-func (d *domain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if d.Config != nil {
+// ServeHTTP implements http.Handler.
+func (d *D) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if d.config != nil {
 		d.serveFromConfig(w, r)
 	} else {
 		d.serveFromGroup(w, r)
 	}
+}
+
+func endsWithSlash(path string) bool {
+	return strings.HasSuffix(path, "/")
 }

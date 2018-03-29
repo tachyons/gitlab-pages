@@ -16,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -29,7 +30,7 @@ var (
 
 type theApp struct {
 	appConfig
-	dm       domainMap
+	dm       domain.Map
 	lock     sync.RWMutex
 	Artifact *artifact.Artifact
 }
@@ -38,7 +39,7 @@ func (a *theApp) isReady() bool {
 	return a.dm != nil
 }
 
-func (a *theApp) domain(host string) *domain {
+func (a *theApp) domain(host string) *domain.D {
 	host = strings.ToLower(host)
 	a.lock.RLock()
 	defer a.lock.RUnlock()
@@ -52,7 +53,7 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	}
 
 	if domain := a.domain(ch.ServerName); domain != nil {
-		tls, _ := domain.ensureCertificate()
+		tls, _ := domain.EnsureCertificate()
 		return tls, nil
 	}
 
@@ -76,7 +77,7 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 	http.Redirect(w, r, u.String(), statusCode)
 }
 
-func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain) {
+func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.D) {
 	host, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		host = r.Host
@@ -85,7 +86,7 @@ func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain)
 	return host, a.domain(host)
 }
 
-func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain) bool {
+func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.D) bool {
 	// short circuit content serving to check for a status page
 	if r.RequestURI == a.appConfig.StatusPath {
 		a.healthCheck(w, r, https)
@@ -114,7 +115,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if !https && domain.isHTTPSOnly(r) {
+	if !https && domain.IsHTTPSOnly(r) {
 		a.redirectToHTTPS(w, r, http.StatusMovedPermanently)
 		return true
 	}
@@ -157,7 +158,7 @@ func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
 	a.serveContent(ww, r, https)
 }
 
-func (a *theApp) UpdateDomains(dm domainMap) {
+func (a *theApp) UpdateDomains(dm domain.Map) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	a.dm = dm
@@ -216,7 +217,7 @@ func (a *theApp) Run() {
 		}(a.ListenMetrics)
 	}
 
-	go watchDomains(a.Domain, a.UpdateDomains, time.Second)
+	go domain.Watch(a.Domain, a.UpdateDomains, time.Second)
 
 	wg.Wait()
 }

@@ -1,4 +1,4 @@
-package main
+package domain
 
 import (
 	"compress/gzip"
@@ -7,19 +7,22 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
 
 func TestGroupServeHTTP(t *testing.T) {
 	setUpTests()
 
-	testGroup := &domain{
-		Group:       "group",
-		ProjectName: "",
+	testGroup := &D{
+		group:       "group",
+		projectName: "",
 	}
 
 	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/", nil, "main-dir")
@@ -47,10 +50,10 @@ func TestGroupServeHTTP(t *testing.T) {
 func TestDomainServeHTTP(t *testing.T) {
 	setUpTests()
 
-	testDomain := &domain{
-		Group:       "group",
-		ProjectName: "project2",
-		Config: &domainConfig{
+	testDomain := &D{
+		group:       "group",
+		projectName: "project2",
+		config: &domainConfig{
 			Domain: "test.domain.com",
 		},
 	}
@@ -94,9 +97,9 @@ func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, valu
 func TestGroupServeHTTPGzip(t *testing.T) {
 	setUpTests()
 
-	testGroup := &domain{
-		Group:       "group",
-		ProjectName: "",
+	testGroup := &D{
+		group:       "group",
+		projectName: "",
 	}
 
 	testSet := []struct {
@@ -157,9 +160,9 @@ func testHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, value
 func TestGroup404ServeHTTP(t *testing.T) {
 	setUpTests()
 
-	testGroup := &domain{
-		Group:       "group.404",
-		ProjectName: "",
+	testGroup := &D{
+		group:       "group.404",
+		projectName: "",
 	}
 
 	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404/not/existing-file", nil, "Custom 404 project page")
@@ -174,10 +177,10 @@ func TestGroup404ServeHTTP(t *testing.T) {
 func TestDomain404ServeHTTP(t *testing.T) {
 	setUpTests()
 
-	testDomain := &domain{
-		Group:       "group.404",
-		ProjectName: "domain.404",
-		Config: &domainConfig{
+	testDomain := &D{
+		group:       "group.404",
+		projectName: "domain.404",
+		config: &domainConfig{
 			Domain: "domain.404.com",
 		},
 	}
@@ -189,60 +192,60 @@ func TestDomain404ServeHTTP(t *testing.T) {
 func TestPredefined404ServeHTTP(t *testing.T) {
 	setUpTests()
 
-	testDomain := &domain{
-		Group: "group",
+	testDomain := &D{
+		group: "group",
 	}
 
 	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
 
 func TestGroupCertificate(t *testing.T) {
-	testGroup := &domain{
-		Group:       "group",
-		ProjectName: "",
+	testGroup := &D{
+		group:       "group",
+		projectName: "",
 	}
 
-	tls, err := testGroup.ensureCertificate()
+	tls, err := testGroup.EnsureCertificate()
 	assert.Nil(t, tls)
 	assert.Error(t, err)
 }
 
 func TestDomainNoCertificate(t *testing.T) {
-	testDomain := &domain{
-		Group:       "group",
-		ProjectName: "project2",
-		Config: &domainConfig{
+	testDomain := &D{
+		group:       "group",
+		projectName: "project2",
+		config: &domainConfig{
 			Domain: "test.domain.com",
 		},
 	}
 
-	tls, err := testDomain.ensureCertificate()
+	tls, err := testDomain.EnsureCertificate()
 	assert.Nil(t, tls)
 	assert.Error(t, err)
 
-	_, err2 := testDomain.ensureCertificate()
+	_, err2 := testDomain.EnsureCertificate()
 	assert.Error(t, err)
 	assert.Equal(t, err, err2)
 }
 
 func TestDomainCertificate(t *testing.T) {
-	testDomain := &domain{
-		Group:       "group",
-		ProjectName: "project2",
-		Config: &domainConfig{
+	testDomain := &D{
+		group:       "group",
+		projectName: "project2",
+		config: &domainConfig{
 			Domain:      "test.domain.com",
-			Certificate: CertificateFixture,
-			Key:         KeyFixture,
+			Certificate: fixture.Certificate,
+			Key:         fixture.Key,
 		},
 	}
 
-	tls, err := testDomain.ensureCertificate()
+	tls, err := testDomain.EnsureCertificate()
 	assert.NotNil(t, tls)
 	require.NoError(t, err)
 }
 
 func TestCacheControlHeaders(t *testing.T) {
-	testGroup := &domain{Group: "group"}
+	testGroup := &D{group: "group"}
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "http://group.test.io/", nil)
 	require.NoError(t, err)
@@ -260,4 +263,19 @@ func TestCacheControlHeaders(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.WithinDuration(t, now.UTC().Add(10*time.Minute), expiresTime.UTC(), time.Minute)
+}
+
+var chdirSet = false
+
+func setUpTests() {
+	if chdirSet {
+		return
+	}
+
+	err := os.Chdir("../../shared/pages")
+	if err != nil {
+		log.WithError(err).Print("chdir")
+	} else {
+		chdirSet = true
+	}
 }

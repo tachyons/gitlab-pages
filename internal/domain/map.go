@@ -1,4 +1,4 @@
-package main
+package domain
 
 import (
 	"bytes"
@@ -15,15 +15,16 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-type domainMap map[string]*domain
+// Map maps domain names to D instances.
+type Map map[string]*D
 
-type domainsUpdater func(domainMap)
+type domainsUpdater func(Map)
 
-func (dm domainMap) addDomain(rootDomain, group, projectName string, config *domainConfig) {
-	newDomain := &domain{
-		Group:       group,
-		ProjectName: projectName,
-		Config:      config,
+func (dm Map) addDomain(rootDomain, group, projectName string, config *domainConfig) {
+	newDomain := &D{
+		group:       group,
+		projectName: projectName,
+		config:      config,
 	}
 
 	var domainName string
@@ -31,25 +32,25 @@ func (dm domainMap) addDomain(rootDomain, group, projectName string, config *dom
 	dm[domainName] = newDomain
 }
 
-func (dm domainMap) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool) {
+func (dm Map) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool) {
 	domainName := strings.ToLower(group + "." + rootDomain)
 	groupDomain := dm[domainName]
 
 	if groupDomain == nil {
-		groupDomain = &domain{
-			Group:    group,
-			Projects: make(projects),
+		groupDomain = &D{
+			group:    group,
+			projects: make(projects),
 		}
 	}
 
-	groupDomain.Projects[projectName] = &project{
+	groupDomain.projects[projectName] = &project{
 		HTTPSOnly: httpsOnly,
 	}
 
 	dm[domainName] = groupDomain
 }
 
-func (dm domainMap) readProjectConfig(rootDomain string, group, projectName string, config *domainsConfig) {
+func (dm Map) readProjectConfig(rootDomain string, group, projectName string, config *domainsConfig) {
 	if config == nil {
 		// This is necessary to preserve the previous behaviour where a
 		// group domain is created even if no config.json files are
@@ -117,7 +118,8 @@ type jobResult struct {
 	config  *domainsConfig
 }
 
-func (dm domainMap) ReadGroups(rootDomain string) error {
+// ReadGroups walks the pages directory and populates dm with all the domains it finds.
+func (dm Map) ReadGroups(rootDomain string) error {
 	fis, err := godirwalk.ReadDirents(".", nil)
 	if err != nil {
 		return err
@@ -180,7 +182,8 @@ const (
 	updateFile = ".update"
 )
 
-func watchDomains(rootDomain string, updater domainsUpdater, interval time.Duration) {
+// Watch polls the filesystem and kicks off a new domain directory scan when needed.
+func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
 	lastUpdate := []byte("no-update")
 
 	for {
@@ -200,7 +203,7 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 		lastUpdate = update
 
 		started := time.Now()
-		dm := make(domainMap)
+		dm := make(Map)
 		if err := dm.ReadGroups(rootDomain); err != nil {
 			log.WithError(err).Warn("domain scan failed")
 		}
@@ -234,7 +237,7 @@ func watchDomains(rootDomain string, updater domainsUpdater, interval time.Durat
 	}
 }
 
-func logConfiguredDomains(dm domainMap) {
+func logConfiguredDomains(dm Map) {
 	if log.GetLevel() == log.DebugLevel {
 		return
 	}
