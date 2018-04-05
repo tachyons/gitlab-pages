@@ -44,8 +44,8 @@ func TestDeleteSite(t *testing.T) {
 	_, err = os.Stat(testSiteDir)
 	require.True(t, os.IsNotExist(err), "directory should have been removed")
 
-	_, err = os.Stat(testRootDir)
-	require.NoError(t, err, "root directory should still exist")
+	_, err = os.Stat(path.Dir(testSiteDir))
+	require.NoError(t, err, "parent directory should still exist")
 }
 
 func TestDeleteSiteFail(t *testing.T) {
