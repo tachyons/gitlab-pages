@@ -1,13 +1,32 @@
 package deploy
 
 import (
+	"os"
+	"path"
+	"regexp"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	pb "gitlab.com/gitlab-org/gitlab-pages-proto/go"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type server struct{}
+type server struct {
+	rootDir string
+}
 
-func (*server) DeleteSite(context.Context, *pb.DeleteSiteRequest) (*empty.Empty, error) {
-	return &empty.Empty{}, nil
+var traversalRegex = regexp.MustCompile(`(^\.\./)|(/\.\./)|(/\.\.$)`)
+
+func (s *server) DeleteSite(ctx context.Context, req *pb.DeleteSiteRequest) (*empty.Empty, error) {
+	if req.Path == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "path empty")
+	}
+
+	if traversalRegex.MatchString(req.Path) {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid path: %q", req.Path)
+	}
+
+	siteDir := path.Join(s.rootDir, req.Path)
+	return &empty.Empty{}, os.RemoveAll(siteDir)
 }
