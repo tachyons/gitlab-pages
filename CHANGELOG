@@ -1,3 +1,12 @@
+v 0.8.0
+- Add /etc/resolv.conf and /etc/ssl/certs to pages chroot !51
+- Avoid unnecessary stat calls when building domain maps !60
+- Parallelize IO during the big project scan !61
+- Add more logging to gitlab pages daemon !62
+- Remove noisy debug logs !65
+- Don't log request or referer query strings !77
+- Make certificate parsing thread-safe !79
+
 v 0.7.1
 - Fix nil reference error when project is not in config.json !70
 
