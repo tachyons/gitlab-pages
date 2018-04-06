@@ -160,6 +160,29 @@ $ ./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pa
 This is most useful in dual-stack environments (IPv4+IPv6) where both Gitlab
 Pages and another HTTP server have to co-exist on the same server.
 
+### GitLab access control
+
+GitLab access control is configured with properties `auth-client-id`, `auth-client-secret`, `auth-redirect-uri`, `auth-server` and `auth-secret`. Client ID, secret and redirect uri are configured in the GitLab and should match. `auth-server` points to a GitLab instance used for authentication. `auth-redirect-uri` should be `http(s)://pages-domain/auth`. Using HTTPS is _strongly_ encouraged. `auth-secret` is used to encrypt the session cookie, and it should be strong enough.
+
+Example:
+```
+$ make
+$ ./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -auth-client-id <id> -auth-client-secret <secret> -auth-redirect-uri https://example.com/auth -auth-secret something-very-secret -auth-server https://gitlab.com
+```
+
+#### How it works
+
+1. GitLab pages looks for `access_control`, `private` and `id` fields in `config.json` files
+   in `pages-root/group/project` directories.
+2. For projects that have `access_control` and `private` set to `true` pages will require user to authenticate.
+3. When user accesses a project that requires authentication, user will be redirected
+   to GitLab to log in and grant access for GitLab pages.
+4. When user grant's access to GitLab pages, pages will use the OAuth2 `code` to get an access
+   token which is stored in the user session cookie.
+5. Pages will now check user's access to a project with a access token stored in the user
+   session cookie. This is done via a request to GitLab API with the user's access token.
+6. If token is invalidated, user will be redirected again to GitLab to authorize pages again.
+
 ### Enable Prometheus Metrics
 
 For monitoring purposes, you can pass the `-metrics-address` flag when starting.

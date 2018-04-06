@@ -19,6 +19,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -39,6 +40,7 @@ type theApp struct {
 	dm       domain.Map
 	lock     sync.RWMutex
 	Artifact *artifact.Artifact
+	Auth     *auth.Auth
 }
 
 func (a *theApp) isReady() bool {
@@ -138,8 +140,19 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	host, domain := a.getHostAndDomain(r)
 
+	if a.Auth.TryAuthenticate(&w, r) {
+		return
+	}
+
 	if a.tryAuxiliaryHandlers(&w, r, https, host, domain) {
 		return
+	}
+
+	// Only for private domains that have access control enabled
+	if domain.IsAccessControlEnabled(r) && domain.IsPrivate(r) {
+		if a.Auth.CheckAuthentication(&w, r, domain.GetID(r)) {
+			return
+		}
 	}
 
 	// Serve static file, applying CORS headers if necessary
@@ -289,6 +302,11 @@ func runApp(config appConfig) {
 
 	if config.ArtifactsServer != "" {
 		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
+	}
+
+	if config.ClientID != "" {
+		a.Auth = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
+			config.RedirectURI, config.GitLabServer)
 	}
 
 	configureLogging(config.LogFormat, config.LogVerbose)

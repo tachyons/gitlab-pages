@@ -68,6 +68,18 @@ func TestServeErrorPage(t *testing.T) {
 	assert.Equal(t, w.Status(), testingContent.status)
 }
 
+func TestServe401(t *testing.T) {
+	w := newTestResponseWriter(httptest.NewRecorder())
+	Serve401(w)
+	assert.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
+	assert.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
+	assert.Equal(t, w.Status(), content401.status)
+	assert.Contains(t, w.Content(), content401.title)
+	assert.Contains(t, w.Content(), content401.statusString)
+	assert.Contains(t, w.Content(), content401.header)
+	assert.Contains(t, w.Content(), content401.subHeader)
+}
+
 func TestServe404(t *testing.T) {
 	w := newTestResponseWriter(httptest.NewRecorder())
 	Serve404(w)

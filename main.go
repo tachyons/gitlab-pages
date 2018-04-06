@@ -46,6 +46,11 @@ var (
 	adminHTTPSListener     = flag.String("admin-https-listener", "", "The listen address for the admin API HTTPS listener (optional)")
 	adminHTTPSCert         = flag.String("admin-https-cert", "", "The path to the certificate file for the admin API (optional)")
 	adminHTTPSKey          = flag.String("admin-https-key", "", "The path to the key file for the admin API (optional)")
+	secret                 = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long.")
+	gitLabServer           = flag.String("auth-server", "", "GitLab server, for example https://www.gitlab.com")
+	clientID               = flag.String("auth-client-id", "", "GitLab application Client ID")
+	clientSecret           = flag.String("auth-client-secret", "", "GitLab application Client Secret")
+	redirectURI            = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
@@ -58,6 +63,12 @@ var (
 var (
 	errArtifactSchemaUnsupported   = errors.New("artifacts-server scheme must be either http:// or https://")
 	errArtifactsServerTimeoutValue = errors.New("artifacts-server-timeout must be greater than or equal to 1")
+
+	errSecretNotDefined       = errors.New("auth-secret must be defined if authentication is supported")
+	errClientIDNotDefined     = errors.New("auth-client-id must be defined if authentication is supported")
+	errClientSecretNotDefined = errors.New("auth-client-secret must be defined if authentication is supported")
+	errGitLabServerNotDefined = errors.New("auth-server must be defined if authentication is supported")
+	errRedirectURINotDefined  = errors.New("auth-redirect-uri must be defined if authentication is supported")
 )
 
 func configFromFlags() appConfig {
@@ -107,7 +118,42 @@ func configFromFlags() appConfig {
 		config.ArtifactsServerTimeout = *artifactsServerTimeout
 		config.ArtifactsServer = *artifactsServer
 	}
+
+	checkAuthenticationConfig(config)
+
+	config.StoreSecret = *secret
+	config.ClientID = *clientID
+	config.ClientSecret = *clientSecret
+	config.GitLabServer = *gitLabServer
+	config.RedirectURI = *redirectURI
+
 	return config
+}
+
+func checkAuthenticationConfig(config appConfig) {
+	if *secret != "" || *clientID != "" || *clientSecret != "" ||
+		*gitLabServer != "" || *redirectURI != "" {
+		// Check all auth params are valid
+		assertAuthConfig()
+	}
+}
+
+func assertAuthConfig() {
+	if *secret == "" {
+		log.Fatal(errSecretNotDefined)
+	}
+	if *clientID == "" {
+		log.Fatal(errClientIDNotDefined)
+	}
+	if *clientSecret == "" {
+		log.Fatal(errClientSecretNotDefined)
+	}
+	if *gitLabServer == "" {
+		log.Fatal(errGitLabServerNotDefined)
+	}
+	if *redirectURI == "" {
+		log.Fatal(errRedirectURINotDefined)
+	}
 }
 
 func appMain() {
@@ -160,6 +206,11 @@ func appMain() {
 		"root-key":                      *pagesRootCert,
 		"status_path":                   config.StatusPath,
 		"use-http-2":                    config.HTTP2,
+		"auth-secret":                   config.StoreSecret,
+		"auth-server":                   config.GitLabServer,
+		"auth-client-id":                config.ClientID,
+		"auth-client-secret":            config.ClientSecret,
+		"auth-redirect-uri":             config.RedirectURI,
 	}).Debug("Start daemon with configuration")
 
 	for _, cs := range [][]io.Closer{

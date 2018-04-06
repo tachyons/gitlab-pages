@@ -248,10 +248,17 @@ func getPagesDaemonArgs(t *testing.T) []string {
 // Does a HTTP(S) GET against the listener specified, setting a fake
 // Host: and constructing the URL from the listener and the URL suffix.
 func GetPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
+	return GetPageFromListenerWithCookie(t, spec, host, urlsuffix, "")
+}
+
+func GetPageFromListenerWithCookie(t *testing.T, spec ListenSpec, host, urlsuffix string, cookie string) (*http.Response, error) {
 	url := spec.URL(urlsuffix)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
+	}
+	if cookie != "" {
+		req.Header.Set("Cookie", cookie)
 	}
 
 	req.Host = host
@@ -279,10 +286,17 @@ func DoPagesRequest(t *testing.T, req *http.Request) (*http.Response, error) {
 }
 
 func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
+	return GetRedirectPageWithCookie(t, spec, host, urlsuffix, "")
+}
+
+func GetRedirectPageWithCookie(t *testing.T, spec ListenSpec, host, urlsuffix string, cookie string) (*http.Response, error) {
 	url := spec.URL(urlsuffix)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
+	}
+	if cookie != "" {
+		req.Header.Set("Cookie", cookie)
 	}
 
 	req.Host = host

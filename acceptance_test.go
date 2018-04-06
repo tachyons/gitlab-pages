@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -572,4 +573,294 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 		rsp.Body.Close()
 		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
+}
+
+func TestWhenAuthIsDisabledPrivateIsPublic(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "private.project/")
+
+	require.NoError(t, err)
+	rsp.Body.Close()
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
+func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server=https://gitlab-example.com",
+		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	assert.Equal(t, http.StatusFound, rsp.StatusCode)
+	assert.Equal(t, 1, len(rsp.Header["Location"]))
+
+	url, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	assert.Equal(t, "https", url.Scheme)
+	assert.Equal(t, "gitlab-example.com", url.Host)
+	assert.Equal(t, "/oauth/authorize", url.Path)
+	assert.Equal(t, "1", url.Query().Get("client_id"))
+	assert.Equal(t, "https://gitlab-example.com/auth", url.Query().Get("redirect_uri"))
+	assert.NotEqual(t, "", url.Query().Get("state"))
+}
+
+func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server=https://gitlab-example.com",
+		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+	defer teardown()
+
+	rsp, err := GetPageFromListener(t, httpsListener, "gitlab-example.com", "/auth?error=access_denied")
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
+}
+func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server=https://gitlab-example.com",
+		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	// Go to auth page with wrong state will cause failure
+	authrsp, err := GetPageFromListener(t, httpsListener, "gitlab-example.com", "/auth?code=0&state=0")
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, authrsp.StatusCode)
+}
+
+func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server=https://gitlab-example.com",
+		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	cookie := rsp.Header.Get("Set-Cookie")
+
+	url, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	// Go to auth page with correct state will cause fetching the token
+	authrsp, err := GetPageFromListenerWithCookie(t, httpsListener, "gitlab-example.com", "/auth?code=1&state="+
+		url.Query().Get("state"), cookie)
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	// Will cause 503 because token endpoint is not available
+	assert.Equal(t, http.StatusServiceUnavailable, authrsp.StatusCode)
+}
+
+func TestWhenLoginCallbackWithCorrectStateWithEndpointAndAccess(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth/token":
+			assert.Equal(t, "POST", r.Method)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
+		case "/api/v4/projects/1000":
+			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			w.WriteHeader(http.StatusOK)
+		default:
+			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+
+	testServer.Start()
+	defer testServer.Close()
+
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server="+testServer.URL,
+		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	cookie := rsp.Header.Get("Set-Cookie")
+
+	url, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	// Go to auth page with correct state will cause fetching the token
+	authrsp, err := GetRedirectPageWithCookie(t, httpsListener, "gitlab-example.com", "/auth?code=1&state="+
+		url.Query().Get("state"), cookie)
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	// server returns the ticket, user will be redirected to the project page
+	assert.Equal(t, http.StatusFound, authrsp.StatusCode)
+	cookie = authrsp.Header.Get("Set-Cookie")
+	rsp, err = GetRedirectPageWithCookie(t, httpsListener, "group.gitlab-example.com", "private.project/", cookie)
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	// server returns user has access, status will be success
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
+func TestWhenLoginCallbackWithCorrectStateWithEndpointAndNoAccess(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth/token":
+			assert.Equal(t, "POST", r.Method)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
+		case "/api/v4/projects/1000":
+			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			w.WriteHeader(http.StatusUnauthorized)
+		default:
+			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+
+	testServer.Start()
+	defer testServer.Close()
+
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server="+testServer.URL,
+		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	cookie := rsp.Header.Get("Set-Cookie")
+
+	url, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	// Go to auth page with correct state will cause fetching the token
+	authrsp, err := GetRedirectPageWithCookie(t, httpsListener, "gitlab-example.com", "/auth?code=1&state="+
+		url.Query().Get("state"), cookie)
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	// server returns the ticket, user will be redirected to the project page
+	assert.Equal(t, http.StatusFound, authrsp.StatusCode)
+	cookie = authrsp.Header.Get("Set-Cookie")
+	rsp, err = GetRedirectPageWithCookie(t, httpsListener, "group.gitlab-example.com", "private.project/", cookie)
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	// server returns user has NO access, status will be success
+	assert.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
+}
+
+func TestWhenLoginCallbackWithCorrectStateWithEndpointButTokenIsInvalid(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth/token":
+			assert.Equal(t, "POST", r.Method)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
+		case "/api/v4/projects/1000":
+			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
+		default:
+			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+
+	testServer.Start()
+	defer testServer.Close()
+
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server="+testServer.URL,
+		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	cookie := rsp.Header.Get("Set-Cookie")
+
+	url, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	// Go to auth page with correct state will cause fetching the token
+	authrsp, err := GetRedirectPageWithCookie(t, httpsListener, "gitlab-example.com", "/auth?code=1&state="+
+		url.Query().Get("state"), cookie)
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	// server returns the ticket, user will be redirected to the project page
+	assert.Equal(t, http.StatusFound, authrsp.StatusCode)
+	cookie = authrsp.Header.Get("Set-Cookie")
+	rsp, err = GetRedirectPageWithCookie(t, httpsListener, "group.gitlab-example.com", "private.project/", cookie)
+
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	// server returns token is invalid and removes token from cookie and redirects user back to be redirected for new token
+	assert.Equal(t, http.StatusFound, rsp.StatusCode)
+	url, err = url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	assert.Equal(t, "https", url.Scheme)
+	assert.Equal(t, "group.gitlab-example.com", url.Host)
+	assert.Equal(t, "/private.project/", url.Path)
 }

@@ -38,6 +38,7 @@ func TestGroupServeHTTP(t *testing.T) {
 	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project/subdir/", nil, "project-subsubdir")
 	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project2/", nil, "project2-main")
 	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project2/index.html", nil, "project2-main")
+	assert.HTTPRedirect(t, testGroup.ServeHTTP, "GET", "http://group.test.io/private.project/", nil)
 	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io//about.gitlab.com/%2e%2e", nil)
 	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io/symlink", nil)
 	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io/symlink/index.html", nil)

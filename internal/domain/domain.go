@@ -24,7 +24,10 @@ type locationDirectoryError struct {
 }
 
 type project struct {
-	HTTPSOnly bool
+	HTTPSOnly     bool
+	Private       bool
+	AccessControl bool
+	ID            int
 }
 
 type projects map[string]*project
@@ -97,6 +100,14 @@ func setContentType(w http.ResponseWriter, fullPath string) {
 	}
 }
 
+func (d *D) getProject(r *http.Request) *project {
+	split := strings.SplitN(r.URL.Path, "/", 3)
+	if len(split) < 2 {
+		return nil
+	}
+	return d.projects[split[1]]
+}
+
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
 func (d *D) IsHTTPSOnly(r *http.Request) bool {
@@ -104,18 +115,46 @@ func (d *D) IsHTTPSOnly(r *http.Request) bool {
 		return d.config.HTTPSOnly
 	}
 
-	split := strings.SplitN(r.URL.Path, "/", 3)
-	if len(split) < 2 {
-		return false
-	}
-
-	project := d.projects[split[1]]
+	project := d.getProject(r)
 
 	if project != nil {
 		return project.HTTPSOnly
 	}
 
 	return false
+}
+
+// IsAccessControlEnabled figures out if the request is to a project that has access control enabled
+func (d *D) IsAccessControlEnabled(r *http.Request) bool {
+	project := d.getProject(r)
+
+	if project != nil {
+		return project.AccessControl
+	}
+
+	return false
+}
+
+// IsPrivate figures out if the request is to a project that needs user to sign in
+func (d *D) IsPrivate(r *http.Request) bool {
+	project := d.getProject(r)
+
+	if project != nil {
+		return project.Private
+	}
+
+	return false
+}
+
+// GetID figures out what is the ID of the project user tries to access
+func (d *D) GetID(r *http.Request) int {
+	project := d.getProject(r)
+
+	if project != nil {
+		return project.ID
+	}
+
+	return -1
 }
 
 func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
