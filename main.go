@@ -18,6 +18,12 @@ var VERSION = "dev"
 // REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
 
+func init() {
+	flag.Var(&listenHTTP, "listen-http", "The address(es) to listen on for HTTP requests")
+	flag.Var(&listenHTTPS, "listen-https", "The address(es) to listen on for HTTPS requests")
+	flag.Var(&listenProxy, "listen-proxy", "The address(es) to listen on for proxy requests")
+}
+
 var (
 	pagesRootCert          = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
 	pagesRootKey           = flag.String("root-key", "", "The default path to file certificate to serve static pages")
@@ -34,7 +40,15 @@ var (
 	logFormat              = flag.String("log-format", "text", "The log output format: 'text' or 'json'")
 	logVerbose             = flag.Bool("log-verbose", false, "Verbose logging")
 
-	disableCrossOriginRequests     = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
+	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
+
+	// See init()
+	listenHTTP  MultiStringFlag
+	listenHTTPS MultiStringFlag
+	listenProxy MultiStringFlag
+)
+
+var (
 	errArtifactSchemaUnsupported   = errors.New("artifacts-server scheme must be either http:// or https://")
 	errArtifactsServerTimeoutValue = errors.New("artifacts-server-timeout must be greater than or equal to 1")
 )
@@ -84,13 +98,8 @@ func configFromFlags() appConfig {
 
 func appMain() {
 	var showVersion = flag.Bool("version", false, "Show version")
-	var listenHTTP, listenHTTPS, listenProxy MultiStringFlag
 
-	flag.Var(&listenHTTP, "listen-http", "The address(es) to listen on for HTTP requests")
-	flag.Var(&listenHTTPS, "listen-https", "The address(es) to listen on for HTTPS requests")
-	flag.Var(&listenProxy, "listen-proxy", "The address(es) to listen on for proxy requests")
 	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
-
 	flag.Parse()
 
 	printVersion(*showVersion, VERSION)
