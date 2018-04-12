@@ -8,6 +8,12 @@
 			"revision": "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
 		},
 		{
+			"checksumSHA1": "eG45Hg4ZnB4b1KuqsMknc5eAx4A=",
+			"path": "github.com/golang/protobuf/jsonpb",
+			"revision": "e09c5db296004fbe3f74490e84dcd62c3c5ddb1b",
+			"revisionTime": "2018-03-28T16:31:53Z"
+		},
+		{
 			"checksumSHA1": "XnbEHQRzINRKXKmu9GcaqGkK4Lg=",
 			"path": "github.com/golang/protobuf/proto",
 			"revision": "f592bd283e9ef86337a432eb50e592278c3d534d"
@@ -37,10 +43,76 @@
 			"revisionTime": "2018-03-28T16:31:53Z"
 		},
 		{
+			"checksumSHA1": "Ylq6kq3KWBy6mu68oyEwenhNMdg=",
+			"path": "github.com/golang/protobuf/ptypes/struct",
+			"revision": "e09c5db296004fbe3f74490e84dcd62c3c5ddb1b",
+			"revisionTime": "2018-03-28T16:31:53Z"
+		},
+		{
 			"checksumSHA1": "O2ItP5rmfrgxPufhjJXbFlXuyL8=",
 			"path": "github.com/golang/protobuf/ptypes/timestamp",
 			"revision": "e09c5db296004fbe3f74490e84dcd62c3c5ddb1b",
 			"revisionTime": "2018-03-28T16:31:53Z"
+		},
+		{
+			"checksumSHA1": "xtOnCs1i5rmga0KIQ9BZUHGRfL8=",
+			"path": "github.com/grpc-ecosystem/go-grpc-middleware",
+			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
+			"revisionTime": "2018-04-09T12:24:56Z"
+		},
+		{
+			"checksumSHA1": "tvOR7YKj51rBR+j5C/ZyZj6rvYc=",
+			"path": "github.com/grpc-ecosystem/go-grpc-middleware/auth",
+			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
+			"revisionTime": "2018-04-09T12:24:56Z"
+		},
+		{
+			"checksumSHA1": "YdjXbik3OwU+YwQL7OAzwqAAUjo=",
+			"path": "github.com/grpc-ecosystem/go-grpc-middleware/logging",
+			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
+			"revisionTime": "2018-04-09T12:24:56Z"
+		},
+		{
+			"checksumSHA1": "6j+jI0V+xVmiRFOQh2pFfU8pGDI=",
+			"path": "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus",
+			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
+			"revisionTime": "2018-04-09T12:24:56Z"
+		},
+		{
+			"checksumSHA1": "lyjaDmKU/dk/K4ciP5OUJEzmjfA=",
+			"path": "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus/ctxlogrus",
+			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
+			"revisionTime": "2018-04-09T12:24:56Z"
+		},
+		{
+			"checksumSHA1": "mlh8jfZweEtX64NHqAyXHKm94kA=",
+			"path": "github.com/grpc-ecosystem/go-grpc-middleware/recovery",
+			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
+			"revisionTime": "2018-04-09T12:24:56Z"
+		},
+		{
+			"checksumSHA1": "zJOUc3xTSI2qurPpvlaKWFMs67Q=",
+			"path": "github.com/grpc-ecosystem/go-grpc-middleware/tags",
+			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
+			"revisionTime": "2018-04-09T12:24:56Z"
+		},
+		{
+			"checksumSHA1": "g5zvkcjKi3oc+BXuqJfMfG2tP+c=",
+			"path": "github.com/grpc-ecosystem/go-grpc-middleware/tags/logrus",
+			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
+			"revisionTime": "2018-04-09T12:24:56Z"
+		},
+		{
+			"checksumSHA1": "L5z1C445GhhQmDKSisTFv754LdU=",
+			"path": "github.com/grpc-ecosystem/go-grpc-middleware/util/metautils",
+			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
+			"revisionTime": "2018-04-09T12:24:56Z"
+		},
+		{
+			"checksumSHA1": "8NqQ+6tkBgT7m/SpvdzakK1c+1Y=",
+			"path": "github.com/grpc-ecosystem/go-grpc-prometheus",
+			"revision": "7a96c742b925b66f0206c15956f6eb7a14e23555",
+			"revisionTime": "2018-04-04T16:45:04Z"
 		},
 		{
 			"checksumSHA1": "LJA9zeZ+AZS9LHDacPd9OemVRDk=",
@@ -140,6 +212,12 @@
 			"checksumSHA1": "6uKFd53ZAwUlXLwarorVT6upajU=",
 			"path": "github.com/stretchr/testify/require",
 			"revision": "1297dc01ed0a819ff634c89707081a4df43baf6b"
+		},
+		{
+			"checksumSHA1": "4Ensmb2/WSpaXsGOlRKwdC45P54=",
+			"path": "gitlab.com/gitlab-org/gitaly/auth",
+			"revision": "4accefd4aae0ceda0ff8a2cfeb505f2dfcb7a0e7",
+			"revisionTime": "2018-04-12T13:09:56Z"
 		},
 		{
 			"checksumSHA1": "QdEuED/Ha1K6DUBVG/HLboBxFt8=",
@@ -322,6 +400,22 @@
 		{
 			"checksumSHA1": "ntHev01vgZgeIh5VFRmbLx/BSTo=",
 			"path": "google.golang.org/grpc/grpclog",
+			"revision": "d89cded64628466c4ab532d1f0ba5c220459ebe8",
+			"revisionTime": "2018-04-04T21:41:50Z",
+			"version": "v1.11.2",
+			"versionExact": "v1.11.2"
+		},
+		{
+			"checksumSHA1": "DyM0uqLtknaI4THSc3spn9XlL+g=",
+			"path": "google.golang.org/grpc/health",
+			"revision": "d89cded64628466c4ab532d1f0ba5c220459ebe8",
+			"revisionTime": "2018-04-04T21:41:50Z",
+			"version": "v1.11.2",
+			"versionExact": "v1.11.2"
+		},
+		{
+			"checksumSHA1": "6vY7tYjV84pnr3sDctzx53Bs8b0=",
+			"path": "google.golang.org/grpc/health/grpc_health_v1",
 			"revision": "d89cded64628466c4ab532d1f0ba5c220459ebe8",
 			"revisionTime": "2018-04-04T21:41:50Z",
 			"version": "v1.11.2",
