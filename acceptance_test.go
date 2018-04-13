@@ -68,7 +68,7 @@ func TestUnknownProjectReturnsNotFound(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
 }
@@ -79,7 +79,7 @@ func TestGroupDomainReturns200(t *testing.T) {
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 )
@@ -78,7 +79,7 @@ func TestTryMakeRequest(t *testing.T) {
 		t.Run(c.Description, func(t *testing.T) {
 			result := httptest.NewRecorder()
 			reqURL, err := url.Parse("/-/subgroup/project/-/jobs/1/artifacts" + c.Path)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			r := &http.Request{URL: reqURL}
 			art := artifact.New(testServer.URL, 1, "gitlab-example.io")
 
