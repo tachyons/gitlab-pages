@@ -12,3 +12,4 @@ shared/pages/.update
 /vendor/golang.org/x/tools/
 /vendor/github.com/wadey/gocovmerge/
 /vendor/github.com/golang/lint/
+/vendor/golang.org/x/lint/
