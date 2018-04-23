@@ -34,20 +34,16 @@ Q := $(if $V,,@)
 	$Q ln -s ../bin .GOPATH/bin
 	$Q touch $@
 
-.PHONY: bin/gocovmerge bin/goimports
+.PHONY: bin/gocovmerge bin/goimports bin/gocyclo bin/golint
 bin/gocovmerge: .GOPATH/.ok
-	@test -d ./vendor/github.com/wadey/gocovmerge || \
+	@test -x $@ || \
 	    { echo "Vendored gocovmerge not found, try running 'make setup'..."; exit 1; }
-	$Q go install $(IMPORT_PATH)/vendor/github.com/wadey/gocovmerge
 bin/gocyclo: .GOPATH/.ok
-	@test -d ./vendor/github.com/fzipp/gocyclo || \
+	@test -x $@ || \
 	    { echo "Vendored gocyclo not found, try running 'make setup'..."; exit 1; }
-	$Q go get github.com/fzipp/gocyclo
 bin/goimports: .GOPATH/.ok
-	@test -d ./vendor/golang.org/x/tools/cmd/goimports || \
+	@test -x $@ || \
 	    { echo "Vendored goimports not found, try running 'make setup'..."; exit 1; }
-	$Q go install $(IMPORT_PATH)/vendor/golang.org/x/tools/cmd/goimports
 bin/golint: .GOPATH/.ok
-	@test -d ./vendor/github.com/golang/lint/golint || \
+	@test -x $@ || \
 	    { echo "Vendored golint not found, try running 'make setup'..."; exit 1; }
-	$Q go install $(IMPORT_PATH)/vendor/github.com/golang/lint/golint
