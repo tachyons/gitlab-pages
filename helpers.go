@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"net"
+	"os"
 )
 
 func readFile(file string) (result []byte) {
@@ -13,17 +14,41 @@ func readFile(file string) (result []byte) {
 	return
 }
 
-func createSocket(addr string) (l net.Listener, fd uintptr) {
+// Be careful: if you let either of the return values get garbage
+// collected by Go they will be closed automatically.
+func createSocket(addr string) (net.Listener, *os.File) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		fatal(err)
 	}
 
-	f, err := l.(*net.TCPListener).File()
+	return l, fileForListener(l)
+}
+
+// Be careful: if you let either of the return values get garbage
+// collected by Go they will be closed automatically.
+func createUnixSocket(addr string) (net.Listener, *os.File) {
+	if err := os.Remove(addr); err != nil && !os.IsNotExist(err) {
+		fatal(err)
+	}
+
+	l, err := net.Listen("unix", addr)
 	if err != nil {
 		fatal(err)
 	}
 
-	fd = f.Fd()
-	return
+	return l, fileForListener(l)
+}
+
+func fileForListener(l net.Listener) *os.File {
+	type filer interface {
+		File() (*os.File, error)
+	}
+
+	f, err := l.(filer).File()
+	if err != nil {
+		fatal(err)
+	}
+
+	return f
 }

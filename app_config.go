@@ -6,11 +6,16 @@ type appConfig struct {
 	ArtifactsServerTimeout int
 	RootCertificate        []byte
 	RootKey                []byte
+	AdminCertificate       []byte
+	AdminKey               []byte
+	AdminToken             []byte
 
-	ListenHTTP    []uintptr
-	ListenHTTPS   []uintptr
-	ListenProxy   []uintptr
-	ListenMetrics uintptr
+	ListenHTTP       []uintptr
+	ListenHTTPS      []uintptr
+	ListenProxy      []uintptr
+	ListenMetrics    uintptr
+	ListenAdminUnix  uintptr
+	ListenAdminHTTPS uintptr
 
 	HTTP2        bool
 	RedirectHTTP bool
