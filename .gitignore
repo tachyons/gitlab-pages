@@ -5,11 +5,3 @@ shared/pages/.update
 # Used by the makefile
 /.GOPATH
 /bin
-
-# Added by `make setup`
-/vendor/manifest
-/vendor/github.com/fzipp/gocyclo/
-/vendor/golang.org/x/tools/
-/vendor/github.com/wadey/gocovmerge/
-/vendor/github.com/golang/lint/
-/vendor/golang.org/x/lint/
