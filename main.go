@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"strings"
@@ -39,6 +40,11 @@ var (
 	daemonGID              = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 	logFormat              = flag.String("log-format", "text", "The log output format: 'text' or 'json'")
 	logVerbose             = flag.Bool("log-verbose", false, "Verbose logging")
+	adminSecretPath        = flag.String("admin-secret-path", "", "Path to the file containing the admin secret token")
+	adminUnixListener      = flag.String("admin-unix-listener", "", "The path for the admin API unix socket listener (optional)")
+	adminHTTPSListener     = flag.String("admin-https-listener", "", "The listen address for the admin API HTTPS listener (optional)")
+	adminHTTPSCert         = flag.String("admin-https-cert", "", "The path to the certificate file for the admin API (optional)")
+	adminHTTPSKey          = flag.String("admin-https-key", "", "The path to the key file for the admin API (optional)")
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
@@ -64,12 +70,19 @@ func configFromFlags() appConfig {
 	config.LogFormat = *logFormat
 	config.LogVerbose = *logVerbose
 
-	if *pagesRootCert != "" {
-		config.RootCertificate = readFile(*pagesRootCert)
-	}
-
-	if *pagesRootKey != "" {
-		config.RootKey = readFile(*pagesRootKey)
+	for _, file := range []struct {
+		contents *[]byte
+		path     string
+	}{
+		{&config.RootCertificate, *pagesRootCert},
+		{&config.RootKey, *pagesRootKey},
+		{&config.AdminCertificate, *adminHTTPSCert},
+		{&config.AdminKey, *adminHTTPSKey},
+		{&config.AdminToken, *adminSecretPath},
+	} {
+		if file.path != "" {
+			*file.contents = readFile(file.path)
+		}
 	}
 
 	if *artifactsServerTimeout < 1 {
@@ -120,6 +133,11 @@ func appMain() {
 	config := configFromFlags()
 
 	log.WithFields(log.Fields{
+		"admin-https-cert":              *adminHTTPSCert,
+		"admin-https-key":               *adminHTTPSKey,
+		"admin-https-listener":          *adminHTTPSListener,
+		"admin-unix-listener":           *adminUnixListener,
+		"admin-secret-path":             *adminSecretPath,
 		"artifacts-server":              *artifactsServer,
 		"artifacts-server-timeout":      *artifactsServerTimeout,
 		"daemon-gid":                    *daemonGID,
@@ -142,56 +160,137 @@ func appMain() {
 		"use-http-2":                    config.HTTP2,
 	}).Debug("Start daemon with configuration")
 
+	for _, cs := range [][]io.Closer{
+		createAppListeners(&config),
+		createMetricsListener(&config),
+		createAdminUnixListener(&config),
+		createAdminHTTPSListener(&config),
+	} {
+		defer closeAll(cs)
+	}
+
+	if *daemonUID != 0 || *daemonGID != 0 {
+		if err := daemonize(config, *daemonUID, *daemonGID); err != nil {
+			fatal(err)
+		}
+
+		return
+	}
+
+	runApp(config)
+}
+
+func closeAll(cs []io.Closer) {
+	for _, c := range cs {
+		c.Close()
+	}
+}
+
+// createAppListeners returns net.Listener and *os.File instances. The
+// caller must ensure they don't get closed or garbage-collected (which
+// implies closing) too soon.
+func createAppListeners(config *appConfig) []io.Closer {
+	var closers []io.Closer
+
 	for _, addr := range listenHTTP.Split() {
-		l, fd := createSocket(addr)
-		defer l.Close()
+		l, f := createSocket(addr)
+		closers = append(closers, l, f)
 
 		log.WithFields(log.Fields{
 			"listener": addr,
 		}).Debug("Set up HTTP listener")
 
-		config.ListenHTTP = append(config.ListenHTTP, fd)
+		config.ListenHTTP = append(config.ListenHTTP, f.Fd())
 	}
 
 	for _, addr := range listenHTTPS.Split() {
-		l, fd := createSocket(addr)
-		defer l.Close()
+		l, f := createSocket(addr)
+		closers = append(closers, l, f)
 
 		log.WithFields(log.Fields{
 			"listener": addr,
 		}).Debug("Set up HTTPS listener")
 
-		config.ListenHTTPS = append(config.ListenHTTPS, fd)
+		config.ListenHTTPS = append(config.ListenHTTPS, f.Fd())
 	}
 
 	for _, addr := range listenProxy.Split() {
-		l, fd := createSocket(addr)
-		defer l.Close()
+		l, f := createSocket(addr)
+		closers = append(closers, l, f)
 
 		log.WithFields(log.Fields{
 			"listener": addr,
 		}).Debug("Set up proxy listener")
 
-		config.ListenProxy = append(config.ListenProxy, fd)
+		config.ListenProxy = append(config.ListenProxy, f.Fd())
 	}
 
-	if *metricsAddress != "" {
-		l, fd := createSocket(*metricsAddress)
-		defer l.Close()
+	return closers
+}
 
-		log.WithFields(log.Fields{
-			"listener": *metricsAddress,
-		}).Debug("Set up metrics listener")
-
-		config.ListenMetrics = fd
+// createMetricsListener returns net.Listener and *os.File instances. The
+// caller must ensure they don't get closed or garbage-collected (which
+// implies closing) too soon.
+func createMetricsListener(config *appConfig) []io.Closer {
+	addr := *metricsAddress
+	if addr == "" {
+		return nil
 	}
 
-	if *daemonUID != 0 || *daemonGID != 0 {
-		daemonize(config, *daemonUID, *daemonGID)
-		return
+	l, f := createSocket(addr)
+	config.ListenMetrics = f.Fd()
+
+	log.WithFields(log.Fields{
+		"listener": addr,
+	}).Debug("Set up metrics listener")
+
+	return []io.Closer{l, f}
+}
+
+// createAdminUnixListener returns net.Listener and *os.File instances. The
+// caller must ensure they don't get closed or garbage-collected (which
+// implies closing) too soon.
+func createAdminUnixListener(config *appConfig) []io.Closer {
+	unixPath := *adminUnixListener
+	if unixPath == "" {
+		return nil
 	}
 
-	runApp(config)
+	if *adminSecretPath == "" {
+		fatal(fmt.Errorf("missing admin secret token file"))
+	}
+
+	l, f := createUnixSocket(unixPath)
+	config.ListenAdminUnix = f.Fd()
+
+	log.WithFields(log.Fields{
+		"listener": unixPath,
+	}).Debug("Set up admin unix socket")
+
+	return []io.Closer{l, f}
+}
+
+// createAdminHTTPSListener returns net.Listener and *os.File instances. The
+// caller must ensure they don't get closed or garbage-collected (which
+// implies closing) too soon.
+func createAdminHTTPSListener(config *appConfig) []io.Closer {
+	addr := *adminHTTPSListener
+	if addr == "" {
+		return nil
+	}
+
+	if *adminSecretPath == "" {
+		fatal(fmt.Errorf("missing admin secret token file"))
+	}
+
+	l, f := createSocket(addr)
+	config.ListenAdminHTTPS = f.Fd()
+
+	log.WithFields(log.Fields{
+		"listener": addr,
+	}).Debug("Set up admin HTTPS socket")
+
+	return []io.Closer{l, f}
 }
 
 func printVersion(showVersion bool, version string) {

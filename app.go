@@ -2,8 +2,10 @@ package main
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,6 +17,7 @@ import (
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -217,9 +220,61 @@ func (a *theApp) Run() {
 		}(a.ListenMetrics)
 	}
 
+	a.listenAdminUnix(&wg)
+	a.listenAdminHTTPS(&wg)
+
 	go domain.Watch(a.Domain, a.UpdateDomains, time.Second)
 
 	wg.Wait()
+}
+
+func (a *theApp) listenAdminUnix(wg *sync.WaitGroup) {
+	fd := a.ListenAdminUnix
+	if fd == 0 {
+		return
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		l, err := net.FileListener(os.NewFile(fd, "[admin-socket-unix]"))
+		if err != nil {
+			fatal(fmt.Errorf("failed to listen on FD %d: %v", fd, err))
+		}
+		defer l.Close()
+
+		if err := admin.NewServer(string(a.AdminToken)).Serve(l); err != nil {
+			fatal(err)
+		}
+	}()
+}
+
+func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
+	fd := a.ListenAdminHTTPS
+	if fd == 0 {
+		return
+	}
+
+	cert, err := tls.X509KeyPair(a.AdminCertificate, a.AdminKey)
+	if err != nil {
+		fatal(err)
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		l, err := net.FileListener(os.NewFile(fd, "[admin-socket-https]"))
+		if err != nil {
+			fatal(fmt.Errorf("failed to listen on FD %d: %v", fd, err))
+		}
+		defer l.Close()
+
+		if err := admin.NewTLSServer(string(a.AdminToken), &cert).Serve(l); err != nil {
+			fatal(err)
+		}
+	}()
 }
 
 func runApp(config appConfig) {

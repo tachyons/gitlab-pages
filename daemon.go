@@ -153,14 +153,7 @@ func daemonChroot(cmd *exec.Cmd) (*jail.Jail, error) {
 	return cage, nil
 }
 
-func daemonize(config appConfig, uid, gid uint) {
-	var err error
-	defer func() {
-		if err != nil {
-			fatal(err)
-		}
-	}()
-
+func daemonize(config appConfig, uid, gid uint) error {
 	log.WithFields(log.Fields{
 		"uid": uid,
 		"gid": gid,
@@ -168,7 +161,7 @@ func daemonize(config appConfig, uid, gid uint) {
 
 	cmd, err := daemonReexec(uid, gid, daemonRunProgram)
 	if err != nil {
-		return
+		return err
 	}
 	defer killProcess(cmd)
 
@@ -176,41 +169,35 @@ func daemonize(config appConfig, uid, gid uint) {
 	chroot, err := daemonChroot(cmd)
 	if err != nil {
 		log.WithError(err).Print("chroot failed")
-		return
+		return err
 	}
 	defer chroot.Dispose()
 
 	// Create a pipe to pass the configuration
 	configReader, configWriter, err := os.Pipe()
 	if err != nil {
-		return
+		return err
 	}
 	defer configWriter.Close()
 	cmd.ExtraFiles = append(cmd.ExtraFiles, configReader)
 
-	// Create a new file and store the FD for each listener
-	daemonUpdateFds(cmd, config.ListenHTTP)
-	daemonUpdateFds(cmd, config.ListenHTTPS)
-	daemonUpdateFds(cmd, config.ListenProxy)
-	if config.ListenMetrics != 0 {
-		config.ListenMetrics = daemonUpdateFd(cmd, config.ListenMetrics)
-	}
+	updateFds(&config, cmd)
 
 	// Start the process
-	if err = cmd.Start(); err != nil {
+	if err := cmd.Start(); err != nil {
 		log.WithError(err).Error("start failed")
-		return
+		return err
 	}
 
 	//detach binded mountpoints
-	if err = chroot.LazyUnbind(); err != nil {
+	if err := chroot.LazyUnbind(); err != nil {
 		log.WithError(err).Print("chroot lazy umount failed")
-		return
+		return err
 	}
 
 	// Write the configuration
-	if err = json.NewEncoder(configWriter).Encode(config); err != nil {
-		return
+	if err := json.NewEncoder(configWriter).Encode(config); err != nil {
+		return err
 	}
 	configWriter.Close()
 
@@ -218,5 +205,25 @@ func daemonize(config appConfig, uid, gid uint) {
 	passSignals(cmd)
 
 	// Wait for process to exit
-	err = cmd.Wait()
+	return cmd.Wait()
+}
+
+func updateFds(config *appConfig, cmd *exec.Cmd) {
+	for _, fds := range [][]uintptr{
+		config.ListenHTTP,
+		config.ListenHTTPS,
+		config.ListenProxy,
+	} {
+		daemonUpdateFds(cmd, fds)
+	}
+
+	for _, fdPtr := range []*uintptr{
+		&config.ListenMetrics,
+		&config.ListenAdminUnix,
+		&config.ListenAdminHTTPS,
+	} {
+		if *fdPtr != 0 {
+			*fdPtr = daemonUpdateFd(cmd, *fdPtr)
+		}
+	}
 }
