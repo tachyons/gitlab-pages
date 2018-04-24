@@ -36,7 +36,7 @@ var (
 	httpsListener = listeners[2]
 )
 
-func skipUnlessEnabled(t *testing.T) {
+func skipUnlessEnabled(t *testing.T, conditions ...string) {
 	if testing.Short() {
 		t.Log("Acceptance tests disabled")
 		t.SkipNow()
@@ -45,6 +45,19 @@ func skipUnlessEnabled(t *testing.T) {
 	if _, err := os.Stat(*pagesBinary); os.IsNotExist(err) {
 		t.Errorf("Couldn't find gitlab-pages binary at %s", *pagesBinary)
 		t.FailNow()
+	}
+
+	for _, condition := range conditions {
+		switch condition {
+		case "not-inplace-chroot":
+			if os.Getenv("TEST_DAEMONIZE") == "inplace" {
+				t.Log("Not supported with -daemon-inplace-chroot")
+				t.SkipNow()
+			}
+		default:
+			t.Error("Unknown condition:", condition)
+			t.FailNow()
+		}
 	}
 }
 
@@ -341,7 +354,7 @@ func TestObscureMIMEType(t *testing.T) {
 }
 
 func TestArtifactProxyRequest(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, "not-inplace-chroot")
 
 	transport := (TestHTTPSClient.Transport).(*http.Transport)
 	defer func(t time.Duration) {

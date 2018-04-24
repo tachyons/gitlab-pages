@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -206,21 +205,44 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 		args = append(args, "-metrics-address", promPort)
 	}
 
-	// At least one of `-daemon-uid` and `-daemon-gid` must be non-zero
-	if daemon, _ := strconv.ParseBool(os.Getenv("TEST_DAEMONIZE")); daemon {
-		if os.Geteuid() == 0 {
-			t.Log("Running pages as a daemon")
-			args = append(args, "-daemon-uid", "0")
-			args = append(args, "-daemon-gid", "65534") // Root user can switch to "nobody"
-		} else {
-			t.Log("Privilege-dropping requested but not running as root!")
-			t.FailNow()
-		}
-	}
-
+	args = append(args, getPagesDaemonArgs(t)...)
 	args = append(args, extraArgs...)
 
 	return
+}
+
+func getPagesDaemonArgs(t *testing.T) []string {
+	mode := os.Getenv("TEST_DAEMONIZE")
+	if mode == "" {
+		return nil
+	}
+
+	if os.Geteuid() != 0 {
+		t.Log("Privilege-dropping requested but not running as root!")
+		t.FailNow()
+		return nil
+	}
+
+	out := []string{}
+
+	switch mode {
+	case "tmpdir":
+		out = append(out, "-daemon-inplace-chroot=false")
+	case "inplace":
+		out = append(out, "-daemon-inplace-chroot=true")
+	default:
+		t.Log("Unknown daemonize mode", mode)
+		t.FailNow()
+		return nil
+	}
+
+	t.Log("Running pages as a daemon")
+
+	// This triggers the drop-privileges-and-chroot code in the pages daemon
+	out = append(out, "-daemon-uid", "0")
+	out = append(out, "-daemon-gid", "65534")
+
+	return out
 }
 
 // Does a HTTP(S) GET against the listener specified, setting a fake

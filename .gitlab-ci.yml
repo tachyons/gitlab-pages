@@ -7,8 +7,10 @@ image: golang:1.8
   - make cover
   - echo "Running all tests without daemonizing..."
   - make test
-  - echo "Running just the acceptance tests daemonized...."
-  - TEST_DAEMONIZE=1 make acceptance
+  - echo "Running just the acceptance tests daemonized (tmpdir)...."
+  - TEST_DAEMONIZE=tmpdir make acceptance
+  - echo "Running just the acceptance tests daemonized (inplace)...."
+  - TEST_DAEMONIZE=inplace make acceptance
   artifacts:
     paths:
       - bin/gitlab-pages
