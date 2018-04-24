@@ -1,3 +1,6 @@
+v 0.9.0
+- Add gRPC admin health check !85
+
 v 0.8.0
 - Add /etc/resolv.conf and /etc/ssl/certs to pages chroot !51
 - Avoid unnecessary stat calls when building domain maps !60
