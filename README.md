@@ -106,7 +106,45 @@ $ make
 $ sudo ./gitlab-pages -listen-http ":80" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -daemon-uid 1000 -daemon-gid 1000
 ```
 
-Please note that changes to `/etc/resolv.conf` or `SSL_CERT_FILE` will be ignored by `gitlab-pages` until restarted.
+#### Caveats
+
+The `/etc/resolv.conf` file, and any file pointed to by the `SSL_CERT_FILE`
+environment variable, will be copied into the jail. As a result, changes to
+these files will not be reflected in Pages until it's restarted.
+
+Bind mounts are unavailable on a range of non-Linux systems. Some of these
+systems (e.g., BSD) offer native "jail" functionality. It is recommended to set
+up an externally-managed jail and run the Pages daemon within it as an ordinary
+user if available.
+
+A less-functional (but just as secure) operation mode is provided via the
+`-daemon-inplace-chroot` command-line option. If passed, Pages will daemonize
+as usual, but chroot directly to the `-pages-root` directory instead of building
+a complete jail in the system temporary directory. This mode will break the
+artifact server proxy and (on some systems) TLS operation, but was the default
+mode prior to GitLab Pages v0.8.0
+
+The default secure mode will also fail for certain Linux-based configurations.
+Known cases include:
+
+* The Pages daemon is running inside an unprivileged container
+    * Bind mount functionality requires the `CAP_SYS_ADMIN` privilege
+    * This is only available to containers run in privileged mode
+* The system temporary directory is mounted `noexec` or `nodev`
+    * The jail is created in `$TMPDIR`.
+    * Character device files are created within the jail
+    * A copy of the gitlab-pages executable is run from within the bind mount
+* AppArmor/SELinux is enabled
+    * These systems disallow bind-mounting in certain configurations
+
+In these cases, workarounds are similar to those documented for non-Linux
+systems - use an external jailing technology, or fall back to the pre-v0.8.0
+behaviour using `-daemon-inplace-chroot`.
+
+On Linux, Docker and other containerization systems can be used to build a jail
+within which the Pages daemon can safely run with secure mode disabled. However,
+this configuration **is not secure** if simply using the default
+`gitlab/gitlab-ce` and `gitlab-gitlab-ee` Docker containers!
 
 ### Listen on multiple ports
 

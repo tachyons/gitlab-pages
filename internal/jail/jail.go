@@ -21,30 +21,45 @@ type pathAndMode struct {
 
 // Jail is a Chroot jail builder
 type Jail struct {
+	root        string
+	deleteRoot  bool
 	directories []pathAndMode
 	files       map[string]pathAndMode
 	bindMounts  map[string]string
 }
 
-// New returns a Jail for path
-func New(path string, perm os.FileMode) *Jail {
+// Into returns a Jail on path, assuming it already exists on disk. On disposal,
+// the jail *will not* remove the path
+func Into(path string) *Jail {
 	return &Jail{
-		directories: []pathAndMode{pathAndMode{path: path, mode: perm}},
-		files:       make(map[string]pathAndMode),
-		bindMounts:  make(map[string]string),
+		root:       path,
+		deleteRoot: false,
+		files:      make(map[string]pathAndMode),
+		bindMounts: make(map[string]string),
 	}
 }
 
-// TimestampedJail return a Jail with Path composed by prefix and current timestamp
-func TimestampedJail(prefix string, perm os.FileMode) *Jail {
+// Create returns a Jail on path, creating the directory if needed. On disposal,
+// the jail will remove the path
+func Create(path string, perm os.FileMode) *Jail {
+	jail := Into(path)
+	jail.deleteRoot = true
+	jail.directories = append(jail.directories, pathAndMode{path: path, mode: perm})
+
+	return jail
+}
+
+// CreateTimestamped returns a Jail on a path composed by prefix and current
+// timestamp, creating the directory. On disposal, the jail will remove the path
+func CreateTimestamped(prefix string, perm os.FileMode) *Jail {
 	jailPath := path.Join(os.TempDir(), fmt.Sprintf("%s-%d", prefix, time.Now().UnixNano()))
 
-	return New(jailPath, perm)
+	return Create(jailPath, perm)
 }
 
 // Path returns the path of the jail
 func (j *Jail) Path() string {
-	return j.directories[0].path
+	return j.root
 }
 
 // Build creates the jail, making directories and copying files. If an error
@@ -87,7 +102,27 @@ func (j *Jail) Build() error {
 }
 
 func (j *Jail) removeAll() error {
-	return os.RemoveAll(j.Path())
+	// Deleting the root will remove all child directories, so there's no need
+	// to traverse files and directories
+	if j.deleteRoot {
+		if err := os.RemoveAll(j.Path()); err != nil {
+			return fmt.Errorf("Can't delete jail %q. %s", j.Path(), err)
+		}
+	} else {
+		for path := range j.files {
+			if err := os.Remove(path); err != nil {
+				return fmt.Errorf("Can't delete file in jail %q: %s", path, err)
+			}
+		}
+
+		for _, dest := range j.directories {
+			if err := os.Remove(dest.path); err != nil {
+				return fmt.Errorf("Can't delete directory in jail %q: %s", dest.path, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 // Dispose erases everything inside the jail

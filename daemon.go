@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -102,8 +104,41 @@ func passSignals(cmd *exec.Cmd) {
 	}()
 }
 
-func daemonChroot(cmd *exec.Cmd) (*jail.Jail, error) {
-	cage := jail.TimestampedJail("gitlab-pages", 0755)
+func chrootDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	chroot := jail.Into(wd)
+
+	// Generate a probabilistically-unique suffix for the copy of the pages
+	// binary being placed into the chroot
+	suffix := make([]byte, 16)
+	if _, err := rand.Read(suffix); err != nil {
+		return nil, err
+	}
+
+	tempExecutablePath := fmt.Sprintf("/.daemon.%x", suffix)
+
+	if err := chroot.CopyTo(tempExecutablePath, cmd.Path); err != nil {
+		return nil, err
+	}
+
+	// Update command to use chroot
+	cmd.SysProcAttr.Chroot = chroot.Path()
+	cmd.Path = tempExecutablePath
+	cmd.Dir = "/"
+
+	if err := chroot.Build(); err != nil {
+		return nil, err
+	}
+
+	return chroot, nil
+}
+
+func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
+	cage := jail.CreateTimestamped("gitlab-pages", 0755)
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -164,10 +199,11 @@ func daemonChroot(cmd *exec.Cmd) (*jail.Jail, error) {
 	return cage, nil
 }
 
-func daemonize(config appConfig, uid, gid uint) error {
+func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
 	log.WithFields(log.Fields{
-		"uid": uid,
-		"gid": gid,
+		"uid":      uid,
+		"gid":      gid,
+		"in-place": inPlace,
 	}).Info("running the daemon as unprivileged user")
 
 	cmd, err := daemonReexec(uid, gid, daemonRunProgram)
@@ -177,12 +213,17 @@ func daemonize(config appConfig, uid, gid uint) error {
 	defer killProcess(cmd)
 
 	// Run daemon in chroot environment
-	chroot, err := daemonChroot(cmd)
+	var wrapper *jail.Jail
+	if inPlace {
+		wrapper, err = chrootDaemon(cmd)
+	} else {
+		wrapper, err = jailDaemon(cmd)
+	}
 	if err != nil {
 		log.WithError(err).Print("chroot failed")
 		return err
 	}
-	defer chroot.Dispose()
+	defer wrapper.Dispose()
 
 	// Create a pipe to pass the configuration
 	configReader, configWriter, err := os.Pipe()
@@ -200,9 +241,9 @@ func daemonize(config appConfig, uid, gid uint) error {
 		return err
 	}
 
-	//detach binded mountpoints
-	if err := chroot.LazyUnbind(); err != nil {
-		log.WithError(err).Print("chroot lazy umount failed")
+	// Proactively detach any bind-mounts so they can't be left dangling
+	if err := wrapper.LazyUnbind(); err != nil {
+		log.WithError(err).Print("jail lazy umount failed")
 		return err
 	}
 
