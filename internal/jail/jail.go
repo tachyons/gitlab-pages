@@ -41,32 +41,56 @@ func (j *Jail) Path() string {
 	return j.directories[0].path
 }
 
-// Build creates the jail, making directories and copying files
+// Build creates the jail, making directories and copying files. If an error
+// setting up is encountered, a best-effort attempt will be made to remove any
+// partial state before returning the error
 func (j *Jail) Build() error {
+	// Simplify error-handling in this method. It's unsafe to run os.RemoveAll()
+	// across a bind mount. Only one is needed at present, and this restriction
+	// means there's no need to handle the case where one of several mounts
+	// failed in j.mount()
+	//
+	// Make j.mount() robust before removing this restriction, at the risk of
+	// extreme data loss
+	if len(j.bindMounts) > 1 {
+		return fmt.Errorf("BUG: jail does not currently support multiple bind mounts")
+	}
+
 	for _, dir := range j.directories {
 		if err := os.Mkdir(dir.path, dir.mode); err != nil {
+			j.removeAll()
 			return fmt.Errorf("Can't create directory %q. %s", dir.path, err)
 		}
 	}
 
 	for dest, src := range j.files {
 		if err := copyFile(dest, src.path, src.mode); err != nil {
+			j.removeAll()
 			return fmt.Errorf("Can't copy %q -> %q. %s", src.path, dest, err)
 		}
 	}
 
-	return j.mount()
+	if err := j.mount(); err != nil {
+		// Only one bind mount is supported. If it failed to mount, there is
+		// nothing to unmount, so it is safe to run removeAll() here.
+		j.removeAll()
+		return err
+	}
+
+	return nil
+}
+
+func (j *Jail) removeAll() error {
+	return os.RemoveAll(j.Path())
 }
 
 // Dispose erases everything inside the jail
 func (j *Jail) Dispose() error {
-	err := j.unmount()
-	if err != nil {
+	if err := j.unmount(); err != nil {
 		return err
 	}
 
-	err = os.RemoveAll(j.Path())
-	if err != nil {
+	if err := j.removeAll(); err != nil {
 		return fmt.Errorf("Can't delete jail %q. %s", j.Path(), err)
 	}
 

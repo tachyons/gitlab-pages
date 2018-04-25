@@ -57,6 +57,33 @@ func TestJailBuild(t *testing.T) {
 	require.NoError(t, err, "Jail path should exist after Jail.Build()")
 }
 
+func TestJailOnlySupportsOneBindMount(t *testing.T) {
+	jailPath := tmpJailPath()
+	cage := jail.New(jailPath, 0755)
+
+	cage.Bind("/bin", "/bin")
+	cage.Bind("/lib", "/lib")
+	cage.Bind("/usr", "/usr")
+
+	err := cage.Build()
+	require.Error(t, err, "Build() is expected to fail in this test")
+
+	_, statErr := os.Stat(cage.Path())
+	require.True(t, os.IsNotExist(statErr), "Jail path should not exist")
+}
+
+func TestJailBuildCleansUpWhenMountFails(t *testing.T) {
+	jailPath := tmpJailPath()
+	cage := jail.New(jailPath, 0755)
+	cage.Bind("/foo", "/this/path/does/not/exist/so/mount/will/fail")
+
+	err := cage.Build()
+	require.Error(t, err, "Build() is expected to fail in this test")
+
+	_, statErr := os.Stat(cage.Path())
+	require.True(t, os.IsNotExist(statErr), "Jail path should have been cleaned up")
+}
+
 func TestJailDispose(t *testing.T) {
 	assert := assert.New(t)
 
