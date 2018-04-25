@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"syscall"
 	"testing"
 	"time"
 
@@ -111,6 +112,42 @@ func TestJailDisposeDoNotFailOnMissingPath(t *testing.T) {
 
 	err = cage.Dispose()
 	assert.NoError(err)
+}
+
+func TestJailWithCharacterDevice(t *testing.T) {
+	if os.Geteuid() != 0 {
+		t.Log("This test only works if run as root")
+		t.SkipNow()
+	}
+
+	// Determine the expected rdev
+	fi, err := os.Stat("/dev/urandom")
+	require.NoError(t, err)
+	sys, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		t.Log("Couldn't determine expected rdev for /dev/urandom, skipping")
+		t.SkipNow()
+	}
+
+	expectedRdev := sys.Rdev
+
+	jailPath := tmpJailPath()
+	cage := jail.New(jailPath, 0755)
+	cage.MkDir("/dev", 0755)
+
+	require.NoError(t, cage.CharDev("/dev/urandom"))
+	require.NoError(t, cage.Build())
+	defer cage.Dispose()
+
+	fi, err = os.Lstat(path.Join(cage.Path(), "/dev/urandom"))
+	require.NoError(t, err)
+
+	isCharDev := fi.Mode()&os.ModeCharDevice == os.ModeCharDevice
+	assert.True(t, isCharDev, "Created file was not a character device")
+
+	sys, ok = fi.Sys().(*syscall.Stat_t)
+	require.True(t, ok, "Couldn't determine rdev of created character device")
+	assert.Equal(t, expectedRdev, sys.Rdev, "Incorrect rdev for /dev/urandom")
 }
 
 func TestJailWithFiles(t *testing.T) {
