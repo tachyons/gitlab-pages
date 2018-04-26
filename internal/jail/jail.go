@@ -5,12 +5,18 @@ import (
 	"io"
 	"os"
 	"path"
+	"syscall"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 type pathAndMode struct {
 	path string
 	mode os.FileMode
+
+	// Only respected if mode is os.ModeCharDevice
+	rdev int
 }
 
 // Jail is a Chroot jail builder
@@ -64,7 +70,7 @@ func (j *Jail) Build() error {
 	}
 
 	for dest, src := range j.files {
-		if err := copyFile(dest, src.path, src.mode); err != nil {
+		if err := handleFile(dest, src); err != nil {
 			j.removeAll()
 			return fmt.Errorf("Can't copy %q -> %q. %s", src.path, dest, err)
 		}
@@ -100,6 +106,34 @@ func (j *Jail) Dispose() error {
 // MkDir enqueue a mkdir operation at jail building time
 func (j *Jail) MkDir(path string, perm os.FileMode) {
 	j.directories = append(j.directories, pathAndMode{path: j.ExternalPath(path), mode: perm})
+}
+
+// CharDev enqueues an mknod operation for the given character device at jail
+// building time
+func (j *Jail) CharDev(path string) error {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("Can't stat %q: %s", path, err)
+	}
+
+	if (fi.Mode() & os.ModeCharDevice) == 0 {
+		return fmt.Errorf("Can't mknod %q: not a character device", path)
+	}
+
+	// Read the device number from the underlying unix implementation of stat()
+	sys, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return fmt.Errorf("Couldn't determine rdev for %q", path)
+	}
+
+	jailedDest := j.ExternalPath(path)
+	j.files[jailedDest] = pathAndMode{
+		path: path,
+		mode: fi.Mode(),
+		rdev: int(sys.Rdev),
+	}
+
+	return nil
 }
 
 // CopyTo enqueues a file copy operation at jail building time
@@ -141,6 +175,25 @@ func (j *Jail) LazyUnbind() error {
 // ExternalPath converts a jail internal path to the equivalent jail external path
 func (j *Jail) ExternalPath(internal string) string {
 	return path.Join(j.Path(), internal)
+}
+
+func handleFile(dest string, src pathAndMode) error {
+	// Using `io.Copy` on a character device simply doesn't work
+	if (src.mode & os.ModeCharDevice) > 0 {
+		return createCharacterDevice(dest, src)
+	}
+
+	// FIXME: currently, symlinks, block devices, named pipes and other
+	// non-regular files will be `Open`ed and have that content streamed to a
+	// regular file inside the chroot. This is actually desired behaviour for,
+	// e.g., `/etc/resolv.conf`, but was very surprising
+	return copyFile(dest, src.path, src.mode)
+}
+
+func createCharacterDevice(dest string, src pathAndMode) error {
+	unixMode := uint32(src.mode.Perm() | syscall.S_IFCHR)
+
+	return unix.Mknod(dest, unixMode, src.rdev)
 }
 
 func copyFile(dest, src string, perm os.FileMode) error {

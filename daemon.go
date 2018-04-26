@@ -110,6 +110,17 @@ func daemonChroot(cmd *exec.Cmd) (*jail.Jail, error) {
 		return nil, err
 	}
 
+	// Add /dev/urandom and /dev/random inside the jail. This is required to
+	// support Linux versions < 3.17, which do not have the getrandom() syscall
+	cage.MkDir("/dev", 0755)
+	if err := cage.CharDev("/dev/urandom"); err != nil {
+		return nil, err
+	}
+
+	if err := cage.CharDev("/dev/random"); err != nil {
+		return nil, err
+	}
+
 	// Add gitlab-pages inside the jail
 	err = cage.CopyTo("/gitlab-pages", cmd.Path)
 	if err != nil {
