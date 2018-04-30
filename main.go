@@ -38,6 +38,7 @@ var (
 	metricsAddress         = flag.String("metrics-address", "", "The address to listen on for metrics requests")
 	daemonUID              = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	daemonGID              = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
+	daemonInplaceChroot    = flag.Bool("daemon-inplace-chroot", false, "Fall back to a non-bind-mount chroot of -pages-root when daemonizing")
 	logFormat              = flag.String("log-format", "text", "The log output format: 'text' or 'json'")
 	logVerbose             = flag.Bool("log-verbose", false, "Verbose logging")
 	adminSecretPath        = flag.String("admin-secret-path", "", "Path to the file containing the admin secret token")
@@ -142,6 +143,7 @@ func appMain() {
 		"artifacts-server-timeout":      *artifactsServerTimeout,
 		"daemon-gid":                    *daemonGID,
 		"daemon-uid":                    *daemonUID,
+		"daemon-inplace-chroot":         *daemonInplaceChroot,
 		"default-config-filename":       flag.DefaultConfigFlagname,
 		"disable-cross-origin-requests": *disableCrossOriginRequests,
 		"domain":                        config.Domain,
@@ -170,7 +172,7 @@ func appMain() {
 	}
 
 	if *daemonUID != 0 || *daemonGID != 0 {
-		if err := daemonize(config, *daemonUID, *daemonGID); err != nil {
+		if err := daemonize(config, *daemonUID, *daemonGID, *daemonInplaceChroot); err != nil {
 			fatal(err)
 		}
 

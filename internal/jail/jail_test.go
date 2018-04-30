@@ -26,8 +26,8 @@ func TestTimestampedJails(t *testing.T) {
 	prefix := "jail"
 	var mode os.FileMode = 0755
 
-	j1 := jail.TimestampedJail(prefix, mode)
-	j2 := jail.TimestampedJail(prefix, mode)
+	j1 := jail.CreateTimestamped(prefix, mode)
+	j2 := jail.CreateTimestamped(prefix, mode)
 
 	assert.NotEqual(j1.Path, j2.Path())
 }
@@ -36,7 +36,7 @@ func TestJailPath(t *testing.T) {
 	assert := assert.New(t)
 
 	jailPath := tmpJailPath()
-	cage := jail.New(jailPath, 0755)
+	cage := jail.Create(jailPath, 0755)
 
 	assert.Equal(jailPath, cage.Path())
 }
@@ -45,7 +45,7 @@ func TestJailBuild(t *testing.T) {
 	assert := assert.New(t)
 
 	jailPath := tmpJailPath()
-	cage := jail.New(jailPath, 0755)
+	cage := jail.Create(jailPath, 0755)
 
 	_, err := os.Stat(cage.Path())
 	assert.Error(err, "Jail path should not exist before Jail.Build()")
@@ -60,7 +60,7 @@ func TestJailBuild(t *testing.T) {
 
 func TestJailOnlySupportsOneBindMount(t *testing.T) {
 	jailPath := tmpJailPath()
-	cage := jail.New(jailPath, 0755)
+	cage := jail.Create(jailPath, 0755)
 
 	cage.Bind("/bin", "/bin")
 	cage.Bind("/lib", "/lib")
@@ -75,7 +75,7 @@ func TestJailOnlySupportsOneBindMount(t *testing.T) {
 
 func TestJailBuildCleansUpWhenMountFails(t *testing.T) {
 	jailPath := tmpJailPath()
-	cage := jail.New(jailPath, 0755)
+	cage := jail.Create(jailPath, 0755)
 	cage.Bind("/foo", "/this/path/does/not/exist/so/mount/will/fail")
 
 	err := cage.Build()
@@ -89,7 +89,7 @@ func TestJailDispose(t *testing.T) {
 	assert := assert.New(t)
 
 	jailPath := tmpJailPath()
-	cage := jail.New(jailPath, 0755)
+	cage := jail.Create(jailPath, 0755)
 
 	err := cage.Build()
 	require.NoError(t, err)
@@ -105,7 +105,7 @@ func TestJailDisposeDoNotFailOnMissingPath(t *testing.T) {
 	assert := assert.New(t)
 
 	jailPath := tmpJailPath()
-	cage := jail.New(jailPath, 0755)
+	cage := jail.Create(jailPath, 0755)
 
 	_, err := os.Stat(cage.Path())
 	assert.Error(err, "Jail path should not exist")
@@ -132,7 +132,7 @@ func TestJailWithCharacterDevice(t *testing.T) {
 	expectedRdev := sys.Rdev
 
 	jailPath := tmpJailPath()
-	cage := jail.New(jailPath, 0755)
+	cage := jail.Create(jailPath, 0755)
 	cage.MkDir("/dev", 0755)
 
 	require.NoError(t, cage.CharDev("/dev/urandom"))
@@ -182,7 +182,7 @@ func TestJailWithFiles(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			cage := jail.TimestampedJail("jail-mkdir", 0755)
+			cage := jail.CreateTimestamped("jail-mkdir", 0755)
 			for _, dir := range test.directories {
 				cage.MkDir(dir, 0755)
 			}
@@ -219,7 +219,7 @@ func TestJailCopyTo(t *testing.T) {
 
 	content := "hello"
 
-	cage := jail.TimestampedJail("check-file-copy", 0755)
+	cage := jail.CreateTimestamped("check-file-copy", 0755)
 
 	tmpFile, err := ioutil.TempFile("", "dummy-file")
 	if err != nil {
@@ -269,7 +269,7 @@ func TestJailLazyUnbind(t *testing.T) {
 	tmpFile.Close()
 
 	jailPath := tmpJailPath()
-	cage := jail.New(jailPath, 0755)
+	cage := jail.Create(jailPath, 0755)
 
 	cage.MkDir("/my-bind", 0755)
 	cage.Bind("/my-bind", toBind)
@@ -297,4 +297,23 @@ func TestJailLazyUnbind(t *testing.T) {
 
 	_, err = os.Stat(tmpFilePath)
 	require.NoError(t, err, "disposing a jail should not delete files under binded directories")
+}
+
+func TestJailIntoOnlyCleansSubpaths(t *testing.T) {
+	jailPath := tmpJailPath()
+	require.NoError(t, os.MkdirAll(jailPath, 0755))
+	defer os.RemoveAll(jailPath)
+
+	chroot := jail.Into(jailPath)
+	chroot.MkDir("/etc", 0755)
+	chroot.Copy("/etc/resolv.conf")
+	require.NoError(t, chroot.Build())
+	require.NoError(t, chroot.Dispose())
+
+	_, err := os.Stat(path.Join(jailPath, "/etc/resolv.conf"))
+	require.True(t, os.IsNotExist(err), "/etc/resolv.conf in jail was not removed")
+	_, err = os.Stat(path.Join(jailPath, "/etc"))
+	require.True(t, os.IsNotExist(err), "/etc in jail was not removed")
+	_, err = os.Stat(jailPath)
+	require.NoError(t, err, "/ in jail (corresponding to external directory) was removed")
 }
