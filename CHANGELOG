@@ -1,3 +1,8 @@
+v 0.9.1
+- Clean up the created jail directory if building the jail doesn't work !90
+- Restore the old in-place chroot behaviour as a command-line option !92
+- Create /dev/random and /dev/urandom when daemonizing and jailing !93
+
 v 0.9.0
 - Add gRPC admin health check !85
 
