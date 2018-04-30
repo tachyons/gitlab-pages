@@ -199,7 +199,15 @@ func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 	return cage, nil
 }
 
-func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
+func buildJail(cmd *exec.Cmd, inPlace bool) (*jail.Jail, error) {
+	if inPlace {
+		return chrootDaemon(cmd)
+	}
+
+	return jailDaemon(cmd)
+}
+
+func daemonize(config appConfig, uid, gid uint, inPlace bool) {
 	var err error
 	defer func() {
 		if err != nil {
@@ -220,12 +228,7 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
 	defer killProcess(cmd)
 
 	// Run daemon in chroot environment
-	var wrapper *jail.Jail
-	if inPlace {
-		wrapper, err = chrootDaemon(cmd)
-	} else {
-		wrapper, err = jailDaemon(cmd)
-	}
+	wrapper, err := buildJail(cmd, inPlace)
 	if err != nil {
 		log.WithError(err).Print("chroot failed")
 		return
