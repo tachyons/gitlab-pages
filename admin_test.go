@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -24,6 +25,21 @@ var (
 	adminSecretArgs = []string{"-admin-secret-path", "../../testdata/.admin-secret"}
 	adminToken      = "super-secret\n"
 )
+
+func TestAdminUnixPermissions(t *testing.T) {
+	socketPath := "admin.socket"
+	// Use "../../" because the pages executable cd's into shared/pages
+	adminArgs := append(adminSecretArgs, "-admin-unix-listener", "../../"+socketPath)
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", adminArgs...)
+	defer teardown()
+
+	waitHTTP2RoundTripUnix(t, socketPath)
+
+	st, err := os.Stat(socketPath)
+	require.NoError(t, err)
+	expectedMode := os.FileMode(0777)
+	require.Equal(t, expectedMode, st.Mode()&expectedMode, "file permissions of unix socket")
+}
 
 func TestAdminHealthCheckUnix(t *testing.T) {
 	socketPath := "admin.socket"

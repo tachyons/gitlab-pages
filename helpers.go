@@ -37,6 +37,14 @@ func createUnixSocket(addr string) (net.Listener, *os.File) {
 		fatal(err)
 	}
 
+	// This socket should be world-accessible; we have authentication at the
+	// application level. When pages runs with privilege separation, the
+	// default permissions will prevent gitlab-rails from connecting to the
+	// admin socket.
+	if err := os.Chmod(addr, 0777); err != nil {
+		fatal(err)
+	}
+
 	return l, fileForListener(l)
 }
 
