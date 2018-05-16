@@ -9,9 +9,7 @@ contributions.
 
 ## Versioning
 
-GitLab Pages follows [Semantic Versioning](https://semver.org/). In its pre-1.0
-state, it follows the post-1.0 rules, except that MAJOR changes are treated as
-MINOR changes.
+GitLab Pages follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 The `X-Y-stable` branches and `master` should never have their history
 rewritten. Tags should never be deleted.
