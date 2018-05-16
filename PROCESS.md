@@ -21,7 +21,7 @@ Pages is tightly coupled to GitLab itself. To align with GitLab's
 new versions of GitLab Pages are released before the 7th of each month (assuming
 any changes have been made). To do so:
 
-* For major and minor releases, create a stable branch if it doesn't already exist:
+1. For major and minor releases, create a stable branch if it doesn't already exist:
 
     ```shell
     git checkout -b X-Y-stable master # MAJOR.MINOR
@@ -29,12 +29,11 @@ any changes have been made). To do so:
     git push X-Y-stable https://dev.gitlab.org/gitlab/gitlab-pages.git
     ```
 
-* Review the list of changes since the last release and create a changelog
-* Decide on the version number by reference to the [Versioning](#versioning) section
-* [Create a new issue](https://gitlab.com/gitlab-org/gitlab-pages/issues/new)
-  containing the changelog
-* Create a new merge request, modifying the `CHANGELOG` and `VERSION` files, targeting the correct stable branch
-* Once it's merged, create a signed+annotated tag pointing to the **merge commit** on the **stable branch**, e.g.:
+1. Review the list of changes since the last release and create a changelog
+1. Decide on the version number by reference to the [Versioning](#versioning) section
+1. [Create a new issue](https://gitlab.com/gitlab-org/gitlab-pages/issues/new) containing the changelog
+1. Create a new merge request, modifying the `CHANGELOG` and `VERSION` files, targeting the correct stable branch
+1. Once it's merged, create a signed+annotated tag pointing to the **merge commit** on the **stable branch**, e.g.:
 
     ```shell
     git fetch origin 1-0-stable
@@ -43,7 +42,7 @@ any changes have been made). To do so:
     git push v1.0.0 https://dev.gitlab.org/gitlab/gitlab-pages.git
     ```
 
-* Create a merge request against [GitLab](https://gitlab.com/gitlab-org/gitlab-ce) to update `GITLAB_PAGES_VERSION`
+1. Create a merge request against [GitLab](https://gitlab.com/gitlab-org/gitlab-ce) to update `GITLAB_PAGES_VERSION`
 
 As each release is made, the `CHANGELOG` for the stable branch will be updated
 to contain content not in the **master** branch. To resolve this, the stable
