@@ -27,6 +27,12 @@ var (
 	cdRootOnce sync.Once
 )
 
+// cdRoot changes the working directory of the test executable. We are
+// forced to assume that the pages root directory is the current working
+// directory. When running pages with chroot+bind mount, os.Getwd()
+// resolves to a garbage "(undefined)" vaule. So in turn, the tests for
+// this package must execute with the pages root as the working
+// directory.
 func cdRoot(t *testing.T) {
 	cdRootOnce.Do(func() {
 		require.NoError(t, os.Chdir(testRootDir))
