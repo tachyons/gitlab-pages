@@ -2,6 +2,7 @@ package admin
 
 import (
 	"crypto/tls"
+	"os"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
@@ -9,6 +10,8 @@ import (
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	log "github.com/sirupsen/logrus"
+	pb "gitlab.com/gitlab-org/gitlab-pages-proto/go"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/service/deploy"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health"
@@ -59,5 +62,11 @@ func serverOpts(secret string) []grpc.ServerOption {
 }
 
 func registerServices(g *grpc.Server) {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	pb.RegisterDeployServiceServer(g, deploy.NewServer(wd))
 	healthpb.RegisterHealthServer(g, health.NewServer())
 }

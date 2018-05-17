@@ -3,15 +3,19 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	gitalyauth "gitlab.com/gitlab-org/gitaly/auth"
+	pb "gitlab.com/gitlab-org/gitlab-pages-proto/go"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -132,6 +136,43 @@ func TestAdminHealthCheckHTTPS(t *testing.T) {
 			require.Equal(t, tc.code, status.Code(err), "wrong grpc code: %v", err)
 		})
 	}
+}
+
+func TestAdminDeleteSite(t *testing.T) {
+	socketPath, teardown := startAdminUnix(t)
+	defer teardown()
+
+	deleteName := "group/project-123-to-be-deleted"
+	deleteDir, err := filepath.Abs(path.Join(*pagesRoot, deleteName))
+	require.NoError(t, err)
+
+	deletePublic := path.Join(deleteDir, "public")
+	require.NoError(t, os.MkdirAll(deletePublic, 0755))
+	require.NoError(t, ioutil.WriteFile(path.Join(deletePublic, "index.html"), nil, 0644))
+
+	_, err = os.Stat(deleteDir)
+	require.NoError(t, err, "sanity check: expected directory to exist after setup")
+
+	connOpts := []grpc.DialOption{
+		grpc.WithInsecure(),
+		grpcUnixDialOpt(),
+		grpc.WithPerRPCCredentials(gitalyauth.RPCCredentials(adminToken)),
+	}
+
+	conn, err := grpc.Dial(socketPath, connOpts...)
+	require.NoError(t, err, "dial")
+	defer conn.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	client := pb.NewDeployServiceClient(conn)
+	req := &pb.DeleteSiteRequest{Path: deleteName}
+	_, err = client.DeleteSite(ctx, req)
+	require.NoError(t, err)
+
+	_, err = os.Stat(deleteDir)
+	require.True(t, os.IsNotExist(err), "expected directory to be removed")
 }
 
 func startAdminUnix(t *testing.T) (socketPath string, teardown func()) {

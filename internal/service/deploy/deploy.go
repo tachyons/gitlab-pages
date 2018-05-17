@@ -17,6 +17,10 @@ type server struct {
 	rootDir string
 }
 
+func NewServer(rootDir string) *server {
+	return &server{rootDir: rootDir}
+}
+
 var traversalRegex = regexp.MustCompile(`(^\.\./)|(/\.\./)|(/\.\.$)`)
 
 func (s *server) DeleteSite(ctx context.Context, req *pb.DeleteSiteRequest) (*empty.Empty, error) {
