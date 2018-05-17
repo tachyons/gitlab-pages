@@ -2,7 +2,6 @@ package admin
 
 import (
 	"crypto/tls"
-	"os"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
@@ -62,11 +61,6 @@ func serverOpts(secret string) []grpc.ServerOption {
 }
 
 func registerServices(g *grpc.Server) {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	pb.RegisterDeployServiceServer(g, deploy.NewServer(wd))
+	pb.RegisterDeployServiceServer(g, deploy.NewServer())
 	healthpb.RegisterHealthServer(g, health.NewServer())
 }
