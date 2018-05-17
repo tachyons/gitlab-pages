@@ -38,5 +38,13 @@ func (s *server) DeleteSite(ctx context.Context, req *pb.DeleteSiteRequest) (*em
 	}
 
 	siteDir := path.Join(s.rootDir, req.Path)
+	st, err := os.Stat(siteDir)
+	if err != nil {
+		return nil, status.Errorf(codes.FailedPrecondition, "request.Path: %v", err)
+	}
+	if !st.IsDir() {
+		return nil, status.Errorf(codes.FailedPrecondition, "not a directory: %q", req.Path)
+	}
+
 	return &empty.Empty{}, os.RemoveAll(siteDir)
 }

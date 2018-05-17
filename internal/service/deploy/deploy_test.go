@@ -22,11 +22,7 @@ const (
 )
 
 func TestDeleteSite(t *testing.T) {
-	sitePath := "foo/bar"
-	testSiteDir := path.Join(testRootDir, sitePath)
-	require.NoError(t, os.RemoveAll(testSiteDir))
-	require.NoError(t, os.MkdirAll(testSiteDir, 0755))
-
+	sitePath, testSiteDir := setupTestSite(t)
 	require.NoError(t, ioutil.WriteFile(path.Join(testSiteDir, "hello"), []byte("world"), 0644))
 
 	s := runDeployServer(t)
@@ -48,7 +44,19 @@ func TestDeleteSite(t *testing.T) {
 	require.NoError(t, err, "parent directory should still exist")
 }
 
+func setupTestSite(t *testing.T) (sitePath string, testSiteDir string) {
+	sitePath = "foo/bar"
+	testSiteDir = path.Join(testRootDir, sitePath)
+	require.NoError(t, os.RemoveAll(testSiteDir))
+	require.NoError(t, os.MkdirAll(testSiteDir, 0755))
+
+	return sitePath, testSiteDir
+}
+
 func TestDeleteSiteFail(t *testing.T) {
+	sitePath, testSiteDir := setupTestSite(t)
+	require.NoError(t, ioutil.WriteFile(path.Join(testSiteDir, "hello"), []byte("world"), 0644))
+
 	s := runDeployServer(t)
 	defer s.Stop()
 
@@ -68,6 +76,8 @@ func TestDeleteSiteFail(t *testing.T) {
 		{desc: "traversal middle", path: "bar/../foo", code: codes.InvalidArgument},
 		{desc: "traversal end", path: "foo/bar/..", code: codes.InvalidArgument},
 		{desc: "path starting with period", path: ".foo/bar", code: codes.InvalidArgument},
+		{desc: "directory does not exist", path: "does/not/exist", code: codes.FailedPrecondition},
+		{desc: "path is a file not a directory", path: path.Join(sitePath, "hello"), code: codes.FailedPrecondition},
 	}
 
 	for _, tc := range testCases {
