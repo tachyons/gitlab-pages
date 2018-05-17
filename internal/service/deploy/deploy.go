@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"os"
-	"path"
 	"regexp"
 	"strings"
 
@@ -13,32 +12,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type server struct {
-	rootDir string
-}
+type server struct{}
 
 // NewServer returns a new deploy service server.
-func NewServer(rootDir string) pb.DeployServiceServer {
-	return &server{rootDir: rootDir}
+func NewServer() pb.DeployServiceServer {
+	return &server{}
 }
 
 var traversalRegex = regexp.MustCompile(`(^\.\./)|(/\.\./)|(/\.\.$)`)
 
 func (s *server) DeleteSite(ctx context.Context, req *pb.DeleteSiteRequest) (*empty.Empty, error) {
-	if req.Path == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "path empty")
+	if err := validatePath(req.Path); err != nil {
+		return nil, err
 	}
 
-	if traversalRegex.MatchString(req.Path) {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid path: %q", req.Path)
-	}
-
-	if strings.HasPrefix(req.Path, ".") {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid path: %q", req.Path)
-	}
-
-	siteDir := path.Join(s.rootDir, req.Path)
-	st, err := os.Stat(siteDir)
+	st, err := os.Stat(req.Path)
 	if err != nil {
 		return nil, status.Errorf(codes.FailedPrecondition, "request.Path: %v", err)
 	}
@@ -46,5 +34,21 @@ func (s *server) DeleteSite(ctx context.Context, req *pb.DeleteSiteRequest) (*em
 		return nil, status.Errorf(codes.FailedPrecondition, "not a directory: %q", req.Path)
 	}
 
-	return &empty.Empty{}, os.RemoveAll(siteDir)
+	return &empty.Empty{}, os.RemoveAll(req.Path)
+}
+
+func validatePath(requestPath string) error {
+	if requestPath == "" {
+		return status.Errorf(codes.InvalidArgument, "path empty")
+	}
+
+	if traversalRegex.MatchString(requestPath) {
+		return status.Errorf(codes.InvalidArgument, "invalid path: %q", requestPath)
+	}
+
+	if strings.HasPrefix(requestPath, ".") || strings.HasPrefix(requestPath, "/") {
+		return status.Errorf(codes.InvalidArgument, "invalid path: %q", requestPath)
+	}
+
+	return nil
 }

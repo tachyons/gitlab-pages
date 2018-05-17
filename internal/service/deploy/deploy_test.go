@@ -6,6 +6,8 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,11 +19,23 @@ import (
 )
 
 const (
-	serverSocketPath = "testdata/grpc.socket"
+	serverSocketPath = "../grpc.socket"
 	testRootDir      = "testdata/root"
 )
 
+var (
+	cdRootOnce sync.Once
+)
+
+func cdRoot(t *testing.T) {
+	cdRootOnce.Do(func() {
+		require.NoError(t, os.Chdir(testRootDir))
+	})
+}
+
 func TestDeleteSite(t *testing.T) {
+	cdRoot(t)
+
 	sitePath, testSiteDir := setupTestSite(t)
 	require.NoError(t, ioutil.WriteFile(path.Join(testSiteDir, "hello"), []byte("world"), 0644))
 
@@ -46,7 +60,8 @@ func TestDeleteSite(t *testing.T) {
 
 func setupTestSite(t *testing.T) (sitePath string, testSiteDir string) {
 	sitePath = "foo/bar"
-	testSiteDir = path.Join(testRootDir, sitePath)
+	testSiteDir, err := filepath.Abs(sitePath)
+	require.NoError(t, err)
 	require.NoError(t, os.RemoveAll(testSiteDir))
 	require.NoError(t, os.MkdirAll(testSiteDir, 0755))
 
@@ -54,6 +69,8 @@ func setupTestSite(t *testing.T) (sitePath string, testSiteDir string) {
 }
 
 func TestDeleteSiteFail(t *testing.T) {
+	cdRoot(t)
+
 	sitePath, testSiteDir := setupTestSite(t)
 	require.NoError(t, ioutil.WriteFile(path.Join(testSiteDir, "hello"), []byte("world"), 0644))
 
@@ -76,6 +93,7 @@ func TestDeleteSiteFail(t *testing.T) {
 		{desc: "traversal middle", path: "bar/../foo", code: codes.InvalidArgument},
 		{desc: "traversal end", path: "foo/bar/..", code: codes.InvalidArgument},
 		{desc: "path starting with period", path: ".foo/bar", code: codes.InvalidArgument},
+		{desc: "path starting with slash", path: "/foo/bar", code: codes.InvalidArgument},
 		{desc: "directory does not exist", path: "does/not/exist", code: codes.FailedPrecondition},
 		{desc: "path is a file not a directory", path: path.Join(sitePath, "hello"), code: codes.FailedPrecondition},
 	}
@@ -101,7 +119,7 @@ func runDeployServer(t *testing.T) *grpc.Server {
 		t.Fatal(err)
 	}
 
-	pb.RegisterDeployServiceServer(grpcServer, &server{rootDir: testRootDir})
+	pb.RegisterDeployServiceServer(grpcServer, NewServer())
 
 	go grpcServer.Serve(listener)
 
