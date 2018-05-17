@@ -26,14 +26,6 @@ func daemonMain() {
 		return
 	}
 
-	if len(os.Args) != 2 {
-		fatal(fmt.Errorf("usage: %s WORKING_DIRECTORY", daemonRunProgram))
-	}
-
-	if err := os.Chdir(os.Args[1]); err != nil {
-		fatal(err)
-	}
-
 	log.WithFields(log.Fields{
 		"uid": syscall.Getuid(),
 		"gid": syscall.Getgid(),
@@ -136,7 +128,6 @@ func chrootDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 	// Update command to use chroot
 	cmd.SysProcAttr.Chroot = chroot.Path()
 	cmd.Path = tempExecutablePath
-	cmd.Args = append(cmd.Args, "/")
 	cmd.Dir = "/"
 
 	if err := chroot.Build(); err != nil {
@@ -198,8 +189,7 @@ func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 	// Update command to use chroot
 	cmd.SysProcAttr.Chroot = cage.Path()
 	cmd.Path = "/gitlab-pages"
-	cmd.Args = append(cmd.Args, pagesRootInChroot)
-	cmd.Dir = "/"
+	cmd.Dir = pagesRootInChroot
 
 	err = cage.Build()
 	if err != nil {
