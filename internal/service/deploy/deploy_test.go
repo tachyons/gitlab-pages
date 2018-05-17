@@ -67,6 +67,7 @@ func TestDeleteSiteFail(t *testing.T) {
 		{desc: "traversal beginning", path: "../foo", code: codes.InvalidArgument},
 		{desc: "traversal middle", path: "bar/../foo", code: codes.InvalidArgument},
 		{desc: "traversal end", path: "foo/bar/..", code: codes.InvalidArgument},
+		{desc: "path starting with period", path: ".foo/bar/baz", code: codes.InvalidArgument},
 	}
 
 	for _, tc := range testCases {
@@ -76,7 +77,7 @@ func TestDeleteSiteFail(t *testing.T) {
 			_, err := client.DeleteSite(ctx, req)
 			st, ok := status.FromError(err)
 			require.True(t, ok, "error has a grpc status")
-			require.Equal(t, tc.code, st.Code(), "grpc code")
+			require.Equal(t, tc.code, st.Code(), "unexpected grpc code")
 		})
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strings"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	pb "gitlab.com/gitlab-org/gitlab-pages-proto/go"
@@ -24,6 +25,10 @@ func (s *server) DeleteSite(ctx context.Context, req *pb.DeleteSiteRequest) (*em
 	}
 
 	if traversalRegex.MatchString(req.Path) {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid path: %q", req.Path)
+	}
+
+	if strings.HasPrefix(req.Path, ".") {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid path: %q", req.Path)
 	}
 
