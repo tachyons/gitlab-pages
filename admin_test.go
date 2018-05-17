@@ -27,13 +27,8 @@ var (
 )
 
 func TestAdminUnixPermissions(t *testing.T) {
-	socketPath := "admin.socket"
-	// Use "../../" because the pages executable cd's into shared/pages
-	adminArgs := append(adminSecretArgs, "-admin-unix-listener", "../../"+socketPath)
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", adminArgs...)
+	socketPath, teardown := startAdminUnix(t)
 	defer teardown()
-
-	waitHTTP2RoundTripUnix(t, socketPath)
 
 	st, err := os.Stat(socketPath)
 	require.NoError(t, err)
@@ -42,13 +37,8 @@ func TestAdminUnixPermissions(t *testing.T) {
 }
 
 func TestAdminHealthCheckUnix(t *testing.T) {
-	socketPath := "admin.socket"
-	// Use "../../" because the pages executable cd's into shared/pages
-	adminArgs := append(adminSecretArgs, "-admin-unix-listener", "../../"+socketPath)
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", adminArgs...)
+	socketPath, teardown := startAdminUnix(t)
 	defer teardown()
-
-	waitHTTP2RoundTripUnix(t, socketPath)
 
 	testCases := []struct {
 		desc    string
@@ -144,6 +134,21 @@ func TestAdminHealthCheckHTTPS(t *testing.T) {
 	}
 }
 
+func startAdminUnix(t *testing.T) (socketPath string, teardown func()) {
+	socketPath = "admin.socket"
+	// Use "../../" because the pages executable cd's into shared/pages
+	adminArgs := append(adminSecretArgs, "-admin-unix-listener", "../../"+socketPath)
+	teardown = RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", adminArgs...)
+
+	if err := waitHTTP2RoundTripUnix(socketPath); err != nil {
+		teardown()
+		t.Fatal(err)
+		return "", nil
+	}
+
+	return socketPath, teardown
+}
+
 func newAddr() string {
 	s := httptest.NewServer(http.NotFoundHandler())
 	s.Close()
@@ -176,17 +181,17 @@ func grpcUnixDialOpt() grpc.DialOption {
 	})
 }
 
-func waitHTTP2RoundTripUnix(t *testing.T, socketPath string) {
+func waitHTTP2RoundTripUnix(socketPath string) error {
 	var err error
 
 	for start := time.Now(); time.Since(start) < 5*time.Second; time.Sleep(100 * time.Millisecond) {
 		err = roundtripHTTP2Unix(socketPath)
 		if err == nil {
-			return
+			return nil
 		}
 	}
 
-	t.Fatal(err)
+	return err
 }
 
 func roundtripHTTP2Unix(socketPath string) error {
