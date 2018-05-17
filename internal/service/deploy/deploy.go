@@ -17,7 +17,8 @@ type server struct {
 	rootDir string
 }
 
-func NewServer(rootDir string) *server {
+// NewServer returns a new deploy service server.
+func NewServer(rootDir string) pb.DeployServiceServer {
 	return &server{rootDir: rootDir}
 }
 
