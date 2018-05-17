@@ -67,7 +67,7 @@ func TestDeleteSiteFail(t *testing.T) {
 		{desc: "traversal beginning", path: "../foo", code: codes.InvalidArgument},
 		{desc: "traversal middle", path: "bar/../foo", code: codes.InvalidArgument},
 		{desc: "traversal end", path: "foo/bar/..", code: codes.InvalidArgument},
-		{desc: "path starting with period", path: ".foo/bar/baz", code: codes.InvalidArgument},
+		{desc: "path starting with period", path: ".foo/bar", code: codes.InvalidArgument},
 	}
 
 	for _, tc := range testCases {
