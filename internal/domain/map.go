@@ -238,7 +238,7 @@ func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
 }
 
 func logConfiguredDomains(dm Map) {
-	if log.GetLevel() == log.DebugLevel {
+	if log.GetLevel() != log.DebugLevel {
 		return
 	}
 
