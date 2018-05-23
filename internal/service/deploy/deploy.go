@@ -46,7 +46,7 @@ func validatePath(requestPath string) error {
 		return status.Errorf(codes.InvalidArgument, "invalid path: %q", requestPath)
 	}
 
-	if strings.HasPrefix(requestPath, ".") || strings.HasPrefix(requestPath, "/") {
+	if strings.IndexAny(requestPath, "./~") == 0 {
 		return status.Errorf(codes.InvalidArgument, "invalid path: %q", requestPath)
 	}
 

@@ -100,6 +100,7 @@ func TestDeleteSiteFail(t *testing.T) {
 		{desc: "traversal end", path: "foo/bar/..", code: codes.InvalidArgument},
 		{desc: "path starting with period", path: ".foo/bar", code: codes.InvalidArgument},
 		{desc: "path starting with slash", path: "/foo/bar", code: codes.InvalidArgument},
+		{desc: "path starting with tilde", path: "~/foo/bar", code: codes.InvalidArgument},
 		{desc: "directory does not exist", path: "does/not/exist", code: codes.FailedPrecondition},
 		{desc: "path is a file not a directory", path: path.Join(sitePath, "hello"), code: codes.FailedPrecondition},
 	}
