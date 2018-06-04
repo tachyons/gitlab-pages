@@ -128,12 +128,6 @@
 			"versionExact": "v1.5.0"
 		},
 		{
-			"checksumSHA1": "sxHnA1plNXr5NVB2HYPGExA22U0=",
-			"path": "github.com/lupine/go-mimedb",
-			"revision": "e8af1d65987739a7ab277dedd9772c7398154ff3",
-			"revisionTime": "2018-03-07T00:01:49Z"
-		},
-		{
 			"checksumSHA1": "bKMZjd2wPw13VwoE7mBeSv5djFA=",
 			"comment": "v1.0.0-2-gc12348c",
 			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
@@ -226,6 +220,12 @@
 			"revisionTime": "2018-04-05T10:22:53Z",
 			"version": "v0.0.2",
 			"versionExact": "v0.0.2"
+		},
+		{
+			"checksumSHA1": "UxFypaeBgKNoj1+mF/OwdtgfrWk=",
+			"path": "gitlab.com/lupine/go-mimedb",
+			"revision": "e8af1d65987739a7ab277dedd9772c7398154ff3",
+			"revisionTime": "2018-03-07T00:01:49Z"
 		},
 		{
 			"checksumSHA1": "6U7dCaxxIMjf5V02iWgyAwppczw=",
