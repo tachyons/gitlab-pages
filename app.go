@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	mimedb "github.com/lupine/go-mimedb"
+	mimedb "gitlab.com/lupine/go-mimedb"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
