@@ -24,8 +24,11 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-const xForwardedProto = "X-Forwarded-Proto"
-const xForwardedProtoHTTPS = "https"
+const (
+	xForwardedProto      = "X-Forwarded-Proto"
+	xForwardedHost       = "X-Forwarded-Host"
+	xForwardedProtoHTTPS = "https"
+)
 
 var (
 	corsHandler = cors.New(cors.Options{AllowedMethods: []string{"GET"}})
@@ -157,6 +160,10 @@ func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
 func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
 	forwardedProto := r.Header.Get(xForwardedProto)
 	https := forwardedProto == xForwardedProtoHTTPS
+
+	if forwardedHost := r.Header.Get(xForwardedHost); forwardedHost != "" {
+		r.Host = forwardedHost
+	}
 
 	a.serveContent(ww, r, https)
 }
