@@ -27,7 +27,7 @@ type project struct {
 	HTTPSOnly     bool
 	Private       bool
 	AccessControl bool
-	ID            int
+	ID            uint64
 }
 
 type projects map[string]*project
@@ -147,14 +147,14 @@ func (d *D) IsPrivate(r *http.Request) bool {
 }
 
 // GetID figures out what is the ID of the project user tries to access
-func (d *D) GetID(r *http.Request) int {
+func (d *D) GetID(r *http.Request) uint64 {
 	project := d.getProject(r)
 
 	if project != nil {
 		return project.ID
 	}
 
-	return -1
+	return 0
 }
 
 func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {

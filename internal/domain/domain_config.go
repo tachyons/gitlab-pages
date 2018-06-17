@@ -16,10 +16,10 @@ type domainConfig struct {
 
 type domainsConfig struct {
 	Domains       []domainConfig
-	HTTPSOnly     bool `json:"https_only"`
-	Private       bool `json:"private"`
-	ID            int  `json:"id"`
-	AccessControl bool `json:"access_control"`
+	HTTPSOnly     bool   `json:"https_only"`
+	Private       bool   `json:"private"`
+	ID            uint64 `json:"id"`
+	AccessControl bool   `json:"access_control"`
 }
 
 func (c *domainConfig) Valid(rootDomain string) bool {

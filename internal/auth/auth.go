@@ -184,7 +184,7 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 }
 
 // CheckAuthentication checks if user is authenticated and has access to the project
-func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID int) bool {
+func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
 
 	if a == nil {
 		httperrors.Serve500(w)
