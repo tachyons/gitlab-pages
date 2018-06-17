@@ -575,7 +575,7 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 	}
 }
 
-func TestWhenAuthIsDisabledPrivateIsPublic(t *testing.T) {
+func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "")
 	defer teardown()
@@ -584,7 +584,7 @@ func TestWhenAuthIsDisabledPrivateIsPublic(t *testing.T) {
 
 	require.NoError(t, err)
 	rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, rsp.StatusCode)
 }
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {

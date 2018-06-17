@@ -187,7 +187,8 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID int) bool {
 
 	if a == nil {
-		return false
+		httperrors.Serve500(w)
+		return true
 	}
 
 	if a.checkSession(w, r) {
