@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	apiURLTemplate       = "%s/api/v4/projects/%d?access_token=%s"
+	apiURLTemplate       = "%s/api/v4/projects/%d"
 	authorizeURLTemplate = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s"
 	tokenURLTemplate     = "%s/oauth/token"
 	tokenContentTemplate = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
@@ -214,8 +214,16 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 	}
 
 	// Access token exists, authorize request
-	url := fmt.Sprintf(apiURLTemplate, a.gitLabServer, projectID, session.Values["access_token"].(string))
-	resp, err := a.apiClient.Get(url)
+	url := fmt.Sprintf(apiURLTemplate, a.gitLabServer, projectID)
+	req, err := http.NewRequest("GET", url, nil)
+
+	if err != nil {
+		httperrors.Serve500(w)
+		return true
+	}
+
+	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
+	resp, err := a.apiClient.Do(req)
 
 	if checkResponseForInvalidToken(resp, err) {
 

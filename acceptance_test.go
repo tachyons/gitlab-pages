@@ -619,7 +619,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
 		"-auth-client-secret=1",
-		"-auth-server=https://gitlab-example.com",
+		"-auth-server=https://gitlab-auth.com",
 		"-auth-redirect-uri=https://gitlab-example.com/auth",
 		"-auth-secret=something-very-secret")
 	defer teardown()
@@ -635,7 +635,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
 		"-auth-client-secret=1",
-		"-auth-server=https://gitlab-example.com",
+		"-auth-server=https://gitlab-auth.com",
 		"-auth-redirect-uri=https://gitlab-example.com/auth",
 		"-auth-secret=something-very-secret")
 	defer teardown()
@@ -658,7 +658,7 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
 		"-auth-client-secret=1",
-		"-auth-server=https://gitlab-example.com",
+		"-auth-server=https://gitlab-auth.com",
 		"-auth-redirect-uri=https://gitlab-example.com/auth",
 		"-auth-secret=something-very-secret")
 	defer teardown()
@@ -694,7 +694,7 @@ func TestWhenLoginCallbackWithCorrectStateWithEndpointAndAccess(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
 		case "/api/v4/projects/1000":
-			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
@@ -752,7 +752,7 @@ func TestWhenLoginCallbackWithCorrectStateWithEndpointAndNoAccess(t *testing.T) 
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
 		case "/api/v4/projects/1000":
-			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 		default:
 			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
@@ -810,7 +810,7 @@ func TestWhenLoginCallbackWithCorrectStateWithEndpointButTokenIsInvalid(t *testi
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
 		case "/api/v4/projects/1000":
-			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
 		default:

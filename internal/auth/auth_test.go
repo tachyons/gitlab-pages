@@ -76,7 +76,7 @@ func TestTryAuthenticateWithCodeAndState(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
 		case "/api/v4/projects/1000":
-			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
@@ -115,7 +115,7 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v4/projects/1000":
-			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
@@ -152,7 +152,7 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v4/projects/1000":
-			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 		default:
 			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
@@ -189,7 +189,7 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v4/projects/1000":
-			assert.Equal(t, "abc", r.URL.Query().Get("access_token"))
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
 		default:
