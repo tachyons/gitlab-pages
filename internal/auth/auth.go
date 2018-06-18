@@ -278,6 +278,9 @@ func New(pagesDomain string, storeSecret string, clientID string, clientSecret s
 		redirectURI:  redirectURI,
 		gitLabServer: strings.TrimRight(gitLabServer, "/"),
 		store:        store,
-		apiClient:    &http.Client{Timeout: 5 * time.Second},
+		apiClient: &http.Client{
+			Timeout:   5 * time.Second,
+			Transport: transport,
+		},
 	}
 }
