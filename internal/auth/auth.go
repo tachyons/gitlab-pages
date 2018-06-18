@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -172,10 +171,8 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 	}
 
 	// Parse response
-	body, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
-
-	err = json.Unmarshal(body, &token)
+	err = json.NewDecoder(resp.Body).Decode(&token)
 	if err != nil {
 		return token, err
 	}
@@ -249,10 +246,8 @@ func checkResponseForInvalidToken(resp *http.Response, err error) bool {
 		errResp := errorResponse{}
 
 		// Parse response
-		body, _ := ioutil.ReadAll(resp.Body)
 		defer resp.Body.Close()
-
-		err = json.Unmarshal(body, &errResp)
+		err := json.NewDecoder(resp.Body).Decode(&errResp)
 		if err != nil {
 			return false
 		}
