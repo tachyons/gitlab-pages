@@ -553,3 +553,23 @@ func TestMultiFlagEnvironmentVariables(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
 }
+
+func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	var listeners = []ListenSpec{
+		{"proxy", "127.0.0.1", "37002"},
+		{"proxy", "::1", "37002"},
+	}
+
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	for _, spec := range listeners {
+		rsp, err := GetProxiedPageFromListener(t, spec, "localhost", "group.gitlab-example.com", "project/")
+
+		require.NoError(t, err)
+		rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	}
+}
