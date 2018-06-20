@@ -678,6 +678,9 @@ func TestAccessControl(t *testing.T) {
 			assert.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
+		case "/api/v4/projects":
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			w.WriteHeader(http.StatusOK)
 		case "/api/v4/projects/1000":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
@@ -712,7 +715,7 @@ func TestAccessControl(t *testing.T) {
 		{
 			"group.gitlab-example.com",
 			"/private.project.1/",
-			http.StatusUnauthorized,
+			http.StatusNotFound, // Do not expose project existed
 			false,
 			"project without access",
 		},
@@ -722,6 +725,13 @@ func TestAccessControl(t *testing.T) {
 			http.StatusFound,
 			true,
 			"invalid token test should redirect back",
+		},
+		{
+			"group.gitlab-example.com",
+			"/nonexistent/",
+			http.StatusNotFound,
+			false,
+			"no project should redirect to login and then return 404",
 		},
 	}
 

@@ -94,6 +94,19 @@ func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.
 	return host, a.domain(host)
 }
 
+func (a *theApp) checkAuthenticationIfNotExists(domain *domain.D, w http.ResponseWriter, r *http.Request) bool {
+	if domain == nil {
+		// To avoid user knowing if pages exist, we will force user to login and authorize pages
+		if a.Auth.CheckAuthenticationWithoutProject(w, r) {
+			return true
+		}
+		// User is authenticated, show the 404
+		httperrors.Serve404(w)
+		return true
+	}
+	return false
+}
+
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.D) bool {
 	// short circuit content serving to check for a status page
 	if r.RequestURI == a.appConfig.StatusPath {
@@ -118,8 +131,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if domain == nil {
-		httperrors.Serve404(w)
+	if a.checkAuthenticationIfNotExists(domain, w, r) {
 		return true
 	}
 

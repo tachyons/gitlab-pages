@@ -15,11 +15,12 @@ import (
 )
 
 const (
-	apiURLTemplate       = "%s/api/v4/projects/%d"
-	authorizeURLTemplate = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s"
-	tokenURLTemplate     = "%s/oauth/token"
-	tokenContentTemplate = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
-	callbackPath         = "/auth"
+	apiURLProjectsTemplate = "%s/api/v4/projects"
+	apiURLProjectTemplate  = "%s/api/v4/projects/%d"
+	authorizeURLTemplate   = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s"
+	tokenURLTemplate       = "%s/oauth/token"
+	tokenContentTemplate   = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
+	callbackPath           = "/auth"
 )
 
 // Auth handles authenticating users with GitLab API
@@ -180,20 +181,7 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 	return token, nil
 }
 
-// CheckAuthentication checks if user is authenticated and has access to the project
-func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
-
-	if a == nil {
-		httperrors.Serve500(w)
-		return true
-	}
-
-	if a.checkSession(w, r) {
-		return true
-	}
-
-	session := a.getSession(r)
-
+func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
 	// If no access token redirect to OAuth login page
 	if session.Values["access_token"] == nil {
 
@@ -209,9 +197,37 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 
 		return true
 	}
+	return false
+}
+
+func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
+	// Invalidate access token and redirect back for refreshing and re-authenticating
+	delete(session.Values, "access_token")
+	session.Save(r, w)
+
+	http.Redirect(w, r, getRequestAddress(r), 302)
+}
+
+// CheckAuthenticationWithoutProject checks if user is authenticated and has a valid token
+func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request) bool {
+
+	if a == nil {
+		// No auth supported
+		return false
+	}
+
+	if a.checkSession(w, r) {
+		return true
+	}
+
+	session := a.getSession(r)
+
+	if a.checkTokenExists(session, w, r) {
+		return true
+	}
 
 	// Access token exists, authorize request
-	url := fmt.Sprintf(apiURLTemplate, a.gitLabServer, projectID)
+	url := fmt.Sprintf(apiURLProjectsTemplate, a.gitLabServer)
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
@@ -223,18 +239,57 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 	resp, err := a.apiClient.Do(req)
 
 	if checkResponseForInvalidToken(resp, err) {
-
-		// Invalidate access token and redirect back for refreshing and re-authenticating
-		delete(session.Values, "access_token")
-		session.Save(r, w)
-
-		http.Redirect(w, r, getRequestAddress(r), 302)
-
+		destroySession(session, w, r)
 		return true
 	}
 
 	if err != nil || resp.StatusCode != 200 {
-		httperrors.Serve401(w)
+		// We return 404 if for some reason token is not valid to avoid (not) existence leak
+		httperrors.Serve404(w)
+		return true
+	}
+
+	return false
+}
+
+// CheckAuthentication checks if user is authenticated and has access to the project
+func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
+
+	if a == nil {
+		httperrors.Serve500(w)
+		return true
+	}
+
+	if a.checkSession(w, r) {
+		return true
+	}
+
+	session := a.getSession(r)
+
+	if a.checkTokenExists(session, w, r) {
+		return true
+	}
+
+	// Access token exists, authorize request
+	url := fmt.Sprintf(apiURLProjectTemplate, a.gitLabServer, projectID)
+	req, err := http.NewRequest("GET", url, nil)
+
+	if err != nil {
+		httperrors.Serve500(w)
+		return true
+	}
+
+	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
+	resp, err := a.apiClient.Do(req)
+
+	if checkResponseForInvalidToken(resp, err) {
+		destroySession(session, w, r)
+		return true
+	}
+
+	if err != nil || resp.StatusCode != 200 {
+		// We return 404 if user has no access to avoid user knowing if the pages really existed or not
+		httperrors.Serve404(w)
 		return true
 	}
 

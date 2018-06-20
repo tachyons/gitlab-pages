@@ -13,13 +13,17 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 )
 
-func TestTryAuthenticate(t *testing.T) {
-	auth := auth.New("pages.gitlab-example.com",
+func createAuth(t *testing.T) *auth.Auth {
+	return auth.New("pages.gitlab-example.com",
 		"something-very-secret",
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
 		"http://gitlab-example.com")
+}
+
+func TestTryAuthenticate(t *testing.T) {
+	auth := createAuth(t)
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/something/else")
@@ -30,12 +34,7 @@ func TestTryAuthenticate(t *testing.T) {
 }
 
 func TestTryAuthenticateWithError(t *testing.T) {
-	auth := auth.New("pages.gitlab-example.com",
-		"something-very-secret",
-		"id",
-		"secret",
-		"http://pages.gitlab-example.com/auth",
-		"http://gitlab-example.com")
+	auth := createAuth(t)
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?error=access_denied")
@@ -48,12 +47,7 @@ func TestTryAuthenticateWithError(t *testing.T) {
 
 func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	store := sessions.NewCookieStore([]byte("something-very-secret"))
-	auth := auth.New("pages.gitlab-example.com",
-		"something-very-secret",
-		"id",
-		"secret",
-		"http://pages.gitlab-example.com/auth",
-		"http://gitlab-example.com")
+	auth := createAuth(t)
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=invalid")
@@ -182,7 +176,7 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	session.Save(r, result)
 
 	assert.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
-	assert.Equal(t, 401, result.Code)
+	assert.Equal(t, 404, result.Code)
 }
 
 func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
@@ -220,5 +214,80 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	session.Save(r, result)
 
 	assert.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
+	assert.Equal(t, 302, result.Code)
+}
+
+func TestCheckAuthenticationWithoutProject(t *testing.T) {
+	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v4/projects":
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			w.WriteHeader(http.StatusOK)
+		default:
+			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+
+	apiServer.Start()
+	defer apiServer.Close()
+
+	store := sessions.NewCookieStore([]byte("something-very-secret"))
+	auth := auth.New("pages.gitlab-example.com",
+		"something-very-secret",
+		"id",
+		"secret",
+		"http://pages.gitlab-example.com/auth",
+		apiServer.URL)
+
+	result := httptest.NewRecorder()
+	reqURL, err := url.Parse("/auth?code=1&state=state")
+	require.NoError(t, err)
+	r := &http.Request{URL: reqURL}
+
+	session, _ := store.Get(r, "gitlab-pages")
+	session.Values["access_token"] = "abc"
+	session.Save(r, result)
+
+	assert.Equal(t, false, auth.CheckAuthenticationWithoutProject(result, r))
+	assert.Equal(t, 200, result.Code)
+}
+
+func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
+	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v4/projects":
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
+		default:
+			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+
+	apiServer.Start()
+	defer apiServer.Close()
+
+	store := sessions.NewCookieStore([]byte("something-very-secret"))
+	auth := auth.New("pages.gitlab-example.com",
+		"something-very-secret",
+		"id",
+		"secret",
+		"http://pages.gitlab-example.com/auth",
+		apiServer.URL)
+
+	result := httptest.NewRecorder()
+	reqURL, err := url.Parse("/auth?code=1&state=state")
+	require.NoError(t, err)
+	r := &http.Request{URL: reqURL}
+
+	session, _ := store.Get(r, "gitlab-pages")
+	session.Values["access_token"] = "abc"
+	session.Save(r, result)
+
+	assert.Equal(t, true, auth.CheckAuthenticationWithoutProject(result, r))
 	assert.Equal(t, 302, result.Code)
 }
