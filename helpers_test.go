@@ -144,6 +144,22 @@ func RunPagesProcessWithSSLCertFile(t *testing.T, pagesPath string, listeners []
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
 }
 
+func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) (teardown func()) {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server=https://gitlab-auth.com",
+		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+}
+
+func RunPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, authServer string) (teardown func()) {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server="+authServer,
+		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+}
+
 func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (teardown func()) {
 	_, err := os.Stat(pagesPath)
 	require.NoError(t, err)

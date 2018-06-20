@@ -589,11 +589,7 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
-		"-auth-client-secret=1",
-		"-auth-server=https://gitlab-example.com",
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
@@ -608,7 +604,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "https", url.Scheme)
-	assert.Equal(t, "gitlab-example.com", url.Host)
+	assert.Equal(t, "gitlab-auth.com", url.Host)
 	assert.Equal(t, "/oauth/authorize", url.Path)
 	assert.Equal(t, "1", url.Query().Get("client_id"))
 	assert.Equal(t, "https://gitlab-example.com/auth", url.Query().Get("redirect_uri"))
@@ -617,11 +613,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
-		"-auth-client-secret=1",
-		"-auth-server=https://gitlab-auth.com",
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpsListener, "gitlab-example.com", "/auth?error=access_denied")
@@ -633,11 +625,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 }
 func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
-		"-auth-client-secret=1",
-		"-auth-server=https://gitlab-auth.com",
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
@@ -656,11 +644,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 
 func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
-		"-auth-client-secret=1",
-		"-auth-server=https://gitlab-auth.com",
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
@@ -706,11 +690,7 @@ func TestWhenLoginCallbackWithCorrectStateWithEndpointAndAccess(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
-		"-auth-client-secret=1",
-		"-auth-server="+testServer.URL,
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
@@ -764,11 +744,7 @@ func TestWhenLoginCallbackWithCorrectStateWithEndpointAndNoAccess(t *testing.T) 
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
-		"-auth-client-secret=1",
-		"-auth-server="+testServer.URL,
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
@@ -823,11 +799,7 @@ func TestWhenLoginCallbackWithCorrectStateWithEndpointButTokenIsInvalid(t *testi
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-auth-client-id=1",
-		"-auth-client-secret=1",
-		"-auth-server="+testServer.URL,
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
