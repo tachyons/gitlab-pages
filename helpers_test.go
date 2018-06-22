@@ -259,6 +259,19 @@ func GetPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string) 
 	return DoPagesRequest(t, req)
 }
 
+func GetProxiedPageFromListener(t *testing.T, spec ListenSpec, host, xForwardedHost, urlsuffix string) (*http.Response, error) {
+	url := spec.URL(urlsuffix)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Host = host
+	req.Header.Set("X-Forwarded-Host", xForwardedHost)
+
+	return DoPagesRequest(t, req)
+}
+
 func DoPagesRequest(t *testing.T, req *http.Request) (*http.Response, error) {
 	t.Logf("curl -X %s -H'Host: %s' %s", req.Method, req.Host, req.URL)
 
