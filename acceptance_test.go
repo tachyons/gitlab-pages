@@ -672,6 +672,12 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 func TestAccessControl(t *testing.T) {
 	skipUnlessEnabled(t)
 
+	transport := (TestHTTPSClient.Transport).(*http.Transport)
+	defer func(t time.Duration) {
+		transport.ResponseHeaderTimeout = t
+	}(transport.ResponseHeaderTimeout)
+	transport.ResponseHeaderTimeout = 5 * time.Second
+
 	testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/oauth/token":
@@ -697,6 +703,16 @@ func TestAccessControl(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
+
+	keyFile, certFile := CreateHTTPSFixtureFiles(t)
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	require.NoError(t, err)
+	defer os.Remove(keyFile)
+	defer os.Remove(certFile)
+
+	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+	testServer.StartTLS()
+	defer testServer.Close()
 
 	cases := []struct {
 		Host         string
@@ -735,13 +751,10 @@ func TestAccessControl(t *testing.T) {
 		},
 	}
 
-	testServer.Start()
-	defer testServer.Close()
-
 	for _, c := range cases {
 
 		t.Run(fmt.Sprintf("Access Control Test: %s", c.Description), func(t *testing.T) {
-			teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
+			teardown := RunPagesProcessWithAuthServerWithSSL(t, *pagesBinary, listeners, "", certFile, testServer.URL)
 			defer teardown()
 
 			rsp, err := GetRedirectPage(t, httpsListener, c.Host, c.Path)
