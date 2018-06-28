@@ -208,6 +208,14 @@ func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Re
 	http.Redirect(w, r, getRequestAddress(r), 302)
 }
 
+// IsAuthSupported checks if pages is running with the authentication support
+func (a *Auth) IsAuthSupported() bool {
+	if a == nil {
+		return false
+	}
+	return true
+}
+
 // CheckAuthenticationWithoutProject checks if user is authenticated and has a valid token
 func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request) bool {
 

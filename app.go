@@ -95,15 +95,27 @@ func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.
 }
 
 func (a *theApp) checkAuthenticationIfNotExists(domain *domain.D, w http.ResponseWriter, r *http.Request) bool {
-	if domain == nil {
-		// To avoid user knowing if pages exist, we will force user to login and authorize pages
-		if a.Auth.CheckAuthenticationWithoutProject(w, r) {
+	if domain == nil || domain.GetID(r) == 0 {
+
+		// Only if auth is supported
+		if a.Auth.IsAuthSupported() {
+
+			// To avoid user knowing if pages exist, we will force user to login and authorize pages
+			if a.Auth.CheckAuthenticationWithoutProject(w, r) {
+				return true
+			}
+
+			// User is authenticated, show the 404
+			httperrors.Serve404(w)
 			return true
 		}
-		// User is authenticated, show the 404
-		httperrors.Serve404(w)
-		return true
 	}
+
+	// Without auth, fall back to 404
+	if domain == nil {
+		httperrors.Serve404(w)
+	}
+
 	return false
 }
 

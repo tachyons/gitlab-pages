@@ -762,6 +762,8 @@ func TestAccessControl(t *testing.T) {
 			require.NoError(t, err)
 			defer rsp.Body.Close()
 
+			assert.Equal(t, http.StatusFound, rsp.StatusCode)
+
 			cookie := rsp.Header.Get("Set-Cookie")
 
 			url, err := url.Parse(rsp.Header.Get("Location"))
