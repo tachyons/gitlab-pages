@@ -25,7 +25,6 @@ type locationDirectoryError struct {
 
 type project struct {
 	HTTPSOnly     bool
-	Private       bool
 	AccessControl bool
 	ID            uint64
 }
@@ -130,17 +129,6 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 
 	if project != nil {
 		return project.AccessControl
-	}
-
-	return false
-}
-
-// IsPrivate figures out if the request is to a project that needs user to sign in
-func (d *D) IsPrivate(r *http.Request) bool {
-	project := d.getProject(r)
-
-	if project != nil {
-		return project.Private
 	}
 
 	return false

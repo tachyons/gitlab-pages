@@ -17,7 +17,6 @@ type domainConfig struct {
 type domainsConfig struct {
 	Domains       []domainConfig
 	HTTPSOnly     bool   `json:"https_only"`
-	Private       bool   `json:"private"`
 	ID            uint64 `json:"id"`
 	AccessControl bool   `json:"access_control"`
 }

@@ -172,8 +172,8 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 		return
 	}
 
-	// Only for private domains that have access control enabled
-	if domain.IsAccessControlEnabled(r) && domain.IsPrivate(r) {
+	// Only for projects that have access control enabled
+	if domain.IsAccessControlEnabled(r) {
 		if a.Auth.CheckAuthentication(&w, r, domain.GetID(r)) {
 			return
 		}
