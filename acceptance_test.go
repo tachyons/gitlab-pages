@@ -670,7 +670,7 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 }
 
 func TestAccessControl(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, "not-inplace-chroot")
 
 	transport := (TestHTTPSClient.Transport).(*http.Transport)
 	defer func(t time.Duration) {
@@ -744,6 +744,13 @@ func TestAccessControl(t *testing.T) {
 		},
 		{
 			"group.gitlab-example.com",
+			"/nonexistent/",
+			http.StatusNotFound,
+			false,
+			"no project should redirect to login and then return 404",
+		},
+		{
+			"nonexistent.gitlab-example.com",
 			"/nonexistent/",
 			http.StatusNotFound,
 			false,

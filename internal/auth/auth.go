@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 )
 
@@ -76,6 +77,8 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
+	log.Debug("Authentication callback")
+
 	session := a.getSession(r)
 
 	// If callback from authentication and the state matches
@@ -86,6 +89,8 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 	// If callback is not successful
 	errorParam := r.URL.Query().Get("error")
 	if errorParam != "" {
+		log.WithField("error", errorParam).Debug("OAuth endpoint returned error")
+
 		httperrors.Serve401(w)
 		return true
 	}
@@ -94,6 +99,8 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 
 		if !validateState(r, session) {
 			// State is NOT ok
+			log.Debug("Authentication state did not match expected")
+
 			httperrors.Serve401(w)
 			return true
 		}
@@ -103,6 +110,8 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 
 		// Fetching token not OK
 		if err != nil {
+			log.WithError(err).Debug("Fetching access token failed")
+
 			httperrors.Serve503(w)
 			return true
 		}
@@ -112,6 +121,8 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 		session.Save(r, w)
 
 		// Redirect back to requested URI
+		log.Debug("Authentication was successful, redirecting user back to requested page")
+
 		http.Redirect(w, r, session.Values["uri"].(string), 302)
 
 		return true
@@ -184,6 +195,7 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
 	// If no access token redirect to OAuth login page
 	if session.Values["access_token"] == nil {
+		log.Debug("No access token exists, redirecting user to OAuth2 login")
 
 		// Generate state hash and store requested address
 		state := base64.URLEncoding.EncodeToString(securecookie.GenerateRandomKey(16))
@@ -201,6 +213,8 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 }
 
 func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
+	log.Debug("Destroying session")
+
 	// Invalidate access token and redirect back for refreshing and re-authenticating
 	delete(session.Values, "access_token")
 	session.Save(r, w)
@@ -239,6 +253,8 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
+		log.WithError(err).Debug("Failed to authenticate request")
+
 		httperrors.Serve500(w)
 		return true
 	}
@@ -247,12 +263,18 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	resp, err := a.apiClient.Do(req)
 
 	if checkResponseForInvalidToken(resp, err) {
+		log.Debug("Access token was invalid, destroying session")
+
 		destroySession(session, w, r)
 		return true
 	}
 
 	if err != nil || resp.StatusCode != 200 {
 		// We return 404 if for some reason token is not valid to avoid (not) existence leak
+		if err != nil {
+			log.WithError(err).Debug("Failed to retrieve info with token")
+		}
+
 		httperrors.Serve404(w)
 		return true
 	}
@@ -291,11 +313,17 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 	resp, err := a.apiClient.Do(req)
 
 	if checkResponseForInvalidToken(resp, err) {
+		log.Debug("Access token was invalid, destroying session")
+
 		destroySession(session, w, r)
 		return true
 	}
 
 	if err != nil || resp.StatusCode != 200 {
+		if err != nil {
+			log.WithError(err).Debug("Failed to retrieve info with token")
+		}
+
 		// We return 404 if user has no access to avoid user knowing if the pages really existed or not
 		httperrors.Serve404(w)
 		return true
