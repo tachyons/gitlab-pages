@@ -110,6 +110,10 @@ func (d *D) getProject(r *http.Request) *project {
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
 func (d *D) IsHTTPSOnly(r *http.Request) bool {
+	if d == nil {
+		return false
+	}
+
 	if d.config != nil {
 		return d.config.HTTPSOnly
 	}
@@ -125,6 +129,10 @@ func (d *D) IsHTTPSOnly(r *http.Request) bool {
 
 // IsAccessControlEnabled figures out if the request is to a project that has access control enabled
 func (d *D) IsAccessControlEnabled(r *http.Request) bool {
+	if d == nil {
+		return false
+	}
+
 	project := d.getProject(r)
 
 	if project != nil {
@@ -337,6 +345,11 @@ func (d *D) EnsureCertificate() (*tls.Certificate, error) {
 
 // ServeHTTP implements http.Handler.
 func (d *D) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if d == nil {
+		httperrors.Serve404(w)
+		return
+	}
+
 	if d.config != nil {
 		d.serveFromConfig(w, r)
 	} else {
