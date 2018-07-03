@@ -172,9 +172,9 @@ $ ./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pa
 
 #### How it works
 
-1. GitLab pages looks for `access_control`, `private` and `id` fields in `config.json` files
+1. GitLab pages looks for `access_control` and `id` fields in `config.json` files
    in `pages-root/group/project` directories.
-2. For projects that have `access_control` and `private` set to `true` pages will require user to authenticate.
+2. For projects that have `access_control` set to `true` pages will require user to authenticate.
 3. When user accesses a project that requires authentication, user will be redirected
    to GitLab to log in and grant access for GitLab pages.
 4. When user grant's access to GitLab pages, pages will use the OAuth2 `code` to get an access
