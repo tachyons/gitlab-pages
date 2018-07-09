@@ -684,16 +684,16 @@ func TestAccessControl(t *testing.T) {
 			assert.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
-		case "/api/v4/projects":
+		case "/api/v4/user":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
-		case "/api/v4/projects/1000":
+		case "/api/v4/projects/1000/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
-		case "/api/v4/projects/2000":
+		case "/api/v4/projects/2000/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
-		case "/api/v4/projects/3000":
+		case "/api/v4/projects/3000/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")

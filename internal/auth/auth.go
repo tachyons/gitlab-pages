@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	apiURLProjectsTemplate = "%s/api/v4/projects"
-	apiURLProjectTemplate  = "%s/api/v4/projects/%d"
-	authorizeURLTemplate   = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s"
-	tokenURLTemplate       = "%s/oauth/token"
-	tokenContentTemplate   = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
-	callbackPath           = "/auth"
+	apiURLUserTemplate    = "%s/api/v4/user"
+	apiURLProjectTemplate = "%s/api/v4/projects/%d/pages_access"
+	authorizeURLTemplate  = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s"
+	tokenURLTemplate      = "%s/oauth/token"
+	tokenContentTemplate  = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
+	callbackPath          = "/auth"
 )
 
 // Auth handles authenticating users with GitLab API
@@ -249,7 +249,7 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	}
 
 	// Access token exists, authorize request
-	url := fmt.Sprintf(apiURLProjectsTemplate, a.gitLabServer)
+	url := fmt.Sprintf(apiURLUserTemplate, a.gitLabServer)
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {

@@ -69,7 +69,7 @@ func TestTryAuthenticateWithCodeAndState(t *testing.T) {
 			assert.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
-		case "/api/v4/projects/1000":
+		case "/api/v4/projects/1000/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
@@ -108,7 +108,7 @@ func TestTryAuthenticateWithCodeAndState(t *testing.T) {
 func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v4/projects/1000":
+		case "/api/v4/projects/1000/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
@@ -145,7 +145,7 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v4/projects/1000":
+		case "/api/v4/projects/1000/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 		default:
@@ -182,7 +182,7 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v4/projects/1000":
+		case "/api/v4/projects/1000/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
@@ -220,7 +220,7 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 func TestCheckAuthenticationWithoutProject(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v4/projects":
+		case "/api/v4/user":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
@@ -257,7 +257,7 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v4/projects":
+		case "/api/v4/user":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
