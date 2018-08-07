@@ -16,21 +16,23 @@ import (
 )
 
 const (
-	apiURLUserTemplate    = "%s/api/v4/user"
-	apiURLProjectTemplate = "%s/api/v4/projects/%d/pages_access"
-	authorizeURLTemplate  = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s"
-	tokenURLTemplate      = "%s/oauth/token"
-	tokenContentTemplate  = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
-	callbackPath          = "/auth"
+	apiURLUserTemplate     = "%s/api/v4/user"
+	apiURLProjectTemplate  = "%s/api/v4/projects/%d/pages_access"
+	authorizeURLTemplate   = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s"
+	tokenURLTemplate       = "%s/oauth/token"
+	tokenContentTemplate   = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
+	callbackPath           = "/auth"
+	authorizeProxyTemplate = "%s/auth?domain=%s&state=%s"
 )
 
 // Auth handles authenticating users with GitLab API
 type Auth struct {
+	pagesDomain  string
 	clientID     string
 	clientSecret string
 	redirectURI  string
 	gitLabServer string
-	store        *sessions.CookieStore
+	storeSecret  string
 	apiClient    *http.Client
 }
 
@@ -46,10 +48,30 @@ type errorResponse struct {
 	ErrorDescription string `json:"error_description"`
 }
 
+func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
+	store := sessions.NewCookieStore([]byte(a.storeSecret))
+
+	if strings.HasSuffix(r.Host, a.pagesDomain) {
+		// GitLab pages wide cookie
+		store.Options = &sessions.Options{
+			Path:   "/",
+			Domain: a.pagesDomain,
+		}
+	} else {
+		// Cookie just for this domain
+		store.Options = &sessions.Options{
+			Path:   "/",
+			Domain: r.Host,
+		}
+	}
+
+	return store.Get(r, "gitlab-pages")
+}
+
 func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) bool {
 
 	// Create or get session
-	session, err := a.store.Get(r, "gitlab-pages")
+	session, err := a.getSessionFromStore(r)
 
 	if err != nil {
 		// Save cookie again
@@ -62,7 +84,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (a *Auth) getSession(r *http.Request) *sessions.Session {
-	session, _ := a.store.Get(r, "gitlab-pages")
+	session, _ := a.getSessionFromStore(r)
 	return session
 }
 
@@ -77,13 +99,17 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	log.Debug("Authentication callback")
-
 	session := a.getSession(r)
 
-	// If callback from authentication and the state matches
+	// Request is for auth
 	if r.URL.Path != callbackPath {
 		return false
+	}
+
+	log.Debug("Authentication callback")
+
+	if a.handleProxyingAuth(session, w, r) {
+		return true
 	}
 
 	// If callback is not successful
@@ -131,11 +157,67 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
+func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
+	// If request is for authenticating via custom domain
+	if shouldProxyAuth(r) {
+		customDomain := r.URL.Query().Get("domain")
+		state := r.URL.Query().Get("state")
+		log.WithField("domain", customDomain).Debug("User is authenticating via custom domain")
+
+		if r.TLS != nil {
+			session.Values["proxy_auth_domain"] = "https://" + customDomain
+		} else {
+			session.Values["proxy_auth_domain"] = "http://" + customDomain
+		}
+		session.Save(r, w)
+
+		url := fmt.Sprintf(authorizeURLTemplate, a.gitLabServer, a.clientID, a.redirectURI, state)
+		http.Redirect(w, r, url, 302)
+
+		return true
+	}
+
+	// If auth request callback should be proxied to custom domain
+	if shouldProxyCallbackToCustomDomain(r, session) {
+		// Auth request is from custom domain, proxy callback there
+		log.Debug("Redirecting auth callback to custom domain")
+
+		// Store access token
+		proxyDomain := session.Values["proxy_auth_domain"].(string)
+
+		// Clear proxying from session
+		delete(session.Values, "proxy_auth_domain")
+		session.Save(r, w)
+
+		// Redirect pages under custom domain
+		http.Redirect(w, r, proxyDomain+r.URL.Path+"?"+r.URL.RawQuery, 302)
+
+		return true
+	}
+
+	return false
+}
+
 func getRequestAddress(r *http.Request) string {
 	if r.TLS != nil {
 		return "https://" + r.Host + r.RequestURI
 	}
 	return "http://" + r.Host + r.RequestURI
+}
+
+func getRequestDomain(r *http.Request) string {
+	if r.TLS != nil {
+		return "https://" + r.Host
+	}
+	return "http://" + r.Host
+}
+
+func shouldProxyAuth(r *http.Request) bool {
+	return r.URL.Query().Get("domain") != "" && r.URL.Query().Get("state") != ""
+}
+
+func shouldProxyCallbackToCustomDomain(r *http.Request, session *sessions.Session) bool {
+	return session.Values["proxy_auth_domain"] != nil
 }
 
 func validateState(r *http.Request, session *sessions.Session) bool {
@@ -201,15 +283,31 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 		state := base64.URLEncoding.EncodeToString(securecookie.GenerateRandomKey(16))
 		session.Values["state"] = state
 		session.Values["uri"] = getRequestAddress(r)
+
+		// Clear possible proxying
+		delete(session.Values, "proxy_auth_domain")
+
 		session.Save(r, w)
 
-		// Redirect to OAuth login
-		url := fmt.Sprintf(authorizeURLTemplate, a.gitLabServer, a.clientID, a.redirectURI, state)
-		http.Redirect(w, r, url, 302)
+		// If we are in custom domain, redirect to pages domain to trigger authorization flow
+		if !strings.HasSuffix(r.Host, a.pagesDomain) {
+			http.Redirect(w, r, a.getProxyAddress(r, state), 302)
+		} else {
+			// Otherwise just redirect to OAuth login
+			url := fmt.Sprintf(authorizeURLTemplate, a.gitLabServer, a.clientID, a.redirectURI, state)
+			http.Redirect(w, r, url, 302)
+		}
 
 		return true
 	}
 	return false
+}
+
+func (a *Auth) getProxyAddress(r *http.Request, state string) string {
+	if r.TLS != nil {
+		return fmt.Sprintf(authorizeProxyTemplate, "https://"+a.pagesDomain, r.Host, state)
+	}
+	return fmt.Sprintf(authorizeProxyTemplate, "http://"+a.pagesDomain, r.Host, state)
 }
 
 func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
@@ -286,8 +384,8 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
 
 	if a == nil {
-		httperrors.Serve500(w)
-		return true
+		log.Warn("Authentication is disabled, falling back to PUBLIC pages")
+		return false
 	}
 
 	if a.checkSession(w, r) {
@@ -355,20 +453,13 @@ func checkResponseForInvalidToken(resp *http.Response, err error) bool {
 // New when authentication supported this will be used to create authentication handler
 func New(pagesDomain string, storeSecret string, clientID string, clientSecret string,
 	redirectURI string, gitLabServer string) *Auth {
-
-	store := sessions.NewCookieStore([]byte(storeSecret))
-
-	store.Options = &sessions.Options{
-		Path:   "/",
-		Domain: pagesDomain,
-	}
-
 	return &Auth{
+		pagesDomain:  pagesDomain,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		redirectURI:  redirectURI,
 		gitLabServer: strings.TrimRight(gitLabServer, "/"),
-		store:        store,
+		storeSecret:  storeSecret,
 		apiClient: &http.Client{
 			Timeout:   5 * time.Second,
 			Transport: transport,

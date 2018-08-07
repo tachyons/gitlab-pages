@@ -35,6 +35,7 @@ func TestReadProjects(t *testing.T) {
 		"test.my-domain.com",
 		"test2.my-domain.com",
 		"no.cert.com",
+		"private.domain.com",
 	}
 
 	for _, expected := range domains {

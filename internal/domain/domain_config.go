@@ -8,10 +8,12 @@ import (
 )
 
 type domainConfig struct {
-	Domain      string
-	Certificate string
-	Key         string
-	HTTPSOnly   bool `json:"https_only"`
+	Domain        string
+	Certificate   string
+	Key           string
+	HTTPSOnly     bool   `json:"https_only"`
+	ID            uint64 `json:"id"`
+	AccessControl bool   `json:"access_control"`
 }
 
 type domainsConfig struct {

@@ -298,7 +298,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		assert.Contains(t, string(body), "gitlab_pages_http_sessions_active 0")
-		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 11")
+		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 12")
 	}
 }
 
@@ -576,7 +576,7 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 	}
 }
 
-func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
+func TestWhenAuthIsDisabledPrivateIsAccessible(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "")
 	defer teardown()
@@ -585,7 +585,7 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 
 	require.NoError(t, err)
 	rsp.Body.Close()
-	assert.Equal(t, http.StatusInternalServerError, rsp.StatusCode)
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
@@ -667,6 +667,85 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 
 	// Will cause 503 because token endpoint is not available
 	assert.Equal(t, http.StatusServiceUnavailable, authrsp.StatusCode)
+}
+
+func TestAccessControlUnderCustomDomain(t *testing.T) {
+	skipUnlessEnabled(t, "not-inplace-chroot")
+
+	testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth/token":
+			assert.Equal(t, "POST", r.Method)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
+		case "/api/v4/projects/1000/pages_access":
+			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			w.WriteHeader(http.StatusOK)
+		default:
+			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	testServer.Start()
+	defer testServer.Close()
+
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpListener, "private.domain.com", "/")
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	cookie := rsp.Header.Get("Set-Cookie")
+
+	url, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	state := url.Query().Get("state")
+	assert.Equal(t, url.Query().Get("domain"), "private.domain.com")
+
+	pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
+	require.NoError(t, err)
+	defer pagesrsp.Body.Close()
+
+	pagescookie := pagesrsp.Header.Get("Set-Cookie")
+
+	// Go to auth page with correct state will cause fetching the token
+	authrsp, err := GetRedirectPageWithCookie(t, httpListener, "gitlab-example.com", "/auth?code=1&state="+
+		state, pagescookie)
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	url, err = url.Parse(authrsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	// Will redirect to custom domain
+	assert.Equal(t, "private.domain.com", url.Host)
+	assert.Equal(t, "1", url.Query().Get("code"))
+	assert.Equal(t, state, url.Query().Get("state"))
+
+	// Run auth callback in custom domain
+	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/auth?code=1&state="+
+		state, cookie)
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	// Will redirect to the page
+	cookie = authrsp.Header.Get("Set-Cookie")
+	assert.Equal(t, http.StatusFound, authrsp.StatusCode)
+
+	url, err = url.Parse(authrsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	// Will redirect to custom domain
+	assert.Equal(t, "http://private.domain.com/", url.String())
+
+	// Fetch page in custom domain
+	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/", cookie)
+	assert.Equal(t, http.StatusOK, authrsp.StatusCode)
 }
 
 func TestAccessControl(t *testing.T) {

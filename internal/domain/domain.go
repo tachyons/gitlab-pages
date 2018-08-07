@@ -133,6 +133,10 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 		return false
 	}
 
+	if d.config != nil {
+		return d.config.AccessControl
+	}
+
 	project := d.getProject(r)
 
 	if project != nil {
@@ -144,6 +148,14 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 
 // GetID figures out what is the ID of the project user tries to access
 func (d *D) GetID(r *http.Request) uint64 {
+	if d == nil {
+		return 0
+	}
+
+	if d.config != nil {
+		return d.config.ID
+	}
+
 	project := d.getProject(r)
 
 	if project != nil {
