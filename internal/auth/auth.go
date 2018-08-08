@@ -51,18 +51,10 @@ type errorResponse struct {
 func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 	store := sessions.NewCookieStore([]byte(a.storeSecret))
 
-	if strings.HasSuffix(r.Host, a.pagesDomain) {
-		// GitLab pages wide cookie
-		store.Options = &sessions.Options{
-			Path:   "/",
-			Domain: a.pagesDomain,
-		}
-	} else {
-		// Cookie just for this domain
-		store.Options = &sessions.Options{
-			Path:   "/",
-			Domain: r.Host,
-		}
+	// Cookie just for this domain
+	store.Options = &sessions.Options{
+		Path:   "/",
+		Domain: r.Host,
 	}
 
 	return store.Get(r, "gitlab-pages")
@@ -160,14 +152,14 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
-		customDomain := r.URL.Query().Get("domain")
+		domain := r.URL.Query().Get("domain")
 		state := r.URL.Query().Get("state")
-		log.WithField("domain", customDomain).Debug("User is authenticating via custom domain")
+		log.WithField("domain", domain).Debug("User is authenticating via domain")
 
 		if r.TLS != nil {
-			session.Values["proxy_auth_domain"] = "https://" + customDomain
+			session.Values["proxy_auth_domain"] = "https://" + domain
 		} else {
-			session.Values["proxy_auth_domain"] = "http://" + customDomain
+			session.Values["proxy_auth_domain"] = "http://" + domain
 		}
 		session.Save(r, w)
 
@@ -289,14 +281,9 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 
 		session.Save(r, w)
 
-		// If we are in custom domain, redirect to pages domain to trigger authorization flow
-		if !strings.HasSuffix(r.Host, a.pagesDomain) {
-			http.Redirect(w, r, a.getProxyAddress(r, state), 302)
-		} else {
-			// Otherwise just redirect to OAuth login
-			url := fmt.Sprintf(authorizeURLTemplate, a.gitLabServer, a.clientID, a.redirectURI, state)
-			http.Redirect(w, r, url, 302)
-		}
+		// Because the pages domain might be in public suffix list, we have to
+		// redirect to pages domain to trigger authorization flow
+		http.Redirect(w, r, a.getProxyAddress(r, state), 302)
 
 		return true
 	}

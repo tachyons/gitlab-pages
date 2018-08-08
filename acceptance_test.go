@@ -600,8 +600,14 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 
 	assert.Equal(t, http.StatusFound, rsp.StatusCode)
 	assert.Equal(t, 1, len(rsp.Header["Location"]))
-
 	url, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+	rsp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
+
+	assert.Equal(t, http.StatusFound, rsp.StatusCode)
+	assert.Equal(t, 1, len(rsp.Header["Location"]))
+
+	url, err = url.Parse(rsp.Header.Get("Location"))
 	require.NoError(t, err)
 
 	assert.Equal(t, "https", url.Scheme)
@@ -849,18 +855,38 @@ func TestAccessControl(t *testing.T) {
 			defer rsp.Body.Close()
 
 			assert.Equal(t, http.StatusFound, rsp.StatusCode)
-
 			cookie := rsp.Header.Get("Set-Cookie")
 
+			// Redirects to the gitlab pages root domain for authentication flow
 			url, err := url.Parse(rsp.Header.Get("Location"))
 			require.NoError(t, err)
+			assert.Equal(t, "gitlab-example.com", url.Host)
+			assert.Equal(t, "/auth", url.Path)
+			state := url.Query().Get("state")
+
+			rsp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
+
+			require.NoError(t, err)
+			defer rsp.Body.Close()
+
+			assert.Equal(t, http.StatusFound, rsp.StatusCode)
+			pagesDomainCookie := rsp.Header.Get("Set-Cookie")
 
 			// Go to auth page with correct state will cause fetching the token
 			authrsp, err := GetRedirectPageWithCookie(t, httpsListener, "gitlab-example.com", "/auth?code=1&state="+
-				url.Query().Get("state"), cookie)
+				state, pagesDomainCookie)
 
 			require.NoError(t, err)
 			defer authrsp.Body.Close()
+
+			// Will redirect auth callback to correct host
+			url, err = url.Parse(authrsp.Header.Get("Location"))
+			require.NoError(t, err)
+			assert.Equal(t, c.Host, url.Host)
+			assert.Equal(t, "/auth", url.Path)
+
+			// Request auth callback in project domain
+			authrsp, err = GetRedirectPageWithCookie(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery, cookie)
 
 			// server returns the ticket, user will be redirected to the project page
 			assert.Equal(t, http.StatusFound, authrsp.StatusCode)
