@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 )
 
@@ -81,7 +83,7 @@ func (a *Auth) getSession(r *http.Request) *sessions.Session {
 }
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
-func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
+func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
 
 	if a == nil {
 		return false
@@ -100,7 +102,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 
 	log.Debug("Authentication callback")
 
-	if a.handleProxyingAuth(session, w, r) {
+	if a.handleProxyingAuth(session, w, r, dm, lock) {
 		return true
 	}
 
@@ -149,11 +151,25 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
-func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
+func (a *Auth) domainAllowed(domain string, dm domain.Map, lock *sync.RWMutex) bool {
+	lock.RLock()
+	defer lock.RUnlock()
+	_, present := dm[domain]
+	return strings.HasSuffix(strings.ToLower(domain), a.pagesDomain) || present
+}
+
+func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
 		domain := r.URL.Query().Get("domain")
 		state := r.URL.Query().Get("state")
+
+		if !a.domainAllowed(domain, dm, lock) {
+			log.WithField("domain", domain).Debug("Domain is not configured")
+			httperrors.Serve401(w)
+			return true
+		}
+
 		log.WithField("domain", domain).Debug("User is authenticating via domain")
 
 		if r.TLS != nil {

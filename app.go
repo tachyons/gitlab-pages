@@ -164,7 +164,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	host, domain := a.getHostAndDomain(r)
 
-	if a.Auth.TryAuthenticate(&w, r) {
+	if a.Auth.TryAuthenticate(&w, r, a.dm, &a.lock) {
 		return
 	}
 
