@@ -148,7 +148,7 @@ func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenS
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, "-auth-client-id=1",
 		"-auth-client-secret=1",
 		"-auth-server=https://gitlab-auth.com",
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
 		"-auth-secret=something-very-secret")
 }
 
@@ -156,7 +156,7 @@ func RunPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []L
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, "-auth-client-id=1",
 		"-auth-client-secret=1",
 		"-auth-server="+authServer,
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
 		"-auth-secret=something-very-secret")
 }
 
@@ -164,7 +164,7 @@ func RunPagesProcessWithAuthServerWithSSL(t *testing.T, pagesPath string, listen
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, "-auth-client-id=1",
 		"-auth-client-secret=1",
 		"-auth-server="+authServer,
-		"-auth-redirect-uri=https://gitlab-example.com/auth",
+		"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
 		"-auth-secret=something-very-secret")
 }
 

@@ -614,7 +614,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	assert.Equal(t, "gitlab-auth.com", url.Host)
 	assert.Equal(t, "/oauth/authorize", url.Path)
 	assert.Equal(t, "1", url.Query().Get("client_id"))
-	assert.Equal(t, "https://gitlab-example.com/auth", url.Query().Get("redirect_uri"))
+	assert.Equal(t, "https://projects.gitlab-example.com/auth", url.Query().Get("redirect_uri"))
 	assert.NotEqual(t, "", url.Query().Get("state"))
 }
 
@@ -623,7 +623,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
-	rsp, err := GetPageFromListener(t, httpsListener, "gitlab-example.com", "/auth?error=access_denied")
+	rsp, err := GetPageFromListener(t, httpsListener, "projects.gitlab-example.com", "/auth?error=access_denied")
 
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -641,7 +641,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	defer rsp.Body.Close()
 
 	// Go to auth page with wrong state will cause failure
-	authrsp, err := GetPageFromListener(t, httpsListener, "gitlab-example.com", "/auth?code=0&state=0")
+	authrsp, err := GetPageFromListener(t, httpsListener, "projects.gitlab-example.com", "/auth?code=0&state=0")
 
 	require.NoError(t, err)
 	defer authrsp.Body.Close()
@@ -665,7 +665,7 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 	require.NoError(t, err)
 
 	// Go to auth page with correct state will cause fetching the token
-	authrsp, err := GetPageFromListenerWithCookie(t, httpsListener, "gitlab-example.com", "/auth?code=1&state="+
+	authrsp, err := GetPageFromListenerWithCookie(t, httpsListener, "projects.gitlab-example.com", "/auth?code=1&state="+
 		url.Query().Get("state"), cookie)
 
 	require.NoError(t, err)
@@ -718,7 +718,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	pagescookie := pagesrsp.Header.Get("Set-Cookie")
 
 	// Go to auth page with correct state will cause fetching the token
-	authrsp, err := GetRedirectPageWithCookie(t, httpListener, "gitlab-example.com", "/auth?code=1&state="+
+	authrsp, err := GetRedirectPageWithCookie(t, httpListener, "projects.gitlab-example.com", "/auth?code=1&state="+
 		state, pagescookie)
 
 	require.NoError(t, err)
@@ -857,10 +857,10 @@ func TestAccessControl(t *testing.T) {
 			assert.Equal(t, http.StatusFound, rsp.StatusCode)
 			cookie := rsp.Header.Get("Set-Cookie")
 
-			// Redirects to the gitlab pages root domain for authentication flow
+			// Redirects to the projects under gitlab pages domain for authentication flow
 			url, err := url.Parse(rsp.Header.Get("Location"))
 			require.NoError(t, err)
-			assert.Equal(t, "gitlab-example.com", url.Host)
+			assert.Equal(t, "projects.gitlab-example.com", url.Host)
 			assert.Equal(t, "/auth", url.Path)
 			state := url.Query().Get("state")
 
@@ -873,7 +873,7 @@ func TestAccessControl(t *testing.T) {
 			pagesDomainCookie := rsp.Header.Get("Set-Cookie")
 
 			// Go to auth page with correct state will cause fetching the token
-			authrsp, err := GetRedirectPageWithCookie(t, httpsListener, "gitlab-example.com", "/auth?code=1&state="+
+			authrsp, err := GetRedirectPageWithCookie(t, httpsListener, "projects.gitlab-example.com", "/auth?code=1&state="+
 				state, pagesDomainCookie)
 
 			require.NoError(t, err)

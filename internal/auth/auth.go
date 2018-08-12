@@ -24,7 +24,7 @@ const (
 	tokenURLTemplate       = "%s/oauth/token"
 	tokenContentTemplate   = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
 	callbackPath           = "/auth"
-	authorizeProxyTemplate = "%s/auth?domain=%s&state=%s"
+	authorizeProxyTemplate = "%s?domain=%s&state=%s"
 )
 
 // Auth handles authenticating users with GitLab API
@@ -308,9 +308,9 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 
 func (a *Auth) getProxyAddress(r *http.Request, state string) string {
 	if r.TLS != nil {
-		return fmt.Sprintf(authorizeProxyTemplate, "https://"+a.pagesDomain, r.Host, state)
+		return fmt.Sprintf(authorizeProxyTemplate, a.redirectURI, r.Host, state)
 	}
-	return fmt.Sprintf(authorizeProxyTemplate, "http://"+a.pagesDomain, r.Host, state)
+	return fmt.Sprintf(authorizeProxyTemplate, a.redirectURI, r.Host, state)
 }
 
 func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
