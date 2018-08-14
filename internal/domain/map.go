@@ -206,6 +206,8 @@ func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
 		dm := make(Map)
 		if err := dm.ReadGroups(rootDomain); err != nil {
 			log.WithError(err).Warn("domain scan failed")
+			metrics.FailedDomainUpdates.Inc()
+			continue
 		}
 		duration := time.Since(started).Seconds()
 

@@ -11,6 +11,12 @@ var (
 		Help: "The total number of sites served by this Pages app",
 	})
 
+	// FailedDomainUpdates counts the number of failed site updates
+	FailedDomainUpdates = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_domains_failed_total",
+		Help: "The total number of site updates that have failed since daemon start",
+	})
+
 	// DomainUpdates counts the number of site updates processed
 	DomainUpdates = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "gitlab_pages_domains_updated_total",
