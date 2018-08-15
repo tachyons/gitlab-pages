@@ -20,7 +20,7 @@ var (
 	// DomainUpdates counts the number of site updates processed
 	DomainUpdates = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "gitlab_pages_domains_updated_total",
-		Help: "The total number of site updates processed since daemon start",
+		Help: "The total number of site updates successfully processed since daemon start",
 	})
 
 	// DomainLastUpdateTime is the UNIX timestamp of the last update

@@ -119,12 +119,7 @@ type jobResult struct {
 }
 
 // ReadGroups walks the pages directory and populates dm with all the domains it finds.
-func (dm Map) ReadGroups(rootDomain string) error {
-	fis, err := godirwalk.ReadDirents(".", nil)
-	if err != nil {
-		return err
-	}
-
+func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) error {
 	fanOutGroups := make(chan string)
 	fanIn := make(chan jobResult)
 	wg := &sync.WaitGroup{}
@@ -204,11 +199,15 @@ func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
 
 		started := time.Now()
 		dm := make(Map)
-		if err := dm.ReadGroups(rootDomain); err != nil {
+
+		fis, err := godirwalk.ReadDirents(".", nil)
+		if err != nil {
 			log.WithError(err).Warn("domain scan failed")
 			metrics.FailedDomainUpdates.Inc()
 			continue
 		}
+
+		dm.ReadGroups(rootDomain, fis)
 		duration := time.Since(started).Seconds()
 
 		var hash string
