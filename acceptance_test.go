@@ -709,7 +709,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	require.NoError(t, err)
 
 	state := url.Query().Get("state")
-	assert.Equal(t, url.Query().Get("domain"), "private.domain.com")
+	assert.Equal(t, url.Query().Get("domain"), "http://private.domain.com")
 
 	pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
 	require.NoError(t, err)
