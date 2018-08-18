@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 )
 
 const (
@@ -43,7 +44,7 @@ func New(server string, timeoutSeconds int, pagesDomain string) *Artifact {
 		suffix: "." + strings.ToLower(pagesDomain),
 		client: &http.Client{
 			Timeout:   time.Second * time.Duration(timeoutSeconds),
-			Transport: transport,
+			Transport: httptransport.Transport,
 		},
 	}
 }

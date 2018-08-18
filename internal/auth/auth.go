@@ -15,6 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 )
 
 const (
@@ -465,7 +466,7 @@ func New(pagesDomain string, storeSecret string, clientID string, clientSecret s
 		storeSecret:  storeSecret,
 		apiClient: &http.Client{
 			Timeout:   5 * time.Second,
-			Transport: transport,
+			Transport: httptransport.Transport,
 		},
 	}
 }
