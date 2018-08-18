@@ -114,6 +114,7 @@ func (a *theApp) checkAuthenticationIfNotExists(domain *domain.D, w http.Respons
 	// Without auth, fall back to 404
 	if domain == nil {
 		httperrors.Serve404(w)
+		return true
 	}
 
 	return false
