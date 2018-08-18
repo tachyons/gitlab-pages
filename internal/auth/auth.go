@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -54,10 +55,15 @@ type errorResponse struct {
 func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 	store := sessions.NewCookieStore([]byte(a.storeSecret))
 
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
+
 	// Cookie just for this domain
 	store.Options = &sessions.Options{
 		Path:   "/",
-		Domain: r.Host,
+		Domain: host,
 	}
 
 	return store.Get(r, "gitlab-pages")
