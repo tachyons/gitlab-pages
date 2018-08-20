@@ -7,8 +7,8 @@ import (
 var (
 	// DomainsServed counts the total number of sites served
 	DomainsServed = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "gitlab_pages_domains_served_total",
-		Help: "The total number of sites served by this Pages app",
+		Name: "gitlab_pages_served_domains",
+		Help: "The number of sites served by this Pages app",
 	})
 
 	// FailedDomainUpdates counts the number of failed site updates
@@ -39,7 +39,7 @@ var (
 
 	// SessionsActive is the number of HTTP requests currently being processed
 	SessionsActive = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "gitlab_pages_http_sessions_active",
+		Name: "gitlab_pages_http_active_sessions",
 		Help: "The number of HTTP requests currently being processed",
 	})
 )
