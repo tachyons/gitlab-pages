@@ -427,7 +427,9 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
 
 	if a == nil {
-		return false
+		log.Debug("Authentication is not configured")
+		httperrors.Serve500(w)
+		return true
 	}
 
 	session, err := a.checkSession(w, r)
