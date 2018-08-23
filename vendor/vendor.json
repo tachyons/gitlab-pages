@@ -55,58 +55,76 @@
 			"revisionTime": "2018-03-28T16:31:53Z"
 		},
 		{
-			"checksumSHA1": "xtOnCs1i5rmga0KIQ9BZUHGRfL8=",
+			"checksumSHA1": "5TKR3lamABvUhxkopYnphszS+Xc=",
 			"path": "github.com/grpc-ecosystem/go-grpc-middleware",
-			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
-			"revisionTime": "2018-04-09T12:24:56Z"
+			"revision": "c250d6563d4d4c20252cd865923440e829844f4e",
+			"revisionTime": "2018-05-02T09:16:42Z",
+			"version": "v1.0.0",
+			"versionExact": "v1.0.0"
 		},
 		{
 			"checksumSHA1": "tvOR7YKj51rBR+j5C/ZyZj6rvYc=",
 			"path": "github.com/grpc-ecosystem/go-grpc-middleware/auth",
-			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
-			"revisionTime": "2018-04-09T12:24:56Z"
+			"revision": "c250d6563d4d4c20252cd865923440e829844f4e",
+			"revisionTime": "2018-05-02T09:16:42Z",
+			"version": "v1.0.0",
+			"versionExact": "v1.0.0"
 		},
 		{
 			"checksumSHA1": "YdjXbik3OwU+YwQL7OAzwqAAUjo=",
 			"path": "github.com/grpc-ecosystem/go-grpc-middleware/logging",
-			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
-			"revisionTime": "2018-04-09T12:24:56Z"
+			"revision": "c250d6563d4d4c20252cd865923440e829844f4e",
+			"revisionTime": "2018-05-02T09:16:42Z",
+			"version": "v1.0.0",
+			"versionExact": "v1.0.0"
 		},
 		{
-			"checksumSHA1": "6j+jI0V+xVmiRFOQh2pFfU8pGDI=",
+			"checksumSHA1": "sRalD4xQkkeydbEmfGhdVC6iy94=",
 			"path": "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus",
-			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
-			"revisionTime": "2018-04-09T12:24:56Z"
+			"revision": "c250d6563d4d4c20252cd865923440e829844f4e",
+			"revisionTime": "2018-05-02T09:16:42Z",
+			"version": "v1.0.0",
+			"versionExact": "v1.0.0"
 		},
 		{
 			"checksumSHA1": "lyjaDmKU/dk/K4ciP5OUJEzmjfA=",
 			"path": "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus/ctxlogrus",
-			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
-			"revisionTime": "2018-04-09T12:24:56Z"
+			"revision": "c250d6563d4d4c20252cd865923440e829844f4e",
+			"revisionTime": "2018-05-02T09:16:42Z",
+			"version": "v1.0.0",
+			"versionExact": "v1.0.0"
 		},
 		{
 			"checksumSHA1": "mlh8jfZweEtX64NHqAyXHKm94kA=",
 			"path": "github.com/grpc-ecosystem/go-grpc-middleware/recovery",
-			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
-			"revisionTime": "2018-04-09T12:24:56Z"
+			"revision": "c250d6563d4d4c20252cd865923440e829844f4e",
+			"revisionTime": "2018-05-02T09:16:42Z",
+			"version": "v1.0.0",
+			"versionExact": "v1.0.0"
 		},
 		{
-			"checksumSHA1": "zJOUc3xTSI2qurPpvlaKWFMs67Q=",
+			"checksumSHA1": "Rf3QgJeAX2809t/DZvMjZbGHe9U=",
 			"path": "github.com/grpc-ecosystem/go-grpc-middleware/tags",
-			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
-			"revisionTime": "2018-04-09T12:24:56Z"
+			"revision": "c250d6563d4d4c20252cd865923440e829844f4e",
+			"revisionTime": "2018-05-02T09:16:42Z",
+			"version": "v1.0.0",
+			"versionExact": "v1.0.0"
 		},
 		{
 			"checksumSHA1": "g5zvkcjKi3oc+BXuqJfMfG2tP+c=",
 			"path": "github.com/grpc-ecosystem/go-grpc-middleware/tags/logrus",
-			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
-			"revisionTime": "2018-04-09T12:24:56Z"
+			"revision": "c250d6563d4d4c20252cd865923440e829844f4e",
+			"revisionTime": "2018-05-02T09:16:42Z",
+			"version": "v1.0.0",
+			"versionExact": "v1.0.0"
 		},
 		{
 			"checksumSHA1": "L5z1C445GhhQmDKSisTFv754LdU=",
 			"path": "github.com/grpc-ecosystem/go-grpc-middleware/util/metautils",
-			"revision": "b9ed6aed6cf9de7330c7c8e81d3d8e49086539e8",
-			"revisionTime": "2018-04-09T12:24:56Z"
+			"revision": "c250d6563d4d4c20252cd865923440e829844f4e",
+			"revisionTime": "2018-05-02T09:16:42Z",
+			"version": "v1.0.0",
+			"versionExact": "v1.0.0"
 		},
 		{
 			"checksumSHA1": "8NqQ+6tkBgT7m/SpvdzakK1c+1Y=",
