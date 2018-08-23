@@ -119,7 +119,7 @@ type jobResult struct {
 }
 
 // ReadGroups walks the pages directory and populates dm with all the domains it finds.
-func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) error {
+func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) {
 	fanOutGroups := make(chan string)
 	fanIn := make(chan jobResult)
 	wg := &sync.WaitGroup{}
@@ -170,7 +170,6 @@ func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) error {
 	close(fanOutGroups)
 
 	<-done
-	return nil
 }
 
 const (
