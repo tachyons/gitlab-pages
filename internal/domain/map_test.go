@@ -8,16 +8,32 @@ import (
 	"testing"
 	"time"
 
+	"github.com/karrick/godirwalk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func getEntries(t *testing.T) godirwalk.Dirents {
+	fis, err := godirwalk.ReadDirents(".", nil)
+
+	require.NoError(t, err)
+
+	return fis
+}
+
+func getEntriesForBenchmark(t *testing.B) godirwalk.Dirents {
+	fis, err := godirwalk.ReadDirents(".", nil)
+
+	require.NoError(t, err)
+
+	return fis
+}
 
 func TestReadProjects(t *testing.T) {
 	setUpTests()
 
 	dm := make(Map)
-	err := dm.ReadGroups("test.io")
-	require.NoError(t, err)
+	dm.ReadGroups("test.io", getEntries(t))
 
 	var domains []string
 	for d := range dm {
@@ -141,7 +157,7 @@ func BenchmarkReadGroups(b *testing.B) {
 		var dm Map
 		for i := 0; i < 2; i++ {
 			dm = make(Map)
-			require.NoError(b, dm.ReadGroups("example.com"))
+			dm.ReadGroups("example.com", getEntriesForBenchmark(b))
 		}
 		b.Logf("found %d domains", len(dm))
 	})
