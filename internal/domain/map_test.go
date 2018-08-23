@@ -33,8 +33,7 @@ func TestReadProjects(t *testing.T) {
 	setUpTests()
 
 	dm := make(Map)
-	err := dm.ReadGroups("test.io", getEntries(t))
-	require.NoError(t, err)
+	dm.ReadGroups("test.io", getEntries(t))
 
 	var domains []string
 	for d := range dm {
@@ -158,7 +157,7 @@ func BenchmarkReadGroups(b *testing.B) {
 		var dm Map
 		for i := 0; i < 2; i++ {
 			dm = make(Map)
-			require.NoError(b, dm.ReadGroups("example.com", getEntriesForBenchmark(b)))
+			dm.ReadGroups("example.com", getEntriesForBenchmark(b))
 		}
 		b.Logf("found %d domains", len(dm))
 	})
