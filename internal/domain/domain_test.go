@@ -69,6 +69,102 @@ func TestDomainServeHTTP(t *testing.T) {
 	assert.HTTPError(t, testDomain.ServeHTTP, "GET", "/not-existing-file", nil)
 }
 
+func TestIsHTTPSOnly(t *testing.T) {
+	tests := []struct {
+		name     string
+		domain   *D
+		url      string
+		expected bool
+	}{
+		{
+			name: "Custom domain with HTTPS-only enabled",
+			domain: &D{
+				group:       "group",
+				projectName: "project",
+				config:      &domainConfig{HTTPSOnly: true},
+			},
+			url:      "http://custom-domain",
+			expected: true,
+		},
+		{
+			name: "Custom domain with HTTPS-only disabled",
+			domain: &D{
+				group:       "group",
+				projectName: "project",
+				config:      &domainConfig{HTTPSOnly: false},
+			},
+			url:      "http://custom-domain",
+			expected: false,
+		},
+		{
+			name: "Default group domain with HTTPS-only enabled",
+			domain: &D{
+				group:       "group",
+				projectName: "project",
+				projects:    projects{"test-domain": &project{HTTPSOnly: true}},
+			},
+			url:      "http://test-domain",
+			expected: true,
+		},
+		{
+			name: "Default group domain with HTTPS-only disabled",
+			domain: &D{
+				group:       "group",
+				projectName: "project",
+				projects:    projects{"test-domain": &project{HTTPSOnly: false}},
+			},
+			url:      "http://test-domain",
+			expected: false,
+		},
+		{
+			name: "Case-insensitive default group domain with HTTPS-only enabled",
+			domain: &D{
+				group:       "group",
+				projectName: "project",
+				projects:    projects{"test-domain": &project{HTTPSOnly: true}},
+			},
+			url:      "http://Test-domain",
+			expected: true,
+		},
+		{
+			name: "Other group domain with HTTPS-only enabled",
+			domain: &D{
+				group:       "group",
+				projectName: "project",
+				projects:    projects{"project": &project{HTTPSOnly: true}},
+			},
+			url:      "http://test-domain/project",
+			expected: true,
+		},
+		{
+			name: "Other group domain with HTTPS-only disabled",
+			domain: &D{
+				group:       "group",
+				projectName: "project",
+				projects:    projects{"project": &project{HTTPSOnly: false}},
+			},
+			url:      "http://test-domain/project",
+			expected: false,
+		},
+		{
+			name: "Unknown project",
+			domain: &D{
+				group:       "group",
+				projectName: "project",
+			},
+			url:      "http://test-domain/project",
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodGet, test.url, nil)
+			assert.Equal(t, test.domain.IsHTTPSOnly(req), test.expected)
+		})
+	}
+}
+
 func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, acceptEncoding string, str interface{}, ungzip bool) {
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(mode, url+"?"+values.Encode(), nil)
