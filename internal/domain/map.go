@@ -23,10 +23,10 @@ type domainsUpdater func(Map)
 func (dm Map) updateDomainMap(domainName string, domain *D) {
 	if old, ok := dm[domainName]; ok {
 		log.WithFields(log.Fields{
-			"domain_name": domainName,
-			"new_group": domain.group,
+			"domain_name":      domainName,
+			"new_group":        domain.group,
 			"new_project_name": domain.projectName,
-			"old_group": old.group,
+			"old_group":        old.group,
 			"old_project_name": old.projectName,
 		}).Error("Duplicate domain")
 	}
@@ -57,7 +57,7 @@ func (dm Map) updateGroupDomain(rootDomain, group, projectName string, httpsOnly
 		}
 	}
 
-	groupDomain.projects[projectName] = &project{
+	groupDomain.projects[strings.ToLower(projectName)] = &project{
 		HTTPSOnly: httpsOnly,
 	}
 

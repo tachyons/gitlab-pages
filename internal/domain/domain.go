@@ -100,16 +100,26 @@ func setContentType(w http.ResponseWriter, fullPath string) {
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
 func (d *D) IsHTTPSOnly(r *http.Request) bool {
+	// Check custom domain config (e.g. http://example.com)
 	if d.config != nil {
 		return d.config.HTTPSOnly
 	}
 
+	// Check default domain config (e.g. http://mydomain.gitlab.io)
+	groupProject := d.projects[strings.ToLower(r.Host)]
+
+	if groupProject != nil {
+		return groupProject.HTTPSOnly
+	}
+
+	// Check URLs with multiple projects for a group
+	// (e.g. http://group.gitlab.io/projectA and http://group.gitlab.io/projectB)
 	split := strings.SplitN(r.URL.Path, "/", 3)
 	if len(split) < 2 {
 		return false
 	}
 
-	project := d.projects[split[1]]
+	project := d.projects[strings.ToLower(split[1])]
 
 	if project != nil {
 		return project.HTTPSOnly
