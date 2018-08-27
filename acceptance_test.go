@@ -197,18 +197,35 @@ func TestKnownHostWithPortReturns200(t *testing.T) {
 
 func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
-	defer teardown()
 
-	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	cases := []struct {
+		Listeners []ListenSpec
+		Args      string
+	}{
+		{
+			Listeners: listeners,
+			Args:      "",
+		},
+		{
+			Listeners: []ListenSpec{httpListener},
+			Args:      "-redirect-http=true",
+		},
+	}
 
-	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	for _, c := range cases {
+		teardown := RunPagesProcess(t, *pagesBinary, c.Listeners, "", c.Args)
+		defer teardown()
+
+		rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
+		require.NoError(t, err)
+		defer rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+
+		rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
+		require.NoError(t, err)
+		defer rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	}
 }
 
 func TestHttpToHttpsRedirectEnabled(t *testing.T) {
@@ -242,13 +259,27 @@ func TestHttpsOnlyGroupEnabled(t *testing.T) {
 
 func TestHttpsOnlyGroupDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
-	defer teardown()
 
-	rsp, err := GetPageFromListener(t, httpListener, "group.https-only.gitlab-example.com", "project2/")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	cases := []struct {
+		Listeners []ListenSpec
+	}{
+		{
+			Listeners: listeners,
+		},
+		{
+			Listeners: []ListenSpec{httpListener},
+		},
+	}
+
+	for _, c := range cases {
+		teardown := RunPagesProcess(t, *pagesBinary, c.Listeners, "")
+		defer teardown()
+
+		rsp, err := GetPageFromListener(t, httpListener, "group.https-only.gitlab-example.com", "project2/")
+		require.NoError(t, err)
+		defer rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	}
 }
 
 func TestHttpsOnlyProjectEnabled(t *testing.T) {
@@ -264,13 +295,27 @@ func TestHttpsOnlyProjectEnabled(t *testing.T) {
 
 func TestHttpsOnlyProjectDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
-	defer teardown()
 
-	rsp, err := GetPageFromListener(t, httpListener, "test2.my-domain.com", "/")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	cases := []struct {
+		Listeners []ListenSpec
+	}{
+		{
+			Listeners: listeners,
+		},
+		{
+			Listeners: []ListenSpec{httpListener},
+		},
+	}
+
+	for _, c := range cases {
+		teardown := RunPagesProcess(t, *pagesBinary, c.Listeners, "")
+		defer teardown()
+
+		rsp, err := GetPageFromListener(t, httpListener, "test2.my-domain.com", "/")
+		require.NoError(t, err)
+		defer rsp.Body.Close()
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	}
 }
 
 func TestHttpsOnlyDomainDisabled(t *testing.T) {

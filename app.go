@@ -92,6 +92,10 @@ func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.
 	return host, a.domain(host)
 }
 
+func (a *theApp) shouldRedirectDomain(domain *domain.D, r *http.Request) bool {
+	return a.IsHTTPSEnabled() && domain.IsHTTPSOnly(r)
+}
+
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.D) bool {
 	// short circuit content serving to check for a status page
 	if r.RequestURI == a.appConfig.StatusPath {
@@ -121,7 +125,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if !https && domain.IsHTTPSOnly(r) {
+	if !https && a.shouldRedirectDomain(domain, r) {
 		a.redirectToHTTPS(w, r, http.StatusMovedPermanently)
 		return true
 	}
@@ -284,6 +288,10 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 	}()
 }
 
+func (a *theApp) IsHTTPSEnabled() bool {
+	return len(a.appConfig.ListenHTTPS) > 0
+}
+
 func runApp(config appConfig) {
 	a := theApp{appConfig: config}
 
@@ -292,6 +300,11 @@ func runApp(config appConfig) {
 	}
 
 	configureLogging(config.LogFormat, config.LogVerbose)
+
+	if config.RedirectHTTP && len(config.ListenHTTPS) == 0 {
+		log.Warn("No HTTPS listener defined, disabling automatic redirect to HTTPS")
+		config.RedirectHTTP = false
+	}
 
 	if err := mimedb.LoadTypes(); err != nil {
 		log.WithError(err).Warn("Loading extended MIME database failed")
