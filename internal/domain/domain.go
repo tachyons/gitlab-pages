@@ -116,6 +116,22 @@ func getHost(r *http.Request) string {
 	return host
 }
 
+func (d *D) isAcmeChallenge(path string) bool {
+	// Only allow acme challenges for custom domains
+	if d.config == nil {
+		return false
+	}
+	return strings.HasPrefix(path, "/.well-known/acme-challenge/")
+}
+
+func setContentType(w http.ResponseWriter, fullPath string) {
+	ext := filepath.Ext(fullPath)
+	ctype := mime.TypeByExtension(ext)
+	if ctype != "" {
+		w.Header().Set("Content-Type", ctype)
+	}
+}
+
 // Look up a project inside the domain based on the host and path. Returns the
 // project and its name (if applicable)
 func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
@@ -388,6 +404,10 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(r.URL.Path) {
 			fullPath, err = d.resolvePath(projectName, filepath.Join(subPath...), "index.html")
+		} else if d.isAcmeChallenge(r.URL.Path) {
+			redirectPath := "//gitlab.com/-/acme-challenge/" + r.Host + "/" + filepath.Base(r.URL.Path)
+			http.Redirect(w, r, redirectPath, 301)
+			return nil
 		} else {
 			// Concat Host with URL.Path
 			redirectPath := "//" + r.Host + "/"

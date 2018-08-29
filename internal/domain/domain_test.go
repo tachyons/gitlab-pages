@@ -471,6 +471,32 @@ func TestOpenNoFollow(t *testing.T) {
 	require.Nil(t, link)
 }
 
+func TestAcmeChallengeRedirect(t *testing.T) {
+	setUpTests(t)
+
+	testGroup := &D{
+		group:       group{name: "group"},
+		projectName: "project2",
+	}
+
+	testDomain := &D{
+		group:       group{name: "group"},
+		projectName: "project2",
+		config: &domainConfig{
+			Domain:      "test.example.com",
+		},
+	}
+
+
+	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/.well-known/acme-challenge/0123456789abcdef", nil, "The page you're looking for could not be found")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/.well-known/acme-challenge/existing-file", nil, "Yes, I really exist")
+
+	assert.HTTPRedirect(t, serveFileOrNotFound(testDomain), "GET", "http://test.example.com/.well-known/acme-challenge/0123456789abcdef", nil)
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "http://test.example.com/.well-known/acme-challenge/existing-file", nil, "Yes, I really exist")
+	testHTTP404(t, serveFileOrNotFound(testDomain), "GET", "https://test.example.com/.well-known/acme-challenge/0123456789abcdef", nil, "The page you're looking for could not be found")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "https://test.example.com/.well-known/acme-challenge/existing-file", nil, "Yes, I really exist")
+}
+
 var chdirSet = false
 
 func setUpTests(t require.TestingT) func() {
