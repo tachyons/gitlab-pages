@@ -1,3 +1,9 @@
+v 1.1.0
+- Fix HTTP to HTTPS redirection not working for default domains !106
+- Log duplicate domain names !107
+- Abort domain scan if a failure is encountered !102
+- Update Prometheus vendoring !105
+
 v 1.0.0
 - Use permissive unix socket permissions !95
 - Fix logic for output of domains in debug mode !98
