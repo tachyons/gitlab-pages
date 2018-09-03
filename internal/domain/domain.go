@@ -100,10 +100,18 @@ func setContentType(w http.ResponseWriter, fullPath string) {
 }
 
 func (d *D) getProject(r *http.Request) *project {
+	// Check default domain config (e.g. http://mydomain.gitlab.io)
+	if groupProject := d.projects[strings.ToLower(r.Host)]; groupProject != nil {
+		return groupProject
+	}
+
+	// Check URLs with multiple projects for a group
+	// (e.g. http://group.gitlab.io/projectA and http://group.gitlab.io/projectB)
 	split := strings.SplitN(r.URL.Path, "/", 3)
 	if len(split) < 2 {
 		return nil
 	}
+
 	return d.projects[split[1]]
 }
 
@@ -114,13 +122,13 @@ func (d *D) IsHTTPSOnly(r *http.Request) bool {
 		return false
 	}
 
+	// Check custom domain config (e.g. http://example.com)
 	if d.config != nil {
 		return d.config.HTTPSOnly
 	}
 
-	project := d.getProject(r)
-
-	if project != nil {
+	// Check projects served under the group domain, including the default one
+	if project := d.getProject(r); project != nil {
 		return project.HTTPSOnly
 	}
 
@@ -133,13 +141,13 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 		return false
 	}
 
+	// Check custom domain config (e.g. http://example.com)
 	if d.config != nil {
 		return d.config.AccessControl
 	}
 
-	project := d.getProject(r)
-
-	if project != nil {
+	// Check projects served under the group domain, including the default one
+	if project := d.getProject(r); project != nil {
 		return project.AccessControl
 	}
 
