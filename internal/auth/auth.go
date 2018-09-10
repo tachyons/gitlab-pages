@@ -37,8 +37,8 @@ type Auth struct {
 	clientSecret string
 	redirectURI  string
 	gitLabServer string
-	storeSecret  string
 	apiClient    *http.Client
+	store        sessions.Store
 }
 
 type tokenResponse struct {
@@ -54,20 +54,22 @@ type errorResponse struct {
 }
 
 func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
-	store := sessions.NewCookieStore([]byte(a.storeSecret))
-
 	host, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		host = r.Host
 	}
 
-	// Cookie just for this domain
-	store.Options = &sessions.Options{
-		Path:   "/",
-		Domain: host,
+	session, err := a.store.Get(r, "gitlab-pages")
+
+	if session != nil {
+		// Cookie just for this domain
+		session.Options = &sessions.Options{
+			Path:   "/",
+			Domain: host,
+		}
 	}
 
-	return store.Get(r, "gitlab-pages")
+	return session, err
 }
 
 func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
@@ -502,10 +504,10 @@ func New(pagesDomain string, storeSecret string, clientID string, clientSecret s
 		clientSecret: clientSecret,
 		redirectURI:  redirectURI,
 		gitLabServer: strings.TrimRight(gitLabServer, "/"),
-		storeSecret:  storeSecret,
 		apiClient: &http.Client{
 			Timeout:   5 * time.Second,
 			Transport: httptransport.Transport,
 		},
+		store: sessions.NewCookieStore([]byte(storeSecret)),
 	}
 }
