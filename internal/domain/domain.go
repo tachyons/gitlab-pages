@@ -173,6 +173,25 @@ func (d *D) GetID(r *http.Request) uint64 {
 	return 0
 }
 
+// HasProject figures out if the project exists that the user tries to access
+func (d *D) HasProject(r *http.Request) bool {
+	if d == nil {
+		return false
+	}
+
+	if d.config != nil {
+		return true
+	}
+
+	project := d.getProject(r)
+
+	if project != nil {
+		return true
+	}
+
+	return false
+}
+
 func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
 	fullPath := handleGZip(w, r, origPath)
 

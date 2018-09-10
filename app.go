@@ -95,7 +95,7 @@ func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.
 }
 
 func (a *theApp) checkAuthenticationIfNotExists(domain *domain.D, w http.ResponseWriter, r *http.Request) bool {
-	if domain == nil || domain.GetID(r) == 0 {
+	if domain == nil || !domain.HasProject(r) {
 
 		// Only if auth is supported
 		if a.Auth.IsAuthSupported() {
