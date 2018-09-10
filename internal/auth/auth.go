@@ -73,19 +73,19 @@ func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
 
 	// Create or get session
-	session, err := a.getSessionFromStore(r)
+	session, errsession := a.getSessionFromStore(r)
 
-	if err != nil {
+	if errsession != nil {
 		// Save cookie again
-		err := session.Save(r, w)
-		if err != nil {
-			log.WithError(err).Error("Failed to save the session")
+		errsave := session.Save(r, w)
+		if errsave != nil {
+			log.WithError(errsave).Error("Failed to save the session")
 			httperrors.Serve500(w)
-			return nil, err
+			return nil, errsave
 		}
 
 		http.Redirect(w, r, getRequestAddress(r), 302)
-		return nil, err
+		return nil, errsession
 	}
 
 	return session, nil
