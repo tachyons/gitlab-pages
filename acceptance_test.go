@@ -298,7 +298,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		assert.Contains(t, string(body), "gitlab_pages_http_sessions_active 0")
-		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 12")
+		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 13")
 	}
 }
 
@@ -581,7 +581,7 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "")
 	defer teardown()
 
-	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "private.project/")
+	rsp, err := GetPageFromListener(t, httpListener, "group.auth.gitlab-example.com", "private.project/")
 
 	require.NoError(t, err)
 	rsp.Body.Close()
@@ -593,7 +593,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
-	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
+	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -635,7 +635,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
-	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
+	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -654,7 +654,7 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
-	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "private.project/")
+	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -807,28 +807,28 @@ func TestAccessControl(t *testing.T) {
 		Description  string
 	}{
 		{
-			"group.gitlab-example.com",
+			"group.auth.gitlab-example.com",
 			"/private.project/",
 			http.StatusOK,
 			false,
 			"project with access",
 		},
 		{
-			"group.gitlab-example.com",
+			"group.auth.gitlab-example.com",
 			"/private.project.1/",
 			http.StatusNotFound, // Do not expose project existed
 			false,
 			"project without access",
 		},
 		{
-			"group.gitlab-example.com",
+			"group.auth.gitlab-example.com",
 			"/private.project.2/",
 			http.StatusFound,
 			true,
 			"invalid token test should redirect back",
 		},
 		{
-			"group.gitlab-example.com",
+			"group.auth.gitlab-example.com",
 			"/nonexistent/",
 			http.StatusNotFound,
 			false,
