@@ -54,11 +54,6 @@ type errorResponse struct {
 }
 
 func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
-	host, _, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		host = r.Host
-	}
-
 	session, err := a.store.Get(r, "gitlab-pages")
 
 	if session != nil {
