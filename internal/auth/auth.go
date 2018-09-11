@@ -65,7 +65,6 @@ func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 		// Cookie just for this domain
 		session.Options = &sessions.Options{
 			Path:   "/",
-			Domain: host,
 		}
 	}
 
