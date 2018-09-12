@@ -206,9 +206,11 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 		return err
 	}
 
-	// Set caching headers
-	w.Header().Set("Cache-Control", "max-age=600")
-	w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
+	if !d.IsAccessControlEnabled(r) {
+		// Set caching headers
+		w.Header().Set("Cache-Control", "max-age=600")
+		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
+	}
 
 	// ServeContent sets Content-Type for us
 	http.ServeContent(w, r, origPath, fi.ModTime(), file)

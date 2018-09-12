@@ -897,6 +897,7 @@ func TestAccessControl(t *testing.T) {
 			defer rsp.Body.Close()
 
 			assert.Equal(t, c.Status, rsp.StatusCode)
+			assert.Equal(t, "", rsp.Header.Get("Cache-Control"))
 
 			if c.RedirectBack {
 				url, err = url.Parse(rsp.Header.Get("Location"))
