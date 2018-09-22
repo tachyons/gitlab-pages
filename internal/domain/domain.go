@@ -24,9 +24,10 @@ type locationDirectoryError struct {
 }
 
 type project struct {
-	HTTPSOnly     bool
-	AccessControl bool
-	ID            uint64
+	NamespaceProject bool
+	HTTPSOnly        bool
+	AccessControl    bool
+	ID               uint64
 }
 
 type projects map[string]*project
@@ -149,6 +150,26 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 	// Check projects served under the group domain, including the default one
 	if project := d.getProject(r); project != nil {
 		return project.AccessControl
+	}
+
+	return false
+}
+
+// IsNamespaceProject figures out if the request is to a namespace project
+func (d *D) IsNamespaceProject(r *http.Request) bool {
+	if d == nil {
+		return false
+	}
+
+	// If request is to a custom domain, we do not handle it as a namespace project
+	// as there can't be multiple projects under the same custom domain
+	if d.config != nil {
+		return false
+	}
+
+	// Check projects served under the group domain, including the default one
+	if project := d.getProject(r); project != nil {
+		return project.NamespaceProject
 	}
 
 	return false
@@ -324,19 +345,26 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName, pathSuf
 	return d.serveFile(w, r, fullPath)
 }
 
-func (d *D) serveFromGroup(w http.ResponseWriter, r *http.Request) {
+func (d *D) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool {
 	// The Path always contains "/" at the beginning
 	split := strings.SplitN(r.URL.Path, "/", 3)
 
 	// Try to serve file for http://group.example.com/subpath/... => /group/subpath/...
 	if len(split) >= 2 && d.tryFile(w, r, split[1], split[1], split[2:]...) == nil {
-		return
+		return true
 	}
 
 	// Try to serve file for http://group.example.com/... => /group/group.example.com/...
 	if r.Host != "" && d.tryFile(w, r, strings.ToLower(r.Host), "", r.URL.Path) == nil {
-		return
+		return true
 	}
+
+	return false
+}
+
+func (d *D) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
+	// The Path always contains "/" at the beginning
+	split := strings.SplitN(r.URL.Path, "/", 3)
 
 	// Try serving not found page for http://group.example.com/subpath/ => /group/subpath/404.html
 	if len(split) >= 2 && d.tryNotFound(w, r, split[1]) == nil {
@@ -352,12 +380,16 @@ func (d *D) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	httperrors.Serve404(w)
 }
 
-func (d *D) serveFromConfig(w http.ResponseWriter, r *http.Request) {
+func (d *D) serveFileFromConfig(w http.ResponseWriter, r *http.Request) bool {
 	// Try to serve file for http://host/... => /group/project/...
 	if d.tryFile(w, r, d.projectName, "", r.URL.Path) == nil {
-		return
+		return true
 	}
 
+	return false
+}
+
+func (d *D) serveNotFoundFromConfig(w http.ResponseWriter, r *http.Request) {
 	// Try serving not found page for http://host/ => /group/project/404.html
 	if d.tryNotFound(w, r, d.projectName) == nil {
 		return
@@ -384,18 +416,32 @@ func (d *D) EnsureCertificate() (*tls.Certificate, error) {
 	return d.certificate, d.certificateError
 }
 
-// ServeHTTP implements http.Handler.
-func (d *D) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// ServeFileHTTP implements http.Handler. Returns true if something was served, false if not.
+func (d *D) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
+	if d == nil {
+		httperrors.Serve404(w)
+		return true
+	}
+
+	if d.config != nil {
+		return d.serveFileFromConfig(w, r)
+	}
+
+	return d.serveFileFromGroup(w, r)
+}
+
+// ServeNotFoundHTTP implements http.Handler. Serves the not found pages from the projects.
+func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	if d == nil {
 		httperrors.Serve404(w)
 		return
 	}
 
 	if d.config != nil {
-		d.serveFromConfig(w, r)
-	} else {
-		d.serveFromGroup(w, r)
+		d.serveNotFoundFromConfig(w, r)
 	}
+
+	d.serveNotFoundFromGroup(w, r)
 }
 
 func endsWithSlash(path string) bool {

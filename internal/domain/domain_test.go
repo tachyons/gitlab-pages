@@ -17,6 +17,14 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
 
+func serveFileOrNotFound(domain *D) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !domain.ServeFileHTTP(w, r) {
+			domain.ServeNotFoundHTTP(w, r)
+		}
+	}
+}
+
 func TestGroupServeHTTP(t *testing.T) {
 	setUpTests()
 
@@ -25,27 +33,27 @@ func TestGroupServeHTTP(t *testing.T) {
 		projectName: "",
 	}
 
-	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/", nil, "main-dir")
-	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/index.html", nil, "main-dir")
-	assert.HTTPRedirect(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project", nil)
-	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project", nil,
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/", nil, "main-dir")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/index.html", nil, "main-dir")
+	assert.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project", nil)
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project", nil,
 		`<a href="//group.test.io/project/">Found</a>`)
-	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project/", nil, "project-subdir")
-	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project/index.html", nil, "project-subdir")
-	assert.HTTPRedirect(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project/subdir", nil)
-	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project/subdir", nil,
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/", nil, "project-subdir")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/index.html", nil, "project-subdir")
+	assert.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/subdir", nil)
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/subdir", nil,
 		`<a href="//group.test.io/project/subdir/">Found</a>`)
-	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project/subdir/", nil, "project-subsubdir")
-	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project2/", nil, "project2-main")
-	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project2/index.html", nil, "project2-main")
-	assert.HTTPRedirect(t, testGroup.ServeHTTP, "GET", "http://group.test.io/private.project/", nil)
-	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io//about.gitlab.com/%2e%2e", nil)
-	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io/symlink", nil)
-	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io/symlink/index.html", nil)
-	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io/symlink/subdir/", nil)
-	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project/fifo", nil)
-	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io/not-existing-file", nil)
-	assert.HTTPError(t, testGroup.ServeHTTP, "GET", "http://group.test.io/project//about.gitlab.com/%2e%2e", nil)
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/subdir/", nil, "project-subsubdir")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/", nil, "project2-main")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/index.html", nil, "project2-main")
+	assert.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/private.project/", nil)
+	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io//about.gitlab.com/%2e%2e", nil)
+	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/symlink", nil)
+	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/symlink/index.html", nil)
+	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/symlink/subdir/", nil)
+	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/fifo", nil)
+	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/not-existing-file", nil)
+	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project//about.gitlab.com/%2e%2e", nil)
 }
 
 func TestDomainServeHTTP(t *testing.T) {
@@ -59,15 +67,15 @@ func TestDomainServeHTTP(t *testing.T) {
 		},
 	}
 
-	assert.HTTPBodyContains(t, testDomain.ServeHTTP, "GET", "/", nil, "project2-main")
-	assert.HTTPBodyContains(t, testDomain.ServeHTTP, "GET", "/index.html", nil, "project2-main")
-	assert.HTTPRedirect(t, testDomain.ServeHTTP, "GET", "/subdir", nil)
-	assert.HTTPBodyContains(t, testDomain.ServeHTTP, "GET", "/subdir", nil,
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/", nil, "project2-main")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/index.html", nil, "project2-main")
+	assert.HTTPRedirect(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil)
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil,
 		`<a href="/subdir/">Found</a>`)
-	assert.HTTPBodyContains(t, testDomain.ServeHTTP, "GET", "/subdir/", nil, "project2-subdir")
-	assert.HTTPBodyContains(t, testDomain.ServeHTTP, "GET", "/subdir/index.html", nil, "project2-subdir")
-	assert.HTTPError(t, testDomain.ServeHTTP, "GET", "//about.gitlab.com/%2e%2e", nil)
-	assert.HTTPError(t, testDomain.ServeHTTP, "GET", "/not-existing-file", nil)
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir/", nil, "project2-subdir")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir/index.html", nil, "project2-subdir")
+	assert.HTTPError(t, serveFileOrNotFound(testDomain), "GET", "//about.gitlab.com/%2e%2e", nil)
+	assert.HTTPError(t, serveFileOrNotFound(testDomain), "GET", "/not-existing-file", nil)
 }
 
 func TestIsHTTPSOnly(t *testing.T) {
@@ -238,7 +246,7 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	}
 
 	for _, tt := range testSet {
-		testHTTPGzip(t, testGroup.ServeHTTP, tt.mode, tt.url, tt.params, tt.acceptEncoding, tt.body, tt.ungzip)
+		testHTTPGzip(t, serveFileOrNotFound(testGroup), tt.mode, tt.url, tt.params, tt.acceptEncoding, tt.body, tt.ungzip)
 	}
 }
 
@@ -262,13 +270,13 @@ func TestGroup404ServeHTTP(t *testing.T) {
 		projectName: "",
 	}
 
-	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404/not/existing-file", nil, "Custom 404 project page")
-	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404/", nil, "Custom 404 project page")
-	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.no.404/not/existing-file", nil, "Custom 404 group page")
-	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/not/existing-file", nil, "Custom 404 group page")
-	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
-	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
-	assert.HTTPBodyNotContains(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404.symlink/not/existing-file", nil, "Custom 404 project page")
+	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404/not/existing-file", nil, "Custom 404 project page")
+	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404/", nil, "Custom 404 project page")
+	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.no.404/not/existing-file", nil, "Custom 404 group page")
+	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/not/existing-file", nil, "Custom 404 group page")
+	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
+	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
+	assert.HTTPBodyNotContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404.symlink/not/existing-file", nil, "Custom 404 project page")
 }
 
 func TestDomain404ServeHTTP(t *testing.T) {
@@ -282,8 +290,8 @@ func TestDomain404ServeHTTP(t *testing.T) {
 		},
 	}
 
-	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
-	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
+	testHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
+	testHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
 }
 
 func TestPredefined404ServeHTTP(t *testing.T) {
@@ -293,7 +301,7 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 		group: "group",
 	}
 
-	testHTTP404(t, testDomain.ServeHTTP, "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
+	testHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
 
 func TestGroupCertificate(t *testing.T) {
@@ -348,7 +356,7 @@ func TestCacheControlHeaders(t *testing.T) {
 	require.NoError(t, err)
 
 	now := time.Now()
-	testGroup.ServeHTTP(w, req)
+	serveFileOrNotFound(testGroup)(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "max-age=600", w.Header().Get("Cache-Control"))

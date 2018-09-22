@@ -754,6 +754,31 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	assert.Equal(t, http.StatusOK, authrsp.StatusCode)
 }
 
+func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusFound, rsp.StatusCode)
+	// Redirects to the projects under gitlab pages domain for authentication flow
+	url, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+	assert.Equal(t, "projects.gitlab-example.com", url.Host)
+	assert.Equal(t, "/auth", url.Path)
+}
+func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/project/nonexistent/")
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
+}
 func TestAccessControl(t *testing.T) {
 	skipUnlessEnabled(t, "not-inplace-chroot")
 

@@ -58,9 +58,10 @@ func (dm Map) updateGroupDomain(rootDomain, group, projectName string, httpsOnly
 	}
 
 	groupDomain.projects[strings.ToLower(projectName)] = &project{
-		HTTPSOnly:     httpsOnly,
-		AccessControl: accessControl,
-		ID:            id,
+		NamespaceProject: domainName == strings.ToLower(projectName),
+		HTTPSOnly:        httpsOnly,
+		AccessControl:    accessControl,
+		ID:               id,
 	}
 
 	dm[domainName] = groupDomain
