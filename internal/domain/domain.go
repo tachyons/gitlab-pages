@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -100,20 +101,37 @@ func setContentType(w http.ResponseWriter, fullPath string) {
 	}
 }
 
-func (d *D) getProject(r *http.Request) *project {
-	// Check default domain config (e.g. http://mydomain.gitlab.io)
-	if groupProject := d.projects[strings.ToLower(r.Host)]; groupProject != nil {
-		return groupProject
-	}
-
-	// Check URLs with multiple projects for a group
-	// (e.g. http://group.gitlab.io/projectA and http://group.gitlab.io/projectB)
+// Look up a project inside the domain based on the host and path. Returns the
+// project and its name (if applicable)
+func (d *D) getProject(r *http.Request) (*project, string) {
+	// Check for a project specified in the URL: http://group.gitlab.io/projectA
+	// If present, these projects shadow the group domain.
 	split := strings.SplitN(r.URL.Path, "/", 3)
-	if len(split) < 2 {
-		return nil
+	if len(split) >= 2 {
+		if project := d.projects[split[1]]; project != nil {
+			return project, split[1]
+		}
 	}
 
-	return d.projects[split[1]]
+	// Since the URL doesn't specify a project (e.g. http://mydomain.gitlab.io),
+	// return the group project if it exists.
+	if host := getHost(r); host != "" {
+		if groupProject := d.projects[host]; groupProject != nil {
+			return groupProject, host
+		}
+	}
+
+	return nil, ""
+}
+
+func getHost(r *http.Request) string {
+	host := strings.ToLower(r.Host)
+
+	if splitHost, _, err := net.SplitHostPort(host); err == nil {
+		host = splitHost
+	}
+
+	return host
 }
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
@@ -129,7 +147,7 @@ func (d *D) IsHTTPSOnly(r *http.Request) bool {
 	}
 
 	// Check projects served under the group domain, including the default one
-	if project := d.getProject(r); project != nil {
+	if project, _ := d.getProject(r); project != nil {
 		return project.HTTPSOnly
 	}
 
@@ -148,7 +166,7 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 	}
 
 	// Check projects served under the group domain, including the default one
-	if project := d.getProject(r); project != nil {
+	if project, _ := d.getProject(r); project != nil {
 		return project.AccessControl
 	}
 
@@ -168,7 +186,7 @@ func (d *D) IsNamespaceProject(r *http.Request) bool {
 	}
 
 	// Check projects served under the group domain, including the default one
-	if project := d.getProject(r); project != nil {
+	if project, _ := d.getProject(r); project != nil {
 		return project.NamespaceProject
 	}
 
@@ -185,7 +203,7 @@ func (d *D) GetID(r *http.Request) uint64 {
 		return d.config.ID
 	}
 
-	project := d.getProject(r)
+	project, _ := d.getProject(r)
 
 	if project != nil {
 		return project.ID
@@ -204,7 +222,7 @@ func (d *D) HasProject(r *http.Request) bool {
 		return true
 	}
 
-	project := d.getProject(r)
+	project, _ := d.getProject(r)
 
 	if project != nil {
 		return true
