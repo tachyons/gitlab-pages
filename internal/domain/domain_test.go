@@ -23,6 +23,12 @@ func TestGroupServeHTTP(t *testing.T) {
 	testGroup := &D{
 		group:       "group",
 		projectName: "",
+		projects: map[string]*project{
+			"group.test.io":            &project{},
+			"group.gitlab-example.com": &project{},
+			"project":                  &project{},
+			"project2":                 &project{},
+		},
 	}
 
 	assert.HTTPBodyContains(t, testGroup.ServeHTTP, "GET", "http://group.test.io/", nil, "main-dir")
@@ -196,6 +202,12 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	testGroup := &D{
 		group:       "group",
 		projectName: "",
+		projects: map[string]*project{
+			"group.test.io":            &project{},
+			"group.gitlab-example.com": &project{},
+			"project":                  &project{},
+			"project2":                 &project{},
+		},
 	}
 
 	testSet := []struct {
@@ -259,15 +271,24 @@ func TestGroup404ServeHTTP(t *testing.T) {
 	testGroup := &D{
 		group:       "group.404",
 		projectName: "",
+		projects: map[string]*project{
+			"domain.404":          &project{},
+			"group.404.test.io":   &project{},
+			"project.404":         &project{},
+			"project.404.symlink": &project{},
+			"project.no.404":      &project{},
+		},
 	}
 
 	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404/not/existing-file", nil, "Custom 404 project page")
 	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404/", nil, "Custom 404 project page")
-	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.no.404/not/existing-file", nil, "Custom 404 group page")
 	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/not/existing-file", nil, "Custom 404 group page")
 	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
 	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
 	assert.HTTPBodyNotContains(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.404.symlink/not/existing-file", nil, "Custom 404 project page")
+
+	// Ensure the namespace project's custom 404.html is not used by projects
+	testHTTP404(t, testGroup.ServeHTTP, "GET", "http://group.404.test.io/project.no.404/not/existing-file", nil, "The page you're looking for could not be found.")
 }
 
 func TestDomain404ServeHTTP(t *testing.T) {
@@ -341,7 +362,12 @@ func TestDomainCertificate(t *testing.T) {
 }
 
 func TestCacheControlHeaders(t *testing.T) {
-	testGroup := &D{group: "group"}
+	testGroup := &D{
+		group: "group",
+		projects: map[string]*project{
+			"group.test.io": &project{},
+		},
+	}
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "http://group.test.io/", nil)
 	require.NoError(t, err)
