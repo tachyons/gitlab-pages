@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -97,31 +98,53 @@ func setContentType(w http.ResponseWriter, fullPath string) {
 	}
 }
 
+func getHost(r *http.Request) string {
+	host := strings.ToLower(r.Host)
+
+	if splitHost, _, err := net.SplitHostPort(host); err == nil {
+		host = splitHost
+	}
+
+	return host
+}
+
+// Look up a project inside the domain based on the host and path. Returns the
+// project and its name (if applicable)
+func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
+	// Check for a project specified in the URL: http://group.gitlab.io/projectA
+	// If present, these projects shadow the group domain.
+	split := strings.SplitN(r.URL.Path, "/", 3)
+	if len(split) >= 2 {
+		if project := d.projects[split[1]]; project != nil {
+			return project, split[1], strings.Join(split[2:], "/")
+		}
+	}
+
+	// Since the URL doesn't specify a project (e.g. http://mydomain.gitlab.io),
+	// return the group project if it exists.
+	if host := getHost(r); host != "" {
+		if groupProject := d.projects[host]; groupProject != nil {
+			return groupProject, host, strings.Join(split[1:], "/")
+		}
+	}
+
+	return nil, "", ""
+}
+
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
 func (d *D) IsHTTPSOnly(r *http.Request) bool {
+	if d == nil {
+		return false
+	}
+
 	// Check custom domain config (e.g. http://example.com)
 	if d.config != nil {
 		return d.config.HTTPSOnly
 	}
 
-	// Check default domain config (e.g. http://mydomain.gitlab.io)
-	groupProject := d.projects[strings.ToLower(r.Host)]
-
-	if groupProject != nil {
-		return groupProject.HTTPSOnly
-	}
-
-	// Check URLs with multiple projects for a group
-	// (e.g. http://group.gitlab.io/projectA and http://group.gitlab.io/projectB)
-	split := strings.SplitN(r.URL.Path, "/", 3)
-	if len(split) < 2 {
-		return false
-	}
-
-	project := d.projects[strings.ToLower(split[1])]
-
-	if project != nil {
+	// Check projects served under the group domain, including the default one
+	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
 		return project.HTTPSOnly
 	}
 
@@ -232,20 +255,18 @@ func (d *D) tryNotFound(w http.ResponseWriter, r *http.Request, projectName stri
 	return nil
 }
 
-func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName, pathSuffix string, subPath ...string) error {
+func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, subPath ...string) error {
 	fullPath, err := d.resolvePath(projectName, subPath...)
-
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(r.URL.Path) {
 			fullPath, err = d.resolvePath(projectName, filepath.Join(subPath...), "index.html")
 		} else {
+			// Concat Host with URL.Path
 			redirectPath := "//" + r.Host + "/"
-			if pathSuffix != "" {
-				redirectPath += pathSuffix + "/"
-			}
-			if locationError.RelativePath != "" {
-				redirectPath += strings.TrimPrefix(locationError.RelativePath, "/") + "/"
-			}
+			redirectPath += strings.TrimPrefix(r.URL.Path, "/")
+
+			// Ensure that there's always "/" at end
+			redirectPath = strings.TrimSuffix(redirectPath, "/") + "/"
 			http.Redirect(w, r, redirectPath, 302)
 			return nil
 		}
@@ -259,36 +280,32 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName, pathSuf
 }
 
 func (d *D) serveFromGroup(w http.ResponseWriter, r *http.Request) {
-	// The Path always contains "/" at the beginning
-	split := strings.SplitN(r.URL.Path, "/", 3)
-
-	// Try to serve file for http://group.example.com/subpath/... => /group/subpath/...
-	if len(split) >= 2 && d.tryFile(w, r, split[1], split[1], split[2:]...) == nil {
+	project, projectName, subPath := d.getProjectWithSubpath(r)
+	if project == nil {
+		httperrors.Serve404(w)
 		return
 	}
 
-	// Try to serve file for http://group.example.com/... => /group/group.example.com/...
-	if r.Host != "" && d.tryFile(w, r, strings.ToLower(r.Host), "", r.URL.Path) == nil {
+	if d.tryFile(w, r, projectName, subPath) == nil {
 		return
 	}
 
-	// Try serving not found page for http://group.example.com/subpath/ => /group/subpath/404.html
-	if len(split) >= 2 && d.tryNotFound(w, r, split[1]) == nil {
+	// FIXME: In the public namespace project case, since we only serve these
+	// 404s if the project does not exist, they will reveal the existence of
+	// private projects once access control is implemented.
+
+	// Try serving custom not-found page
+	if d.tryNotFound(w, r, projectName) == nil {
 		return
 	}
 
-	// Try serving not found page for http://group.example.com/ => /group/group.example.com/404.html
-	if r.Host != "" && d.tryNotFound(w, r, strings.ToLower(r.Host)) == nil {
-		return
-	}
-
-	// Serve generic not found
+	// Generic 404
 	httperrors.Serve404(w)
 }
 
 func (d *D) serveFromConfig(w http.ResponseWriter, r *http.Request) {
 	// Try to serve file for http://host/... => /group/project/...
-	if d.tryFile(w, r, d.projectName, "", r.URL.Path) == nil {
+	if d.tryFile(w, r, d.projectName, r.URL.Path) == nil {
 		return
 	}
 
