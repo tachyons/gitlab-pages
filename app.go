@@ -184,15 +184,15 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	// Serve static file, applying CORS headers if necessary
 	if a.DisableCrossOriginRequests {
-		a.serveFileOrNotFound(domain, &w, r)
+		a.serveFileOrNotFound(domain)(&w, r)
 	} else {
-		corsHandler.ServeHTTP(&w, r, a.serveFileOrNotFound(domain, &w, r))
+		corsHandler.ServeHTTP(&w, r, a.serveFileOrNotFound(domain))
 	}
 
 	metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
 }
 
-func (a *theApp) serveFileOrNotFound(domain *domain.D, ww http.ResponseWriter, r *http.Request) http.HandlerFunc {
+func (a *theApp) serveFileOrNotFound(domain *domain.D) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fileServed := domain.ServeFileHTTP(w, r)
 
@@ -202,11 +202,11 @@ func (a *theApp) serveFileOrNotFound(domain *domain.D, ww http.ResponseWriter, r
 			// namespace project is public.
 			if domain.IsNamespaceProject(r) {
 
-				if a.Auth.CheckAuthenticationWithoutProject(ww, r) {
+				if a.Auth.CheckAuthenticationWithoutProject(w, r) {
 					return
 				}
 
-				httperrors.Serve404(ww)
+				httperrors.Serve404(w)
 				return
 			}
 
