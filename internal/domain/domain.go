@@ -372,7 +372,6 @@ func (d *D) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (d *D) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
-	// The Path always contains "/" at the beginning
 	project, projectName, _ := d.getProjectWithSubpath(r)
 	if project == nil {
 		httperrors.Serve404(w)
@@ -447,9 +446,9 @@ func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if d.config != nil {
 		d.serveNotFoundFromConfig(w, r)
+	} else {
+		d.serveNotFoundFromGroup(w, r)
 	}
-
-	d.serveNotFoundFromGroup(w, r)
 }
 
 func endsWithSlash(path string) bool {

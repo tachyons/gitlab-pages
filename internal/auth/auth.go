@@ -59,7 +59,7 @@ func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 	if session != nil {
 		// Cookie just for this domain
 		session.Options = &sessions.Options{
-			Path:   "/",
+			Path: "/",
 		}
 	}
 
@@ -75,7 +75,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 		// Save cookie again
 		errsave := session.Save(r, w)
 		if errsave != nil {
-			log.WithError(errsave).Error("Failed to save the session")
+			logRequest(r).WithError(errsave).Error("Failed to save the session")
 			httperrors.Serve500(w)
 			return nil, errsave
 		}
@@ -104,7 +104,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain
 		return false
 	}
 
-	log.Debug("Authentication callback")
+	logRequest(r).Debug("Authentication callback")
 
 	if a.handleProxyingAuth(session, w, r, dm, lock) {
 		return true
@@ -113,7 +113,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain
 	// If callback is not successful
 	errorParam := r.URL.Query().Get("error")
 	if errorParam != "" {
-		log.WithField("error", errorParam).Debug("OAuth endpoint returned error")
+		logRequest(r).WithField("error", errorParam).Debug("OAuth endpoint returned error")
 
 		httperrors.Serve401(w)
 		return true
@@ -131,7 +131,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 
 	if !validateState(r, session) {
 		// State is NOT ok
-		log.Debug("Authentication state did not match expected")
+		logRequest(r).Debug("Authentication state did not match expected")
 
 		httperrors.Serve401(w)
 		return
@@ -142,7 +142,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 
 	// Fetching token not OK
 	if err != nil {
-		log.WithError(err).Debug("Fetching access token failed")
+		logRequest(r).WithError(err).Debug("Fetching access token failed")
 
 		httperrors.Serve503(w)
 		return
@@ -152,13 +152,13 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	session.Values["access_token"] = token.AccessToken
 	err = session.Save(r, w)
 	if err != nil {
-		log.WithError(err).Error("Failed to save the session")
+		logRequest(r).WithError(err).Error("Failed to save the session")
 		httperrors.Serve500(w)
 		return
 	}
 
 	// Redirect back to requested URI
-	log.Debug("Authentication was successful, redirecting user back to requested page")
+	logRequest(r).Debug("Authentication was successful, redirecting user back to requested page")
 
 	http.Redirect(w, r, session.Values["uri"].(string), 302)
 }
@@ -166,8 +166,9 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 func (a *Auth) domainAllowed(domain string, dm domain.Map, lock *sync.RWMutex) bool {
 	lock.RLock()
 	defer lock.RUnlock()
+	domain = strings.ToLower(domain)
 	_, present := dm[domain]
-	return strings.HasSuffix(strings.ToLower(domain), a.pagesDomain) || present
+	return domain == a.pagesDomain || strings.HasSuffix("."+domain, a.pagesDomain) || present
 }
 
 func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
@@ -178,7 +179,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 
 		proxyurl, err := url.Parse(domain)
 		if err != nil {
-			log.WithField("domain", domain).Error("Failed to parse domain query parameter")
+			logRequest(r).WithField("domain", domain).Error("Failed to parse domain query parameter")
 			httperrors.Serve500(w)
 			return true
 		}
@@ -188,18 +189,18 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		}
 
 		if !a.domainAllowed(host, dm, lock) {
-			log.WithField("domain", host).Debug("Domain is not configured")
+			logRequest(r).WithField("domain", host).Debug("Domain is not configured")
 			httperrors.Serve401(w)
 			return true
 		}
 
-		log.WithField("domain", domain).Debug("User is authenticating via domain")
+		logRequest(r).WithField("domain", domain).Debug("User is authenticating via domain")
 
 		session.Values["proxy_auth_domain"] = domain
 
 		err = session.Save(r, w)
 		if err != nil {
-			log.WithError(err).Error("Failed to save the session")
+			logRequest(r).WithError(err).Error("Failed to save the session")
 			httperrors.Serve500(w)
 			return true
 		}
@@ -213,7 +214,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 	// If auth request callback should be proxied to custom domain
 	if shouldProxyCallbackToCustomDomain(r, session) {
 		// Auth request is from custom domain, proxy callback there
-		log.Debug("Redirecting auth callback to custom domain")
+		logRequest(r).Debug("Redirecting auth callback to custom domain")
 
 		// Store access token
 		proxyDomain := session.Values["proxy_auth_domain"].(string)
@@ -222,7 +223,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		delete(session.Values, "proxy_auth_domain")
 		err := session.Save(r, w)
 		if err != nil {
-			log.WithError(err).Error("Failed to save the session")
+			logRequest(r).WithError(err).Error("Failed to save the session")
 			httperrors.Serve500(w)
 			return true
 		}
@@ -315,7 +316,7 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
 	// If no access token redirect to OAuth login page
 	if session.Values["access_token"] == nil {
-		log.Debug("No access token exists, redirecting user to OAuth2 login")
+		logRequest(r).Debug("No access token exists, redirecting user to OAuth2 login")
 
 		// Generate state hash and store requested address
 		state := base64.URLEncoding.EncodeToString(securecookie.GenerateRandomKey(16))
@@ -327,7 +328,7 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 
 		err := session.Save(r, w)
 		if err != nil {
-			log.WithError(err).Error("Failed to save the session")
+			logRequest(r).WithError(err).Error("Failed to save the session")
 			httperrors.Serve500(w)
 			return true
 		}
@@ -346,13 +347,13 @@ func (a *Auth) getProxyAddress(r *http.Request, state string) string {
 }
 
 func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
-	log.Debug("Destroying session")
+	logRequest(r).Debug("Destroying session")
 
 	// Invalidate access token and redirect back for refreshing and re-authenticating
 	delete(session.Values, "access_token")
 	err := session.Save(r, w)
 	if err != nil {
-		log.WithError(err).Error("Failed to save the session")
+		logRequest(r).WithError(err).Error("Failed to save the session")
 		httperrors.Serve500(w)
 		return
 	}
@@ -390,7 +391,7 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
-		log.WithError(err).Debug("Failed to authenticate request")
+		logRequest(r).WithError(err).Debug("Failed to authenticate request")
 
 		httperrors.Serve500(w)
 		return true
@@ -400,7 +401,7 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	resp, err := a.apiClient.Do(req)
 
 	if checkResponseForInvalidToken(resp, err) {
-		log.Debug("Access token was invalid, destroying session")
+		logRequest(r).Debug("Access token was invalid, destroying session")
 
 		destroySession(session, w, r)
 		return true
@@ -409,7 +410,7 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	if err != nil || resp.StatusCode != 200 {
 		// We return 404 if for some reason token is not valid to avoid (not) existence leak
 		if err != nil {
-			log.WithError(err).Debug("Failed to retrieve info with token")
+			logRequest(r).WithError(err).Debug("Failed to retrieve info with token")
 		}
 
 		httperrors.Serve404(w)
@@ -423,7 +424,7 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
 
 	if a == nil {
-		log.Debug("Authentication is not configured")
+		logRequest(r).Debug("Authentication is not configured")
 		httperrors.Serve500(w)
 		return true
 	}
@@ -450,7 +451,7 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 	resp, err := a.apiClient.Do(req)
 
 	if checkResponseForInvalidToken(resp, err) {
-		log.Debug("Access token was invalid, destroying session")
+		logRequest(r).Debug("Access token was invalid, destroying session")
 
 		destroySession(session, w, r)
 		return true
@@ -458,7 +459,7 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 
 	if err != nil || resp.StatusCode != 200 {
 		if err != nil {
-			log.WithError(err).Debug("Failed to retrieve info with token")
+			logRequest(r).WithError(err).Debug("Failed to retrieve info with token")
 		}
 
 		// We return 404 if user has no access to avoid user knowing if the pages really existed or not
@@ -487,6 +488,13 @@ func checkResponseForInvalidToken(resp *http.Response, err error) bool {
 	}
 
 	return false
+}
+
+func logRequest(r *http.Request) *log.Entry {
+	return log.WithFields(log.Fields{
+		"host": r.Host,
+		"path": r.RequestURI,
+	})
 }
 
 // New when authentication supported this will be used to create authentication handler
