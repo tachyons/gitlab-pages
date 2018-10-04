@@ -59,7 +59,8 @@ func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 	if session != nil {
 		// Cookie just for this domain
 		session.Options = &sessions.Options{
-			Path: "/",
+			Path:     "/",
+			HttpOnly: true,
 		}
 	}
 
