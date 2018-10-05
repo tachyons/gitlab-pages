@@ -14,6 +14,13 @@ type content struct {
 }
 
 var (
+	content401 = content{
+		http.StatusUnauthorized,
+		"Unauthorized (401)",
+		"401",
+		"You don't have permission to access the resource.",
+		`<p>The resource that you are attempting to access is protected and you don't have the necessary permissions to view it.</p>`,
+	}
 	content404 = content{
 		http.StatusNotFound,
 		"The page you're looking for could not be found (404)",
@@ -153,6 +160,11 @@ func serveErrorPage(w http.ResponseWriter, c content) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(c.status)
 	fmt.Fprintln(w, generateErrorHTML(c))
+}
+
+// Serve401 returns a 401 error response / HTML page to the http.ResponseWriter
+func Serve401(w http.ResponseWriter) {
+	serveErrorPage(w, content401)
 }
 
 // Serve404 returns a 404 error response / HTML page to the http.ResponseWriter

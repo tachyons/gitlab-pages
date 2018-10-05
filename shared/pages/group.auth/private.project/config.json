@@ -1,0 +1,10 @@
+{ "domains": [
+    {
+      "domain": "private.domain.com",
+      "id": 1000,
+      "access_control": true
+    }
+  ],
+  "id": 1000,
+  "access_control": true
+}

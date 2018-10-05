@@ -1,4 +1,4 @@
-package artifact
+package httptransport
 
 import (
 	"crypto/tls"
@@ -16,7 +16,8 @@ var (
 	sysPoolOnce = &sync.Once{}
 	sysPool     *x509.CertPool
 
-	transport = &http.Transport{
+	// Transport can be used with httpclient with TLS and certificates
+	Transport = &http.Transport{
 		DialTLS: func(network, addr string) (net.Conn, error) {
 			return tls.Dial(network, addr, &tls.Config{RootCAs: pool()})
 		},

@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gorilla/context"
 	"golang.org/x/net/http2"
 )
 
@@ -29,7 +30,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 
 func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConfig *tls.Config) error {
 	// create server
-	server := &http.Server{Handler: handler, TLSConfig: tlsConfig}
+	server := &http.Server{Handler: context.ClearHandler(handler), TLSConfig: tlsConfig}
 
 	if useHTTP2 {
 		err := http2.ConfigureServer(server, &http2.Server{})

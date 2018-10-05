@@ -25,7 +25,10 @@ type locationDirectoryError struct {
 }
 
 type project struct {
-	HTTPSOnly bool
+	NamespaceProject bool
+	HTTPSOnly        bool
+	AccessControl    bool
+	ID               uint64
 }
 
 type projects map[string]*project
@@ -151,6 +154,79 @@ func (d *D) IsHTTPSOnly(r *http.Request) bool {
 	return false
 }
 
+// IsAccessControlEnabled figures out if the request is to a project that has access control enabled
+func (d *D) IsAccessControlEnabled(r *http.Request) bool {
+	if d == nil {
+		return false
+	}
+
+	// Check custom domain config (e.g. http://example.com)
+	if d.config != nil {
+		return d.config.AccessControl
+	}
+
+	// Check projects served under the group domain, including the default one
+	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
+		return project.AccessControl
+	}
+
+	return false
+}
+
+// IsNamespaceProject figures out if the request is to a namespace project
+func (d *D) IsNamespaceProject(r *http.Request) bool {
+	if d == nil {
+		return false
+	}
+
+	// If request is to a custom domain, we do not handle it as a namespace project
+	// as there can't be multiple projects under the same custom domain
+	if d.config != nil {
+		return false
+	}
+
+	// Check projects served under the group domain, including the default one
+	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
+		return project.NamespaceProject
+	}
+
+	return false
+}
+
+// GetID figures out what is the ID of the project user tries to access
+func (d *D) GetID(r *http.Request) uint64 {
+	if d == nil {
+		return 0
+	}
+
+	if d.config != nil {
+		return d.config.ID
+	}
+
+	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
+		return project.ID
+	}
+
+	return 0
+}
+
+// HasProject figures out if the project exists that the user tries to access
+func (d *D) HasProject(r *http.Request) bool {
+	if d == nil {
+		return false
+	}
+
+	if d.config != nil {
+		return true
+	}
+
+	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
+		return true
+	}
+
+	return false
+}
+
 func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
 	fullPath := handleGZip(w, r, origPath)
 
@@ -165,9 +241,11 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 		return err
 	}
 
-	// Set caching headers
-	w.Header().Set("Cache-Control", "max-age=600")
-	w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
+	if !d.IsAccessControlEnabled(r) {
+		// Set caching headers
+		w.Header().Set("Cache-Control", "max-age=600")
+		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
+	}
 
 	// ServeContent sets Content-Type for us
 	http.ServeContent(w, r, origPath, fi.ModTime(), file)
@@ -279,20 +357,26 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, 
 	return d.serveFile(w, r, fullPath)
 }
 
-func (d *D) serveFromGroup(w http.ResponseWriter, r *http.Request) {
+func (d *D) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool {
 	project, projectName, subPath := d.getProjectWithSubpath(r)
+	if project == nil {
+		httperrors.Serve404(w)
+		return true
+	}
+
+	if d.tryFile(w, r, projectName, subPath) == nil {
+		return true
+	}
+
+	return false
+}
+
+func (d *D) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
+	project, projectName, _ := d.getProjectWithSubpath(r)
 	if project == nil {
 		httperrors.Serve404(w)
 		return
 	}
-
-	if d.tryFile(w, r, projectName, subPath) == nil {
-		return
-	}
-
-	// FIXME: In the public namespace project case, since we only serve these
-	// 404s if the project does not exist, they will reveal the existence of
-	// private projects once access control is implemented.
 
 	// Try serving custom not-found page
 	if d.tryNotFound(w, r, projectName) == nil {
@@ -303,12 +387,16 @@ func (d *D) serveFromGroup(w http.ResponseWriter, r *http.Request) {
 	httperrors.Serve404(w)
 }
 
-func (d *D) serveFromConfig(w http.ResponseWriter, r *http.Request) {
+func (d *D) serveFileFromConfig(w http.ResponseWriter, r *http.Request) bool {
 	// Try to serve file for http://host/... => /group/project/...
 	if d.tryFile(w, r, d.projectName, r.URL.Path) == nil {
-		return
+		return true
 	}
 
+	return false
+}
+
+func (d *D) serveNotFoundFromConfig(w http.ResponseWriter, r *http.Request) {
 	// Try serving not found page for http://host/ => /group/project/404.html
 	if d.tryNotFound(w, r, d.projectName) == nil {
 		return
@@ -335,12 +423,31 @@ func (d *D) EnsureCertificate() (*tls.Certificate, error) {
 	return d.certificate, d.certificateError
 }
 
-// ServeHTTP implements http.Handler.
-func (d *D) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// ServeFileHTTP implements http.Handler. Returns true if something was served, false if not.
+func (d *D) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
+	if d == nil {
+		httperrors.Serve404(w)
+		return true
+	}
+
 	if d.config != nil {
-		d.serveFromConfig(w, r)
+		return d.serveFileFromConfig(w, r)
+	}
+
+	return d.serveFileFromGroup(w, r)
+}
+
+// ServeNotFoundHTTP implements http.Handler. Serves the not found pages from the projects.
+func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
+	if d == nil {
+		httperrors.Serve404(w)
+		return
+	}
+
+	if d.config != nil {
+		d.serveNotFoundFromConfig(w, r)
 	} else {
-		d.serveFromGroup(w, r)
+		d.serveNotFoundFromGroup(w, r)
 	}
 }
 

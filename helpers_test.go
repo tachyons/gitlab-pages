@@ -144,6 +144,30 @@ func RunPagesProcessWithSSLCertFile(t *testing.T, pagesPath string, listeners []
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
 }
 
+func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) (teardown func()) {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server=https://gitlab-auth.com",
+		"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+}
+
+func RunPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, authServer string) (teardown func()) {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server="+authServer,
+		"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+}
+
+func RunPagesProcessWithAuthServerWithSSL(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) (teardown func()) {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, "-auth-client-id=1",
+		"-auth-client-secret=1",
+		"-auth-server="+authServer,
+		"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
+		"-auth-secret=something-very-secret")
+}
+
 func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (teardown func()) {
 	_, err := os.Stat(pagesPath)
 	require.NoError(t, err)
@@ -248,10 +272,17 @@ func getPagesDaemonArgs(t *testing.T) []string {
 // Does a HTTP(S) GET against the listener specified, setting a fake
 // Host: and constructing the URL from the listener and the URL suffix.
 func GetPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
+	return GetPageFromListenerWithCookie(t, spec, host, urlsuffix, "")
+}
+
+func GetPageFromListenerWithCookie(t *testing.T, spec ListenSpec, host, urlsuffix string, cookie string) (*http.Response, error) {
 	url := spec.URL(urlsuffix)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
+	}
+	if cookie != "" {
+		req.Header.Set("Cookie", cookie)
 	}
 
 	req.Host = host
@@ -279,10 +310,17 @@ func DoPagesRequest(t *testing.T, req *http.Request) (*http.Response, error) {
 }
 
 func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
+	return GetRedirectPageWithCookie(t, spec, host, urlsuffix, "")
+}
+
+func GetRedirectPageWithCookie(t *testing.T, spec ListenSpec, host, urlsuffix string, cookie string) (*http.Response, error) {
 	url := spec.URL(urlsuffix)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
+	}
+	if cookie != "" {
+		req.Header.Set("Cookie", cookie)
 	}
 
 	req.Host = host

@@ -19,6 +19,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -39,6 +40,7 @@ type theApp struct {
 	dm       domain.Map
 	lock     sync.RWMutex
 	Artifact *artifact.Artifact
+	Auth     *auth.Auth
 }
 
 func (a *theApp) isReady() bool {
@@ -92,6 +94,32 @@ func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.
 	return host, a.domain(host)
 }
 
+func (a *theApp) checkAuthenticationIfNotExists(domain *domain.D, w http.ResponseWriter, r *http.Request) bool {
+	if domain == nil || !domain.HasProject(r) {
+
+		// Only if auth is supported
+		if a.Auth.IsAuthSupported() {
+
+			// To avoid user knowing if pages exist, we will force user to login and authorize pages
+			if a.Auth.CheckAuthenticationWithoutProject(w, r) {
+				return true
+			}
+
+			// User is authenticated, show the 404
+			httperrors.Serve404(w)
+			return true
+		}
+	}
+
+	// Without auth, fall back to 404
+	if domain == nil {
+		httperrors.Serve404(w)
+		return true
+	}
+
+	return false
+}
+
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.D) bool {
 	// short circuit content serving to check for a status page
 	if r.RequestURI == a.appConfig.StatusPath {
@@ -116,8 +144,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if domain == nil {
-		httperrors.Serve404(w)
+	if a.checkAuthenticationIfNotExists(domain, w, r) {
 		return true
 	}
 
@@ -138,18 +165,57 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	host, domain := a.getHostAndDomain(r)
 
+	if a.Auth.TryAuthenticate(&w, r, a.dm, &a.lock) {
+		return
+	}
+
 	if a.tryAuxiliaryHandlers(&w, r, https, host, domain) {
 		return
 	}
 
+	// Only for projects that have access control enabled
+	if domain.IsAccessControlEnabled(r) {
+		log.WithFields(log.Fields{
+			"host": r.Host,
+			"path": r.RequestURI,
+		}).Debug("Authenticate request")
+
+		if a.Auth.CheckAuthentication(&w, r, domain.GetID(r)) {
+			return
+		}
+	}
+
 	// Serve static file, applying CORS headers if necessary
 	if a.DisableCrossOriginRequests {
-		domain.ServeHTTP(&w, r)
+		a.serveFileOrNotFound(domain)(&w, r)
 	} else {
-		corsHandler.ServeHTTP(&w, r, domain.ServeHTTP)
+		corsHandler.ServeHTTP(&w, r, a.serveFileOrNotFound(domain))
 	}
 
 	metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
+}
+
+func (a *theApp) serveFileOrNotFound(domain *domain.D) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fileServed := domain.ServeFileHTTP(w, r)
+
+		if !fileServed {
+			// We need to trigger authentication flow here if file does not exist to prevent exposing possibly private project existence,
+			// because the projects override the paths of the namespace project and they might be private even though
+			// namespace project is public.
+			if domain.IsNamespaceProject(r) {
+
+				if a.Auth.CheckAuthenticationWithoutProject(w, r) {
+					return
+				}
+
+				httperrors.Serve404(w)
+				return
+			}
+
+			domain.ServeNotFoundHTTP(w, r)
+		}
+	}
 }
 
 func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
@@ -289,6 +355,11 @@ func runApp(config appConfig) {
 
 	if config.ArtifactsServer != "" {
 		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
+	}
+
+	if config.ClientID != "" {
+		a.Auth = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
+			config.RedirectURI, config.GitLabServer)
 	}
 
 	configureLogging(config.LogFormat, config.LogVerbose)

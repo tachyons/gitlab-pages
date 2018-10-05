@@ -8,15 +8,19 @@ import (
 )
 
 type domainConfig struct {
-	Domain      string
-	Certificate string
-	Key         string
-	HTTPSOnly   bool `json:"https_only"`
+	Domain        string
+	Certificate   string
+	Key           string
+	HTTPSOnly     bool   `json:"https_only"`
+	ID            uint64 `json:"id"`
+	AccessControl bool   `json:"access_control"`
 }
 
 type domainsConfig struct {
-	Domains   []domainConfig
-	HTTPSOnly bool `json:"https_only"`
+	Domains       []domainConfig
+	HTTPSOnly     bool   `json:"https_only"`
+	ID            uint64 `json:"id"`
+	AccessControl bool   `json:"access_control"`
 }
 
 func (c *domainConfig) Valid(rootDomain string) bool {

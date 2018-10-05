@@ -46,7 +46,7 @@ func (dm Map) addDomain(rootDomain, group, projectName string, config *domainCon
 	dm.updateDomainMap(domainName, newDomain)
 }
 
-func (dm Map) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool) {
+func (dm Map) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool, accessControl bool, id uint64) {
 	domainName := strings.ToLower(group + "." + rootDomain)
 	groupDomain := dm[domainName]
 
@@ -58,7 +58,10 @@ func (dm Map) updateGroupDomain(rootDomain, group, projectName string, httpsOnly
 	}
 
 	groupDomain.projects[strings.ToLower(projectName)] = &project{
-		HTTPSOnly: httpsOnly,
+		NamespaceProject: domainName == strings.ToLower(projectName),
+		HTTPSOnly:        httpsOnly,
+		AccessControl:    accessControl,
+		ID:               id,
 	}
 
 	dm[domainName] = groupDomain
@@ -69,11 +72,11 @@ func (dm Map) readProjectConfig(rootDomain string, group, projectName string, co
 		// This is necessary to preserve the previous behaviour where a
 		// group domain is created even if no config.json files are
 		// loaded successfully. Is it safe to remove this?
-		dm.updateGroupDomain(rootDomain, group, projectName, false)
+		dm.updateGroupDomain(rootDomain, group, projectName, false, false, 0)
 		return
 	}
 
-	dm.updateGroupDomain(rootDomain, group, projectName, config.HTTPSOnly)
+	dm.updateGroupDomain(rootDomain, group, projectName, config.HTTPSOnly, config.AccessControl, config.ID)
 
 	for _, domainConfig := range config.Domains {
 		config := domainConfig // domainConfig is reused for each loop iteration

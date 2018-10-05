@@ -25,4 +25,10 @@ type appConfig struct {
 
 	LogFormat  string
 	LogVerbose bool
+
+	StoreSecret  string
+	GitLabServer string
+	ClientID     string
+	ClientSecret string
+	RedirectURI  string
 }
