@@ -1,3 +1,7 @@
+v 1.2.0
+- Stop serving shadowed namespace project files !111
+- Make GitLab pages support access control !94
+
 v 1.1.0
 - Fix HTTP to HTTPS redirection not working for default domains !106
 - Log duplicate domain names !107
