@@ -103,12 +103,43 @@ func TestKnownHostReturns200(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
-	for _, spec := range listeners {
-		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com", "project/")
+	tests := []struct {
+		name string
+		host string
+		path string
+	}{
+		{
+			name: "lower case",
+			host: "group.gitlab-example.com",
+			path: "project/",
+		},
+		{
+			name: "capital project",
+			host: "group.gitlab-example.com",
+			path: "CapitalProject/",
+		},
+		{
+			name: "capital group",
+			host: "CapitalGroup.gitlab-example.com",
+			path: "project/",
+		},
+		{
+			name: "capital group and project",
+			host: "CapitalGroup.gitlab-example.com",
+			path: "CapitalProject/",
+		},
+	}
 
-		require.NoError(t, err)
-		rsp.Body.Close()
-		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			for _, spec := range listeners {
+				rsp, err := GetPageFromListener(t, spec, test.host, test.path)
+
+				require.NoError(t, err)
+				rsp.Body.Close()
+				assert.Equal(t, http.StatusOK, rsp.StatusCode)
+			}
+		})
 	}
 }
 
@@ -298,7 +329,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		assert.Contains(t, string(body), "gitlab_pages_http_sessions_active 0")
-		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 13")
+		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 14")
 	}
 }
 
