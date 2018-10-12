@@ -7,7 +7,7 @@ ifneq (v$(VERSION),$(LAST_TAG))
 	VERSION := $(shell echo $(VERSION)~beta.$(COMMITS).g$(REVISION))
 endif
 
-VERSION_FLAGS := -ldflags='-X "main.Version=$(VERSION)" -X "main.REVISION=$(REVISION)"'
+VERSION_FLAGS := -ldflags='-X "main.VERSION=$(VERSION)" -X "main.REVISION=$(REVISION)"'
 
 # cd into the GOPATH to workaround ./... not following symlinks
 _allpackages = $(shell ( cd $(CURDIR)/.GOPATH/src/$(IMPORT_PATH) && \
