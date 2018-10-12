@@ -118,7 +118,8 @@ func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
 	// If present, these projects shadow the group domain.
 	split := strings.SplitN(r.URL.Path, "/", 3)
 	if len(split) >= 2 {
-		if project := d.projects[split[1]]; project != nil {
+		projectName := strings.ToLower(split[1])
+		if project := d.projects[projectName]; project != nil {
 			return project, split[1], strings.Join(split[2:], "/")
 		}
 	}
