@@ -10,25 +10,35 @@ import (
 
 	"github.com/gorilla/context"
 	"golang.org/x/net/http2"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 )
 
 type tlsHandlerFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 
-type tcpKeepAliveListener struct {
-	*net.TCPListener
+type keepAliveListener struct {
+	net.Listener
 }
 
-func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
-	tc, err := ln.AcceptTCP()
+type keepAliveSetter interface {
+	SetKeepAlive(bool) error
+	SetKeepAlivePeriod(time.Duration) error
+}
+
+func (ln *keepAliveListener) Accept() (net.Conn, error) {
+	conn, err := ln.Listener.Accept()
 	if err != nil {
-		return
+		return nil, err
 	}
-	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(3 * time.Minute)
-	return tc, nil
+
+	kc := conn.(keepAliveSetter)
+	kc.SetKeepAlive(true)
+	kc.SetKeepAlivePeriod(3 * time.Minute)
+
+	return conn, nil
 }
 
-func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConfig *tls.Config) error {
+func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConfig *tls.Config, limiter *netutil.Limiter) error {
 	// create server
 	server := &http.Server{Handler: context.ClearHandler(handler), TLSConfig: tlsConfig}
 
@@ -44,14 +54,18 @@ func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConf
 		return fmt.Errorf("failed to listen on FD %d: %v", fd, err)
 	}
 
+	if limiter != nil {
+		l = netutil.SharedLimitListener(l, limiter)
+	}
+
 	if tlsConfig != nil {
-		tlsListener := tls.NewListener(tcpKeepAliveListener{l.(*net.TCPListener)}, server.TLSConfig)
+		tlsListener := tls.NewListener(&keepAliveListener{l}, server.TLSConfig)
 		return server.Serve(tlsListener)
 	}
-	return server.Serve(&tcpKeepAliveListener{l.(*net.TCPListener)})
+	return server.Serve(&keepAliveListener{l})
 }
 
-func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, tlsHandler tlsHandlerFunc, useHTTP2 bool) error {
+func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, tlsHandler tlsHandlerFunc, useHTTP2 bool, limiter *netutil.Limiter) error {
 	certificate, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		return err
@@ -62,5 +76,5 @@ func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, t
 	tlsConfig.Certificates = []tls.Certificate{
 		certificate,
 	}
-	return listenAndServe(fd, handler, useHTTP2, tlsConfig)
+	return listenAndServe(fd, handler, useHTTP2, tlsConfig, limiter)
 }
