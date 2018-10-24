@@ -27,6 +27,7 @@ var (
 )
 
 func TestAdminUnixPermissions(t *testing.T) {
+	skipUnlessEnabled(t)
 	socketPath := "admin.socket"
 	// Use "../../" because the pages executable cd's into shared/pages
 	adminArgs := append(adminSecretArgs, "-admin-unix-listener", "../../"+socketPath)
@@ -42,6 +43,7 @@ func TestAdminUnixPermissions(t *testing.T) {
 }
 
 func TestAdminHealthCheckUnix(t *testing.T) {
+	skipUnlessEnabled(t)
 	socketPath := "admin.socket"
 	// Use "../../" because the pages executable cd's into shared/pages
 	adminArgs := append(adminSecretArgs, "-admin-unix-listener", "../../"+socketPath)
@@ -92,6 +94,7 @@ func TestAdminHealthCheckUnix(t *testing.T) {
 }
 
 func TestAdminHealthCheckHTTPS(t *testing.T) {
+	skipUnlessEnabled(t)
 	key, cert := CreateHTTPSFixtureFiles(t)
 	creds, err := credentials.NewClientTLSFromFile(cert, "")
 	require.NoError(t, err, "grpc client credentials")
