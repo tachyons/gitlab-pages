@@ -3,7 +3,7 @@
 verify: list fmt vet lint complexity
 
 fmt: bin/goimports .GOPATH/.ok
-	$Q ./bin/goimports -l $(allfiles) | awk '{ print } END { if (NR>1) { print "Please run go fmt"; exit 1 } }'
+	$Q @./bin/goimports -local $(IMPORT_PATH) -l $(allfiles) | awk '{ print } END { if (NR>0) { print "Please run ./bin/goimports -w -local $(IMPORT_PATH) -l $(allfiles)"; exit 1 } }'
 
 vet: .GOPATH/.ok
 	$Q go vet $(allpackages)

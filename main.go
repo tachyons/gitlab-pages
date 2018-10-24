@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/namsral/flag"
-
 	log "github.com/sirupsen/logrus"
 )
 
