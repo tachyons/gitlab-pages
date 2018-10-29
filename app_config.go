@@ -9,6 +9,7 @@ type appConfig struct {
 	AdminCertificate       []byte
 	AdminKey               []byte
 	AdminToken             []byte
+	MaxConns               int
 
 	ListenHTTP       []uintptr
 	ListenHTTPS      []uintptr

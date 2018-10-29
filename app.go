@@ -22,6 +22,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -243,12 +244,14 @@ func (a *theApp) UpdateDomains(dm domain.Map) {
 func (a *theApp) Run() {
 	var wg sync.WaitGroup
 
+	limiter := netutil.NewLimiter(a.MaxConns)
+
 	// Listen for HTTP
 	for _, fd := range a.ListenHTTP {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(fd, a.ServeHTTP, a.HTTP2, nil)
+			err := listenAndServe(fd, a.ServeHTTP, a.HTTP2, nil, limiter)
 			if err != nil {
 				fatal(err)
 			}
@@ -260,7 +263,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.HTTP2)
+			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.HTTP2, limiter)
 			if err != nil {
 				fatal(err)
 			}
@@ -272,7 +275,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(fd, a.ServeProxy, a.HTTP2, nil)
+			err := listenAndServe(fd, a.ServeProxy, a.HTTP2, nil, limiter)
 			if err != nil {
 				fatal(err)
 			}
@@ -286,7 +289,7 @@ func (a *theApp) Run() {
 			defer wg.Done()
 
 			handler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP
-			err := listenAndServe(fd, handler, false, nil)
+			err := listenAndServe(fd, handler, false, nil, nil)
 			if err != nil {
 				fatal(err)
 			}

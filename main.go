@@ -50,6 +50,7 @@ var (
 	clientID               = flag.String("auth-client-id", "", "GitLab application Client ID")
 	clientSecret           = flag.String("auth-client-secret", "", "GitLab application Client Secret")
 	redirectURI            = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
+	maxConns               = flag.Uint("max-conns", 5000, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners")
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
@@ -80,6 +81,7 @@ func configFromFlags() appConfig {
 	config.StatusPath = *pagesStatus
 	config.LogFormat = *logFormat
 	config.LogVerbose = *logVerbose
+	config.MaxConns = int(*maxConns)
 
 	for _, file := range []struct {
 		contents *[]byte
