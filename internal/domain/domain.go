@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
@@ -231,7 +233,7 @@ func (d *D) HasProject(r *http.Request) bool {
 func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
 	fullPath := handleGZip(w, r, origPath)
 
-	file, err := os.Open(fullPath)
+	file, err := openNoFollow(fullPath)
 	if err != nil {
 		return err
 	}
@@ -257,7 +259,7 @@ func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, or
 	fullPath := handleGZip(w, r, origPath)
 
 	// Open and serve content of file
-	file, err := os.Open(fullPath)
+	file, err := openNoFollow(fullPath)
 	if err != nil {
 		return err
 	}
@@ -454,4 +456,8 @@ func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 
 func endsWithSlash(path string) bool {
 	return strings.HasSuffix(path, "/")
+}
+
+func openNoFollow(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_RDONLY|unix.O_NOFOLLOW, 0)
 }
