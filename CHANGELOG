@@ -1,3 +1,6 @@
+v 1.2.2
+- Fix TOCTOU race condition when serving files
+
 v 1.2.1
 -  Fix 404 for project with capital letters !114
 
