@@ -1,3 +1,6 @@
+v 1.1.1
+- Fix TOCTOU race condition when serving files
+
 v 1.1.0
 - Fix HTTP to HTTPS redirection not working for default domains !106
 - Log duplicate domain names !107
