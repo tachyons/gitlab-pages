@@ -30,13 +30,15 @@ func TestGroupServeHTTP(t *testing.T) {
 	setUpTests()
 
 	testGroup := &D{
-		group:       "group",
 		projectName: "",
-		projects: map[string]*project{
-			"group.test.io":            &project{},
-			"group.gitlab-example.com": &project{},
-			"project":                  &project{},
-			"project2":                 &project{},
+		group: group{
+			name: "group",
+			projects: map[string]*project{
+				"group.test.io":            &project{},
+				"group.gitlab-example.com": &project{},
+				"project":                  &project{},
+				"project2":                 &project{},
+			},
 		},
 	}
 
@@ -67,7 +69,7 @@ func TestDomainServeHTTP(t *testing.T) {
 	setUpTests()
 
 	testDomain := &D{
-		group:       "group",
+		group:       group{name: "group"},
 		projectName: "project2",
 		config: &domainConfig{
 			Domain: "test.domain.com",
@@ -95,7 +97,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Custom domain with HTTPS-only enabled",
 			domain: &D{
-				group:       "group",
+				group:       group{name: "group"},
 				projectName: "project",
 				config:      &domainConfig{HTTPSOnly: true},
 			},
@@ -105,7 +107,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Custom domain with HTTPS-only disabled",
 			domain: &D{
-				group:       "group",
+				group:       group{name: "group"},
 				projectName: "project",
 				config:      &domainConfig{HTTPSOnly: false},
 			},
@@ -115,9 +117,11 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Default group domain with HTTPS-only enabled",
 			domain: &D{
-				group:       "group",
 				projectName: "project",
-				projects:    projects{"test-domain": &project{HTTPSOnly: true}},
+				group: group{
+					name:     "group",
+					projects: projects{"test-domain": &project{HTTPSOnly: true}},
+				},
 			},
 			url:      "http://test-domain",
 			expected: true,
@@ -125,9 +129,11 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Default group domain with HTTPS-only disabled",
 			domain: &D{
-				group:       "group",
 				projectName: "project",
-				projects:    projects{"test-domain": &project{HTTPSOnly: false}},
+				group: group{
+					name:     "group",
+					projects: projects{"test-domain": &project{HTTPSOnly: false}},
+				},
 			},
 			url:      "http://test-domain",
 			expected: false,
@@ -135,9 +141,11 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Case-insensitive default group domain with HTTPS-only enabled",
 			domain: &D{
-				group:       "group",
 				projectName: "project",
-				projects:    projects{"test-domain": &project{HTTPSOnly: true}},
+				group: group{
+					name:     "group",
+					projects: projects{"test-domain": &project{HTTPSOnly: true}},
+				},
 			},
 			url:      "http://Test-domain",
 			expected: true,
@@ -145,9 +153,11 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Other group domain with HTTPS-only enabled",
 			domain: &D{
-				group:       "group",
 				projectName: "project",
-				projects:    projects{"project": &project{HTTPSOnly: true}},
+				group: group{
+					name:     "group",
+					projects: projects{"project": &project{HTTPSOnly: true}},
+				},
 			},
 			url:      "http://test-domain/project",
 			expected: true,
@@ -155,9 +165,11 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Other group domain with HTTPS-only disabled",
 			domain: &D{
-				group:       "group",
 				projectName: "project",
-				projects:    projects{"project": &project{HTTPSOnly: false}},
+				group: group{
+					name:     "group",
+					projects: projects{"project": &project{HTTPSOnly: false}},
+				},
 			},
 			url:      "http://test-domain/project",
 			expected: false,
@@ -165,7 +177,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Unknown project",
 			domain: &D{
-				group:       "group",
+				group:       group{name: "group"},
 				projectName: "project",
 			},
 			url:      "http://test-domain/project",
@@ -210,13 +222,15 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	setUpTests()
 
 	testGroup := &D{
-		group:       "group",
 		projectName: "",
-		projects: map[string]*project{
-			"group.test.io":            &project{},
-			"group.gitlab-example.com": &project{},
-			"project":                  &project{},
-			"project2":                 &project{},
+		group: group{
+			name: "group",
+			projects: map[string]*project{
+				"group.test.io":            &project{},
+				"group.gitlab-example.com": &project{},
+				"project":                  &project{},
+				"project2":                 &project{},
+			},
 		},
 	}
 
@@ -279,14 +293,16 @@ func TestGroup404ServeHTTP(t *testing.T) {
 	setUpTests()
 
 	testGroup := &D{
-		group:       "group.404",
 		projectName: "",
-		projects: map[string]*project{
-			"domain.404":          &project{},
-			"group.404.test.io":   &project{},
-			"project.404":         &project{},
-			"project.404.symlink": &project{},
-			"project.no.404":      &project{},
+		group: group{
+			name: "group.404",
+			projects: map[string]*project{
+				"domain.404":          &project{},
+				"group.404.test.io":   &project{},
+				"project.404":         &project{},
+				"project.404.symlink": &project{},
+				"project.no.404":      &project{},
+			},
 		},
 	}
 
@@ -305,7 +321,7 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	setUpTests()
 
 	testDomain := &D{
-		group:       "group.404",
+		group:       group{name: "group.404"},
 		projectName: "domain.404",
 		config: &domainConfig{
 			Domain: "domain.404.com",
@@ -320,7 +336,7 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 	setUpTests()
 
 	testDomain := &D{
-		group: "group",
+		group: group{name: "group"},
 	}
 
 	testHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
@@ -328,7 +344,7 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 
 func TestGroupCertificate(t *testing.T) {
 	testGroup := &D{
-		group:       "group",
+		group:       group{name: "group"},
 		projectName: "",
 	}
 
@@ -339,7 +355,7 @@ func TestGroupCertificate(t *testing.T) {
 
 func TestDomainNoCertificate(t *testing.T) {
 	testDomain := &D{
-		group:       "group",
+		group:       group{name: "group"},
 		projectName: "project2",
 		config: &domainConfig{
 			Domain: "test.domain.com",
@@ -357,7 +373,7 @@ func TestDomainNoCertificate(t *testing.T) {
 
 func TestDomainCertificate(t *testing.T) {
 	testDomain := &D{
-		group:       "group",
+		group:       group{name: "group"},
 		projectName: "project2",
 		config: &domainConfig{
 			Domain:      "test.domain.com",
@@ -373,9 +389,11 @@ func TestDomainCertificate(t *testing.T) {
 
 func TestCacheControlHeaders(t *testing.T) {
 	testGroup := &D{
-		group: "group",
-		projects: map[string]*project{
-			"group.test.io": &project{},
+		group: group{
+			name: "group",
+			projects: map[string]*project{
+				"group.test.io": &project{},
+			},
 		},
 	}
 	w := httptest.NewRecorder()

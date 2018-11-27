@@ -34,9 +34,9 @@ func (dm Map) updateDomainMap(domainName string, domain *D) {
 	dm[domainName] = domain
 }
 
-func (dm Map) addDomain(rootDomain, group, projectName string, config *domainConfig) {
+func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
 	newDomain := &D{
-		group:       group,
+		group:       group {  name: groupName },
 		projectName: projectName,
 		config:      config,
 	}
@@ -46,14 +46,16 @@ func (dm Map) addDomain(rootDomain, group, projectName string, config *domainCon
 	dm.updateDomainMap(domainName, newDomain)
 }
 
-func (dm Map) updateGroupDomain(rootDomain, group, projectName string, httpsOnly bool, accessControl bool, id uint64) {
-	domainName := strings.ToLower(group + "." + rootDomain)
+func (dm Map) updateGroupDomain(rootDomain, groupName, projectName string, httpsOnly bool, accessControl bool, id uint64) {
+	domainName := strings.ToLower(groupName + "." + rootDomain)
 	groupDomain := dm[domainName]
 
 	if groupDomain == nil {
 		groupDomain = &D{
-			group:    group,
-			projects: make(projects),
+			group:    group{
+				name: groupName,
+				projects: make(projects),
+			},
 		}
 	}
 

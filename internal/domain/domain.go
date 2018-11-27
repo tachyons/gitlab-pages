@@ -34,10 +34,18 @@ type project struct {
 }
 
 type projects map[string]*project
+type subgroups map[string]*group
+
+type group struct {
+	name string
+
+	// group domains:
+	projects projects
+}
 
 // D is a domain that gitlab-pages can serve.
 type D struct {
-	group string
+	group
 
 	// custom domains:
 	projectName string
@@ -46,19 +54,16 @@ type D struct {
 	certificate      *tls.Certificate
 	certificateError error
 	certificateOnce  sync.Once
-
-	// group domains:
-	projects projects
 }
 
 // String implements Stringer.
 func (d *D) String() string {
-	if d.group != "" && d.projectName != "" {
-		return d.group + "/" + d.projectName
+	if d.group.name != "" && d.projectName != "" {
+		return d.group.name + "/" + d.projectName
 	}
 
-	if d.group != "" {
-		return d.group
+	if d.group.name != "" {
+		return d.group.name
 	}
 
 	return d.projectName
@@ -285,7 +290,7 @@ func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, or
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
 func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
-	publicPath := filepath.Join(d.group, projectName, "public")
+	publicPath := filepath.Join(d.group.name, projectName, "public")
 
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
