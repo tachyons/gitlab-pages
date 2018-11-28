@@ -128,6 +128,11 @@ func TestKnownHostReturns200(t *testing.T) {
 			host: "CapitalGroup.gitlab-example.com",
 			path: "CapitalProject/",
 		},
+		{
+			name: "subgroup",
+			host: "group.gitlab-example.com",
+			path: "subgroup/project/",
+		},
 	}
 
 	for _, test := range tests {

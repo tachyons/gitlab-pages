@@ -70,6 +70,14 @@ func TestReadProjects(t *testing.T) {
 
 	exp2 := &domainConfig{Domain: "other.domain.com", Certificate: "test", Key: "key"}
 	assert.Equal(t, exp2, dm["other.domain.com"].config)
+
+	// check subgroups
+	domain, ok := dm["group.test.io"]
+	require.True(t, ok, "missing group.test.io domain")
+	subgroup, ok := domain.subgroups["subgroup"]
+	require.True(t, ok, "missing group.test.io subgroup")
+	_, ok = subgroup.projects["project"]
+	require.True(t, ok, "missing project for subgrup in group.test.io domain")
 }
 
 // This write must be atomic, otherwise we cannot predict the state of the

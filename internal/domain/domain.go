@@ -21,6 +21,13 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
 
+const (
+	// MaxProjectDepth is set to the maximum nested project depth in gitlab (21) plus 3.
+	// One for the project, one for the first empty element of the split (URL.Path starts with /),
+	// and one for the real file path
+	MaxProjectDepth int = 24
+)
+
 type locationDirectoryError struct {
 	FullPath     string
 	RelativePath string
@@ -31,16 +38,6 @@ type project struct {
 	HTTPSOnly        bool
 	AccessControl    bool
 	ID               uint64
-}
-
-type projects map[string]*project
-type subgroups map[string]*group
-
-type group struct {
-	name string
-
-	// group domains:
-	projects projects
 }
 
 // D is a domain that gitlab-pages can serve.
@@ -123,11 +120,11 @@ func getHost(r *http.Request) string {
 func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
 	// Check for a project specified in the URL: http://group.gitlab.io/projectA
 	// If present, these projects shadow the group domain.
-	split := strings.SplitN(r.URL.Path, "/", 3)
+	split := strings.SplitN(r.URL.Path, "/", MaxProjectDepth)
 	if len(split) >= 2 {
-		projectName := strings.ToLower(split[1])
-		if project := d.projects[projectName]; project != nil {
-			return project, split[1], strings.Join(split[2:], "/")
+		project, projectPath, urlPath := d.digProjectWithSubpath("", split[1:])
+		if project != nil {
+			return project, projectPath, urlPath
 		}
 	}
 

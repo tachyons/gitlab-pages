@@ -36,7 +36,7 @@ func (dm Map) updateDomainMap(domainName string, domain *D) {
 
 func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
 	newDomain := &D{
-		group:       group {  name: groupName },
+		group:       group{name: groupName},
 		projectName: projectName,
 		config:      config,
 	}
@@ -46,21 +46,41 @@ func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domai
 	dm.updateDomainMap(domainName, newDomain)
 }
 
-func (dm Map) updateGroupDomain(rootDomain, groupName, projectName string, httpsOnly bool, accessControl bool, id uint64) {
+func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, httpsOnly bool, accessControl bool, id uint64) {
 	domainName := strings.ToLower(groupName + "." + rootDomain)
 	groupDomain := dm[domainName]
 
 	if groupDomain == nil {
 		groupDomain = &D{
-			group:    group{
-				name: groupName,
-				projects: make(projects),
+			group: group{
+				name:      groupName,
+				projects:  make(projects),
+				subgroups: make(subgroups),
 			},
 		}
 	}
 
-	groupDomain.projects[strings.ToLower(projectName)] = &project{
-		NamespaceProject: domainName == strings.ToLower(projectName),
+	split := strings.SplitN(strings.ToLower(projectPath), "/", MaxProjectDepth)
+	projectName := split[len(split)-1]
+	g := &groupDomain.group
+
+	for i := 0; i < len(split)-1; i++ {
+		subgroupName := split[i]
+		subgroup := g.subgroups[subgroupName]
+		if subgroup == nil {
+			subgroup = &group{
+				name:      subgroupName,
+				projects:  make(projects),
+				subgroups: make(subgroups),
+			}
+			g.subgroups[subgroupName] = subgroup
+		}
+
+		g = subgroup
+	}
+
+	g.projects[projectName] = &project{
+		NamespaceProject: domainName == projectName,
 		HTTPSOnly:        httpsOnly,
 		AccessControl:    accessControl,
 		ID:               id,
@@ -88,7 +108,7 @@ func (dm Map) readProjectConfig(rootDomain string, group, projectName string, co
 	}
 }
 
-func readProject(group, projectName string, fanIn chan<- jobResult) {
+func readProject(group, parent, projectName string, fanIn chan<- jobResult) {
 	if strings.HasPrefix(projectName, ".") {
 		return
 	}
@@ -98,25 +118,32 @@ func readProject(group, projectName string, fanIn chan<- jobResult) {
 		return
 	}
 
-	if _, err := os.Lstat(filepath.Join(group, projectName, "public")); err != nil {
+	projectPath := filepath.Join(parent, projectName)
+	if _, err := os.Lstat(filepath.Join(group, projectPath, "public")); err != nil {
+		// maybe it's a subgroup
+		buf := make([]byte, 2*os.Getpagesize())
+		readProjects(group, projectPath, buf, fanIn)
+
 		return
 	}
 
 	// We read the config.json file _before_ fanning in, because it does disk
 	// IO and it does not need access to the domains map.
 	config := &domainsConfig{}
-	if err := config.Read(group, projectName); err != nil {
+	if err := config.Read(group, projectPath); err != nil {
 		config = nil
 	}
 
-	fanIn <- jobResult{group: group, project: projectName, config: config}
+	fanIn <- jobResult{group: group, project: projectPath, config: config}
 }
 
-func readProjects(group string, buf []byte, fanIn chan<- jobResult) {
-	fis, err := godirwalk.ReadDirents(group, buf)
+func readProjects(group, parent string, buf []byte, fanIn chan<- jobResult) {
+	subgroup := filepath.Join(group, parent)
+	fis, err := godirwalk.ReadDirents(subgroup, buf)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
-			"group": group,
+			"group":  group,
+			"parent": parent,
 		}).Print("readdir failed")
 		return
 	}
@@ -127,7 +154,7 @@ func readProjects(group string, buf []byte, fanIn chan<- jobResult) {
 			continue
 		}
 
-		readProject(group, project.Name(), fanIn)
+		readProject(group, parent, project.Name(), fanIn)
 	}
 }
 
@@ -151,7 +178,7 @@ func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) {
 			for group := range fanOutGroups {
 				started := time.Now()
 
-				readProjects(group, buf, fanIn)
+				readProjects(group, "", buf, fanIn)
 
 				log.WithFields(log.Fields{
 					"group":    group,
