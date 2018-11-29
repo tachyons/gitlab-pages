@@ -1,3 +1,6 @@
+v 1.3.1
+- Fix TOCTOU race condition when serving files
+
 v 1.3.0
 - Allow the maximum connection concurrency to be set !117
 - Update Prometheus vendoring to v0.9 !116
