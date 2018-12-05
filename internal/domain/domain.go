@@ -248,7 +248,18 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 	}
 
-	// ServeContent sets Content-Type for us
+	contentType := mime.TypeByExtension(filepath.Ext(origPath))
+	if contentType == "" {
+		var buf [512]byte
+		file, err := os.Open(origPath)
+		if err != nil {
+			return err
+		}
+		n, _ := io.ReadFull(file, buf[:])
+		contentType = http.DetectContentType(buf[:n])
+	}
+	w.Header().Set("Content-Type", contentType)
+
 	http.ServeContent(w, r, origPath, fi.ModTime(), file)
 	return nil
 }

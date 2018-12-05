@@ -181,7 +181,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 	}
 }
 
-func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, acceptEncoding string, str interface{}, ungzip bool) {
+func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, acceptEncoding string, str interface{}, contentType string, ungzip bool) {
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(mode, url+"?"+values.Encode(), nil)
 	require.NoError(t, err)
@@ -204,6 +204,8 @@ func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, valu
 	} else {
 		assert.Contains(t, w.Body.String(), str)
 	}
+
+	assert.Equal(t, contentType, w.Header().Get("Content-Type"))
 }
 
 func TestGroupServeHTTPGzip(t *testing.T) {
@@ -223,43 +225,50 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	testSet := []struct {
 		mode           string      // HTTP mode
 		url            string      // Test URL
-		params         url.Values  // Test URL params
 		acceptEncoding string      // Accept encoding header
 		body           interface{} // Expected body at above URL
-		ungzip         bool        // Do we expect the request to require unzip?
+		contentType    string      // Expected content-type
+		ungzip         bool        // Expect the response to be gzipped?
 	}{
 		// No gzip encoding requested
-		{"GET", "http://group.test.io/", nil, "", "main-dir", false},
-		{"GET", "http://group.test.io/", nil, "identity", "main-dir", false},
-		{"GET", "http://group.test.io/", nil, "gzip; q=0", "main-dir", false},
-		// gzip encoding requeste},
-		{"GET", "http://group.test.io/", nil, "*", "main-dir", true},
-		{"GET", "http://group.test.io/", nil, "identity, gzip", "main-dir", true},
-		{"GET", "http://group.test.io/", nil, "gzip", "main-dir", true},
-		{"GET", "http://group.test.io/", nil, "gzip; q=1", "main-dir", true},
-		{"GET", "http://group.test.io/", nil, "gzip; q=0.9", "main-dir", true},
-		{"GET", "http://group.test.io/", nil, "gzip, deflate", "main-dir", true},
-		{"GET", "http://group.test.io/", nil, "gzip; q=1, deflate", "main-dir", true},
-		{"GET", "http://group.test.io/", nil, "gzip; q=0.9, deflate", "main-dir", true},
+		{"GET", "/index.html", "", "main-dir", "text/html; charset=utf-8", false},
+		{"GET", "/index.html", "identity", "main-dir", "text/html; charset=utf-8", false},
+		{"GET", "/index.html", "gzip; q=0", "main-dir", "text/html; charset=utf-8", false},
+		// gzip encoding requested,
+		{"GET", "/index.html", "*", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "identity, gzip", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "gzip", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "gzip; q=1", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "gzip; q=0.9", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "gzip, deflate", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "gzip; q=1, deflate", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "gzip; q=0.9, deflate", "main-dir", "text/html; charset=utf-8", true},
 		// gzip encoding requested, but url does not have compressed content on disk
-		{"GET", "http://group.test.io/project2/", nil, "*", "project2-main", false},
-		{"GET", "http://group.test.io/project2/", nil, "identity, gzip", "project2-main", false},
-		{"GET", "http://group.test.io/project2/", nil, "gzip", "project2-main", false},
-		{"GET", "http://group.test.io/project2/", nil, "gzip; q=1", "project2-main", false},
-		{"GET", "http://group.test.io/project2/", nil, "gzip; q=0.9", "project2-main", false},
-		{"GET", "http://group.test.io/project2/", nil, "gzip, deflate", "project2-main", false},
-		{"GET", "http://group.test.io/project2/", nil, "gzip; q=1, deflate", "project2-main", false},
-		{"GET", "http://group.test.io/project2/", nil, "gzip; q=0.9, deflate", "project2-main", false},
+		{"GET", "/project2/index.html", "*", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "identity, gzip", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "gzip", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "gzip; q=1", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "gzip; q=0.9", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "gzip, deflate", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "gzip; q=1, deflate", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "gzip; q=0.9, deflate", "project2-main", "text/html; charset=utf-8", false},
 		// malformed headers
-		{"GET", "http://group.test.io/", nil, ";; gzip", "main-dir", false},
-		{"GET", "http://group.test.io/", nil, "middle-out", "main-dir", false},
-		{"GET", "http://group.test.io/", nil, "gzip; quality=1", "main-dir", false},
+		{"GET", "/index.html", ";; gzip", "main-dir", "text/html; charset=utf-8", false},
+		{"GET", "/index.html", "middle-out", "main-dir", "text/html; charset=utf-8", false},
+		{"GET", "/index.html", "gzip; quality=1", "main-dir", "text/html; charset=utf-8", false},
 		// Symlinked .gz files are not supported
-		{"GET", "http://group.test.io/gz-symlink", nil, "*", "data", false},
+		{"GET", "/gz-symlink", "*", "data", "text/plain; charset=utf-8", false},
+		// Unknown file-extension, with text content
+		{"GET", "/text.unknown", "*", "hello", "text/plain; charset=utf-8", true},
+		{"GET", "/text-nogzip.unknown", "*", "hello", "text/plain; charset=utf-8", false},
+		// Unknown file-extension, with PNG content
+		{"GET", "/image.unknown", "*", "GIF89a", "image/gif", true},
+		{"GET", "/image-nogzip.unknown", "*", "GIF89a", "image/gif", false},
 	}
 
 	for _, tt := range testSet {
-		testHTTPGzip(t, serveFileOrNotFound(testGroup), tt.mode, tt.url, tt.params, tt.acceptEncoding, tt.body, tt.ungzip)
+		URL := "http://group.test.io" + tt.url
+		testHTTPGzip(t, serveFileOrNotFound(testGroup), tt.mode, URL, nil, tt.acceptEncoding, tt.body, tt.contentType, tt.ungzip)
 	}
 }
 
