@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -27,7 +26,8 @@ func serveFileOrNotFound(domain *D) http.HandlerFunc {
 }
 
 func TestGroupServeHTTP(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	testGroup := &D{
 		projectName: "",
@@ -66,7 +66,8 @@ func TestGroupServeHTTP(t *testing.T) {
 }
 
 func TestDomainServeHTTP(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	testDomain := &D{
 		group:       group{name: "group"},
@@ -219,7 +220,8 @@ func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, valu
 }
 
 func TestGroupServeHTTPGzip(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	testGroup := &D{
 		projectName: "",
@@ -290,7 +292,8 @@ func testHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, value
 }
 
 func TestGroup404ServeHTTP(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	testGroup := &D{
 		projectName: "",
@@ -318,7 +321,8 @@ func TestGroup404ServeHTTP(t *testing.T) {
 }
 
 func TestDomain404ServeHTTP(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	testDomain := &D{
 		group:       group{name: "group.404"},
@@ -333,7 +337,8 @@ func TestDomain404ServeHTTP(t *testing.T) {
 }
 
 func TestPredefined404ServeHTTP(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	testDomain := &D{
 		group: group{name: "group"},
@@ -388,6 +393,9 @@ func TestDomainCertificate(t *testing.T) {
 }
 
 func TestCacheControlHeaders(t *testing.T) {
+	cleanup := setUpTests(t)
+	defer cleanup()
+
 	testGroup := &D{
 		group: group{
 			name: "group",
@@ -440,15 +448,27 @@ func TestOpenNoFollow(t *testing.T) {
 
 var chdirSet = false
 
-func setUpTests() {
+func setUpTests(t require.TestingT) func() {
+	return chdirInPath(t, "../../shared/pages")
+}
+
+func chdirInPath(t require.TestingT, path string) func() {
+	noOp := func() {}
 	if chdirSet {
-		return
+		return noOp
 	}
 
-	err := os.Chdir("../../shared/pages")
-	if err != nil {
-		log.WithError(err).Print("chdir")
-	} else {
-		chdirSet = true
+	cwd, err := os.Getwd()
+	require.NoError(t, err, "Cannot Getwd")
+
+	err = os.Chdir(path)
+	require.NoError(t, err, "Cannot Chdir")
+
+	chdirSet = true
+	return func() {
+		err := os.Chdir(cwd)
+		require.NoError(t, err, "Cannot Chdir in cleanup")
+
+		chdirSet = false
 	}
 }

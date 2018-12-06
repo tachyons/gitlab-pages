@@ -30,7 +30,8 @@ func getEntriesForBenchmark(t *testing.B) godirwalk.Dirents {
 }
 
 func TestReadProjects(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	dm := make(Map)
 	dm.ReadGroups("test.io", getEntries(t))
@@ -99,7 +100,8 @@ func writeRandomTimestamp(t *testing.T) {
 }
 
 func TestWatch(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	require.NoError(t, os.RemoveAll(updateFile))
 
@@ -134,35 +136,48 @@ func recvTimeout(t *testing.T, ch <-chan Map) Map {
 	}
 }
 
-func BenchmarkReadGroups(b *testing.B) {
+func buildFakeDomainsDirectory(t require.TestingT, nGroups, levels int) func() {
 	testRoot, err := ioutil.TempDir("", "gitlab-pages-test")
-	require.NoError(b, err)
+	require.NoError(t, err)
 
-	cwd, err := os.Getwd()
-	require.NoError(b, err)
-
-	defer func(oldWd, testWd string) {
-		os.Chdir(oldWd)
-		fmt.Printf("cleaning up test directory %s\n", testWd)
-		os.RemoveAll(testWd)
-	}(cwd, testRoot)
-
-	require.NoError(b, os.Chdir(testRoot))
-
-	nGroups := 10000
-	b.Logf("creating fake domains directory with %d groups", nGroups)
 	for i := 0; i < nGroups; i++ {
-		for j := 0; j < 5; j++ {
-			dir := fmt.Sprintf("%s/group-%d/project-%d", testRoot, i, j)
-			require.NoError(b, os.MkdirAll(dir+"/public", 0755))
-
-			fakeConfig := fmt.Sprintf(`{"Domains":[{"Domain":"foo.%d.%d.example.io","Certificate":"bar","Key":"baz"}]}`, i, j)
-			require.NoError(b, ioutil.WriteFile(dir+"/config.json", []byte(fakeConfig), 0644))
+		parent := fmt.Sprintf("%s/group-%d", testRoot, i)
+		domain := fmt.Sprintf("%d.example.io", i)
+		buildFakeProjectsDirectory(t, parent, domain)
+		for j := 0; j < levels; j++ {
+			parent = fmt.Sprintf("%s/sub", parent)
+			domain = fmt.Sprintf("%d.%s", j, domain)
+			buildFakeProjectsDirectory(t, parent, domain)
 		}
 		if i%100 == 0 {
 			fmt.Print(".")
 		}
 	}
+
+	cleanup := chdirInPath(t, testRoot)
+
+	return func() {
+		defer cleanup()
+		fmt.Printf("cleaning up test directory %s\n", testRoot)
+		os.RemoveAll(testRoot)
+	}
+}
+
+func buildFakeProjectsDirectory(t require.TestingT, groupPath, domain string) {
+	for j := 0; j < 5; j++ {
+		dir := fmt.Sprintf("%s/project-%d", groupPath, j)
+		require.NoError(t, os.MkdirAll(dir+"/public", 0755))
+
+		fakeConfig := fmt.Sprintf(`{"Domains":[{"Domain":"foo.%d.%s","Certificate":"bar","Key":"baz"}]}`, j, domain)
+		require.NoError(t, ioutil.WriteFile(dir+"/config.json", []byte(fakeConfig), 0644))
+	}
+}
+
+func BenchmarkReadGroups(b *testing.B) {
+	nGroups := 10000
+	b.Logf("creating fake domains directory with %d groups", nGroups)
+	cleanup := buildFakeDomainsDirectory(b, nGroups, 0)
+	defer cleanup()
 
 	b.Run("ReadGroups", func(b *testing.B) {
 		var dm Map
