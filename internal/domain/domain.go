@@ -22,10 +22,11 @@ import (
 )
 
 const (
-	// MaxProjectDepth is set to the maximum nested project depth in gitlab (21) plus 3.
+	subgroupScanLimit int = 21
+	// maxProjectDepth is set to the maximum nested project depth in gitlab (21) plus 3.
 	// One for the project, one for the first empty element of the split (URL.Path starts with /),
 	// and one for the real file path
-	MaxProjectDepth int = 24
+	maxProjectDepth int = subgroupScanLimit + 3
 )
 
 type locationDirectoryError struct {
@@ -120,7 +121,7 @@ func getHost(r *http.Request) string {
 func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
 	// Check for a project specified in the URL: http://group.gitlab.io/projectA
 	// If present, these projects shadow the group domain.
-	split := strings.SplitN(r.URL.Path, "/", MaxProjectDepth)
+	split := strings.SplitN(r.URL.Path, "/", maxProjectDepth)
 	if len(split) >= 2 {
 		project, projectPath, urlPath := d.digProjectWithSubpath("", split[1:])
 		if project != nil {

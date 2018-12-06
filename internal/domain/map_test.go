@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -78,7 +79,56 @@ func TestReadProjects(t *testing.T) {
 	subgroup, ok := domain.subgroups["subgroup"]
 	require.True(t, ok, "missing group.test.io subgroup")
 	_, ok = subgroup.projects["project"]
-	require.True(t, ok, "missing project for subgrup in group.test.io domain")
+	require.True(t, ok, "missing project for subgroup in group.test.io domain")
+}
+
+func TestReadProjectsMaxDepth(t *testing.T) {
+	nGroups := 3
+	levels := subgroupScanLimit + 5
+	cleanup := buildFakeDomainsDirectory(t, nGroups, levels)
+	defer cleanup()
+
+	defaultDomain := "test.io"
+	dm := make(Map)
+	dm.ReadGroups(defaultDomain, getEntries(t))
+
+	var domains []string
+	for d := range dm {
+		domains = append(domains, d)
+	}
+
+	var expectedDomains []string
+	for i := 0; i < nGroups; i++ {
+		expectedDomains = append(expectedDomains, fmt.Sprintf("group-%d.%s", i, defaultDomain))
+	}
+
+	for _, expected := range domains {
+		assert.Contains(t, domains, expected)
+	}
+
+	for _, actual := range domains {
+		// we are not checking config.json domains here
+		if !strings.HasSuffix(actual, defaultDomain) {
+			continue
+		}
+		assert.Contains(t, expectedDomains, actual)
+	}
+
+	// check subgroups
+	domain, ok := dm["group-0.test.io"]
+	require.True(t, ok, "missing group-0.test.io domain")
+	subgroup := &domain.group
+	for i := 0; i < levels; i++ {
+		subgroup, ok = subgroup.subgroups["sub"]
+		if i <= subgroupScanLimit {
+			require.True(t, ok, "missing group-0.test.io subgroup at level %d", i)
+			_, ok = subgroup.projects["project-0"]
+			require.True(t, ok, "missing project for subgroup in group-0.test.io domain at level %d", i)
+		} else {
+			require.False(t, ok, "subgroup level %d. Maximum allowed nesting level is %d", i, subgroupScanLimit)
+			break
+		}
+	}
 }
 
 // This write must be atomic, otherwise we cannot predict the state of the

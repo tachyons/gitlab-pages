@@ -60,7 +60,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 		}
 	}
 
-	split := strings.SplitN(strings.ToLower(projectPath), "/", MaxProjectDepth)
+	split := strings.SplitN(strings.ToLower(projectPath), "/", maxProjectDepth)
 	projectName := split[len(split)-1]
 	g := &groupDomain.group
 
@@ -108,7 +108,7 @@ func (dm Map) readProjectConfig(rootDomain string, group, projectName string, co
 	}
 }
 
-func readProject(group, parent, projectName string, fanIn chan<- jobResult) {
+func readProject(group, parent, projectName string, level int, fanIn chan<- jobResult) {
 	if strings.HasPrefix(projectName, ".") {
 		return
 	}
@@ -121,8 +121,10 @@ func readProject(group, parent, projectName string, fanIn chan<- jobResult) {
 	projectPath := filepath.Join(parent, projectName)
 	if _, err := os.Lstat(filepath.Join(group, projectPath, "public")); err != nil {
 		// maybe it's a subgroup
-		buf := make([]byte, 2*os.Getpagesize())
-		readProjects(group, projectPath, buf, fanIn)
+		if level <= subgroupScanLimit {
+			buf := make([]byte, 2*os.Getpagesize())
+			readProjects(group, projectPath, level+1, buf, fanIn)
+		}
 
 		return
 	}
@@ -137,7 +139,7 @@ func readProject(group, parent, projectName string, fanIn chan<- jobResult) {
 	fanIn <- jobResult{group: group, project: projectPath, config: config}
 }
 
-func readProjects(group, parent string, buf []byte, fanIn chan<- jobResult) {
+func readProjects(group, parent string, level int, buf []byte, fanIn chan<- jobResult) {
 	subgroup := filepath.Join(group, parent)
 	fis, err := godirwalk.ReadDirents(subgroup, buf)
 	if err != nil {
@@ -154,7 +156,7 @@ func readProjects(group, parent string, buf []byte, fanIn chan<- jobResult) {
 			continue
 		}
 
-		readProject(group, parent, project.Name(), fanIn)
+		readProject(group, parent, project.Name(), level, fanIn)
 	}
 }
 
@@ -178,7 +180,7 @@ func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) {
 			for group := range fanOutGroups {
 				started := time.Now()
 
-				readProjects(group, "", buf, fanIn)
+				readProjects(group, "", 0, buf, fanIn)
 
 				log.WithFields(log.Fields{
 					"group":    group,
