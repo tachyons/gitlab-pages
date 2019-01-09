@@ -879,13 +879,13 @@ func TestAccessControl(t *testing.T) {
 		case "/api/v4/user":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
-		case "/api/v4/projects/1000/pages_access":
+		case "/api/v4/projects/1000/pages_access", "/api/v4/projects/1001/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
-		case "/api/v4/projects/2000/pages_access":
+		case "/api/v4/projects/2000/pages_access", "/api/v4/projects/2001/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
-		case "/api/v4/projects/3000/pages_access":
+		case "/api/v4/projects/3000/pages_access", "/api/v4/projects/3001/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
@@ -947,6 +947,41 @@ func TestAccessControl(t *testing.T) {
 			http.StatusNotFound,
 			false,
 			"no project should redirect to login and then return 404",
+		}, // subgroups
+		{
+			"group.auth.gitlab-example.com",
+			"/subgroup/private.project/",
+			http.StatusOK,
+			false,
+			"[subgroup] project with access",
+		},
+		{
+			"group.auth.gitlab-example.com",
+			"/subgroup/private.project.1/",
+			http.StatusNotFound, // Do not expose project existed
+			false,
+			"[subgroup] project without access",
+		},
+		{
+			"group.auth.gitlab-example.com",
+			"/subgroup/private.project.2/",
+			http.StatusFound,
+			true,
+			"[subgroup] invalid token test should redirect back",
+		},
+		{
+			"group.auth.gitlab-example.com",
+			"/subgroup/nonexistent/",
+			http.StatusNotFound,
+			false,
+			"[subgroup] no project should redirect to login and then return 404",
+		},
+		{
+			"nonexistent.gitlab-example.com",
+			"/subgroup/nonexistent/",
+			http.StatusNotFound,
+			false,
+			"[subgroup] no project should redirect to login and then return 404",
 		},
 	}
 
