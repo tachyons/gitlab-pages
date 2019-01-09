@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -148,6 +149,51 @@ func TestKnownHostReturns200(t *testing.T) {
 	}
 }
 
+func TestNestedSubgroups(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	maxNestedSubgroup := 21
+
+	pagesRoot, err := ioutil.TempDir("", "pages-root")
+	require.NoError(t, err)
+	defer os.RemoveAll(pagesRoot)
+
+	makeProjectIndex := func(subGroupPath string) {
+		projectPath := path.Join(pagesRoot, "nested", subGroupPath, "project", "public")
+		require.NoError(t, os.MkdirAll(projectPath, 0755))
+
+		projectIndex := path.Join(projectPath, "index.html")
+		require.NoError(t, ioutil.WriteFile(projectIndex, []byte("index"), 0644))
+	}
+	makeProjectIndex("")
+
+	paths := []string{""}
+	for i := 1; i < maxNestedSubgroup*2; i++ {
+		subGroupPath := fmt.Sprintf("%ssub%d/", paths[i-1], i)
+		paths = append(paths, subGroupPath)
+
+		makeProjectIndex(subGroupPath)
+	}
+
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-pages-root", pagesRoot)
+	defer teardown()
+
+	for nestingLevel, path := range paths {
+		t.Run(fmt.Sprintf("nested level %d", nestingLevel), func(t *testing.T) {
+			for _, spec := range listeners {
+				rsp, err := GetPageFromListener(t, spec, "nested.gitlab-example.com", path+"project/")
+
+				require.NoError(t, err)
+				rsp.Body.Close()
+				if nestingLevel <= maxNestedSubgroup {
+					require.Equal(t, http.StatusOK, rsp.StatusCode)
+				} else {
+					require.Equal(t, http.StatusNotFound, rsp.StatusCode)
+				}
+			}
+		})
+	}
+}
 func TestCORSWhenDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-disable-cross-origin-requests")
