@@ -239,6 +239,7 @@ func (d *D) detectContentType(path string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		defer file.Close()
 		// Using `io.ReadFull()` because `file.Read()` may be chunked.
 		// Ignoring errors because we don't care if the 512 bytes cannot be read.
 		n, _ := io.ReadFull(file, buf[:])
