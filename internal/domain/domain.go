@@ -95,14 +95,6 @@ func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string 
 	return gzipPath
 }
 
-func setContentType(w http.ResponseWriter, fullPath string) {
-	ext := filepath.Ext(fullPath)
-	ctype := mime.TypeByExtension(ext)
-	if ctype != "" {
-		w.Header().Set("Content-Type", ctype)
-	}
-}
-
 func getHost(r *http.Request) string {
 	host := strings.ToLower(r.Host)
 
@@ -235,18 +227,23 @@ func (d *D) HasProject(r *http.Request) bool {
 // See https://github.com/golang/go/blob/902fc114272978a40d2e65c2510a18e870077559/src/net/http/fs.go#L194
 func (d *D) detectContentType(path string) (string, error) {
 	contentType := mime.TypeByExtension(filepath.Ext(path))
+
 	if contentType == "" {
 		var buf [512]byte
+
 		file, err := os.Open(path)
 		if err != nil {
 			return "", err
 		}
+
 		defer file.Close()
+
 		// Using `io.ReadFull()` because `file.Read()` may be chunked.
 		// Ignoring errors because we don't care if the 512 bytes cannot be read.
 		n, _ := io.ReadFull(file, buf[:])
 		contentType = http.DetectContentType(buf[:n])
 	}
+
 	return contentType, nil
 }
 
@@ -257,6 +254,7 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 	if err != nil {
 		return err
 	}
+
 	defer file.Close()
 
 	fi, err := file.Stat()
@@ -274,9 +272,10 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 	if err != nil {
 		return err
 	}
-	w.Header().Set("Content-Type", contentType)
 
+	w.Header().Set("Content-Type", contentType)
 	http.ServeContent(w, r, origPath, fi.ModTime(), file)
+
 	return nil
 }
 
@@ -295,7 +294,12 @@ func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, or
 		return err
 	}
 
-	setContentType(w, origPath)
+	contentType, err := d.detectContentType(origPath)
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
 	w.WriteHeader(code)
 
