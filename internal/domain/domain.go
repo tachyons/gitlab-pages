@@ -230,6 +230,26 @@ func (d *D) HasProject(r *http.Request) bool {
 	return false
 }
 
+// Detect file's content-type either by extension or mime-sniffing.
+// Implementation is adapted from Golang's `http.serveContent()`
+// See https://github.com/golang/go/blob/902fc114272978a40d2e65c2510a18e870077559/src/net/http/fs.go#L194
+func (d *D) detectContentType(path string) (string, error) {
+	contentType := mime.TypeByExtension(filepath.Ext(path))
+	if contentType == "" {
+		var buf [512]byte
+		file, err := os.Open(path)
+		if err != nil {
+			return "", err
+		}
+		defer file.Close()
+		// Using `io.ReadFull()` because `file.Read()` may be chunked.
+		// Ignoring errors because we don't care if the 512 bytes cannot be read.
+		n, _ := io.ReadFull(file, buf[:])
+		contentType = http.DetectContentType(buf[:n])
+	}
+	return contentType, nil
+}
+
 func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
 	fullPath := handleGZip(w, r, origPath)
 
@@ -250,7 +270,12 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 	}
 
-	// ServeContent sets Content-Type for us
+	contentType, err := d.detectContentType(origPath)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", contentType)
+
 	http.ServeContent(w, r, origPath, fi.ModTime(), file)
 	return nil
 }
