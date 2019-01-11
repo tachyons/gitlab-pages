@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,7 +31,8 @@ func getEntriesForBenchmark(t *testing.B) godirwalk.Dirents {
 }
 
 func TestReadProjects(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	dm := make(Map)
 	dm.ReadGroups("test.io", getEntries(t))
@@ -70,6 +72,63 @@ func TestReadProjects(t *testing.T) {
 
 	exp2 := &domainConfig{Domain: "other.domain.com", Certificate: "test", Key: "key"}
 	assert.Equal(t, exp2, dm["other.domain.com"].config)
+
+	// check subgroups
+	domain, ok := dm["group.test.io"]
+	require.True(t, ok, "missing group.test.io domain")
+	subgroup, ok := domain.subgroups["subgroup"]
+	require.True(t, ok, "missing group.test.io subgroup")
+	_, ok = subgroup.projects["project"]
+	require.True(t, ok, "missing project for subgroup in group.test.io domain")
+}
+
+func TestReadProjectsMaxDepth(t *testing.T) {
+	nGroups := 3
+	levels := subgroupScanLimit + 5
+	cleanup := buildFakeDomainsDirectory(t, nGroups, levels)
+	defer cleanup()
+
+	defaultDomain := "test.io"
+	dm := make(Map)
+	dm.ReadGroups(defaultDomain, getEntries(t))
+
+	var domains []string
+	for d := range dm {
+		domains = append(domains, d)
+	}
+
+	var expectedDomains []string
+	for i := 0; i < nGroups; i++ {
+		expectedDomains = append(expectedDomains, fmt.Sprintf("group-%d.%s", i, defaultDomain))
+	}
+
+	for _, expected := range domains {
+		assert.Contains(t, domains, expected)
+	}
+
+	for _, actual := range domains {
+		// we are not checking config.json domains here
+		if !strings.HasSuffix(actual, defaultDomain) {
+			continue
+		}
+		assert.Contains(t, expectedDomains, actual)
+	}
+
+	// check subgroups
+	domain, ok := dm["group-0.test.io"]
+	require.True(t, ok, "missing group-0.test.io domain")
+	subgroup := &domain.group
+	for i := 0; i < levels; i++ {
+		subgroup, ok = subgroup.subgroups["sub"]
+		if i <= subgroupScanLimit {
+			require.True(t, ok, "missing group-0.test.io subgroup at level %d", i)
+			_, ok = subgroup.projects["project-0"]
+			require.True(t, ok, "missing project for subgroup in group-0.test.io domain at level %d", i)
+		} else {
+			require.False(t, ok, "subgroup level %d. Maximum allowed nesting level is %d", i, subgroupScanLimit)
+			break
+		}
+	}
 }
 
 // This write must be atomic, otherwise we cannot predict the state of the
@@ -91,7 +150,8 @@ func writeRandomTimestamp(t *testing.T) {
 }
 
 func TestWatch(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	require.NoError(t, os.RemoveAll(updateFile))
 
@@ -126,35 +186,48 @@ func recvTimeout(t *testing.T, ch <-chan Map) Map {
 	}
 }
 
-func BenchmarkReadGroups(b *testing.B) {
+func buildFakeDomainsDirectory(t require.TestingT, nGroups, levels int) func() {
 	testRoot, err := ioutil.TempDir("", "gitlab-pages-test")
-	require.NoError(b, err)
+	require.NoError(t, err)
 
-	cwd, err := os.Getwd()
-	require.NoError(b, err)
-
-	defer func(oldWd, testWd string) {
-		os.Chdir(oldWd)
-		fmt.Printf("cleaning up test directory %s\n", testWd)
-		os.RemoveAll(testWd)
-	}(cwd, testRoot)
-
-	require.NoError(b, os.Chdir(testRoot))
-
-	nGroups := 10000
-	b.Logf("creating fake domains directory with %d groups", nGroups)
 	for i := 0; i < nGroups; i++ {
-		for j := 0; j < 5; j++ {
-			dir := fmt.Sprintf("%s/group-%d/project-%d", testRoot, i, j)
-			require.NoError(b, os.MkdirAll(dir+"/public", 0755))
-
-			fakeConfig := fmt.Sprintf(`{"Domains":[{"Domain":"foo.%d.%d.example.io","Certificate":"bar","Key":"baz"}]}`, i, j)
-			require.NoError(b, ioutil.WriteFile(dir+"/config.json", []byte(fakeConfig), 0644))
+		parent := fmt.Sprintf("%s/group-%d", testRoot, i)
+		domain := fmt.Sprintf("%d.example.io", i)
+		buildFakeProjectsDirectory(t, parent, domain)
+		for j := 0; j < levels; j++ {
+			parent = fmt.Sprintf("%s/sub", parent)
+			domain = fmt.Sprintf("%d.%s", j, domain)
+			buildFakeProjectsDirectory(t, parent, domain)
 		}
 		if i%100 == 0 {
 			fmt.Print(".")
 		}
 	}
+
+	cleanup := chdirInPath(t, testRoot)
+
+	return func() {
+		defer cleanup()
+		fmt.Printf("cleaning up test directory %s\n", testRoot)
+		os.RemoveAll(testRoot)
+	}
+}
+
+func buildFakeProjectsDirectory(t require.TestingT, groupPath, domain string) {
+	for j := 0; j < 5; j++ {
+		dir := fmt.Sprintf("%s/project-%d", groupPath, j)
+		require.NoError(t, os.MkdirAll(dir+"/public", 0755))
+
+		fakeConfig := fmt.Sprintf(`{"Domains":[{"Domain":"foo.%d.%s","Certificate":"bar","Key":"baz"}]}`, j, domain)
+		require.NoError(t, ioutil.WriteFile(dir+"/config.json", []byte(fakeConfig), 0644))
+	}
+}
+
+func BenchmarkReadGroups(b *testing.B) {
+	nGroups := 10000
+	b.Logf("creating fake domains directory with %d groups", nGroups)
+	cleanup := buildFakeDomainsDirectory(b, nGroups, 0)
+	defer cleanup()
 
 	b.Run("ReadGroups", func(b *testing.B) {
 		var dm Map

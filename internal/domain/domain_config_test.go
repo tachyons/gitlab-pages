@@ -38,7 +38,8 @@ func TestDomainConfigValidness(t *testing.T) {
 }
 
 func TestDomainConfigRead(t *testing.T) {
-	setUpTests()
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	d := domainsConfig{}
 	err := d.Read("test-group", "test-project")

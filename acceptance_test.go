@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -128,6 +129,11 @@ func TestKnownHostReturns200(t *testing.T) {
 			host: "CapitalGroup.gitlab-example.com",
 			path: "CapitalProject/",
 		},
+		{
+			name: "subgroup",
+			host: "group.gitlab-example.com",
+			path: "subgroup/project/",
+		},
 	}
 
 	for _, test := range tests {
@@ -143,6 +149,51 @@ func TestKnownHostReturns200(t *testing.T) {
 	}
 }
 
+func TestNestedSubgroups(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	maxNestedSubgroup := 21
+
+	pagesRoot, err := ioutil.TempDir("", "pages-root")
+	require.NoError(t, err)
+	defer os.RemoveAll(pagesRoot)
+
+	makeProjectIndex := func(subGroupPath string) {
+		projectPath := path.Join(pagesRoot, "nested", subGroupPath, "project", "public")
+		require.NoError(t, os.MkdirAll(projectPath, 0755))
+
+		projectIndex := path.Join(projectPath, "index.html")
+		require.NoError(t, ioutil.WriteFile(projectIndex, []byte("index"), 0644))
+	}
+	makeProjectIndex("")
+
+	paths := []string{""}
+	for i := 1; i < maxNestedSubgroup*2; i++ {
+		subGroupPath := fmt.Sprintf("%ssub%d/", paths[i-1], i)
+		paths = append(paths, subGroupPath)
+
+		makeProjectIndex(subGroupPath)
+	}
+
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-pages-root", pagesRoot)
+	defer teardown()
+
+	for nestingLevel, path := range paths {
+		t.Run(fmt.Sprintf("nested level %d", nestingLevel), func(t *testing.T) {
+			for _, spec := range listeners {
+				rsp, err := GetPageFromListener(t, spec, "nested.gitlab-example.com", path+"project/")
+
+				require.NoError(t, err)
+				rsp.Body.Close()
+				if nestingLevel <= maxNestedSubgroup {
+					require.Equal(t, http.StatusOK, rsp.StatusCode)
+				} else {
+					require.Equal(t, http.StatusNotFound, rsp.StatusCode)
+				}
+			}
+		})
+	}
+}
 func TestCORSWhenDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-disable-cross-origin-requests")
@@ -828,13 +879,13 @@ func TestAccessControl(t *testing.T) {
 		case "/api/v4/user":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
-		case "/api/v4/projects/1000/pages_access":
+		case "/api/v4/projects/1000/pages_access", "/api/v4/projects/1001/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
-		case "/api/v4/projects/2000/pages_access":
+		case "/api/v4/projects/2000/pages_access", "/api/v4/projects/2001/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
-		case "/api/v4/projects/3000/pages_access":
+		case "/api/v4/projects/3000/pages_access", "/api/v4/projects/3001/pages_access":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
@@ -896,6 +947,41 @@ func TestAccessControl(t *testing.T) {
 			http.StatusNotFound,
 			false,
 			"no project should redirect to login and then return 404",
+		}, // subgroups
+		{
+			"group.auth.gitlab-example.com",
+			"/subgroup/private.project/",
+			http.StatusOK,
+			false,
+			"[subgroup] project with access",
+		},
+		{
+			"group.auth.gitlab-example.com",
+			"/subgroup/private.project.1/",
+			http.StatusNotFound, // Do not expose project existed
+			false,
+			"[subgroup] project without access",
+		},
+		{
+			"group.auth.gitlab-example.com",
+			"/subgroup/private.project.2/",
+			http.StatusFound,
+			true,
+			"[subgroup] invalid token test should redirect back",
+		},
+		{
+			"group.auth.gitlab-example.com",
+			"/subgroup/nonexistent/",
+			http.StatusNotFound,
+			false,
+			"[subgroup] no project should redirect to login and then return 404",
+		},
+		{
+			"nonexistent.gitlab-example.com",
+			"/subgroup/nonexistent/",
+			http.StatusNotFound,
+			false,
+			"[subgroup] no project should redirect to login and then return 404",
 		},
 	}
 

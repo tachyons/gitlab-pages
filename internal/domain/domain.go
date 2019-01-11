@@ -21,6 +21,14 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
 
+const (
+	subgroupScanLimit int = 21
+	// maxProjectDepth is set to the maximum nested project depth in gitlab (21) plus 3.
+	// One for the project, one for the first empty element of the split (URL.Path starts with /),
+	// and one for the real file path
+	maxProjectDepth int = subgroupScanLimit + 3
+)
+
 type locationDirectoryError struct {
 	FullPath     string
 	RelativePath string
@@ -33,11 +41,9 @@ type project struct {
 	ID               uint64
 }
 
-type projects map[string]*project
-
 // D is a domain that gitlab-pages can serve.
 type D struct {
-	group string
+	group
 
 	// custom domains:
 	projectName string
@@ -46,19 +52,16 @@ type D struct {
 	certificate      *tls.Certificate
 	certificateError error
 	certificateOnce  sync.Once
-
-	// group domains:
-	projects projects
 }
 
 // String implements Stringer.
 func (d *D) String() string {
-	if d.group != "" && d.projectName != "" {
-		return d.group + "/" + d.projectName
+	if d.group.name != "" && d.projectName != "" {
+		return d.group.name + "/" + d.projectName
 	}
 
-	if d.group != "" {
-		return d.group
+	if d.group.name != "" {
+		return d.group.name
 	}
 
 	return d.projectName
@@ -110,11 +113,11 @@ func getHost(r *http.Request) string {
 func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
 	// Check for a project specified in the URL: http://group.gitlab.io/projectA
 	// If present, these projects shadow the group domain.
-	split := strings.SplitN(r.URL.Path, "/", 3)
+	split := strings.SplitN(r.URL.Path, "/", maxProjectDepth)
 	if len(split) >= 2 {
-		projectName := strings.ToLower(split[1])
-		if project := d.projects[projectName]; project != nil {
-			return project, split[1], strings.Join(split[2:], "/")
+		project, projectPath, urlPath := d.digProjectWithSubpath("", split[1:])
+		if project != nil {
+			return project, projectPath, urlPath
 		}
 	}
 
@@ -314,7 +317,7 @@ func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, or
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
 func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
-	publicPath := filepath.Join(d.group, projectName, "public")
+	publicPath := filepath.Join(d.group.name, projectName, "public")
 
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
