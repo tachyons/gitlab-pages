@@ -1,3 +1,7 @@
+v 1.5.0
+
+- Make extensionless URLs work !112
+
 v 1.4.0
 - Prevent wrong mimetype being set for GZipped files with unknown file extension !122
 - Pages for subgroups !123
