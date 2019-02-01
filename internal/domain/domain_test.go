@@ -43,17 +43,21 @@ func TestGroupServeHTTP(t *testing.T) {
 	}
 
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/", nil, "main-dir")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/index", nil, "main-dir")
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/index.html", nil, "main-dir")
 	assert.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project", nil)
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project", nil,
 		`<a href="//group.test.io/project/">Found</a>`)
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/", nil, "project-subdir")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/index", nil, "project-subdir")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/index/", nil, "project-subdir")
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/index.html", nil, "project-subdir")
 	assert.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/subdir", nil)
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/subdir", nil,
 		`<a href="//group.test.io/project/subdir/">Found</a>`)
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/subdir/", nil, "project-subsubdir")
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/", nil, "project2-main")
+	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/index", nil, "project2-main")
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/index.html", nil, "project2-main")
 	assert.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/private.project/", nil)
 	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io//about.gitlab.com/%2e%2e", nil)

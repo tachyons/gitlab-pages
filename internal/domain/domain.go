@@ -34,6 +34,10 @@ type locationDirectoryError struct {
 	RelativePath string
 }
 
+type locationFileNoExtensionError struct {
+	FullPath string
+}
+
 type project struct {
 	NamespaceProject bool
 	HTTPSOnly        bool
@@ -69,6 +73,10 @@ func (d *D) String() string {
 
 func (l *locationDirectoryError) Error() string {
 	return "location error accessing directory where file expected"
+}
+
+func (l *locationFileNoExtensionError) Error() string {
+	return "error accessing a path without an extension"
 }
 
 func acceptsGZip(r *http.Request) bool {
@@ -325,6 +333,12 @@ func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
 	testPath := publicPath + "/" + strings.Join(subPath, "/")
 	fullPath, err := filepath.EvalSymlinks(testPath)
 	if err != nil {
+		if endsWithoutHTMLExtension(testPath) {
+			return "", &locationFileNoExtensionError{
+				FullPath: fullPath,
+			}
+		}
+
 		return "", err
 	}
 
@@ -370,6 +384,7 @@ func (d *D) tryNotFound(w http.ResponseWriter, r *http.Request, projectName stri
 
 func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, subPath ...string) error {
 	fullPath, err := d.resolvePath(projectName, subPath...)
+
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(r.URL.Path) {
 			fullPath, err = d.resolvePath(projectName, filepath.Join(subPath...), "index.html")
@@ -383,6 +398,10 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, 
 			http.Redirect(w, r, redirectPath, 302)
 			return nil
 		}
+	}
+
+	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
+		fullPath, err = d.resolvePath(projectName, strings.TrimSuffix(filepath.Join(subPath...), "/")+".html")
 	}
 
 	if err != nil {
@@ -488,6 +507,10 @@ func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 
 func endsWithSlash(path string) bool {
 	return strings.HasSuffix(path, "/")
+}
+
+func endsWithoutHTMLExtension(path string) bool {
+	return !strings.HasSuffix(path, ".html")
 }
 
 func openNoFollow(path string) (*os.File, error) {
