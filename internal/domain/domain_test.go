@@ -25,10 +25,12 @@ func serveFileOrNotFound(domain *D) http.HandlerFunc {
 	}
 }
 
-func TestGroupServeHTTP(t *testing.T) {
-	cleanup := setUpTests(t)
-	defer cleanup()
+func assertRedirectTo(t *testing.T, h http.HandlerFunc, method string, url string, values url.Values, expectedURL string) {
+	assert.HTTPRedirect(t, h, method, url, values)
+	assert.HTTPBodyContains(t, h, method, url, values, `<a href="//`+expectedURL+`">Found</a>`)
+}
 
+func testGroupServeHTTPHost(t *testing.T, host string) {
 	testGroup := &D{
 		projectName: "",
 		group: group{
@@ -42,31 +44,41 @@ func TestGroupServeHTTP(t *testing.T) {
 		},
 	}
 
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/", nil, "main-dir")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/index", nil, "main-dir")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/index.html", nil, "main-dir")
-	assert.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project", nil)
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project", nil,
-		`<a href="//group.test.io/project/">Found</a>`)
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/", nil, "project-subdir")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/index", nil, "project-subdir")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/index/", nil, "project-subdir")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/index.html", nil, "project-subdir")
-	assert.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/subdir", nil)
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/subdir", nil,
-		`<a href="//group.test.io/project/subdir/">Found</a>`)
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/subdir/", nil, "project-subsubdir")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/", nil, "project2-main")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/index", nil, "project2-main")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/index.html", nil, "project2-main")
-	assert.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/private.project/", nil)
-	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io//about.gitlab.com/%2e%2e", nil)
-	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/symlink", nil)
-	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/symlink/index.html", nil)
-	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/symlink/subdir/", nil)
-	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project/fifo", nil)
-	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/not-existing-file", nil)
-	assert.HTTPError(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project//about.gitlab.com/%2e%2e", nil)
+	makeURL := func(path string) string {
+		return "http://" + host + path
+	}
+
+	serve := serveFileOrNotFound(testGroup)
+
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/"), nil, "main-dir")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/index"), nil, "main-dir")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/index.html"), nil, "main-dir")
+	assertRedirectTo(t, serve, "GET", makeURL("/project"), nil, host+"/project/")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/"), nil, "project-subdir")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/index"), nil, "project-subdir")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/index/"), nil, "project-subdir")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/index.html"), nil, "project-subdir")
+	assertRedirectTo(t, serve, "GET", makeURL("/project/subdir"), nil, host+"/project/subdir/")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/subdir/"), nil, "project-subsubdir")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/"), nil, "project2-main")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index"), nil, "project2-main")
+	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index.html"), nil, "project2-main")
+	assert.HTTPRedirect(t, serve, "GET", makeURL("/private.project/"), nil)
+	assert.HTTPError(t, serve, "GET", makeURL("//about.gitlab.com/%2e%2e"), nil)
+	assert.HTTPError(t, serve, "GET", makeURL("/symlink"), nil)
+	assert.HTTPError(t, serve, "GET", makeURL("/symlink/index.html"), nil)
+	assert.HTTPError(t, serve, "GET", makeURL("/symlink/subdir/"), nil)
+	assert.HTTPError(t, serve, "GET", makeURL("/project/fifo"), nil)
+	assert.HTTPError(t, serve, "GET", makeURL("/not-existing-file"), nil)
+	assert.HTTPError(t, serve, "GET", makeURL("/project//about.gitlab.com/%2e%2e"), nil)
+}
+
+func TestGroupServeHTTP(t *testing.T) {
+	cleanup := setUpTests(t)
+	defer cleanup()
+
+	t.Run("group.test.io", func(t *testing.T) { testGroupServeHTTPHost(t, "group.test.io") })
+	t.Run("group.test.io:8080", func(t *testing.T) { testGroupServeHTTPHost(t, "group.test.io:8080") })
 }
 
 func TestDomainServeHTTP(t *testing.T) {
