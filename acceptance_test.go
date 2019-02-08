@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"testing"
 	"time"
 
@@ -757,24 +758,52 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, authrsp.StatusCode)
 }
 
-func TestAccessControlUnderCustomDomain(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
+// makeGitLabPagesAccessStub provides a stub *httptest.Server to check pages_access API call.
+// the result is based on the project id.
+//
+// Project IDs must be 4 digit long and the following rules applies:
+//   1000-1999: Ok
+//   2000-2999: Unauthorized
+//   3000-3999: Invalid token
+func makeGitLabPagesAccessStub(t *testing.T) *httptest.Server {
+	allowedProjects := regexp.MustCompile(`/api/v4/projects/1\d{3}/pages_access`)
+	deniedProjects := regexp.MustCompile(`/api/v4/projects/2\d{3}/pages_access`)
+	invalidTokenProjects := regexp.MustCompile(`/api/v4/projects/3\d{3}/pages_access`)
 
-	testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/oauth/token":
 			assert.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
-		case "/api/v4/projects/1000/pages_access":
+		case "/api/v4/user":
 			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
-			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.WriteHeader(http.StatusNotFound)
+			switch {
+			case allowedProjects.MatchString(r.URL.Path):
+				assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+				w.WriteHeader(http.StatusOK)
+			case deniedProjects.MatchString(r.URL.Path):
+				assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+				w.WriteHeader(http.StatusUnauthorized)
+			case invalidTokenProjects.MatchString(r.URL.Path):
+				assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+				w.WriteHeader(http.StatusUnauthorized)
+				fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
+			default:
+				t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.WriteHeader(http.StatusNotFound)
+			}
 		}
 	}))
+}
+
+func TestAccessControlUnderCustomDomain(t *testing.T) {
+	skipUnlessEnabled(t, "not-inplace-chroot")
+
+	testServer := makeGitLabPagesAccessStub(t)
 	testServer.Start()
 	defer testServer.Close()
 
@@ -861,6 +890,7 @@ func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
 	defer rsp.Body.Close()
 	assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
 }
+
 func TestAccessControl(t *testing.T) {
 	skipUnlessEnabled(t, "not-inplace-chroot")
 
@@ -870,38 +900,13 @@ func TestAccessControl(t *testing.T) {
 	}(transport.ResponseHeaderTimeout)
 	transport.ResponseHeaderTimeout = 5 * time.Second
 
-	testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/oauth/token":
-			assert.Equal(t, "POST", r.Method)
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
-		case "/api/v4/user":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-			w.WriteHeader(http.StatusOK)
-		case "/api/v4/projects/1000/pages_access", "/api/v4/projects/1001/pages_access":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-			w.WriteHeader(http.StatusOK)
-		case "/api/v4/projects/2000/pages_access", "/api/v4/projects/2001/pages_access":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-			w.WriteHeader(http.StatusUnauthorized)
-		case "/api/v4/projects/3000/pages_access", "/api/v4/projects/3001/pages_access":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
-		default:
-			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
-
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.NoError(t, err)
 	defer os.Remove(keyFile)
 	defer os.Remove(certFile)
 
+	testServer := makeGitLabPagesAccessStub(t)
 	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 	testServer.StartTLS()
 	defer testServer.Close()
