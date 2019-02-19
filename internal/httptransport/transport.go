@@ -21,6 +21,7 @@ var (
 		DialTLS: func(network, addr string) (net.Conn, error) {
 			return tls.Dial(network, addr, &tls.Config{RootCAs: pool()})
 		},
+		Proxy: http.ProxyFromEnvironment,
 	}
 )
 
