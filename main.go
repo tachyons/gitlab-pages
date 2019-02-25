@@ -349,7 +349,7 @@ func createAdminHTTPSListener(config *appConfig) []io.Closer {
 
 func printVersion(showVersion bool, version string) {
 	if showVersion {
-		fmt.Fprintf(os.Stderr, "%s\n", version)
+		fmt.Fprintf(os.Stdout, "%s\n", version)
 		os.Exit(0)
 	}
 }
