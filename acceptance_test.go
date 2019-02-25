@@ -197,6 +197,69 @@ func TestNestedSubgroups(t *testing.T) {
 		})
 	}
 }
+
+func TestCustom404(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	tests := []struct {
+		host    string
+		path    string
+		content string
+	}{
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "project.404/not/existing-file",
+			content: "Custom 404 project page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "project.404/",
+			content: "Custom 404 project page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "not/existing-file",
+			content: "Custom 404 group page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "not-existing-file",
+			content: "Custom 404 group page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			content: "Custom 404 group page",
+		},
+		{
+			host:    "domain.404.com",
+			content: "Custom 404 group page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "project.no.404/not/existing-file",
+			content: "The page you're looking for could not be found.",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s/%s", test.host, test.path), func(t *testing.T) {
+			for _, spec := range listeners {
+				rsp, err := GetPageFromListener(t, spec, test.host, test.path)
+
+				require.NoError(t, err)
+				defer rsp.Body.Close()
+				assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
+
+				page, err := ioutil.ReadAll(rsp.Body)
+				require.NoError(t, err)
+				require.Contains(t, string(page), test.content)
+			}
+		})
+	}
+}
+
 func TestCORSWhenDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-disable-cross-origin-requests")
