@@ -104,7 +104,12 @@ func (a *theApp) checkAuthenticationIfNotExists(domain *domain.Domain, w http.Re
 			}
 
 			// User is authenticated, show the 404
-			httperrors.Serve404(w)
+			if domain != nil {
+				domain.ServeNotFoundHTTP(w, r)
+			} else {
+				httperrors.Serve404(w)
+			}
+
 			return true
 		}
 	}
@@ -273,7 +278,7 @@ func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 					return
 				}
 
-				httperrors.Serve404(w)
+				domain.ServeNotFoundHTTP(w, r)
 				return
 			}
 

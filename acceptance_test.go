@@ -17,6 +17,7 @@ import (
 
 	"github.com/namsral/flag"
 	"github.com/stretchr/testify/require"
+	"gotest.tools/assert"
 )
 
 var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to the gitlab-pages binary")

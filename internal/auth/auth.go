@@ -471,9 +471,7 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, proje
 			logRequest(r).WithError(err).Error("Failed to retrieve info with token")
 		}
 
-		// We return 404 if for some reason token is not valid to avoid (not) existence leak
-		httperrors.Serve404(w)
-		return true
+		return false
 	}
 
 	return false
