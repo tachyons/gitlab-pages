@@ -415,8 +415,7 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 			logRequest(r).WithError(err).Debug("Failed to retrieve info with token")
 		}
 
-		httperrors.Serve404(w)
-		return true
+		return false
 	}
 
 	return false
