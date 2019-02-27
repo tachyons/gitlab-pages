@@ -19,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/client"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -48,11 +49,8 @@ func (a *theApp) isReady() bool {
 
 func (a *theApp) domain(host string) *domain.D {
 	host = strings.ToLower(host)
-	a.lock.RLock()
-	defer a.lock.RUnlock()
 
-	// TODO: Request domain
-	return nil
+	return client.RequestDomain(host)
 }
 
 func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
