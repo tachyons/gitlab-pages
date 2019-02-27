@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gorilla/securecookie"
@@ -90,7 +89,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 }
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
-func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
+func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domainFinder domain.Finder) bool {
 
 	if a == nil {
 		return false
@@ -108,7 +107,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain
 
 	logRequest(r).Info("Receive OAuth authentication callback")
 
-	if a.handleProxyingAuth(session, w, r, dm, lock) {
+	if a.handleProxyingAuth(session, w, r, domainFinder) {
 		return true
 	}
 
@@ -176,16 +175,28 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, redirectURI, 302)
 }
 
-func (a *Auth) domainAllowed(domain string, dm domain.Map, lock *sync.RWMutex) bool {
-	lock.RLock()
-	defer lock.RUnlock()
+func (a *Auth) domainAllowed(domain string, domainFinder domain.Finder) bool {
+	// if our domain is pages-domain we always force auth
+	if domain == a.pagesDomain {
+		return true
+	}
 
-	domain = strings.ToLower(domain)
-	_, present := dm[domain]
-	return domain == a.pagesDomain || strings.HasSuffix("."+domain, a.pagesDomain) || present
+	// if our domain is subdomain of pages-domain we force auth
+	// TODO: This condition is taken from original code, but it is clearly broken,
+	// as it should be `strings.HasSuffix("."+domain, a.pagesDomain)`
+	if strings.HasSuffix("."+domain, a.pagesDomain) {
+		return true
+	}
+
+	// if our domain is custom domain, we force auth
+	if domainFinder != nil && domainFinder(domain) != nil {
+		return true
+	}
+
+	return false
 }
 
-func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
+func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domainFinder domain.Finder) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
 		domain := r.URL.Query().Get("domain")
@@ -202,7 +213,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			host = proxyurl.Host
 		}
 
-		if !a.domainAllowed(host, dm, lock) {
+		if !a.domainAllowed(host, domainFinder) {
 			logRequest(r).WithField("domain", host).Warn("Domain is not configured")
 			httperrors.Serve401(w)
 			return true

@@ -2,23 +2,20 @@ package domain
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"net"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	"golang.org/x/sys/unix"
-
+	"gitlab.com/gitlab-org/gitlab-pages/internal/client"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/storage"
 )
 
 const (
@@ -47,29 +44,11 @@ type project struct {
 
 // D is a domain that gitlab-pages can serve.
 type D struct {
-	group
-
-	// custom domains:
-	projectName string
-	config      *domainConfig
-
-	certificate      *tls.Certificate
-	certificateError error
-	certificateOnce  sync.Once
+	*client.DomainResponse
 }
 
-// String implements Stringer.
-func (d *D) String() string {
-	if d.group.name != "" && d.projectName != "" {
-		return d.group.name + "/" + d.projectName
-	}
-
-	if d.group.name != "" {
-		return d.group.name
-	}
-
-	return d.projectName
-}
+// Finder provides a mapping between host and domain configuration
+type Finder func(host string) *D
 
 func (l *locationDirectoryError) Error() string {
 	return "location error accessing directory where file expected"
@@ -89,7 +68,7 @@ func acceptsGZip(r *http.Request) bool {
 	return acceptedEncoding == "gzip"
 }
 
-func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string {
+func (d *D) handleGZip(w http.ResponseWriter, r *http.Request, storage storage.S, fullPath string) string {
 	if !acceptsGZip(r) {
 		return fullPath
 	}
@@ -97,7 +76,7 @@ func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string 
 	gzipPath := fullPath + ".gz"
 
 	// Ensure the .gz file is not a symlink
-	if fi, err := os.Lstat(gzipPath); err != nil || !fi.Mode().IsRegular() {
+	if fi, err := storage.Stat(gzipPath); err != nil || !fi.Mode().IsRegular() {
 		return fullPath
 	}
 
@@ -118,26 +97,13 @@ func getHost(r *http.Request) string {
 
 // Look up a project inside the domain based on the host and path. Returns the
 // project and its name (if applicable)
-func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
-	// Check for a project specified in the URL: http://group.gitlab.io/projectA
-	// If present, these projects shadow the group domain.
-	split := strings.SplitN(r.URL.Path, "/", maxProjectDepth)
-	if len(split) >= 2 {
-		project, projectPath, urlPath := d.digProjectWithSubpath("", split[1:])
-		if project != nil {
-			return project, projectPath, urlPath
-		}
+func (d *D) getProjectWithSubpath(r *http.Request) (*client.LookupPath, string, string) {
+	lp, err := d.DomainResponse.GetPath(r.URL.Path)
+	if err != nil {
+		return nil, "", ""
 	}
 
-	// Since the URL doesn't specify a project (e.g. http://mydomain.gitlab.io),
-	// return the group project if it exists.
-	if host := getHost(r); host != "" {
-		if groupProject := d.projects[host]; groupProject != nil {
-			return groupProject, host, strings.Join(split[1:], "/")
-		}
-	}
-
-	return nil, "", ""
+	return lp, "", lp.Tail(r.URL.Path)
 }
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
@@ -145,11 +111,6 @@ func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
 func (d *D) IsHTTPSOnly(r *http.Request) bool {
 	if d == nil {
 		return false
-	}
-
-	// Check custom domain config (e.g. http://example.com)
-	if d.config != nil {
-		return d.config.HTTPSOnly
 	}
 
 	// Check projects served under the group domain, including the default one
@@ -166,11 +127,6 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 		return false
 	}
 
-	// Check custom domain config (e.g. http://example.com)
-	if d.config != nil {
-		return d.config.AccessControl
-	}
-
 	// Check projects served under the group domain, including the default one
 	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
 		return project.AccessControl
@@ -182,12 +138,6 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 // IsNamespaceProject figures out if the request is to a namespace project
 func (d *D) IsNamespaceProject(r *http.Request) bool {
 	if d == nil {
-		return false
-	}
-
-	// If request is to a custom domain, we do not handle it as a namespace project
-	// as there can't be multiple projects under the same custom domain
-	if d.config != nil {
 		return false
 	}
 
@@ -205,12 +155,8 @@ func (d *D) GetID(r *http.Request) uint64 {
 		return 0
 	}
 
-	if d.config != nil {
-		return d.config.ID
-	}
-
 	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-		return project.ID
+		return project.ProjectID
 	}
 
 	return 0
@@ -220,10 +166,6 @@ func (d *D) GetID(r *http.Request) uint64 {
 func (d *D) HasProject(r *http.Request) bool {
 	if d == nil {
 		return false
-	}
-
-	if d.config != nil {
-		return true
 	}
 
 	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
@@ -236,13 +178,13 @@ func (d *D) HasProject(r *http.Request) bool {
 // Detect file's content-type either by extension or mime-sniffing.
 // Implementation is adapted from Golang's `http.serveContent()`
 // See https://github.com/golang/go/blob/902fc114272978a40d2e65c2510a18e870077559/src/net/http/fs.go#L194
-func (d *D) detectContentType(path string) (string, error) {
+func (d *D) detectContentType(storage storage.S, path string) (string, error) {
 	contentType := mime.TypeByExtension(filepath.Ext(path))
 
 	if contentType == "" {
 		var buf [512]byte
 
-		file, err := os.Open(path)
+		file, _, err := storage.Open(path)
 		if err != nil {
 			return "", err
 		}
@@ -258,20 +200,14 @@ func (d *D) detectContentType(path string) (string, error) {
 	return contentType, nil
 }
 
-func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
-	fullPath := handleGZip(w, r, origPath)
+func (d *D) serveFile(w http.ResponseWriter, r *http.Request, storage storage.S, origPath string) error {
+	fullPath := d.handleGZip(w, r, storage, origPath)
 
-	file, err := openNoFollow(fullPath)
+	file, fi, err := storage.Open(fullPath)
 	if err != nil {
 		return err
 	}
-
 	defer file.Close()
-
-	fi, err := file.Stat()
-	if err != nil {
-		return err
-	}
 
 	if !d.IsAccessControlEnabled(r) {
 		// Set caching headers
@@ -279,7 +215,7 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 	}
 
-	contentType, err := d.detectContentType(origPath)
+	contentType, err := d.detectContentType(storage, origPath)
 	if err != nil {
 		return err
 	}
@@ -290,22 +226,17 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 	return nil
 }
 
-func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, origPath string) error {
-	fullPath := handleGZip(w, r, origPath)
+func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, storage storage.S, code int, origPath string) error {
+	fullPath := d.handleGZip(w, r, storage, origPath)
 
 	// Open and serve content of file
-	file, err := openNoFollow(fullPath)
+	file, fi, err := storage.Open(fullPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	fi, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	contentType, err := d.detectContentType(origPath)
+	contentType, err := d.detectContentType(storage, origPath)
 	if err != nil {
 		return err
 	}
@@ -324,16 +255,10 @@ func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, or
 
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
-	publicPath := filepath.Join(d.group.name, projectName, "public")
-
-	// Don't use filepath.Join as cleans the path,
-	// where we want to traverse full path as supplied by user
-	// (including ..)
-	testPath := publicPath + "/" + strings.Join(subPath, "/")
-	fullPath, err := filepath.EvalSymlinks(testPath)
+func (d *D) resolvePath(storage storage.S, subPath ...string) (string, error) {
+	fullPath, err := storage.Resolve(strings.Join(subPath, "/"))
 	if err != nil {
-		if endsWithoutHTMLExtension(testPath) {
+		if endsWithoutHTMLExtension(fullPath) {
 			return "", &locationFileNoExtensionError{
 				FullPath: fullPath,
 			}
@@ -342,12 +267,7 @@ func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
 		return "", err
 	}
 
-	// The requested path resolved to somewhere outside of the public/ directory
-	if !strings.HasPrefix(fullPath, publicPath+"/") && fullPath != publicPath {
-		return "", fmt.Errorf("%q should be in %q", fullPath, publicPath)
-	}
-
-	fi, err := os.Lstat(fullPath)
+	fi, err := storage.Stat(fullPath)
 	if err != nil {
 		return "", err
 	}
@@ -355,8 +275,7 @@ func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
 	// The requested path is a directory, so try index.html via recursion
 	if fi.IsDir() {
 		return "", &locationDirectoryError{
-			FullPath:     fullPath,
-			RelativePath: strings.TrimPrefix(fullPath, publicPath),
+			FullPath: fullPath,
 		}
 	}
 
@@ -369,25 +288,25 @@ func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
 	return fullPath, nil
 }
 
-func (d *D) tryNotFound(w http.ResponseWriter, r *http.Request, projectName string) error {
-	page404, err := d.resolvePath(projectName, "404.html")
+func (d *D) tryNotFound(w http.ResponseWriter, r *http.Request, storage storage.S) error {
+	page404, err := d.resolvePath(storage, "404.html")
 	if err != nil {
 		return err
 	}
 
-	err = d.serveCustomFile(w, r, http.StatusNotFound, page404)
+	err = d.serveCustomFile(w, r, storage, http.StatusNotFound, page404)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, subPath ...string) error {
-	fullPath, err := d.resolvePath(projectName, subPath...)
+func (d *D) tryFile(w http.ResponseWriter, r *http.Request, storage storage.S, subPath ...string) error {
+	fullPath, err := d.resolvePath(storage, subPath...)
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(r.URL.Path) {
-			fullPath, err = d.resolvePath(projectName, filepath.Join(subPath...), "index.html")
+			fullPath, err = d.resolvePath(storage, filepath.Join(subPath...), "index.html")
 		} else {
 			// Concat Host with URL.Path
 			redirectPath := "//" + r.Host + "/"
@@ -401,80 +320,19 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, 
 	}
 
 	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
-		fullPath, err = d.resolvePath(projectName, strings.TrimSuffix(filepath.Join(subPath...), "/")+".html")
+		fullPath, err = d.resolvePath(storage, strings.TrimSuffix(filepath.Join(subPath...), "/")+".html")
 	}
 
 	if err != nil {
 		return err
 	}
 
-	return d.serveFile(w, r, fullPath)
+	return d.serveFile(w, r, storage, fullPath)
 }
 
-func (d *D) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool {
-	project, projectName, subPath := d.getProjectWithSubpath(r)
-	if project == nil {
-		httperrors.Serve404(w)
-		return true
-	}
-
-	if d.tryFile(w, r, projectName, subPath) == nil {
-		return true
-	}
-
-	return false
-}
-
-func (d *D) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
-	project, projectName, _ := d.getProjectWithSubpath(r)
-	if project == nil {
-		httperrors.Serve404(w)
-		return
-	}
-
-	// Try serving custom not-found page
-	if d.tryNotFound(w, r, projectName) == nil {
-		return
-	}
-
-	// Generic 404
-	httperrors.Serve404(w)
-}
-
-func (d *D) serveFileFromConfig(w http.ResponseWriter, r *http.Request) bool {
-	// Try to serve file for http://host/... => /group/project/...
-	if d.tryFile(w, r, d.projectName, r.URL.Path) == nil {
-		return true
-	}
-
-	return false
-}
-
-func (d *D) serveNotFoundFromConfig(w http.ResponseWriter, r *http.Request) {
-	// Try serving not found page for http://host/ => /group/project/404.html
-	if d.tryNotFound(w, r, d.projectName) == nil {
-		return
-	}
-
-	// Serve generic not found
-	httperrors.Serve404(w)
-}
-
-// EnsureCertificate parses the PEM-encoded certificate for the domain
-func (d *D) EnsureCertificate() (*tls.Certificate, error) {
-	if d.config == nil {
-		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
-	}
-
-	d.certificateOnce.Do(func() {
-		var cert tls.Certificate
-		cert, d.certificateError = tls.X509KeyPair([]byte(d.config.Certificate), []byte(d.config.Key))
-		if d.certificateError == nil {
-			d.certificate = &cert
-		}
-	})
-
-	return d.certificate, d.certificateError
+// Certificate parses the PEM-encoded certificate for the domain
+func (d *D) Certificate() (tls.Certificate, error) {
+	return tls.X509KeyPair([]byte(d.DomainResponse.Certificate), []byte(d.DomainResponse.Key))
 }
 
 // ServeFileHTTP implements http.Handler. Returns true if something was served, false if not.
@@ -484,11 +342,17 @@ func (d *D) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	if d.config != nil {
-		return d.serveFileFromConfig(w, r)
+	project, _, subPath := d.getProjectWithSubpath(r)
+	if project == nil {
+		httperrors.Serve404(w)
+		return true
 	}
 
-	return d.serveFileFromGroup(w, r)
+	if d.tryFile(w, r, storage.New(project), subPath) == nil {
+		return true
+	}
+
+	return false
 }
 
 // ServeNotFoundHTTP implements http.Handler. Serves the not found pages from the projects.
@@ -498,11 +362,19 @@ func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if d.config != nil {
-		d.serveNotFoundFromConfig(w, r)
-	} else {
-		d.serveNotFoundFromGroup(w, r)
+	project, _, _ := d.getProjectWithSubpath(r)
+	if project == nil {
+		httperrors.Serve404(w)
+		return
 	}
+
+	// Try serving custom not-found page
+	if d.tryNotFound(w, r, storage.New(project)) == nil {
+		return
+	}
+
+	// Generic 404
+	httperrors.Serve404(w)
 }
 
 func endsWithSlash(path string) bool {
@@ -511,8 +383,4 @@ func endsWithSlash(path string) bool {
 
 func endsWithoutHTMLExtension(path string) bool {
 	return !strings.HasSuffix(path, ".html")
-}
-
-func openNoFollow(path string) (*os.File, error) {
-	return os.OpenFile(path, os.O_RDONLY|unix.O_NOFOLLOW, 0)
 }

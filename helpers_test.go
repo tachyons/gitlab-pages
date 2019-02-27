@@ -19,6 +19,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
 
+const apiServerListenAddress = "127.0.0.1:7800"
+
 type tWriter struct {
 	t *testing.T
 }
@@ -173,7 +175,13 @@ func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []List
 	_, err := os.Stat(pagesPath)
 	require.NoError(t, err)
 
+	apiServer := &http.Server{
+		Addr:    apiServerListenAddress,
+		Handler: http.HandlerFunc(fixture.MockHTTPHandler),
+	}
+
 	args, tempfiles := getPagesArgs(t, listeners, promPort, extraArgs)
+	args = append(args, "-api-server", "http://"+apiServerListenAddress+"/api/v4")
 	cmd := exec.Command(pagesPath, args...)
 	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = &tWriter{t}
@@ -183,6 +191,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []List
 
 	waitCh := make(chan struct{})
 	go func() {
+		apiServer.ListenAndServe()
 		cmd.Wait()
 		for _, tempfile := range tempfiles {
 			os.Remove(tempfile)
@@ -191,6 +200,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []List
 	}()
 
 	cleanup := func() {
+		apiServer.Close()
 		cmd.Process.Signal(os.Interrupt)
 		<-waitCh
 	}

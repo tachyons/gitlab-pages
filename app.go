@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/client"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -38,22 +39,27 @@ var (
 
 type theApp struct {
 	appConfig
-	dm       domain.Map
-	lock     sync.RWMutex
 	Artifact *artifact.Artifact
 	Auth     *auth.Auth
-}
-
-func (a *theApp) isReady() bool {
-	return a.dm != nil
+	Client   client.API
 }
 
 func (a *theApp) domain(host string) *domain.D {
 	host = strings.ToLower(host)
-	a.lock.RLock()
-	defer a.lock.RUnlock()
-	domain, _ := a.dm[host]
-	return domain
+
+	response, err := a.Client.RequestDomain(host)
+
+	log.WithFields(log.Fields{
+		"host": host,
+	}).WithError(err).Debug("RequestDomain")
+
+	if err != nil {
+		return nil
+	}
+
+	var domain domain.D
+	domain.DomainResponse = response
+	return &domain
 }
 
 func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -62,15 +68,15 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	}
 
 	if domain := a.domain(ch.ServerName); domain != nil {
-		tls, _ := domain.EnsureCertificate()
-		return tls, nil
+		tls, _ := domain.Certificate()
+		return &tls, nil
 	}
 
 	return nil, nil
 }
 
 func (a *theApp) healthCheck(w http.ResponseWriter, r *http.Request, https bool) {
-	if a.isReady() {
+	if a.Client.IsReady() {
 		w.Write([]byte("success"))
 	} else {
 		http.Error(w, "not yet ready", http.StatusServiceUnavailable)
@@ -140,7 +146,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if !a.isReady() {
+	if !a.Client.IsReady() {
 		httperrors.Serve503(w)
 		return true
 	}
@@ -166,7 +172,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	host, domain := a.getHostAndDomain(r)
 
-	if a.Auth.TryAuthenticate(&w, r, a.dm, &a.lock) {
+	if a.Auth.TryAuthenticate(&w, r, a.domain) {
 		return
 	}
 
@@ -230,12 +236,6 @@ func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
 	a.serveContent(ww, r, https)
 }
 
-func (a *theApp) UpdateDomains(dm domain.Map) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
-	a.dm = dm
-}
-
 func (a *theApp) Run() {
 	var wg sync.WaitGroup
 
@@ -294,8 +294,6 @@ func (a *theApp) Run() {
 	a.listenAdminUnix(&wg)
 	a.listenAdminHTTPS(&wg)
 
-	go domain.Watch(a.Domain, a.UpdateDomains, time.Second)
-
 	wg.Wait()
 }
 
@@ -350,6 +348,9 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 
 func runApp(config appConfig) {
 	a := theApp{appConfig: config}
+
+	a.Client = client.NewGitLabClient(config.APIServer, config.APIServerKey, config.APIServerTimeout)
+	a.Client = client.NewCachedClient(a.Client, 10*time.Second, 3*time.Second)
 
 	if config.ArtifactsServer != "" {
 		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
