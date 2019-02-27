@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gorilla/securecookie"
@@ -90,7 +89,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 }
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
-func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
+func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domain domain.DomainFunc) bool {
 
 	if a == nil {
 		return false
@@ -108,7 +107,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain
 
 	logRequest(r).Debug("Authentication callback")
 
-	if a.handleProxyingAuth(session, w, r, dm, lock) {
+	if a.handleProxyingAuth(session, w, r, domain) {
 		return true
 	}
 
@@ -165,15 +164,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, session.Values["uri"].(string), 302)
 }
 
-func (a *Auth) domainAllowed(domain string, dm domain.Map, lock *sync.RWMutex) bool {
-	lock.RLock()
-	defer lock.RUnlock()
-	domain = strings.ToLower(domain)
-	_, present := dm[domain]
-	return domain == a.pagesDomain || strings.HasSuffix("."+domain, a.pagesDomain) || present
-}
-
-func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
+func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domainFunc domain.DomainFunc) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
 		domain := r.URL.Query().Get("domain")
@@ -190,7 +181,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			host = proxyurl.Host
 		}
 
-		if !a.domainAllowed(host, dm, lock) {
+		if domainFunc == nil || domainFunc(host) == nil {
 			logRequest(r).WithField("domain", host).Debug("Domain is not configured")
 			httperrors.Serve401(w)
 			return true

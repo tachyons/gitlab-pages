@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -38,22 +37,22 @@ var (
 
 type theApp struct {
 	appConfig
-	dm       domain.Map
 	lock     sync.RWMutex
 	Artifact *artifact.Artifact
 	Auth     *auth.Auth
 }
 
 func (a *theApp) isReady() bool {
-	return a.dm != nil
+	return true
 }
 
 func (a *theApp) domain(host string) *domain.D {
 	host = strings.ToLower(host)
 	a.lock.RLock()
 	defer a.lock.RUnlock()
-	domain, _ := a.dm[host]
-	return domain
+
+	// TODO: Request domain
+	return nil
 }
 
 func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -166,7 +165,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	host, domain := a.getHostAndDomain(r)
 
-	if a.Auth.TryAuthenticate(&w, r, a.dm, &a.lock) {
+	if a.Auth.TryAuthenticate(&w, r, a.domain) {
 		return
 	}
 
@@ -235,12 +234,6 @@ func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
 	a.serveContent(ww, r, https)
 }
 
-func (a *theApp) UpdateDomains(dm domain.Map) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
-	a.dm = dm
-}
-
 func (a *theApp) Run() {
 	var wg sync.WaitGroup
 
@@ -298,8 +291,6 @@ func (a *theApp) Run() {
 
 	a.listenAdminUnix(&wg)
 	a.listenAdminHTTPS(&wg)
-
-	go domain.Watch(a.Domain, a.UpdateDomains, time.Second)
 
 	wg.Wait()
 }

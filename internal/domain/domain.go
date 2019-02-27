@@ -58,6 +58,8 @@ type D struct {
 	certificateOnce  sync.Once
 }
 
+type DomainFunc func(host string) *D
+
 // String implements Stringer.
 func (d *D) String() string {
 	if d.group.name != "" && d.projectName != "" {
