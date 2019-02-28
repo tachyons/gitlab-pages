@@ -12,18 +12,14 @@ import (
 // TODO: This is hack to pass the location
 var RootPath string
 
-type LookupConfig struct {
+type LookupPath struct {
+	Prefix string `json:"prefix"`
+	Path   string `json:"path"`
+
 	NamespaceProject bool   `json:"namespace_project"`
 	HTTPSOnly        bool   `json:"https_only"`
 	AccessControl    bool   `json:"access_control"`
 	ProjectID        uint64 `json:"id"`
-}
-
-type LookupPath struct {
-	LookupConfig
-
-	Prefix string `json:"prefix"`
-	Path   string `json:"path"`
 }
 
 func (lp *LookupPath) Tail(path string) string {
