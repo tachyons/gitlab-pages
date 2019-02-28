@@ -13,12 +13,13 @@ func RequestDomain(apiUrl, host string) *DomainResponse {
 
 	resp, err := http.PostForm(apiUrl+"/pages/domain", values)
 	if err != nil {
-		// Ignore here
+		// Ignore error, or print it
 		return nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
+		// Ignore responses that are not 200
 		return nil
 	}
 
@@ -29,5 +30,5 @@ func RequestDomain(apiUrl, host string) *DomainResponse {
 		return nil
 	}
 
-	return nil
+	return &domainResponse
 }
