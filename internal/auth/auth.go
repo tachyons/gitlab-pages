@@ -171,7 +171,7 @@ func (a *Auth) domainAllowed(domain string, domainFunc domain.DomainFunc) bool {
 	}
 
 	// if our domain is subdomain of pages-domain we force auth
-	if strings.HasSuffix("."+domain, a.pagesDomain) {
+	if strings.HasSuffix(a.pagesDomain, "."+domain) {
 		return true
 	}
 
@@ -200,7 +200,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			host = proxyurl.Host
 		}
 
-		if !a.domainAllowed(domain, domainFunc) {
+		if !a.domainAllowed(host, domainFunc) {
 			logRequest(r).WithField("domain", host).Debug("Domain is not configured")
 			httperrors.Serve401(w)
 			return true
