@@ -6,7 +6,6 @@ import (
 )
 
 type DomainResponse struct {
-	Domain      string `json:"domain"`
 	Certificate string `json:"certificate"`
 	Key         string `json:"certificate_key"`
 

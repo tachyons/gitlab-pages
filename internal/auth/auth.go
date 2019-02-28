@@ -164,6 +164,25 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, session.Values["uri"].(string), 302)
 }
 
+func (a *Auth) domainAllowed(domain string, domainFunc domain.DomainFunc) bool {
+	// if our domain is pages-domain we always force auth
+	if domain == a.pagesDomain {
+		return true
+	}
+
+	// if our domain is subdomain of pages-domain we force auth
+	if strings.HasSuffix("."+domain, a.pagesDomain) {
+		return true
+	}
+
+	// if our domain is custom domain, we force auth
+	if domainFunc != nil && domainFunc(domain) != nil {
+		return true
+	}
+
+	return false
+}
+
 func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domainFunc domain.DomainFunc) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
@@ -181,7 +200,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			host = proxyurl.Host
 		}
 
-		if domainFunc == nil || domainFunc(host) == nil {
+		if !a.domainAllowed(domain, domainFunc) {
 			logRequest(r).WithField("domain", host).Debug("Domain is not configured")
 			httperrors.Serve401(w)
 			return true
