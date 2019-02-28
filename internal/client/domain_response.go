@@ -15,7 +15,7 @@ type DomainResponse struct {
 
 func (d *DomainResponse) GetPath(path string) (*LookupPath, error) {
 	for _, lp := range d.LookupPath {
-		if strings.HasPrefix(path, lp.Prefix) {
+		if strings.HasPrefix(path, lp.Prefix) || path+"/" == lp.Prefix {
 			return &lp, nil
 		}
 	}

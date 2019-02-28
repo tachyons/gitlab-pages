@@ -30,16 +30,25 @@ func (lp *LookupPath) Tail(path string) string {
 	return ""
 }
 
+func (lp *LookupPath) rootPath() string {
+	fullPath, err := filepath.EvalSymlinks(filepath.Join(RootPath, lp.Path))
+	if err != nil {
+		return ""
+	}
+
+	return fullPath
+}
+
 func (lp *LookupPath) resolvePath(path string) (string, error) {
-	fullPath := filepath.Join(lp.Path, path)
+	fullPath := filepath.Join(lp.rootPath(), path)
 	fullPath, err := filepath.EvalSymlinks(fullPath)
 	if err != nil {
 		return "", err
 	}
 
 	// The requested path resolved to somewhere outside of the public/ directory
-	if !strings.HasPrefix(fullPath, lp.Path) {
-		return "", fmt.Errorf("%q should be in %q", fullPath, lp.Path)
+	if !strings.HasPrefix(fullPath, lp.rootPath()) {
+		return "", fmt.Errorf("%q should be in %q", fullPath, lp.rootPath())
 	}
 
 	return fullPath, nil
@@ -47,30 +56,33 @@ func (lp *LookupPath) resolvePath(path string) (string, error) {
 
 func (lp *LookupPath) Resolve(path string) (string, error) {
 	fullPath, err := lp.resolvePath(path)
-	println("LookupPath::Resolve", lp.Path, path, fullPath, err)
 	if err != nil {
+		println("LookupPath::Resolve", lp.rootPath(), "PATH=", path, "FULLPATH=", fullPath, "ERROR", err.Error())
 		return "", err
 	}
 
-	return fullPath[len(lp.Path):], nil
+	println("LookupPath::Resolve", lp.rootPath(), "PATH=", path, "FULLPATH=", fullPath, err)
+	return fullPath[len(lp.rootPath()):], nil
 }
 
 func (lp *LookupPath) Stat(path string) (os.FileInfo, error) {
 	fullPath, err := lp.resolvePath(path)
-	println("LookupPath::Stat", lp.Path, path, fullPath, err)
 	if err != nil {
+		println("LookupPath::Stat", lp.rootPath(), "PATH=", path, "FULLPATH=", fullPath, "ERROR", err.Error())
 		return nil, err
 	}
 
+	println("LookupPath::Stat", lp.rootPath(), "PATH=", path, "FULLPATH=", fullPath, err)
 	return os.Lstat(fullPath)
 }
 
 func (lp *LookupPath) Open(path string) (*os.File, error) {
 	fullPath, err := lp.resolvePath(path)
-	println("LookupPath::Open", lp.Path, path, fullPath, err)
 	if err != nil {
+		println("LookupPath::Open", lp.rootPath(), "PATH=", path, "FULLPATH=", fullPath, "ERROR", err.Error())
 		return nil, err
 	}
 
+	println("LookupPath::Open", lp.rootPath(), "PATH=", path, "FULLPATH=", fullPath, err)
 	return os.OpenFile(fullPath, os.O_RDONLY|unix.O_NOFOLLOW, 0)
 }
