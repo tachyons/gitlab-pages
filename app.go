@@ -50,7 +50,9 @@ func (a *theApp) isReady() bool {
 func (a *theApp) domain(host string) *domain.D {
 	host = strings.ToLower(host)
 
-	return client.RequestDomain(a.ArtifactsServer, host)
+	var domain domain.D
+	domain.DomainResponse = client.RequestDomain(a.ArtifactsServer, host)
+	return &domain
 }
 
 func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {

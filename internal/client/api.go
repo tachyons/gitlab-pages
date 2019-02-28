@@ -4,18 +4,29 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"strings"
 )
 
-type LookupPath struct {
-	Prefix string `json:"prefix"`
-	Path   string `json:"path"`
-
+type LookupConfig struct {
 	NamespaceProject bool   `json:"namespace_project"`
 	HTTPSOnly        bool   `json:"https_only"`
 	AccessControl    bool   `json:"access_control"`
 	ProjectID        uint64 `json:"id"`
+}
+
+type LookupPath struct {
+	LookupConfig
+
+	Prefix string `json:"prefix"`
+	Path   string `json:"path"`
+}
+
+func (lp *LookupPath) Tail(r *http.Request) string {
+	if strings.HasPrefix(r.URL.Path, lp.Prefix) {
+		return r.URL.Path[len(lp.Path):]
+	}
+
+	return ""
 }
 
 type DomainResponse struct {
@@ -26,7 +37,17 @@ type DomainResponse struct {
 	LookupPath []LookupPath `json:"lookup_paths"`
 }
 
-func RequestDomain(apiUrl, host string) *domain.D {
+func (d *DomainResponse) GetPath(r *http.Request) *LookupPath {
+	for _, lp := range d.LookupPath {
+		if strings.HasPrefix(r.RequestURI, lp.Prefix) {
+			return &lp
+		}
+	}
+
+	return nil
+}
+
+func RequestDomain(apiUrl, host string) *DomainResponse {
 	var values url.Values
 	values.Add("host", host)
 
