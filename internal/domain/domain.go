@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/client"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/storage"
 )
 
 const (
@@ -71,7 +72,7 @@ func acceptsGZip(r *http.Request) bool {
 	return acceptedEncoding == "gzip"
 }
 
-func (d *D) handleGZip(w http.ResponseWriter, r *http.Request, project *client.LookupPath, fullPath string) string {
+func (d *D) handleGZip(w http.ResponseWriter, r *http.Request, storage storage.S, fullPath string) string {
 	if !acceptsGZip(r) {
 		return fullPath
 	}
@@ -79,7 +80,7 @@ func (d *D) handleGZip(w http.ResponseWriter, r *http.Request, project *client.L
 	gzipPath := fullPath + ".gz"
 
 	// Ensure the .gz file is not a symlink
-	if fi, err := project.Stat(gzipPath); err != nil || !fi.Mode().IsRegular() {
+	if fi, err := storage.Stat(gzipPath); err != nil || !fi.Mode().IsRegular() {
 		return fullPath
 	}
 
@@ -181,13 +182,13 @@ func (d *D) HasProject(r *http.Request) bool {
 // Detect file's content-type either by extension or mime-sniffing.
 // Implementation is adapted from Golang's `http.serveContent()`
 // See https://github.com/golang/go/blob/902fc114272978a40d2e65c2510a18e870077559/src/net/http/fs.go#L194
-func (d *D) detectContentType(project *client.LookupPath, path string) (string, error) {
+func (d *D) detectContentType(storage storage.S, path string) (string, error) {
 	contentType := mime.TypeByExtension(filepath.Ext(path))
 
 	if contentType == "" {
 		var buf [512]byte
 
-		file, err := project.Open(path)
+		file, _, err := storage.Open(path)
 		if err != nil {
 			return "", err
 		}
@@ -203,20 +204,14 @@ func (d *D) detectContentType(project *client.LookupPath, path string) (string, 
 	return contentType, nil
 }
 
-func (d *D) serveFile(w http.ResponseWriter, r *http.Request, project *client.LookupPath, origPath string) error {
-	fullPath := d.handleGZip(w, r, project, origPath)
+func (d *D) serveFile(w http.ResponseWriter, r *http.Request, storage storage.S, origPath string) error {
+	fullPath := d.handleGZip(w, r, storage, origPath)
 
-	file, err := project.Open(fullPath)
+	file, fi, err := storage.Open(fullPath)
 	if err != nil {
 		return err
 	}
-
 	defer file.Close()
-
-	fi, err := file.Stat()
-	if err != nil {
-		return err
-	}
 
 	if !d.IsAccessControlEnabled(r) {
 		// Set caching headers
@@ -224,7 +219,7 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, project *client.Lo
 		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 	}
 
-	contentType, err := d.detectContentType(project, origPath)
+	contentType, err := d.detectContentType(storage, origPath)
 	if err != nil {
 		return err
 	}
@@ -235,22 +230,17 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, project *client.Lo
 	return nil
 }
 
-func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, project *client.LookupPath, code int, origPath string) error {
-	fullPath := d.handleGZip(w, r, project, origPath)
+func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, storage storage.S, code int, origPath string) error {
+	fullPath := d.handleGZip(w, r, storage, origPath)
 
 	// Open and serve content of file
-	file, err := project.Open(fullPath)
+	file, fi, err := storage.Open(fullPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	fi, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	contentType, err := d.detectContentType(project, origPath)
+	contentType, err := d.detectContentType(storage, origPath)
 	if err != nil {
 		return err
 	}
@@ -269,8 +259,8 @@ func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, project *cli
 
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (d *D) resolvePath(project *client.LookupPath, subPath ...string) (string, error) {
-	fullPath, err := project.Resolve(strings.Join(subPath, "/"))
+func (d *D) resolvePath(storage storage.S, subPath ...string) (string, error) {
+	fullPath, err := storage.Resolve(strings.Join(subPath, "/"))
 	if err != nil {
 		if endsWithoutHTMLExtension(fullPath) {
 			return "", &locationFileNoExtensionError{
@@ -281,7 +271,7 @@ func (d *D) resolvePath(project *client.LookupPath, subPath ...string) (string, 
 		return "", err
 	}
 
-	fi, err := project.Stat(fullPath)
+	fi, err := storage.Stat(fullPath)
 	if err != nil {
 		return "", err
 	}
@@ -302,25 +292,25 @@ func (d *D) resolvePath(project *client.LookupPath, subPath ...string) (string, 
 	return fullPath, nil
 }
 
-func (d *D) tryNotFound(w http.ResponseWriter, r *http.Request, project *client.LookupPath) error {
-	page404, err := d.resolvePath(project, "404.html")
+func (d *D) tryNotFound(w http.ResponseWriter, r *http.Request, storage storage.S) error {
+	page404, err := d.resolvePath(storage, "404.html")
 	if err != nil {
 		return err
 	}
 
-	err = d.serveCustomFile(w, r, project, http.StatusNotFound, page404)
+	err = d.serveCustomFile(w, r, storage, http.StatusNotFound, page404)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *D) tryFile(w http.ResponseWriter, r *http.Request, project *client.LookupPath, subPath ...string) error {
-	fullPath, err := d.resolvePath(project, subPath...)
+func (d *D) tryFile(w http.ResponseWriter, r *http.Request, storage storage.S, subPath ...string) error {
+	fullPath, err := d.resolvePath(storage, subPath...)
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(r.URL.Path) {
-			fullPath, err = d.resolvePath(project, filepath.Join(subPath...), "index.html")
+			fullPath, err = d.resolvePath(storage, filepath.Join(subPath...), "index.html")
 		} else {
 			// Concat Host with URL.Path
 			redirectPath := "//" + r.Host + "/"
@@ -334,14 +324,14 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, project *client.Look
 	}
 
 	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
-		fullPath, err = d.resolvePath(project, strings.TrimSuffix(filepath.Join(subPath...), "/")+".html")
+		fullPath, err = d.resolvePath(storage, strings.TrimSuffix(filepath.Join(subPath...), "/")+".html")
 	}
 
 	if err != nil {
 		return err
 	}
 
-	return d.serveFile(w, r, project, fullPath)
+	return d.serveFile(w, r, storage, fullPath)
 }
 
 // EnsureCertificate parses the PEM-encoded certificate for the domain
@@ -370,7 +360,7 @@ func (d *D) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	if d.tryFile(w, r, project, subPath) == nil {
+	if d.tryFile(w, r, storage.New(project), subPath) == nil {
 		return true
 	}
 
@@ -391,7 +381,7 @@ func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Try serving custom not-found page
-	if d.tryNotFound(w, r, project) == nil {
+	if d.tryNotFound(w, r, storage.New(project)) == nil {
 		return
 	}
 
