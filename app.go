@@ -50,8 +50,13 @@ func (a *theApp) isReady() bool {
 func (a *theApp) domain(host string) *domain.D {
 	host = strings.ToLower(host)
 
+	response := client.MockRequestDomain(a.ArtifactsServer, host)
+	if response == nil {
+		return nil
+	}
+
 	var domain domain.D
-	domain.DomainResponse = client.RequestDomain(a.ArtifactsServer, host)
+	domain.DomainResponse = response
 	return &domain
 }
 

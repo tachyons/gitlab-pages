@@ -10,6 +10,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// TODO: This is hack to pass the location
+var RootPath string
+
 type LookupConfig struct {
 	NamespaceProject bool   `json:"namespace_project"`
 	HTTPSOnly        bool   `json:"https_only"`
@@ -26,7 +29,7 @@ type LookupPath struct {
 
 func (lp *LookupPath) Tail(r *http.Request) string {
 	if strings.HasPrefix(r.URL.Path, lp.Prefix) {
-		return r.URL.Path[len(lp.Path):]
+		return r.URL.Path[len(lp.Prefix):]
 	}
 
 	return ""
@@ -49,6 +52,7 @@ func (lp *LookupPath) resolvePath(path string) (string, error) {
 
 func (lp *LookupPath) Resolve(path string) (string, error) {
 	fullPath, err := lp.resolvePath(path)
+	println("LookupPath::Resolve", lp.Path, path, fullPath, err)
 	if err != nil {
 		return "", err
 	}
@@ -58,6 +62,7 @@ func (lp *LookupPath) Resolve(path string) (string, error) {
 
 func (lp *LookupPath) Stat(path string) (os.FileInfo, error) {
 	fullPath, err := lp.resolvePath(path)
+	println("LookupPath::Stat", lp.Path, path, fullPath, err)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +72,7 @@ func (lp *LookupPath) Stat(path string) (os.FileInfo, error) {
 
 func (lp *LookupPath) Open(path string) (*os.File, error) {
 	fullPath, err := lp.resolvePath(path)
+	println("LookupPath::Open", lp.Path, path, fullPath, err)
 	if err != nil {
 		return nil, err
 	}

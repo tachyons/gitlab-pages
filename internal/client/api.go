@@ -7,8 +7,9 @@ import (
 )
 
 func RequestDomain(apiUrl, host string) *DomainResponse {
-	var values url.Values
-	values.Add("host", host)
+	values := url.Values{
+		"host": []string{host},
+	}
 
 	resp, err := http.PostForm(apiUrl+"/pages/domain", values)
 	if err != nil {

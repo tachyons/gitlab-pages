@@ -15,7 +15,7 @@ type DomainResponse struct {
 
 func (d *DomainResponse) GetPath(r *http.Request) *LookupPath {
 	for _, lp := range d.LookupPath {
-		if strings.HasPrefix(r.RequestURI, lp.Prefix) {
+		if strings.HasPrefix(r.URL.Path, lp.Prefix) {
 			return &lp
 		}
 	}

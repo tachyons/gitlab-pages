@@ -103,8 +103,11 @@ func getHost(r *http.Request) string {
 func (d *D) getProjectWithSubpath(r *http.Request) (*client.LookupPath, string, string) {
 	lp := d.DomainResponse.GetPath(r)
 	if lp == nil {
+		println("getProjectWithSubpath(", r.URL.Path, "FAILED", ")")
 		return nil, "", ""
 	}
+
+	println("getProjectWithSubpath(", r.URL.Path, lp.Path, lp.Prefix, lp.Tail(r), ")")
 
 	return lp, "", lp.Tail(r)
 }
