@@ -89,7 +89,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 }
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
-func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domain domain.DomainFunc) bool {
+func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domainFinder domain.Finder) bool {
 
 	if a == nil {
 		return false
@@ -107,7 +107,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domain do
 
 	logRequest(r).Debug("Authentication callback")
 
-	if a.handleProxyingAuth(session, w, r, domain) {
+	if a.handleProxyingAuth(session, w, r, domainFinder) {
 		return true
 	}
 
@@ -164,26 +164,28 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, session.Values["uri"].(string), 302)
 }
 
-func (a *Auth) domainAllowed(domain string, domainFunc domain.DomainFunc) bool {
+func (a *Auth) domainAllowed(domain string, domainFinder domain.Finder) bool {
 	// if our domain is pages-domain we always force auth
 	if domain == a.pagesDomain {
 		return true
 	}
 
 	// if our domain is subdomain of pages-domain we force auth
-	if strings.HasSuffix(a.pagesDomain, "."+domain) {
+	// TODO: This condition is taken from original code, but it is clearly broken,
+	// as it should be `strings.HasSuffix("."+domain, a.pagesDomain)`
+	if strings.HasSuffix("."+domain, a.pagesDomain) {
 		return true
 	}
 
 	// if our domain is custom domain, we force auth
-	if domainFunc != nil && domainFunc(domain) != nil {
+	if domainFinder != nil && domainFinder(domain) != nil {
 		return true
 	}
 
 	return false
 }
 
-func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domainFunc domain.DomainFunc) bool {
+func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domainFinder domain.Finder) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
 		domain := r.URL.Query().Get("domain")
@@ -200,7 +202,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			host = proxyurl.Host
 		}
 
-		if !a.domainAllowed(host, domainFunc) {
+		if !a.domainAllowed(host, domainFinder) {
 			logRequest(r).WithField("domain", host).Debug("Domain is not configured")
 			httperrors.Serve401(w)
 			return true

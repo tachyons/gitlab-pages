@@ -6,12 +6,15 @@ import (
 	"net/url"
 )
 
-func RequestDomain(apiUrl, host string) *DomainResponse {
+// RequestDomain requests the configuration of domain from GitLab
+// this provides information where to fetch data from in order to serve
+// the domain content
+func RequestDomain(apiURL, host string) *DomainResponse {
 	values := url.Values{
 		"host": []string{host},
 	}
 
-	resp, err := http.PostForm(apiUrl+"/pages/domain", values)
+	resp, err := http.PostForm(apiURL+"/pages/domain", values)
 	if err != nil {
 		// Ignore error, or print it
 		return nil

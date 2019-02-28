@@ -257,10 +257,12 @@ var internalConfigs = map[string]DomainResponse{
 	},
 }
 
-func MockRequestDomain(apiUrl, host string) *DomainResponse {
+// MockRequestDomain provides a preconfigured set of domains
+// for testing purposes
+func MockRequestDomain(apiURL, host string) *DomainResponse {
 	if response, ok := internalConfigs[host]; ok {
-		println("Requested", host)
 		return &response
 	}
+
 	return nil
 }

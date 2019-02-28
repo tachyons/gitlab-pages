@@ -52,7 +52,8 @@ type D struct {
 	certificateOnce  sync.Once
 }
 
-type DomainFunc func(host string) *D
+// Finder provides a mapping between host and domain configuration
+type Finder func(host string) *D
 
 func (l *locationDirectoryError) Error() string {
 	return "location error accessing directory where file expected"
