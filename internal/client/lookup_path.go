@@ -2,7 +2,6 @@ package client
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,9 +26,9 @@ type LookupPath struct {
 	Path   string `json:"path"`
 }
 
-func (lp *LookupPath) Tail(r *http.Request) string {
-	if strings.HasPrefix(r.URL.Path, lp.Prefix) {
-		return r.URL.Path[len(lp.Prefix):]
+func (lp *LookupPath) Tail(path string) string {
+	if strings.HasPrefix(path, lp.Prefix) {
+		return path[len(lp.Prefix):]
 	}
 
 	return ""

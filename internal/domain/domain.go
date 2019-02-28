@@ -71,7 +71,7 @@ func acceptsGZip(r *http.Request) bool {
 	return acceptedEncoding == "gzip"
 }
 
-func handleGZip(w http.ResponseWriter, r *http.Request, project *client.LookupPath, fullPath string) string {
+func (d *D) handleGZip(w http.ResponseWriter, r *http.Request, project *client.LookupPath, fullPath string) string {
 	if !acceptsGZip(r) {
 		return fullPath
 	}
@@ -79,7 +79,7 @@ func handleGZip(w http.ResponseWriter, r *http.Request, project *client.LookupPa
 	gzipPath := fullPath + ".gz"
 
 	// Ensure the .gz file is not a symlink
-	if fi, err := project.Stat(gzipPath); err != nil || !fi.Mode().IsRegular() {
+	if fi, err := d.Stat(gzipPath); err != nil || !fi.Mode().IsRegular() {
 		return fullPath
 	}
 
@@ -101,15 +101,12 @@ func getHost(r *http.Request) string {
 // Look up a project inside the domain based on the host and path. Returns the
 // project and its name (if applicable)
 func (d *D) getProjectWithSubpath(r *http.Request) (*client.LookupPath, string, string) {
-	lp := d.DomainResponse.GetPath(r)
-	if lp == nil {
-		println("getProjectWithSubpath(", r.URL.Path, "FAILED", ")")
+	lp, err := d.DomainResponse.GetPath(r.URL.Path)
+	if err != nil {
 		return nil, "", ""
 	}
 
-	println("getProjectWithSubpath(", r.URL.Path, lp.Path, lp.Prefix, lp.Tail(r), ")")
-
-	return lp, "", lp.Tail(r)
+	return lp, "", lp.Tail(r.URL.Path)
 }
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
@@ -207,7 +204,7 @@ func (d *D) detectContentType(project *client.LookupPath, path string) (string, 
 }
 
 func (d *D) serveFile(w http.ResponseWriter, r *http.Request, project *client.LookupPath, origPath string) error {
-	fullPath := handleGZip(w, r, project, origPath)
+	fullPath := d.handleGZip(w, r, project, origPath)
 
 	file, err := project.Open(fullPath)
 	if err != nil {
@@ -239,7 +236,7 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, project *client.Lo
 }
 
 func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, project *client.LookupPath, code int, origPath string) error {
-	fullPath := handleGZip(w, r, project, origPath)
+	fullPath := d.handleGZip(w, r, project, origPath)
 
 	// Open and serve content of file
 	file, err := project.Open(fullPath)

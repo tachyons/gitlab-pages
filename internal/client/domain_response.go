@@ -1,7 +1,7 @@
 package client
 
 import (
-	"net/http"
+	"errors"
 	"strings"
 )
 
@@ -13,12 +13,12 @@ type DomainResponse struct {
 	LookupPath []LookupPath `json:"lookup_paths"`
 }
 
-func (d *DomainResponse) GetPath(r *http.Request) *LookupPath {
+func (d *DomainResponse) GetPath(path string) (*LookupPath, error) {
 	for _, lp := range d.LookupPath {
-		if strings.HasPrefix(r.URL.Path, lp.Prefix) {
-			return &lp
+		if strings.HasPrefix(path, lp.Prefix) {
+			return &lp, nil
 		}
 	}
 
-	return nil
+	return nil, errors.New("lookup path not found")
 }
