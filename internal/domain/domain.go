@@ -79,7 +79,7 @@ func (d *D) handleGZip(w http.ResponseWriter, r *http.Request, project *client.L
 	gzipPath := fullPath + ".gz"
 
 	// Ensure the .gz file is not a symlink
-	if fi, err := d.Stat(gzipPath); err != nil || !fi.Mode().IsRegular() {
+	if fi, err := project.Stat(gzipPath); err != nil || !fi.Mode().IsRegular() {
 		return fullPath
 	}
 
