@@ -27,7 +27,7 @@ type S interface {
 
 // New provides a compatible storage with lookupPath
 func New(lookupPath *client.LookupPath) (S, error) {
-	if lookupPath.DiskPath != "" {
+	if lookupPath.Path != "" {
 		return &fileSystem{lookupPath}, nil
 	} else if lookupPath.ArchivePath != "" {
 		return newZipStorage(lookupPath)
