@@ -7,10 +7,11 @@ import (
 // LookupPath describes a single mapping between HTTP Prefix
 // and actual data on disk
 type LookupPath struct {
-	Prefix string `json:"prefix"`
-	Path   string `json:"path"`
+	Prefix      string `json:"prefix"`
+	DiskPath    string `json:"disk_path"`
+	ArchivePath string `json:"archive_path"`
 
-	NamespaceProject bool   `json:"namespace_project"`
+	NamespaceProject bool   `mock_api.go:8json:"namespace_project"`
 	HTTPSOnly        bool   `json:"https_only"`
 	AccessControl    bool   `json:"access_control"`
 	ProjectID        uint64 `json:"id"`

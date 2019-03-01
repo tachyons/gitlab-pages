@@ -4,44 +4,44 @@ var internalConfigs = map[string]DomainResponse{
 	"group.internal.gitlab-example.com": DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
-				Prefix: "/project.internal/",
-				Path:   "group.internal/project.internal/public",
+				Prefix:   "/project.internal/",
+				DiskPath: "group.internal/project.internal/public",
 			},
 		},
 	},
 	"group.404.gitlab-example.com": DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
-				Prefix: "/project.no.404/",
-				Path:   "group.404/project.no.404/public/",
+				Prefix:   "/project.no.404/",
+				DiskPath: "group.404/project.no.404/public/",
 			},
 			LookupPath{
-				Prefix: "/project.404/",
-				Path:   "group.404/project.404/public/",
+				Prefix:   "/project.404/",
+				DiskPath: "group.404/project.404/public/",
 			},
 			LookupPath{
-				Prefix: "/project.404.symlink/",
-				Path:   "group.404/project.404.symlink/public/",
+				Prefix:   "/project.404.symlink/",
+				DiskPath: "group.404/project.404.symlink/public/",
 			},
 			LookupPath{
-				Prefix: "/domain.404/",
-				Path:   "group.404/domain.404/public/",
+				Prefix:   "/domain.404/",
+				DiskPath: "group.404/domain.404/public/",
 			},
 			LookupPath{
-				Prefix: "/group.404.test.io/",
-				Path:   "group.404/group.404.test.io/public/",
+				Prefix:   "/group.404.test.io/",
+				DiskPath: "group.404/group.404.test.io/public/",
 			},
 		},
 	},
 	"capitalgroup.gitlab-example.com": DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
-				Prefix: "/CapitalProject/",
-				Path:   "CapitalGroup/CapitalProject/public/",
+				Prefix:   "/CapitalProject/",
+				DiskPath: "CapitalGroup/CapitalProject/public/",
 			},
 			LookupPath{
-				Prefix: "/project/",
-				Path:   "CapitalGroup/project/public/",
+				Prefix:   "/project/",
+				DiskPath: "CapitalGroup/project/public/",
 			},
 		},
 	},
@@ -49,47 +49,47 @@ var internalConfigs = map[string]DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
 				Prefix:        "/private.project/",
-				Path:          "group.auth/private.project/public/",
+				DiskPath:      "group.auth/private.project/public/",
 				AccessControl: true,
 				ProjectID:     1000,
 			},
 			LookupPath{
 				Prefix:        "/private.project.1/",
-				Path:          "group.auth/private.project.1/public/",
+				DiskPath:      "group.auth/private.project.1/public/",
 				AccessControl: true,
 				ProjectID:     2000,
 			},
 			LookupPath{
 				Prefix:        "/private.project.2/",
-				Path:          "group.auth/private.project.2/public/",
+				DiskPath:      "group.auth/private.project.2/public/",
 				AccessControl: true,
 				ProjectID:     3000,
 			},
 			LookupPath{
 				Prefix:        "/subgroup/private.project/",
-				Path:          "group.auth/subgroup/private.project/public/",
+				DiskPath:      "group.auth/subgroup/private.project/public/",
 				AccessControl: true,
 				ProjectID:     1001,
 			},
 			LookupPath{
 				Prefix:        "/subgroup/private.project.1/",
-				Path:          "group.auth/subgroup/private.project.1/public/",
+				DiskPath:      "group.auth/subgroup/private.project.1/public/",
 				AccessControl: true,
 				ProjectID:     2001,
 			},
 			LookupPath{
 				Prefix:        "/subgroup/private.project.2/",
-				Path:          "group.auth/subgroup/private.project.2/public/",
+				DiskPath:      "group.auth/subgroup/private.project.2/public/",
 				AccessControl: true,
 				ProjectID:     3001,
 			},
 			LookupPath{
-				Prefix: "/group.auth.gitlab-example.com/",
-				Path:   "group.auth/group.auth.gitlab-example.com/public/",
+				Prefix:   "/group.auth.gitlab-example.com/",
+				DiskPath: "group.auth/group.auth.gitlab-example.com/public/",
 			},
 			LookupPath{
 				Prefix:           "/",
-				Path:             "group.auth/group.auth.gitlab-example.com/public/",
+				DiskPath:         "group.auth/group.auth.gitlab-example.com/public/",
 				NamespaceProject: true,
 			},
 		},
@@ -98,29 +98,29 @@ var internalConfigs = map[string]DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
 				Prefix:    "/project5/",
-				Path:      "group.https-only/project5/public/",
+				DiskPath:  "group.https-only/project5/public/",
 				HTTPSOnly: true,
 			},
 			LookupPath{
-				Prefix: "/project4/",
-				Path:   "group.https-only/project4/public/",
+				Prefix:   "/project4/",
+				DiskPath: "group.https-only/project4/public/",
 			},
 			LookupPath{
-				Prefix: "/project3/",
-				Path:   "group.https-only/project3/public/",
+				Prefix:   "/project3/",
+				DiskPath: "group.https-only/project3/public/",
 			},
 			LookupPath{
-				Prefix: "/project2/",
-				Path:   "group.https-only/project2/public/",
+				Prefix:   "/project2/",
+				DiskPath: "group.https-only/project2/public/",
 			},
 			LookupPath{
 				Prefix:    "/project1/",
-				Path:      "group.https-only/project1/public/",
+				DiskPath:  "group.https-only/project1/public/",
 				HTTPSOnly: true,
 			},
 			LookupPath{
 				Prefix:           "/",
-				Path:             "group.auth/group.auth.gitlab-example.com/public/",
+				DiskPath:         "group.auth/group.auth.gitlab-example.com/public/",
 				NamespaceProject: true,
 			},
 		},
@@ -128,28 +128,28 @@ var internalConfigs = map[string]DomainResponse{
 	"group.gitlab-example.com": DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
-				Prefix: "/CapitalProject/",
-				Path:   "group/CapitalProject/public/",
+				Prefix:   "/CapitalProject/",
+				DiskPath: "group/CapitalProject/public/",
 			},
 			LookupPath{
-				Prefix: "/project/",
-				Path:   "group/project/public/",
+				Prefix:   "/project/",
+				DiskPath: "group/project/public/",
 			},
 			LookupPath{
-				Prefix: "/project2/",
-				Path:   "group/project2/public/",
+				Prefix:   "/project2/",
+				DiskPath: "group/project2/public/",
 			},
 			LookupPath{
-				Prefix: "/subgroup/project/",
-				Path:   "group/subgroup/project/public/",
+				Prefix:   "/subgroup/project/",
+				DiskPath: "group/subgroup/project/public/",
 			},
 			LookupPath{
-				Prefix: "/group.test.io/",
-				Path:   "group/group.test.io/public/",
+				Prefix:   "/group.test.io/",
+				DiskPath: "group/group.test.io/public/",
 			},
 			LookupPath{
 				Prefix:           "/",
-				Path:             "group/group.gitlab-example.com/public/",
+				DiskPath:         "group/group.gitlab-example.com/public/",
 				NamespaceProject: true,
 			},
 		},
@@ -157,28 +157,28 @@ var internalConfigs = map[string]DomainResponse{
 	"nested.gitlab-example.com": DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
-				Prefix: "/sub1/sub2/sub3/sub4/sub5/project/",
-				Path:   "nested/sub1/sub2/sub3/sub4/sub5/project/public/",
+				Prefix:   "/sub1/sub2/sub3/sub4/sub5/project/",
+				DiskPath: "nested/sub1/sub2/sub3/sub4/sub5/project/public/",
 			},
 			LookupPath{
-				Prefix: "/sub1/sub2/sub3/sub4/project/",
-				Path:   "nested/sub1/sub2/sub3/sub4/project/public/",
+				Prefix:   "/sub1/sub2/sub3/sub4/project/",
+				DiskPath: "nested/sub1/sub2/sub3/sub4/project/public/",
 			},
 			LookupPath{
-				Prefix: "/sub1/sub2/sub3/project/",
-				Path:   "nested/sub1/sub2/sub3/project/public/",
+				Prefix:   "/sub1/sub2/sub3/project/",
+				DiskPath: "nested/sub1/sub2/sub3/project/public/",
 			},
 			LookupPath{
-				Prefix: "/sub1/sub2/project/",
-				Path:   "nested/sub1/sub2/project/public/",
+				Prefix:   "/sub1/sub2/project/",
+				DiskPath: "nested/sub1/sub2/project/public/",
 			},
 			LookupPath{
-				Prefix: "/sub1/project/",
-				Path:   "nested/sub1/project/public/",
+				Prefix:   "/sub1/project/",
+				DiskPath: "nested/sub1/project/public/",
 			},
 			LookupPath{
-				Prefix: "/project/",
-				Path:   "nested/project/public/",
+				Prefix:   "/project/",
+				DiskPath: "nested/project/public/",
 			},
 		},
 	},
@@ -187,8 +187,8 @@ var internalConfigs = map[string]DomainResponse{
 	"domain.404.com": DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
-				Prefix: "/",
-				Path:   "group.404/domain.404.com/public/",
+				Prefix:   "/",
+				DiskPath: "group.404/domain.404.com/public/",
 			},
 		},
 	},
@@ -196,7 +196,7 @@ var internalConfigs = map[string]DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
 				Prefix:        "/",
-				Path:          "group.auth/private.project/public/",
+				DiskPath:      "group.auth/private.project/public/",
 				AccessControl: true,
 				ProjectID:     1000,
 			},
@@ -206,7 +206,7 @@ var internalConfigs = map[string]DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
 				Prefix:    "/",
-				Path:      "group.https-only/project5/public/",
+				DiskPath:  "group.https-only/project5/public/",
 				HTTPSOnly: false,
 			},
 		},
@@ -215,7 +215,7 @@ var internalConfigs = map[string]DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
 				Prefix:    "/",
-				Path:      "group.https-only/project4/public/",
+				DiskPath:  "group.https-only/project4/public/",
 				HTTPSOnly: false,
 			},
 		},
@@ -224,7 +224,7 @@ var internalConfigs = map[string]DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
 				Prefix:    "/",
-				Path:      "group.https-only/project3/public/",
+				DiskPath:  "group.https-only/project3/public/",
 				HTTPSOnly: true,
 			},
 		},
@@ -232,24 +232,24 @@ var internalConfigs = map[string]DomainResponse{
 	"test.domain.com": DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
-				Prefix: "/",
-				Path:   "group/group.test.io/public/",
+				Prefix:   "/",
+				DiskPath: "group/group.test.io/public/",
 			},
 		},
 	},
 	"my.test.io": DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
-				Prefix: "/",
-				Path:   "group/group.test.io/public/",
+				Prefix:   "/",
+				DiskPath: "group/group.test.io/public/",
 			},
 		},
 	},
 	"other.domain.com": DomainResponse{
 		LookupPath: []LookupPath{
 			LookupPath{
-				Prefix: "/",
-				Path:   "group/group.test.io/public/",
+				Prefix:   "/",
+				DiskPath: "group/group.test.io/public/",
 			},
 		},
 		Certificate: "test",

@@ -16,7 +16,7 @@ type fileSystem struct {
 }
 
 func (f *fileSystem) rootPath() string {
-	fullPath, err := filepath.EvalSymlinks(filepath.Join(f.Path))
+	fullPath, err := filepath.EvalSymlinks(filepath.Join(f.DiskPath))
 	if err != nil {
 		return ""
 	}
