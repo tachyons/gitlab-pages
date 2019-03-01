@@ -12,7 +12,7 @@ import (
 // to interact with the file, to read, stat, and seek
 type File interface {
 	io.Reader
-	io.Seeker
+	//io.Seeker
 	io.Closer
 }
 
