@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"io"
 	"os"
 
@@ -21,9 +22,16 @@ type S interface {
 	Resolve(path string) (string, error)
 	Stat(path string) (os.FileInfo, error)
 	Open(path string) (File, os.FileInfo, error)
+	Close()
 }
 
 // New provides a compatible storage with lookupPath
-func New(lookupPath *client.LookupPath) S {
-	return &fileSystem{lookupPath}
+func New(lookupPath *client.LookupPath) (S, error) {
+	if lookupPath.DiskPath != "" {
+		return &fileSystem{lookupPath}, nil
+	} else if lookupPath.ArchivePath != "" {
+		return newZipStorage(lookupPath)
+	} else {
+		return nil, errors.New("storage not supported")
+	}
 }

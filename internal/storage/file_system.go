@@ -76,3 +76,6 @@ func (f *fileSystem) Open(path string) (File, os.FileInfo, error) {
 
 	return file, fileInfo, err
 }
+
+func (f *fileSystem) Close() {
+}
