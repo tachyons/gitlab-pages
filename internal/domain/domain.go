@@ -208,7 +208,7 @@ func (d *D) detectContentType(storage storage.S, path string) (string, error) {
 func (d *D) serveFile(w http.ResponseWriter, r *http.Request, storage storage.S, origPath string) error {
 	fullPath := d.handleGZip(w, r, storage, origPath)
 
-	file, fi, err := storage.Open(fullPath)
+	file, _, err := storage.Open(fullPath)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,10 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, storage storage.S,
 	}
 
 	w.Header().Set("Content-Type", contentType)
-	http.ServeContent(w, r, origPath, fi.ModTime(), file)
+
+	// TODO: dump-copy content as Zip file does not support seeking
+	io.Copy(w, file)
+	//http.ServeContent(w, r, origPath, fi.ModTime(), file)
 
 	return nil
 }
