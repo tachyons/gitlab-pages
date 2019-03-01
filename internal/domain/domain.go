@@ -366,6 +366,7 @@ func (d *D) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 
 	store, err := storage.New(project)
 	if err != nil {
+		println(err.Error())
 		httperrors.Serve500(w)
 		return true
 	}
@@ -393,6 +394,7 @@ func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 
 	store, err := storage.New(project)
 	if err != nil {
+		println(err.Error())
 		httperrors.Serve500(w)
 		return
 	}

@@ -255,6 +255,14 @@ var internalConfigs = map[string]DomainResponse{
 		Certificate: "test",
 		Key:         "key",
 	},
+	"zip.domain.com": DomainResponse{
+		LookupPath: []LookupPath{
+			LookupPath{
+				Prefix:      "/",
+				ArchivePath: "pages-deployment-100.zip",
+			},
+		},
+	},
 }
 
 // MockRequestDomain provides a preconfigured set of domains

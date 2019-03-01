@@ -25,7 +25,7 @@ type zipStorage struct {
 func (z *zipStorage) find(path string) *zip.File {
 	// This is O(n) search, very, very, very slow
 	for _, file := range z.archive.File {
-		if file.Name == path {
+		if file.Name == path || file.Name == path+"/" {
 			return file
 		}
 	}
@@ -104,33 +104,44 @@ func (z *zipStorage) resolvePublic(path string) (string, *zip.File, error) {
 
 func (z *zipStorage) Resolve(path string) (string, error) {
 	targetPath, _, err := z.resolvePublic(path)
+	if err != nil {
+		println("Resolve", path, "ERROR=", err.Error())
+	} else {
+		println("Resolve", path, "TARGET_PATH=", targetPath)
+	}
 	return targetPath, err
 }
 
 func (z *zipStorage) Stat(path string) (os.FileInfo, error) {
 	_, file, err := z.resolvePublic(path)
 	if err != nil {
+		println("Stat", path, "ERROR=", err.Error())
 		return nil, err
 	}
 
+	println("Stat", path, "FILE=", file.Name, file.FileInfo())
 	return file.FileInfo(), nil
 }
 
 func (z *zipStorage) Open(path string) (File, os.FileInfo, error) {
 	_, file, err := z.resolvePublic(path)
 	if err != nil {
+		println("Open", path, "ERROR=", err.Error())
 		return nil, nil, err
 	}
 
 	rc, err := file.Open()
 	if err != nil {
+		println("Open", path, "ERROR=", err.Error())
 		return nil, nil, err
 	}
 
+	println("Open", path, "FILE=", file.Name, file.FileInfo())
 	return rc, file.FileInfo(), nil
 }
 
 func (z *zipStorage) Close() {
+	println("Close")
 	z.archive.Close()
 }
 
