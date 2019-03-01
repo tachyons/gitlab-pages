@@ -361,14 +361,14 @@ func (d *D) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	stor, err := storage.New(project)
+	store, err := storage.New(project)
 	if err != nil {
 		httperrors.Serve500(w)
-		return
+		return true
 	}
 	defer store.Close()
 
-	if d.tryFile(w, r, stor, subPath) == nil {
+	if d.tryFile(w, r, store, subPath) == nil {
 		return true
 	}
 
@@ -388,7 +388,7 @@ func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stor, err := storage.New(project)
+	store, err := storage.New(project)
 	if err != nil {
 		httperrors.Serve500(w)
 		return
@@ -396,7 +396,7 @@ func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	defer store.Close()
 
 	// Try serving custom not-found page
-	if d.tryNotFound(w, r, stor) == nil {
+	if d.tryNotFound(w, r, store) == nil {
 		return
 	}
 

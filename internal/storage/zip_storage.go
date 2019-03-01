@@ -11,7 +11,7 @@ import (
 type zipStorage struct {
 	*client.LookupPath
 
-	zipArchive *zip.ReadCloser
+	archive *zip.ReadCloser
 }
 
 func (z *zipStorage) Resolve(path string) (string, error) {
@@ -26,6 +26,15 @@ func (z *zipStorage) Open(path string) (File, os.FileInfo, error) {
 	return nil, nil, errors.New("not supported")
 }
 
+func (z *zipStorage) Close() {
+	z.archive.Close()
+}
+
 func newZipStorage(lookupPath *client.LookupPath) (S, error) {
-	return nil, errors.New("not supported")
+	archive, err := zip.OpenReader(lookupPath.ArchivePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &zipStorage{LookupPath: lookupPath, archive: archive}, nil
 }
