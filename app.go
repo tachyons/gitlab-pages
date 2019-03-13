@@ -48,6 +48,11 @@ func (a *theApp) domain(host string) *domain.D {
 	host = strings.ToLower(host)
 
 	response, err := a.Client.RequestDomain(host)
+
+	log.WithFields(log.Fields{
+		"host": host,
+	}).WithError(err).Debug("RequestDomain")
+
 	if err != nil {
 		return nil
 	}
