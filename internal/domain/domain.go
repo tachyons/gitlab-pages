@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/client"
@@ -46,10 +45,6 @@ type project struct {
 // D is a domain that gitlab-pages can serve.
 type D struct {
 	*client.DomainResponse
-
-	certificate      *tls.Certificate
-	certificateError error
-	certificateOnce  sync.Once
 }
 
 // Finder provides a mapping between host and domain configuration
@@ -335,17 +330,9 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, storage storage.S, s
 	return d.serveFile(w, r, storage, fullPath)
 }
 
-// EnsureCertificate parses the PEM-encoded certificate for the domain
-func (d *D) EnsureCertificate() (*tls.Certificate, error) {
-	d.certificateOnce.Do(func() {
-		var cert tls.Certificate
-		cert, d.certificateError = tls.X509KeyPair([]byte(d.DomainResponse.Certificate), []byte(d.DomainResponse.Key))
-		if d.certificateError == nil {
-			d.certificate = &cert
-		}
-	})
-
-	return d.certificate, d.certificateError
+// Certificate parses the PEM-encoded certificate for the domain
+func (d *D) Certificate() (tls.Certificate, error) {
+	return tls.X509KeyPair([]byte(d.DomainResponse.Certificate), []byte(d.DomainResponse.Key))
 }
 
 // ServeFileHTTP implements http.Handler. Returns true if something was served, false if not.

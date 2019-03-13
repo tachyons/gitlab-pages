@@ -33,6 +33,9 @@ var (
 	pagesDomain            = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
 	artifactsServer        = flag.String("artifacts-server", "", "API URL to proxy artifact requests to, e.g.: 'https://gitlab.com/api/v4'")
 	artifactsServerTimeout = flag.Int("artifacts-server-timeout", 10, "Timeout (in seconds) for a proxied request to the artifacts server")
+	apiServer              = flag.String("api-server", "", "API URL to GitLab: 'https://gitlab.com/api/v4'")
+	apiServerTimeout       = flag.Int("api-server-timeout", 10, "Timeout (in seconds) for API requests")
+	apiServerKey           = flag.String("api-server-key", "", "File containing the API secret key")
 	pagesStatus            = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")
 	metricsAddress         = flag.String("metrics-address", "", "The address to listen on for metrics requests")
 	daemonUID              = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
@@ -64,6 +67,9 @@ var (
 	errArtifactSchemaUnsupported   = errors.New("artifacts-server scheme must be either http:// or https://")
 	errArtifactsServerTimeoutValue = errors.New("artifacts-server-timeout must be greater than or equal to 1")
 
+	errAPISchemaUnsupported  = errors.New("api-server scheme must be either http:// or https://")
+	errAPIServerTimeoutValue = errors.New("api-server-timeout must be greater than or equal to 1")
+
 	errSecretNotDefined       = errors.New("auth-secret must be defined if authentication is supported")
 	errClientIDNotDefined     = errors.New("auth-client-id must be defined if authentication is supported")
 	errClientSecretNotDefined = errors.New("auth-client-secret must be defined if authentication is supported")
@@ -92,43 +98,62 @@ func configFromFlags() appConfig {
 		{&config.AdminCertificate, *adminHTTPSCert},
 		{&config.AdminKey, *adminHTTPSKey},
 		{&config.AdminToken, *adminSecretPath},
+		{&config.APIServerKey, *apiServerKey},
 	} {
 		if file.path != "" {
 			*file.contents = readFile(file.path)
 		}
 	}
 
-	if *artifactsServerTimeout < 1 {
-		log.Fatal(errArtifactsServerTimeoutValue)
-	}
-
-	if *artifactsServer != "" {
-		u, err := url.Parse(*artifactsServer)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// url.Parse ensures that the Scheme arttribute is always lower case.
-		if u.Scheme != "http" && u.Scheme != "https" {
-			log.Fatal(errArtifactSchemaUnsupported)
-		}
-
-		if *artifactsServerTimeout < 1 {
-			log.Fatal(errArtifactsServerTimeoutValue)
-		}
-
-		config.ArtifactsServerTimeout = *artifactsServerTimeout
-		config.ArtifactsServer = *artifactsServer
-	}
-
-	checkAuthenticationConfig(config)
-
+	config.APIServerTimeout = *apiServerTimeout
+	config.APIServer = *apiServer
+	config.ArtifactsServerTimeout = *artifactsServerTimeout
+	config.ArtifactsServer = *artifactsServer
 	config.StoreSecret = *secret
 	config.ClientID = *clientID
 	config.ClientSecret = *clientSecret
 	config.GitLabServer = *gitLabServer
 	config.RedirectURI = *redirectURI
 
+	checkArtifactsConfig(config)
+	checkAPIConfig(config)
+	checkAuthenticationConfig(config)
+
 	return config
+}
+
+func checkArtifactsConfig(config appConfig) {
+	if *artifactsServer == "" {
+		return
+	}
+
+	u, err := url.Parse(*artifactsServer)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// url.Parse ensures that the Scheme arttribute is always lower case.
+	if u.Scheme != "http" && u.Scheme != "https" {
+		log.Fatal(errArtifactSchemaUnsupported)
+	}
+
+	if *artifactsServerTimeout < 1 {
+		log.Fatal(errArtifactsServerTimeoutValue)
+	}
+}
+
+func checkAPIConfig(config appConfig) {
+	u, err := url.Parse(*apiServer)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// url.Parse ensures that the Scheme arttribute is always lower case.
+	if u.Scheme != "http" && u.Scheme != "https" {
+		log.Fatal(errAPISchemaUnsupported)
+	}
+
+	if *apiServerTimeout < 1 {
+		log.Fatal(errAPIServerTimeoutValue)
+	}
 }
 
 func checkAuthenticationConfig(config appConfig) {
@@ -186,6 +211,9 @@ func appMain() {
 		"admin-https-listener":          *adminHTTPSListener,
 		"admin-unix-listener":           *adminUnixListener,
 		"admin-secret-path":             *adminSecretPath,
+		"api-server":                    *apiServer,
+		"api-server-timeout":            *apiServerTimeout,
+		"api-server-key":                *apiServerKey,
 		"artifacts-server":              *artifactsServer,
 		"artifacts-server-timeout":      *artifactsServerTimeout,
 		"daemon-gid":                    *daemonGID,

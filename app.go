@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -38,20 +39,16 @@ var (
 
 type theApp struct {
 	appConfig
-	lock     sync.RWMutex
 	Artifact *artifact.Artifact
 	Auth     *auth.Auth
-}
-
-func (a *theApp) isReady() bool {
-	return true
+	Client   client.API
 }
 
 func (a *theApp) domain(host string) *domain.D {
 	host = strings.ToLower(host)
 
-	response := client.MockRequestDomain(a.ArtifactsServer, host)
-	if response == nil {
+	response, err := a.Client.RequestDomain(host)
+	if err != nil {
 		return nil
 	}
 
@@ -66,15 +63,15 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	}
 
 	if domain := a.domain(ch.ServerName); domain != nil {
-		tls, _ := domain.EnsureCertificate()
-		return tls, nil
+		tls, _ := domain.Certificate()
+		return &tls, nil
 	}
 
 	return nil, nil
 }
 
 func (a *theApp) healthCheck(w http.ResponseWriter, r *http.Request, https bool) {
-	if a.isReady() {
+	if a.Client.IsReady() {
 		w.Write([]byte("success"))
 	} else {
 		http.Error(w, "not yet ready", http.StatusServiceUnavailable)
@@ -144,7 +141,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if !a.isReady() {
+	if !a.Client.IsReady() {
 		httperrors.Serve503(w)
 		return true
 	}
@@ -351,6 +348,9 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 
 func runApp(config appConfig) {
 	a := theApp{appConfig: config}
+
+	a.Client = client.NewGitLabClient(config.APIServer, config.APIServerKey, config.APIServerTimeout)
+	a.Client = client.NewCachedClient(a.Client, 10*time.Second, 3*time.Second)
 
 	if config.ArtifactsServer != "" {
 		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)

@@ -11,6 +11,10 @@ type appConfig struct {
 	AdminToken             []byte
 	MaxConns               int
 
+	APIServer        string
+	APIServerKey     []byte
+	APIServerTimeout int
+
 	ListenHTTP       []uintptr
 	ListenHTTPS      []uintptr
 	ListenProxy      []uintptr

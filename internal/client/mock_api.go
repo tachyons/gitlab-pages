@@ -1,5 +1,7 @@
 package client
 
+import "errors"
+
 var internalConfigs = map[string]DomainResponse{
 	"group.internal.gitlab-example.com": DomainResponse{
 		LookupPath: []LookupPath{
@@ -257,12 +259,19 @@ var internalConfigs = map[string]DomainResponse{
 	},
 }
 
-// MockRequestDomain provides a preconfigured set of domains
+// MockAPI provides a preconfigured set of domains
 // for testing purposes
-func MockRequestDomain(apiURL, host string) *DomainResponse {
+type MockAPI struct{}
+
+// RequestDomain request a host from preconfigured list of domains
+func (a *MockAPI) RequestDomain(host string) (*DomainResponse, error) {
 	if response, ok := internalConfigs[host]; ok {
-		return &response
+		return &response, nil
 	}
 
-	return nil
+	return nil, errors.New("not found")
+}
+
+func (a *MockAPI) IsReady() bool {
+	return true
 }

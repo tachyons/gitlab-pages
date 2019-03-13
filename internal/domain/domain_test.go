@@ -378,7 +378,7 @@ func TestGroupCertificate(t *testing.T) {
 		DomainResponse: &client.DomainResponse{},
 	}
 
-	tls, err := testGroup.EnsureCertificate()
+	tls, err := testGroup.Certificate()
 	assert.Nil(t, tls)
 	assert.Error(t, err)
 }
@@ -392,11 +392,11 @@ func TestDomainNoCertificate(t *testing.T) {
 		},
 	}
 
-	tls, err := testDomain.EnsureCertificate()
+	tls, err := testDomain.Certificate()
 	assert.Nil(t, tls)
 	assert.Error(t, err)
 
-	_, err2 := testDomain.EnsureCertificate()
+	_, err2 := testDomain.Certificate()
 	assert.Error(t, err)
 	assert.Equal(t, err, err2)
 }
@@ -412,7 +412,7 @@ func TestDomainCertificate(t *testing.T) {
 		},
 	}
 
-	tls, err := testDomain.EnsureCertificate()
+	tls, err := testDomain.Certificate()
 	assert.NotNil(t, tls)
 	require.NoError(t, err)
 }
