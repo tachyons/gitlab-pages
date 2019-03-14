@@ -1,4 +1,4 @@
-package testdata
+package fixture
 
 import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/client"

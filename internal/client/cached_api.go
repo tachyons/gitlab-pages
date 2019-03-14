@@ -96,7 +96,7 @@ func (a *cachedAPI) RequestDomain(host string) (*DomainResponse, error) {
 	a.ensureRequestDomain(cachedObject)
 
 	// try to take from long cache to ignore short failures
-	if cachedObject.err != nil {
+	if cachedObject == nil {
 		cachedObject = a.findLongCacheEntry(host)
 	}
 
