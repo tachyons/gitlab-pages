@@ -472,21 +472,26 @@ func TestOpenNoFollow(t *testing.T) {
 }
 
 func TestAcmeChallengeRedirect(t *testing.T) {
-	setUpTests(t)
+	cleanup := setUpTests(t)
+	defer cleanup()
 
 	testGroup := &D{
-		group:       group{name: "group"},
-		projectName: "project2",
+		projectName: "",
+		group: group{
+			name: "group",
+			projects: map[string]*project{
+				"project2": &project{},
+			},
+		},
 	}
 
 	testDomain := &D{
 		group:       group{name: "group"},
 		projectName: "project2",
 		config: &domainConfig{
-			Domain:      "test.example.com",
+			Domain: "test.example.com",
 		},
 	}
-
 
 	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/.well-known/acme-challenge/0123456789abcdef", nil, "The page you're looking for could not be found")
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/.well-known/acme-challenge/existing-file", nil, "Yes, I really exist")
