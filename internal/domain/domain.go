@@ -406,7 +406,7 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, 
 			fullPath, err = d.resolvePath(projectName, filepath.Join(subPath...), "index.html")
 		} else if d.isAcmeChallenge(r.URL.Path) {
 			redirectPath := "//gitlab.com/-/acme-challenge/" + r.Host + "/" + filepath.Base(r.URL.Path)
-			http.Redirect(w, r, redirectPath, 301)
+			http.Redirect(w, r, redirectPath, 302)
 			return nil
 		} else {
 			// Concat Host with URL.Path
