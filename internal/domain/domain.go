@@ -17,6 +17,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
+	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
@@ -402,12 +404,10 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, 
 	fullPath, err := d.resolvePath(projectName, subPath...)
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
+		log.WithField("file", locationError.FullPath).Debug("File not found")
 		if endsWithSlash(r.URL.Path) {
+			log.Debug("Try to serve index.html")
 			fullPath, err = d.resolvePath(projectName, filepath.Join(subPath...), "index.html")
-		} else if d.isAcmeChallenge(r.URL.Path) {
-			redirectPath := "//gitlab.com/-/acme-challenge/" + r.Host + "/" + filepath.Base(r.URL.Path)
-			http.Redirect(w, r, redirectPath, 302)
-			return nil
 		} else {
 			// Concat Host with URL.Path
 			redirectPath := "//" + r.Host + "/"
@@ -425,6 +425,7 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, 
 	}
 
 	if err != nil {
+		log.WithError(err).Debug("Cant resolve path")
 		return err
 	}
 
@@ -462,8 +463,20 @@ func (d *D) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *D) serveFileFromConfig(w http.ResponseWriter, r *http.Request) bool {
+	log.WithFields(log.Fields{
+		"project_name": d.projectName,
+		"path":         r.URL.Path,
+	}).Debug("Serving file from config")
 	// Try to serve file for http://host/... => /group/project/...
-	if d.tryFile(w, r, d.projectName, r.URL.Path) == nil {
+	err := d.tryFile(w, r, d.projectName, r.URL.Path)
+	if err == nil {
+		return true
+	}
+
+	if err != nil && d.isAcmeChallenge(r.URL.Path) {
+		log.Debug("Get request for acme-challenge, redirecting to gitlab instance")
+		redirectPath := "//gitlab.com/-/acme-challenge/" + r.Host + "/" + filepath.Base(r.URL.Path)
+		http.Redirect(w, r, redirectPath, 302)
 		return true
 	}
 

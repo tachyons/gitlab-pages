@@ -498,7 +498,7 @@ func TestAcmeChallengeRedirect(t *testing.T) {
 
 	assert.HTTPRedirect(t, serveFileOrNotFound(testDomain), "GET", "http://test.example.com/.well-known/acme-challenge/0123456789abcdef", nil)
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "http://test.example.com/.well-known/acme-challenge/existing-file", nil, "Yes, I really exist")
-	testHTTP404(t, serveFileOrNotFound(testDomain), "GET", "https://test.example.com/.well-known/acme-challenge/0123456789abcdef", nil, "The page you're looking for could not be found")
+	assert.HTTPRedirect(t, serveFileOrNotFound(testDomain), "GET", "https://test.example.com/.well-known/acme-challenge/0123456789abcdef", nil)
 	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "https://test.example.com/.well-known/acme-challenge/existing-file", nil, "Yes, I really exist")
 }
 
