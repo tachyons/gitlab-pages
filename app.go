@@ -176,7 +176,7 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	}
 
 	// Only for projects that have access control enabled
-	if domain.IsAccessControlEnabled(r) {
+	if domain.IsResourceProtected(r) {
 		log.WithFields(log.Fields{
 			"host": r.Host,
 			"path": r.RequestURI,

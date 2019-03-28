@@ -178,9 +178,13 @@ func (d *D) IsHTTPSOnly(r *http.Request) bool {
 	return false
 }
 
-// IsAccessControlEnabled figures out if the request is to a project that has access control enabled
-func (d *D) IsAccessControlEnabled(r *http.Request) bool {
+// IsResourceProtected figures out if the request is to a project that has access control enabled
+func (d *D) IsResourceProtected(r *http.Request) bool {
 	if d == nil {
+		return false
+	}
+
+	if d.isAcmeChallenge(r.URL.Path) {
 		return false
 	}
 
@@ -291,7 +295,7 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 		return err
 	}
 
-	if !d.IsAccessControlEnabled(r) {
+	if !d.IsResourceProtected(r) {
 		// Set caching headers
 		w.Header().Set("Cache-Control", "max-age=600")
 		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
