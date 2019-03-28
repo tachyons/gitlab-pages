@@ -10,6 +10,8 @@ import (
 
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -71,8 +73,8 @@ var (
 	errRedirectURINotDefined  = errors.New("auth-redirect-uri must be defined if authentication is supported")
 )
 
-func configFromFlags() appConfig {
-	var config appConfig
+func configFromFlags() config.Config {
+	var config config.Config
 
 	config.Domain = strings.ToLower(*pagesDomain)
 	config.RedirectHTTP = *redirectHTTP
@@ -131,7 +133,7 @@ func configFromFlags() appConfig {
 	return config
 }
 
-func checkAuthenticationConfig(config appConfig) {
+func checkAuthenticationConfig(config config.Config) {
 	if *secret != "" || *clientID != "" || *clientSecret != "" ||
 		*gitLabServer != "" || *redirectURI != "" {
 		// Check all auth params are valid
@@ -243,7 +245,7 @@ func closeAll(cs []io.Closer) {
 // createAppListeners returns net.Listener and *os.File instances. The
 // caller must ensure they don't get closed or garbage-collected (which
 // implies closing) too soon.
-func createAppListeners(config *appConfig) []io.Closer {
+func createAppListeners(config *config.Config) []io.Closer {
 	var closers []io.Closer
 
 	for _, addr := range listenHTTP.Split() {
@@ -285,7 +287,7 @@ func createAppListeners(config *appConfig) []io.Closer {
 // createMetricsListener returns net.Listener and *os.File instances. The
 // caller must ensure they don't get closed or garbage-collected (which
 // implies closing) too soon.
-func createMetricsListener(config *appConfig) []io.Closer {
+func createMetricsListener(config *config.Config) []io.Closer {
 	addr := *metricsAddress
 	if addr == "" {
 		return nil
@@ -304,7 +306,7 @@ func createMetricsListener(config *appConfig) []io.Closer {
 // createAdminUnixListener returns net.Listener and *os.File instances. The
 // caller must ensure they don't get closed or garbage-collected (which
 // implies closing) too soon.
-func createAdminUnixListener(config *appConfig) []io.Closer {
+func createAdminUnixListener(config *config.Config) []io.Closer {
 	unixPath := *adminUnixListener
 	if unixPath == "" {
 		return nil
@@ -327,7 +329,7 @@ func createAdminUnixListener(config *appConfig) []io.Closer {
 // createAdminHTTPSListener returns net.Listener and *os.File instances. The
 // caller must ensure they don't get closed or garbage-collected (which
 // implies closing) too soon.
-func createAdminHTTPSListener(config *appConfig) []io.Closer {
+func createAdminHTTPSListener(config *config.Config) []io.Closer {
 	addr := *adminHTTPSListener
 	if addr == "" {
 		return nil

@@ -1,6 +1,7 @@
-package main
+package config
 
-type appConfig struct {
+// Config contains main configuration variables
+type Config struct {
 	Domain                 string
 	ArtifactsServer        string
 	ArtifactsServerTimeout int

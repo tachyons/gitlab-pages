@@ -12,6 +12,7 @@ import (
 	"github.com/kardianos/osext"
 	log "github.com/sirupsen/logrus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/jail"
 )
 
@@ -32,7 +33,7 @@ func daemonMain() {
 	}).Info("starting the daemon as unprivileged user")
 
 	// read the configuration from the pipe "ExtraFiles"
-	var config appConfig
+	var config config.Config
 	if err := json.NewDecoder(os.NewFile(3, "options")).Decode(&config); err != nil {
 		fatal(err)
 	}
@@ -199,7 +200,7 @@ func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 	return cage, nil
 }
 
-func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
+func daemonize(config config.Config, uid, gid uint, inPlace bool) error {
 	log.WithFields(log.Fields{
 		"uid":      uid,
 		"gid":      gid,
@@ -260,7 +261,7 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
 	return cmd.Wait()
 }
 
-func updateFds(config *appConfig, cmd *exec.Cmd) {
+func updateFds(config *config.Config, cmd *exec.Cmd) {
 	for _, fds := range [][]uintptr{
 		config.ListenHTTP,
 		config.ListenHTTPS,

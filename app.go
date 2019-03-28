@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -37,7 +38,7 @@ var (
 )
 
 type theApp struct {
-	appConfig
+	config.Config
 	dm       domain.Map
 	lock     sync.RWMutex
 	Artifact *artifact.Artifact
@@ -123,7 +124,7 @@ func (a *theApp) checkAuthenticationIfNotExists(domain *domain.D, w http.Respons
 
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.D) bool {
 	// short circuit content serving to check for a status page
-	if r.RequestURI == a.appConfig.StatusPath {
+	if r.RequestURI == a.Config.StatusPath {
 		a.healthCheck(w, r, https)
 		return true
 	}
@@ -353,8 +354,8 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 	}()
 }
 
-func runApp(config appConfig) {
-	a := theApp{appConfig: config}
+func runApp(config config.Config) {
+	a := theApp{Config: config}
 
 	if config.ArtifactsServer != "" {
 		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
