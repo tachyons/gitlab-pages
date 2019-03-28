@@ -12,6 +12,8 @@ import (
 	"github.com/karrick/godirwalk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 )
 
 func getEntries(t *testing.T) godirwalk.Dirents {
@@ -35,7 +37,7 @@ func TestReadProjects(t *testing.T) {
 	defer cleanup()
 
 	dm := make(Map)
-	dm.ReadGroups("test.io", getEntries(t))
+	dm.ReadGroups("test.io", getEntries(t), &config.Config{})
 
 	var domains []string
 	for d := range dm {
@@ -90,7 +92,7 @@ func TestReadProjectsMaxDepth(t *testing.T) {
 
 	defaultDomain := "test.io"
 	dm := make(Map)
-	dm.ReadGroups(defaultDomain, getEntries(t))
+	dm.ReadGroups(defaultDomain, getEntries(t), &config.Config{})
 
 	var domains []string
 	for d := range dm {
@@ -158,7 +160,7 @@ func TestWatch(t *testing.T) {
 	update := make(chan Map)
 	go Watch("gitlab.io", func(dm Map) {
 		update <- dm
-	}, time.Microsecond*50)
+	}, time.Microsecond*50, &config.Config{})
 
 	defer os.Remove(updateFile)
 
@@ -233,7 +235,7 @@ func BenchmarkReadGroups(b *testing.B) {
 		var dm Map
 		for i := 0; i < 2; i++ {
 			dm = make(Map)
-			dm.ReadGroups("example.com", getEntriesForBenchmark(b))
+			dm.ReadGroups("example.com", getEntriesForBenchmark(b), &config.Config{})
 		}
 		b.Logf("found %d domains", len(dm))
 	})

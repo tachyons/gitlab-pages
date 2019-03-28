@@ -19,6 +19,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
@@ -58,6 +59,8 @@ type D struct {
 	certificate      *tls.Certificate
 	certificateError error
 	certificateOnce  sync.Once
+
+	appConfig *config.Config
 }
 
 // String implements Stringer.

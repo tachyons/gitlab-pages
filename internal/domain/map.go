@@ -12,6 +12,7 @@ import (
 	"github.com/karrick/godirwalk"
 	log "github.com/sirupsen/logrus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -34,11 +35,12 @@ func (dm Map) updateDomainMap(domainName string, domain *D) {
 	dm[domainName] = domain
 }
 
-func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
+func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig, appConfig *config.Config) {
 	newDomain := &D{
 		group:       group{name: groupName},
 		projectName: projectName,
 		config:      config,
+		appConfig:   appConfig,
 	}
 
 	var domainName string
@@ -89,7 +91,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 	dm[domainName] = groupDomain
 }
 
-func (dm Map) readProjectConfig(rootDomain string, group, projectName string, config *domainsConfig) {
+func (dm Map) readProjectConfig(rootDomain string, group, projectName string, config *domainsConfig, appConfig *config.Config) {
 	if config == nil {
 		// This is necessary to preserve the previous behaviour where a
 		// group domain is created even if no config.json files are
@@ -103,7 +105,7 @@ func (dm Map) readProjectConfig(rootDomain string, group, projectName string, co
 	for _, domainConfig := range config.Domains {
 		config := domainConfig // domainConfig is reused for each loop iteration
 		if domainConfig.Valid(rootDomain) {
-			dm.addDomain(rootDomain, group, projectName, &config)
+			dm.addDomain(rootDomain, group, projectName, &config, appConfig)
 		}
 	}
 }
@@ -167,7 +169,7 @@ type jobResult struct {
 }
 
 // ReadGroups walks the pages directory and populates dm with all the domains it finds.
-func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) {
+func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents, appConfig *config.Config) {
 	fanOutGroups := make(chan string)
 	fanIn := make(chan jobResult)
 	wg := &sync.WaitGroup{}
@@ -200,7 +202,7 @@ func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) {
 	done := make(chan struct{})
 	go func() {
 		for result := range fanIn {
-			dm.readProjectConfig(rootDomain, result.group, result.project, result.config)
+			dm.readProjectConfig(rootDomain, result.group, result.project, result.config, appConfig)
 		}
 
 		close(done)
@@ -225,7 +227,7 @@ const (
 )
 
 // Watch polls the filesystem and kicks off a new domain directory scan when needed.
-func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
+func Watch(rootDomain string, updater domainsUpdater, interval time.Duration, appConfig *config.Config) {
 	lastUpdate := []byte("no-update")
 
 	for {
@@ -254,7 +256,7 @@ func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
 			continue
 		}
 
-		dm.ReadGroups(rootDomain, fis)
+		dm.ReadGroups(rootDomain, fis, appConfig)
 		duration := time.Since(started).Seconds()
 
 		var hash string

@@ -300,7 +300,7 @@ func (a *theApp) Run() {
 	a.listenAdminUnix(&wg)
 	a.listenAdminHTTPS(&wg)
 
-	go domain.Watch(a.Domain, a.UpdateDomains, time.Second)
+	go domain.Watch(a.Domain, a.UpdateDomains, time.Second, &a.Config)
 
 	wg.Wait()
 }
