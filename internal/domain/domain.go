@@ -8,6 +8,7 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -127,6 +128,26 @@ func (d *D) isAcmeChallenge(path string) bool {
 		return false
 	}
 	return strings.HasPrefix(path, "/.well-known/acme-challenge/")
+}
+
+// This should be moved to additional config param
+func (d *D) gitlabServer() string {
+	url, err := url.Parse(d.appConfig.ArtifactsServer)
+	if err != nil {
+		return ""
+	}
+	host, _, _ := net.SplitHostPort(url.Host)
+	return host
+}
+
+func (d *D) redirectForAcmeChallenge(w http.ResponseWriter, r *http.Request) bool {
+	log.Debug("Get request for acme-challenge, redirecting to gitlab instance")
+
+	host := getHost(r)
+	redirectPath := "//" + d.gitlabServer() + "/-/acme-challenge/" + host + "/" + filepath.Base(r.URL.Path)
+	http.Redirect(w, r, redirectPath, 302)
+	return true
+
 }
 
 func setContentType(w http.ResponseWriter, fullPath string) {
@@ -481,10 +502,7 @@ func (d *D) serveFileFromConfig(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	if err != nil && d.isAcmeChallenge(r.URL.Path) {
-		log.Debug("Get request for acme-challenge, redirecting to gitlab instance")
-		redirectPath := "//gitlab.com/-/acme-challenge/" + r.Host + "/" + filepath.Base(r.URL.Path)
-		http.Redirect(w, r, redirectPath, 302)
-		return true
+		d.redirectForAcmeChallenge(w, r)
 	}
 
 	return false

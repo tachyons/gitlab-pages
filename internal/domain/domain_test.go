@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
 
@@ -491,6 +492,7 @@ func TestAcmeChallengeRedirect(t *testing.T) {
 		config: &domainConfig{
 			Domain: "test.example.com",
 		},
+		appConfig: &config.Config{ArtifactsServer: "example.com"},
 	}
 
 	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.test.io/project2/.well-known/acme-challenge/0123456789abcdef", nil, "The page you're looking for could not be found")
