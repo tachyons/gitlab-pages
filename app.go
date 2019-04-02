@@ -176,11 +176,6 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 
 	// Only for projects that have access control enabled
 	if domain.IsAccessControlEnabled(r) {
-		log.WithFields(log.Fields{
-			"host": r.Host,
-			"path": r.RequestURI,
-		}).Debug("Authenticate request")
-
 		if a.Auth.CheckAuthentication(&w, r, domain.GetID(r)) {
 			return
 		}
