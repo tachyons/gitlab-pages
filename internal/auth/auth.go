@@ -106,7 +106,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain
 		return false
 	}
 
-	logRequest(r).Debug("Authentication callback")
+	logRequest(r).Info("Receive OAuth authentication callback")
 
 	if a.handleProxyingAuth(session, w, r, dm, lock) {
 		return true
@@ -115,7 +115,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain
 	// If callback is not successful
 	errorParam := r.URL.Query().Get("error")
 	if errorParam != "" {
-		logRequest(r).WithField("error", errorParam).Debug("OAuth endpoint returned error")
+		logRequest(r).WithField("error", errorParam).Warn("OAuth endpoint returned error")
 
 		httperrors.Serve401(w)
 		return true
@@ -133,9 +133,16 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 
 	if !validateState(r, session) {
 		// State is NOT ok
-		logRequest(r).Debug("Authentication state did not match expected")
+		logRequest(r).Warn("Authentication state did not match expected")
 
 		httperrors.Serve401(w)
+		return
+	}
+
+	redirectURI, ok := session.Values["uri"].(string)
+	if !ok {
+		logRequest(r).Error("Can not extract redirect uri from session")
+		httperrors.Serve500(w)
 		return
 	}
 
@@ -144,7 +151,9 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 
 	// Fetching token not OK
 	if err != nil {
-		logRequest(r).WithError(err).Debug("Fetching access token failed")
+		logRequest(r).WithError(err).WithField(
+			"redirect_uri", redirectURI,
+		).Error("Fetching access token failed")
 
 		httperrors.Serve503(w)
 		return
@@ -160,14 +169,17 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	}
 
 	// Redirect back to requested URI
-	logRequest(r).Debug("Authentication was successful, redirecting user back to requested page")
+	logRequest(r).WithField(
+		"redirect_uri", redirectURI,
+	).Info("Authentication was successful, redirecting user back to requested page")
 
-	http.Redirect(w, r, session.Values["uri"].(string), 302)
+	http.Redirect(w, r, redirectURI, 302)
 }
 
 func (a *Auth) domainAllowed(domain string, dm domain.Map, lock *sync.RWMutex) bool {
 	lock.RLock()
 	defer lock.RUnlock()
+
 	domain = strings.ToLower(domain)
 	_, present := dm[domain]
 	return domain == a.pagesDomain || strings.HasSuffix("."+domain, a.pagesDomain) || present
@@ -191,12 +203,12 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		}
 
 		if !a.domainAllowed(host, dm, lock) {
-			logRequest(r).WithField("domain", host).Debug("Domain is not configured")
+			logRequest(r).WithField("domain", host).Warn("Domain is not configured")
 			httperrors.Serve401(w)
 			return true
 		}
 
-		logRequest(r).WithField("domain", domain).Debug("User is authenticating via domain")
+		logRequest(r).WithField("domain", domain).Info("User is authenticating via domain")
 
 		session.Values["proxy_auth_domain"] = domain
 
@@ -208,6 +220,12 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		}
 
 		url := fmt.Sprintf(authorizeURLTemplate, a.gitLabServer, a.clientID, a.redirectURI, state)
+
+		logRequest(r).WithFields(log.Fields{
+			"gitlab_server": a.gitLabServer,
+			"pages_domain":  domain,
+		}).Info("Redirecting user to gitlab for oauth")
+
 		http.Redirect(w, r, url, 302)
 
 		return true
@@ -215,11 +233,10 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 
 	// If auth request callback should be proxied to custom domain
 	if shouldProxyCallbackToCustomDomain(r, session) {
-		// Auth request is from custom domain, proxy callback there
-		logRequest(r).Debug("Redirecting auth callback to custom domain")
-
-		// Store access token
+		// Get domain started auth process
 		proxyDomain := session.Values["proxy_auth_domain"].(string)
+
+		logRequest(r).WithField("domain", proxyDomain).Info("Redirecting auth callback to custom domain")
 
 		// Clear proxying from session
 		delete(session.Values, "proxy_auth_domain")
@@ -393,7 +410,7 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
-		logRequest(r).WithError(err).Debug("Failed to authenticate request")
+		logRequest(r).WithError(err).Error("Failed to authenticate request")
 
 		httperrors.Serve500(w)
 		return true
@@ -403,7 +420,7 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	resp, err := a.apiClient.Do(req)
 
 	if checkResponseForInvalidToken(resp, err) {
-		logRequest(r).Debug("Access token was invalid, destroying session")
+		logRequest(r).Warn("Access token was invalid, destroying session")
 
 		destroySession(session, w, r)
 		return true
@@ -412,7 +429,7 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	if err != nil || resp.StatusCode != 200 {
 		// We return 404 if for some reason token is not valid to avoid (not) existence leak
 		if err != nil {
-			logRequest(r).WithError(err).Debug("Failed to retrieve info with token")
+			logRequest(r).WithError(err).Error("Failed to retrieve info with token")
 		}
 
 		httperrors.Serve404(w)
@@ -424,9 +441,10 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 
 // CheckAuthentication checks if user is authenticated and has access to the project
 func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
+	logRequest(r).Debug("Authenticate request")
 
 	if a == nil {
-		logRequest(r).Debug("Authentication is not configured")
+		logRequest(r).Error("Authentication is not configured")
 		httperrors.Serve500(w)
 		return true
 	}
@@ -453,7 +471,7 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 	resp, err := a.apiClient.Do(req)
 
 	if checkResponseForInvalidToken(resp, err) {
-		logRequest(r).Debug("Access token was invalid, destroying session")
+		logRequest(r).Warn("Access token was invalid, destroying session")
 
 		destroySession(session, w, r)
 		return true
@@ -461,7 +479,7 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 
 	if err != nil || resp.StatusCode != 200 {
 		if err != nil {
-			logRequest(r).WithError(err).Debug("Failed to retrieve info with token")
+			logRequest(r).WithError(err).Error("Failed to retrieve info with token")
 		}
 
 		// We return 404 if user has no access to avoid user knowing if the pages really existed or not
@@ -493,9 +511,11 @@ func checkResponseForInvalidToken(resp *http.Response, err error) bool {
 }
 
 func logRequest(r *http.Request) *log.Entry {
+	state := r.URL.Query().Get("state")
 	return log.WithFields(log.Fields{
-		"host": r.Host,
-		"path": r.RequestURI,
+		"host":  r.Host,
+		"path":  r.URL.Path,
+		"state": state,
 	})
 }
 
