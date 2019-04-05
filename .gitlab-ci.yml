@@ -1,3 +1,6 @@
+include:
+  template: License-Management.gitlab-ci.yml
+
 .test: &test
   script:
   - echo "Running all tests without daemonizing..."
@@ -9,6 +12,10 @@
   artifacts:
     paths:
       - bin/gitlab-pages
+
+license_management:
+  variables:
+    SETUP_CMD: echo "Skip setup. Dependency already vendored"
 
 verify:
   image: golang:1.11
