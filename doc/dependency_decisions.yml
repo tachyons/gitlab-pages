@@ -1,0 +1,71 @@
+---
+- - :license
+  - github.com/beorn7/perks/quantile
+  - MIT
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-03 13:58:37.693164000 Z
+- - :license
+  - github.com/matttproud/golang_protobuf_extensions/pbutil
+  - Apache 2.0
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-03 15:08:10.359320000 Z
+- - :license
+  - github.com/karrick/godirwalk
+  - BSD-2-Clause
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-03 15:09:35.519709000 Z
+- - :license
+  - github.com/pkg/errors
+  - BSD-2-Clause
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-03 15:10:49.901903000 Z
+- - :license
+  - github.com/prometheus/client_golang/prometheus
+  - Apache-2.0
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-03 15:11:57.417366000 Z
+- - :license
+  - github.com/prometheus/client_model/go
+  - Apache-2.0
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-03 15:14:16.841551000 Z
+- - :license
+  - gitlab.com/gitlab-org/gitaly/auth
+  - MIT
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-03 15:15:26.240245000 Z
+- - :license
+  - gitlab.com/gitlab-org/gitlab-pages-proto/go
+  - MIT
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-03 15:16:18.620931000 Z
+- - :license
+  - google.golang.org/genproto/googleapis/rpc/status
+  - Apache-2.0
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-03 15:19:19.394529000 Z
+- - :license
+  - golang.org/x/crypto/ssh/terminal
+  - BSD-3-clause
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-04-05 10:26:09.636346000 Z
