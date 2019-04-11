@@ -120,9 +120,15 @@ user if available.
 A less-functional (but just as secure) operation mode is provided via the
 `-daemon-inplace-chroot` command-line option. If passed, Pages will daemonize
 as usual, but chroot directly to the `-pages-root` directory instead of building
-a complete jail in the system temporary directory. This mode will break the
-artifact server proxy and (on some systems) TLS operation, but was the default
-mode prior to GitLab Pages v0.8.0
+a complete jail in the system temporary directory. There are some known issues
+with this mode, such as:
+
+- Artifact server proxy will not work
+- TLS operation (on some systems) will not work
+- [GitLab access control](#gitlab-access-control) might not work, because pages service cannot resolve the
+domain name of the auth server due to missing `/etc/resolv.conf` at the chroot
+directory. As a workaround, you can manually copy the file to the pages root directory, however,
+it might cause a conflict with an existing pages data.
 
 The default secure mode will also fail for certain Linux-based configurations.
 Known cases include:
@@ -169,6 +175,9 @@ Example:
 $ make
 $ ./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -auth-client-id <id> -auth-client-secret <secret> -auth-redirect-uri https://projects.example.com/auth -auth-secret something-very-secret -auth-server https://gitlab.com
 ```
+
+NOTE: **Note:**
+GitLab access control might not work with `-daemon-inplace-chroot` option. Please take a look at [the caveat section](#caveats) above.
 
 #### How it works
 
