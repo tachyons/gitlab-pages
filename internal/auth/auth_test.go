@@ -12,12 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 )
-
-func findDomain(host string) *domain.D {
-	return nil
-}
 
 func createAuth(t *testing.T) *auth.Auth {
 	return auth.New("pages.gitlab-example.com",
@@ -36,7 +31,7 @@ func TestTryAuthenticate(t *testing.T) {
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
 
-	assert.Equal(t, false, auth.TryAuthenticate(result, r, findDomain))
+	assert.Equal(t, false, auth.TryAuthenticate(result, r, nil))
 }
 
 func TestTryAuthenticateWithError(t *testing.T) {
@@ -47,7 +42,7 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
 
-	assert.Equal(t, true, auth.TryAuthenticate(result, r, findDomain))
+	assert.Equal(t, true, auth.TryAuthenticate(result, r, nil))
 	assert.Equal(t, 401, result.Code)
 }
 
@@ -64,7 +59,7 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	session.Values["state"] = "state"
 	session.Save(r, result)
 
-	assert.Equal(t, true, auth.TryAuthenticate(result, r, findDomain))
+	assert.Equal(t, true, auth.TryAuthenticate(result, r, nil))
 	assert.Equal(t, 401, result.Code)
 }
 
@@ -106,7 +101,7 @@ func TestTryAuthenticateWithCodeAndState(t *testing.T) {
 	session.Values["state"] = "state"
 	session.Save(r, result)
 
-	assert.Equal(t, true, auth.TryAuthenticate(result, r, findDomain))
+	assert.Equal(t, true, auth.TryAuthenticate(result, r, nil))
 	assert.Equal(t, 302, result.Code)
 	assert.Equal(t, "http://pages.gitlab-example.com/project/", result.Header().Get("Location"))
 }
