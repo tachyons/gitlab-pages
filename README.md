@@ -123,12 +123,16 @@ as usual, but chroot directly to the `-pages-root` directory instead of building
 a complete jail in the system temporary directory. There are some known issues
 with this mode, such as:
 
-- Artifact server proxy will not work
-- TLS operation (on some systems) will not work
-- [GitLab access control](#gitlab-access-control) might not work, because pages service cannot resolve the
-domain name of the auth server due to missing `/etc/resolv.conf` at the chroot
-directory. As a workaround, you can manually copy the file to the pages root directory, however,
-it might cause a conflict with an existing pages data.
+* Pages service will not be able to resolve the domain name of the auth server and the artifacts server due to missing `/etc/resolv.conf` at the chroot directory. As a workaround, you can manually copy the file to the pages root directory, however, it might cause a conflict with an existing pages data. As a result of DNS not working:
+    * [GitLab access control](#gitlab-access-control) might not work
+    * [Online view of HTML artifacts](https://about.gitlab.com/2017/10/22/gitlab-10-1-released/#online-view-of-html-artifacts) may not work. You can disable it and fall back to downloading artifacts by setting `artifacts_server` to `false` in `gitlab.yml` for your GitLab instance:
+      ```yml
+      ## GitLab Pages
+      pages:
+        enabled: true
+        artifacts_server: false
+      ```
+* TLS operation (on some systems) will not work
 
 The default secure mode will also fail for certain Linux-based configurations.
 Known cases include:
