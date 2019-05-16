@@ -258,7 +258,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.HTTP2, limiter)
+			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.HTTP2, a.InsecureCiphers, limiter)
 			if err != nil {
 				fatal(err)
 			}

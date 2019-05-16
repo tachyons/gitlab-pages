@@ -1057,3 +1057,71 @@ func TestAccessControl(t *testing.T) {
 		})
 	}
 }
+
+func TestAcceptsSupportedCiphers(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	ciphers := []uint16{
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	}
+	client, cleanup := ClientWithCiphers(ciphers)
+	defer cleanup()
+
+	rsp, err := client.Get(httpsListener.URL("/"))
+
+	if rsp != nil {
+		rsp.Body.Close()
+	}
+
+	require.NoError(t, err)
+}
+
+func TestRejectsUnsupportedCiphers(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	ciphers := []uint16{
+		tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+		tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+	}
+	client, cleanup := ClientWithCiphers(ciphers)
+	defer cleanup()
+
+	rsp, err := client.Get(httpsListener.URL("/"))
+
+	if rsp != nil {
+		rsp.Body.Close()
+	}
+
+	require.Error(t, err)
+	require.Nil(t, rsp)
+}
+
+func TestEnableInsecureCiphers(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-insecure-ciphers")
+	defer teardown()
+
+	ciphers := []uint16{
+		tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+		tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+	}
+	client, cleanup := ClientWithCiphers(ciphers)
+	defer cleanup()
+
+	rsp, err := client.Get(httpsListener.URL("/"))
+
+	if rsp != nil {
+		rsp.Body.Close()
+	}
+
+	require.NoError(t, err)
+}

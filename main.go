@@ -51,6 +51,7 @@ var (
 	clientSecret           = flag.String("auth-client-secret", "", "GitLab application Client Secret")
 	redirectURI            = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
 	maxConns               = flag.Uint("max-conns", 5000, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners")
+	insecureCiphers        = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
@@ -82,6 +83,7 @@ func configFromFlags() appConfig {
 	config.LogFormat = *logFormat
 	config.LogVerbose = *logVerbose
 	config.MaxConns = int(*maxConns)
+	config.InsecureCiphers = *insecureCiphers
 
 	for _, file := range []struct {
 		contents *[]byte
@@ -194,6 +196,7 @@ func appMain() {
 		"default-config-filename":       flag.DefaultConfigFlagname,
 		"disable-cross-origin-requests": *disableCrossOriginRequests,
 		"domain":                        config.Domain,
+		"insecure-ciphers":              config.InsecureCiphers,
 		"listen-http":                   strings.Join(listenHTTP, ","),
 		"listen-https":                  strings.Join(listenHTTPS, ","),
 		"listen-proxy":                  strings.Join(listenProxy, ","),

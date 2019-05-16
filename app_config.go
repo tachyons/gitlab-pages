@@ -17,6 +17,7 @@ type appConfig struct {
 	ListenMetrics    uintptr
 	ListenAdminUnix  uintptr
 	ListenAdminHTTPS uintptr
+	InsecureCiphers  bool
 
 	HTTP2        bool
 	RedirectHTTP bool

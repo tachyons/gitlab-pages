@@ -25,6 +25,15 @@ type keepAliveSetter interface {
 	SetKeepAlivePeriod(time.Duration) error
 }
 
+var preferredCipherSuites = []uint16{
+	tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+	tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+}
+
 func (ln *keepAliveListener) Accept() (net.Conn, error) {
 	conn, err := ln.Listener.Accept()
 	if err != nil {
@@ -65,7 +74,7 @@ func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConf
 	return server.Serve(&keepAliveListener{l})
 }
 
-func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, tlsHandler tlsHandlerFunc, useHTTP2 bool, limiter *netutil.Limiter) error {
+func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, tlsHandler tlsHandlerFunc, useHTTP2 bool, insecureCiphers bool, limiter *netutil.Limiter) error {
 	certificate, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		return err
@@ -75,6 +84,10 @@ func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, t
 	tlsConfig.GetCertificate = tlsHandler
 	tlsConfig.Certificates = []tls.Certificate{
 		certificate,
+	}
+	if !insecureCiphers {
+		tlsConfig.PreferServerCipherSuites = true
+		tlsConfig.CipherSuites = preferredCipherSuites
 	}
 	return listenAndServe(fd, handler, useHTTP2, tlsConfig, limiter)
 }
