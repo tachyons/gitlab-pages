@@ -329,6 +329,18 @@ func GetRedirectPageWithCookie(t *testing.T, spec ListenSpec, host, urlsuffix st
 	return TestHTTPSClient.Transport.RoundTrip(req)
 }
 
+func ClientWithCiphers(ciphers []uint16) (*http.Client, func()) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:      TestCertPool,
+			CipherSuites: ciphers,
+		},
+	}
+	client := &http.Client{Transport: tr}
+
+	return client, tr.CloseIdleConnections
+}
+
 func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Duration) {
 	nListening := 0
 	start := time.Now()
