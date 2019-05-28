@@ -329,13 +329,9 @@ func GetRedirectPageWithCookie(t *testing.T, spec ListenSpec, host, urlsuffix st
 	return TestHTTPSClient.Transport.RoundTrip(req)
 }
 
-func ClientWithCiphers(ciphers []uint16) (*http.Client, func()) {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs:      TestCertPool,
-			CipherSuites: ciphers,
-		},
-	}
+func ClientWithConfig(tlsConfig *tls.Config) (*http.Client, func()) {
+	tlsConfig.RootCAs = TestCertPool
+	tr := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: tr}
 
 	return client, tr.CloseIdleConnections

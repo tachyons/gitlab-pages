@@ -18,6 +18,8 @@ type appConfig struct {
 	ListenAdminUnix  uintptr
 	ListenAdminHTTPS uintptr
 	InsecureCiphers  bool
+	TLSMinVersion    uint16
+	TLSMaxVersion    uint16
 
 	HTTP2        bool
 	RedirectHTTP bool

@@ -10,6 +10,8 @@ import (
 
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -52,6 +54,8 @@ var (
 	redirectURI            = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
 	maxConns               = flag.Uint("max-conns", 5000, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners")
 	insecureCiphers        = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
+	tlsMinVersion          = flag.String("tls-min-version", "tls1.2", tlsconfig.FlagUsage("min"))
+	tlsMaxVersion          = flag.String("tls-max-version", "", tlsconfig.FlagUsage("max"))
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
@@ -84,6 +88,9 @@ func configFromFlags() appConfig {
 	config.LogVerbose = *logVerbose
 	config.MaxConns = int(*maxConns)
 	config.InsecureCiphers = *insecureCiphers
+	// tlsMinVersion and tlsMaxVersion are validated in appMain
+	config.TLSMinVersion = tlsconfig.AllTLSVersions[*tlsMinVersion]
+	config.TLSMaxVersion = tlsconfig.AllTLSVersions[*tlsMaxVersion]
 
 	for _, file := range []struct {
 		contents *[]byte
@@ -164,6 +171,9 @@ func appMain() {
 
 	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
 	flag.Parse()
+	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
+		fatal(err)
+	}
 
 	printVersion(*showVersion, VERSION)
 
@@ -175,8 +185,7 @@ func appMain() {
 	}).Print("GitLab Pages Daemon")
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
-	err := os.Chdir(*pagesRoot)
-	if err != nil {
+	if err := os.Chdir(*pagesRoot); err != nil {
 		fatal(err)
 	}
 
@@ -209,6 +218,8 @@ func appMain() {
 		"root-cert":                     *pagesRootKey,
 		"root-key":                      *pagesRootCert,
 		"status_path":                   config.StatusPath,
+		"tls-min-version":               *tlsMinVersion,
+		"tls-max-version":               *tlsMaxVersion,
 		"use-http-2":                    config.HTTP2,
 		"auth-secret":                   config.StoreSecret,
 		"auth-server":                   config.GitLabServer,

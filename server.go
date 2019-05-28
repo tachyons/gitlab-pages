@@ -12,9 +12,8 @@ import (
 	"golang.org/x/net/http2"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 )
-
-type tlsHandlerFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 
 type keepAliveListener struct {
 	net.Listener
@@ -23,15 +22,6 @@ type keepAliveListener struct {
 type keepAliveSetter interface {
 	SetKeepAlive(bool) error
 	SetKeepAlivePeriod(time.Duration) error
-}
-
-var preferredCipherSuites = []uint16{
-	tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-	tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-	tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 }
 
 func (ln *keepAliveListener) Accept() (net.Conn, error) {
@@ -74,20 +64,11 @@ func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConf
 	return server.Serve(&keepAliveListener{l})
 }
 
-func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, tlsHandler tlsHandlerFunc, useHTTP2 bool, insecureCiphers bool, limiter *netutil.Limiter) error {
-	certificate, err := tls.X509KeyPair(cert, key)
+func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, getCertificate tlsconfig.GetCertificateFunc, insecureCiphers bool, tlsMinVersion uint16, tlsMaxVersion uint16, useHTTP2 bool, limiter *netutil.Limiter) error {
+	tlsConfig, err := tlsconfig.Create(cert, key, getCertificate, insecureCiphers, tlsMinVersion, tlsMaxVersion)
 	if err != nil {
 		return err
 	}
 
-	tlsConfig := &tls.Config{}
-	tlsConfig.GetCertificate = tlsHandler
-	tlsConfig.Certificates = []tls.Certificate{
-		certificate,
-	}
-	if !insecureCiphers {
-		tlsConfig.PreferServerCipherSuites = true
-		tlsConfig.CipherSuites = preferredCipherSuites
-	}
 	return listenAndServe(fd, handler, useHTTP2, tlsConfig, limiter)
 }
