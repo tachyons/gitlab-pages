@@ -91,11 +91,6 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
 func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
-
-	if a == nil {
-		return false
-	}
-
 	session, err := a.checkSession(w, r)
 	if err != nil {
 		return true
@@ -105,7 +100,6 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain
 	if r.URL.Path != callbackPath {
 		return false
 	}
-
 	logRequest(r).Info("Receive OAuth authentication callback")
 
 	if a.handleProxyingAuth(session, w, r, dm, lock) {
@@ -125,12 +119,10 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain
 		a.checkAuthenticationResponse(session, w, r)
 		return true
 	}
-
 	return false
 }
 
 func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
-
 	if !validateState(r, session) {
 		// State is NOT ok
 		logRequest(r).Warn("Authentication state did not match expected")
@@ -380,22 +372,8 @@ func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Re
 	http.Redirect(w, r, getRequestAddress(r), 302)
 }
 
-// IsAuthSupported checks if pages is running with the authentication support
-func (a *Auth) IsAuthSupported() bool {
-	if a == nil {
-		return false
-	}
-	return true
-}
-
 // CheckAuthenticationWithoutProject checks if user is authenticated and has a valid token
 func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request) bool {
-
-	if a == nil {
-		// No auth supported
-		return false
-	}
-
 	session, err := a.checkSession(w, r)
 	if err != nil {
 		return true
@@ -408,7 +386,6 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	// Access token exists, authorize request
 	url := fmt.Sprintf(apiURLUserTemplate, a.gitLabServer)
 	req, err := http.NewRequest("GET", url, nil)
-
 	if err != nil {
 		logRequest(r).WithError(err).Error("Failed to authenticate request")
 
@@ -418,7 +395,6 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 
 	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
 	resp, err := a.apiClient.Do(req)
-
 	if checkResponseForInvalidToken(resp, err) {
 		logRequest(r).Warn("Access token was invalid, destroying session")
 
@@ -534,4 +510,22 @@ func New(pagesDomain string, storeSecret string, clientID string, clientSecret s
 		},
 		store: sessions.NewCookieStore([]byte(storeSecret)),
 	}
+}
+
+func (a *Auth) GetSessionAccessToken(r *http.Request) (string, error) {
+	session, err := a.getSessionFromStore(r)
+	if err != nil {
+		return "", err
+	}
+
+	if session == nil {
+		return "", fmt.Errorf("session not present")
+	}
+
+	value := session.Values["access_token"]
+	if value == nil {
+		return "", fmt.Errorf("access_token is not present in the session")
+	}
+
+	return value.(string), nil
 }

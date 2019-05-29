@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+  <select id="method" value="get">
+    <option value="get">GET</option>
+    <option value="post">POST</option>
+    <option value="delete">DELETE</option>
+    <option value="put">PUT</option>
+  </select>
+
+  <input id="url" type="text" value="http://root.proxy.5029.service_name.service_port.127.0.0.1.xip.io:3010" style="width:100%"></input>
+  <button id="perform">PERFORM</button>
+
+<script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.4.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+<script type="text/javascript">
+
+$("#perform").on("click", function(){
+  axios({
+    url: $("#url").val(),
+    method: $("#method").val(),
+    headers: {
+      // 'Access-Control-Allow-Origin': null,
+      // 'Access-Control-Allow-Origin': 'http://root.proxy.5029.service_name.service_port.127.0.0.1.xip.io:3010',
+    }
+  })
+  .then(function (response) {
+    console.log("ENTRO")
+    // handle success
+    console.log(response);
+  })
+  .catch(function (error) {
+    console.log("lalal")
+    // handle error
+    console.log(error);
+  })
+})
+
+
+</script>
+</body>
+</html>

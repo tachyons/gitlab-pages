@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/buildservice"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -38,10 +39,11 @@ var (
 
 type theApp struct {
 	appConfig
-	dm       domain.Map
-	lock     sync.RWMutex
-	Artifact *artifact.Artifact
-	Auth     *auth.Auth
+	dm           domain.Map
+	lock         sync.RWMutex
+	Artifact     *artifact.Artifact
+	BuildService *buildservice.BuildService
+	Auth         *auth.Auth
 }
 
 func (a *theApp) isReady() bool {
@@ -95,12 +97,15 @@ func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.
 	return host, a.domain(host)
 }
 
+// IsAuthSupported checks if pages is running with the authentication support
+func (a *theApp) IsAuthSupported() bool {
+	return a.Auth != nil
+}
+
 func (a *theApp) checkAuthenticationIfNotExists(domain *domain.D, w http.ResponseWriter, r *http.Request) bool {
 	if domain == nil || !domain.HasProject(r) {
-
 		// Only if auth is supported
-		if a.Auth.IsAuthSupported() {
-
+		if a.IsAuthSupported() {
 			// To avoid user knowing if pages exist, we will force user to login and authorize pages
 			if a.Auth.CheckAuthenticationWithoutProject(w, r) {
 				return true
@@ -140,6 +145,14 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
+	if a.IsAuthSupported() && a.BuildService != nil {
+		if token, err := a.Auth.GetSessionAccessToken(r); err == nil && token != "" {
+			if a.BuildService.TryMakeRequest(host, token, w, r) {
+				return true
+			}
+		}
+	}
+
 	if !a.isReady() {
 		httperrors.Serve503(w)
 		return true
@@ -160,12 +173,10 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https bool) {
 	w := newLoggingResponseWriter(ww)
 	defer w.Log(r)
-
 	metrics.SessionsActive.Inc()
 	defer metrics.SessionsActive.Dec()
 
 	host, domain := a.getHostAndDomain(r)
-
 	if a.Auth.TryAuthenticate(&w, r, a.dm, &a.lock) {
 		return
 	}
@@ -200,7 +211,6 @@ func (a *theApp) serveFileOrNotFound(domain *domain.D) http.HandlerFunc {
 			// because the projects override the paths of the namespace project and they might be private even though
 			// namespace project is public.
 			if domain.IsNamespaceProject(r) {
-
 				if a.Auth.CheckAuthenticationWithoutProject(w, r) {
 					return
 				}
@@ -358,6 +368,8 @@ func runApp(config appConfig) {
 	if config.ClientID != "" {
 		a.Auth = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
 			config.RedirectURI, config.GitLabServer)
+
+		a.BuildService = buildservice.New(config.GitLabServer, config.ArtifactsServerTimeout, config.Domain)
 	}
 
 	configureLogging(config.LogFormat, config.LogVerbose)
