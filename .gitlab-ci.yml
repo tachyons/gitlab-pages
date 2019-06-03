@@ -1,5 +1,7 @@
 include:
   template: License-Management.gitlab-ci.yml
+  variable:
+    - LICENSE_MANAGEMENT_SETUP_CMD: "go get"
 
 .test: &test
   script:
