@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
@@ -106,16 +106,6 @@ func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string 
 	return gzipPath
 }
 
-func getHost(r *http.Request) string {
-	host := strings.ToLower(r.Host)
-
-	if splitHost, _, err := net.SplitHostPort(host); err == nil {
-		host = splitHost
-	}
-
-	return host
-}
-
 // Look up a project inside the domain based on the host and path. Returns the
 // project and its name (if applicable)
 func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
@@ -131,7 +121,7 @@ func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
 
 	// Since the URL doesn't specify a project (e.g. http://mydomain.gitlab.io),
 	// return the group project if it exists.
-	if host := getHost(r); host != "" {
+	if host := host.FromRequest(r); host != "" {
 		if groupProject := d.projects[host]; groupProject != nil {
 			return groupProject, host, strings.Join(split[1:], "/")
 		}
@@ -174,6 +164,26 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 	// Check projects served under the group domain, including the default one
 	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
 		return project.AccessControl
+	}
+
+	return false
+}
+
+// HasAcmeChallenge checks domain directory contains particular acme challenge
+func (d *D) HasAcmeChallenge(token string) bool {
+	if d == nil {
+		return false
+	}
+
+	if d.config == nil {
+		return false
+	}
+
+	_, err := d.resolvePath(d.projectName, ".well-known/acme-challenge", token)
+
+	// there is an acme challenge on disk
+	if err == nil {
+		return true
 	}
 
 	return false

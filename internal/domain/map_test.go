@@ -55,6 +55,8 @@ func TestReadProjects(t *testing.T) {
 		"no.cert.com",
 		"private.domain.com",
 		"group.auth.test.io",
+		"group.acme.test.io",
+		"withacmechallenge.domain.com",
 		"capitalgroup.test.io",
 	}
 

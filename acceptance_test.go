@@ -381,7 +381,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		assert.Contains(t, string(body), "gitlab_pages_http_sessions_active 0")
-		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 14")
+		assert.Contains(t, string(body), "gitlab_pages_domains_served_total 16")
 	}
 }
 
@@ -798,6 +798,72 @@ func makeGitLabPagesAccessStub(t *testing.T) *httptest.Server {
 			}
 		}
 	}))
+}
+
+var existingAcmeTokenPath = "/.well-known/acme-challenge/existingtoken"
+var notexistingAcmeTokenPath = "/.well-known/acme-challenge/notexistingtoken"
+
+func TestAcmeChallengesWhenItIsConfigured(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-gitlab-server=https://gitlab-acme.com")
+	defer teardown()
+
+	t.Run("When domain folder contains requested acme challenge it responds with it", func(t *testing.T) {
+		rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
+			existingAcmeTokenPath)
+
+		defer rsp.Body.Close()
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, rsp.StatusCode)
+		body, _ := ioutil.ReadAll(rsp.Body)
+		require.Equal(t, "this is token\n", string(body))
+	})
+
+	t.Run("When domain folder doesn't contains requested acme challenge it redirects to GitLab",
+		func(t *testing.T) {
+			rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
+				notexistingAcmeTokenPath)
+
+			defer rsp.Body.Close()
+			require.NoError(t, err)
+			require.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
+
+			url, err := url.Parse(rsp.Header.Get("Location"))
+			require.NoError(t, err)
+
+			require.Equal(t, url.String(), "https://gitlab-acme.com/-/acme-challenge?domain=withacmechallenge.domain.com&token=notexistingtoken")
+		},
+	)
+}
+
+func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "")
+	defer teardown()
+
+	t.Run("When domain folder contains requested acme challenge it responds with it", func(t *testing.T) {
+		rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
+			existingAcmeTokenPath)
+
+		defer rsp.Body.Close()
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, rsp.StatusCode)
+		body, _ := ioutil.ReadAll(rsp.Body)
+		require.Equal(t, "this is token\n", string(body))
+	})
+
+	t.Run("When domain folder doesn't contains requested acme challenge it returns 404",
+		func(t *testing.T) {
+			rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
+				notexistingAcmeTokenPath)
+
+			defer rsp.Body.Close()
+			require.NoError(t, err)
+			require.Equal(t, http.StatusNotFound, rsp.StatusCode)
+		},
+	)
 }
 
 func TestAccessControlUnderCustomDomain(t *testing.T) {
