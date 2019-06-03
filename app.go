@@ -17,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	mimedb "gitlab.com/lupine/go-mimedb"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
@@ -38,10 +39,11 @@ var (
 
 type theApp struct {
 	appConfig
-	dm       domain.Map
-	lock     sync.RWMutex
-	Artifact *artifact.Artifact
-	Auth     *auth.Auth
+	dm             domain.Map
+	lock           sync.RWMutex
+	Artifact       *artifact.Artifact
+	Auth           *auth.Auth
+	AcmeMiddleware *acme.Middleware
 }
 
 func (a *theApp) isReady() bool {
@@ -165,6 +167,10 @@ func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https boo
 	defer metrics.SessionsActive.Dec()
 
 	host, domain := a.getHostAndDomain(r)
+
+	if a.AcmeMiddleware.ServeAcmeChallenges(&w, r, domain) {
+		return
+	}
 
 	if a.Auth.TryAuthenticate(&w, r, a.dm, &a.lock) {
 		return
@@ -358,6 +364,10 @@ func runApp(config appConfig) {
 	if config.ClientID != "" {
 		a.Auth = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
 			config.RedirectURI, config.GitLabServer)
+	}
+
+	if config.GitLabServer != "" {
+		a.AcmeMiddleware = &acme.Middleware{GitlabURL: config.GitLabServer}
 	}
 
 	configureLogging(config.LogFormat, config.LogVerbose)

@@ -11,6 +11,7 @@ import (
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 )
 
@@ -48,7 +49,8 @@ var (
 	adminHTTPSCert         = flag.String("admin-https-cert", "", "The path to the certificate file for the admin API (optional)")
 	adminHTTPSKey          = flag.String("admin-https-key", "", "The path to the key file for the admin API (optional)")
 	secret                 = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long.")
-	gitLabServer           = flag.String("auth-server", "", "GitLab server, for example https://www.gitlab.com")
+	gitLabAuthServer       = flag.String("auth-server", "", "DEPRECATED, use gitlab-server instead. GitLab server, for example https://www.gitlab.com")
+	gitLabServer           = flag.String("gitlab-server", "", "GitLab server, for example https://www.gitlab.com")
 	clientID               = flag.String("auth-client-id", "", "GitLab application Client ID")
 	clientSecret           = flag.String("auth-client-secret", "", "GitLab application Client Secret")
 	redirectURI            = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
@@ -72,9 +74,23 @@ var (
 	errSecretNotDefined       = errors.New("auth-secret must be defined if authentication is supported")
 	errClientIDNotDefined     = errors.New("auth-client-id must be defined if authentication is supported")
 	errClientSecretNotDefined = errors.New("auth-client-secret must be defined if authentication is supported")
-	errGitLabServerNotDefined = errors.New("auth-server must be defined if authentication is supported")
+	errGitLabServerNotDefined = errors.New("gitlab-server must be defined if authentication is supported")
 	errRedirectURINotDefined  = errors.New("auth-redirect-uri must be defined if authentication is supported")
 )
+
+func gitlabServerFromFlags() string {
+	if *gitLabServer != "" {
+		return *gitLabServer
+	}
+
+	if *gitLabAuthServer != "" {
+		log.Warn("auth-server parameter is deprecated, use gitlab-server instead")
+		return *gitLabAuthServer
+	}
+
+	url, _ := url.Parse(*artifactsServer)
+	return host.FromString(url.Host)
+}
 
 func configFromFlags() appConfig {
 	var config appConfig
@@ -129,39 +145,40 @@ func configFromFlags() appConfig {
 		config.ArtifactsServer = *artifactsServer
 	}
 
-	checkAuthenticationConfig(config)
+	config.GitLabServer = gitlabServerFromFlags()
 
 	config.StoreSecret = *secret
 	config.ClientID = *clientID
 	config.ClientSecret = *clientSecret
-	config.GitLabServer = *gitLabServer
 	config.RedirectURI = *redirectURI
+
+	checkAuthenticationConfig(config)
 
 	return config
 }
 
 func checkAuthenticationConfig(config appConfig) {
-	if *secret != "" || *clientID != "" || *clientSecret != "" ||
-		*gitLabServer != "" || *redirectURI != "" {
-		// Check all auth params are valid
-		assertAuthConfig()
+	if config.StoreSecret == "" && config.ClientID == "" &&
+		config.ClientSecret == "" && config.RedirectURI == "" {
+		return
 	}
+	assertAuthConfig(config)
 }
 
-func assertAuthConfig() {
-	if *secret == "" {
+func assertAuthConfig(config appConfig) {
+	if config.StoreSecret == "" {
 		log.Fatal(errSecretNotDefined)
 	}
-	if *clientID == "" {
+	if config.ClientID == "" {
 		log.Fatal(errClientIDNotDefined)
 	}
-	if *clientSecret == "" {
+	if config.ClientSecret == "" {
 		log.Fatal(errClientSecretNotDefined)
 	}
-	if *gitLabServer == "" {
+	if config.GitLabServer == "" {
 		log.Fatal(errGitLabServerNotDefined)
 	}
-	if *redirectURI == "" {
+	if config.RedirectURI == "" {
 		log.Fatal(errRedirectURINotDefined)
 	}
 }
@@ -222,7 +239,7 @@ func appMain() {
 		"tls-max-version":               *tlsMaxVersion,
 		"use-http-2":                    config.HTTP2,
 		"auth-secret":                   config.StoreSecret,
-		"auth-server":                   config.GitLabServer,
+		"gitlab-server":                 config.GitLabServer,
 		"auth-client-id":                config.ClientID,
 		"auth-client-secret":            config.ClientSecret,
 		"auth-redirect-uri":             config.RedirectURI,

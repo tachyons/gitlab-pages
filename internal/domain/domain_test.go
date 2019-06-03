@@ -3,7 +3,6 @@ package domain
 import (
 	"compress/gzip"
 	"io/ioutil"
-	"mime"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -15,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func serveFileOrNotFound(domain *D) http.HandlerFunc {
@@ -23,11 +23,6 @@ func serveFileOrNotFound(domain *D) http.HandlerFunc {
 			domain.ServeNotFoundHTTP(w, r)
 		}
 	}
-}
-
-func assertRedirectTo(t *testing.T, h http.HandlerFunc, method string, url string, values url.Values, expectedURL string) {
-	assert.HTTPRedirect(t, h, method, url, values)
-	assert.HTTPBodyContains(t, h, method, url, values, `<a href="//`+expectedURL+`">Found</a>`)
 }
 
 func testGroupServeHTTPHost(t *testing.T, host string) {
@@ -53,12 +48,12 @@ func testGroupServeHTTPHost(t *testing.T, host string) {
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/"), nil, "main-dir")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/index"), nil, "main-dir")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/index.html"), nil, "main-dir")
-	assertRedirectTo(t, serve, "GET", makeURL("/project"), nil, host+"/project/")
+	testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project"), nil, "//"+host+"/project/")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/"), nil, "project-subdir")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/index"), nil, "project-subdir")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/index/"), nil, "project-subdir")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/index.html"), nil, "project-subdir")
-	assertRedirectTo(t, serve, "GET", makeURL("/project/subdir"), nil, host+"/project/subdir/")
+	testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project/subdir"), nil, "//"+host+"/project/subdir/")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/subdir/"), nil, "project-subsubdir")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/"), nil, "project2-main")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index"), nil, "project2-main")
@@ -205,7 +200,61 @@ func TestIsHTTPSOnly(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req, _ := http.NewRequest(http.MethodGet, test.url, nil)
-			assert.Equal(t, test.domain.IsHTTPSOnly(req), test.expected)
+			assert.Equal(t, test.expected, test.domain.IsHTTPSOnly(req))
+		})
+	}
+}
+
+func TestHasAcmeChallenge(t *testing.T) {
+	cleanup := setUpTests(t)
+	defer cleanup()
+
+	tests := []struct {
+		name     string
+		domain   *D
+		token    string
+		expected bool
+	}{
+		{
+			name: "Project containing acme challenge",
+			domain: &D{
+				group:       group{name: "group.acme"},
+				projectName: "with.acme.challenge",
+				config:      &domainConfig{HTTPSOnly: true},
+			},
+			token:    "existingtoken",
+			expected: true,
+		},
+		{
+			name: "Project containing another token",
+			domain: &D{
+				group:       group{name: "group.acme"},
+				projectName: "with.acme.challenge",
+				config:      &domainConfig{HTTPSOnly: true},
+			},
+			token:    "notexistingtoken",
+			expected: false,
+		},
+		{
+			name:     "nil domain",
+			domain:   nil,
+			token:    "existingtoken",
+			expected: false,
+		},
+		{
+			name: "Domain without config",
+			domain: &D{
+				group:       group{name: "group.acme"},
+				projectName: "with.acme.challenge",
+				config:      nil,
+			},
+			token:    "existingtoken",
+			expected: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, test.domain.HasAcmeChallenge(test.token))
 		})
 	}
 }
@@ -304,18 +353,6 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	}
 }
 
-func testHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, str interface{}) {
-	w := httptest.NewRecorder()
-	req, err := http.NewRequest(mode, url+"?"+values.Encode(), nil)
-	require.NoError(t, err)
-	handler(w, req)
-
-	contentType, _, _ := mime.ParseMediaType(w.Header().Get("Content-Type"))
-	assert.Equal(t, http.StatusNotFound, w.Code, "HTTP status")
-	assert.Equal(t, "text/html", contentType, "Content-Type")
-	assert.Contains(t, w.Body.String(), str)
-}
-
 func TestGroup404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
@@ -334,15 +371,15 @@ func TestGroup404ServeHTTP(t *testing.T) {
 		},
 	}
 
-	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404/not/existing-file", nil, "Custom 404 project page")
-	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404/", nil, "Custom 404 project page")
-	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/not/existing-file", nil, "Custom 404 group page")
-	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
-	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
+	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404/not/existing-file", nil, "Custom 404 project page")
+	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404/", nil, "Custom 404 project page")
+	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/not/existing-file", nil, "Custom 404 group page")
+	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
+	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
 	assert.HTTPBodyNotContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404.symlink/not/existing-file", nil, "Custom 404 project page")
 
 	// Ensure the namespace project's custom 404.html is not used by projects
-	testHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.no.404/not/existing-file", nil, "The page you're looking for could not be found.")
+	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.no.404/not/existing-file", nil, "The page you're looking for could not be found.")
 }
 
 func TestDomain404ServeHTTP(t *testing.T) {
@@ -357,8 +394,8 @@ func TestDomain404ServeHTTP(t *testing.T) {
 		},
 	}
 
-	testHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
-	testHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
+	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
+	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
 }
 
 func TestPredefined404ServeHTTP(t *testing.T) {
@@ -369,7 +406,7 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 		group: group{name: "group"},
 	}
 
-	testHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
+	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
 
 func TestGroupCertificate(t *testing.T) {
