@@ -1,3 +1,12 @@
+v 1.6.0
+
+- Use proxy from environment for http request !131
+- Use STDOUT for flag outputs !132
+- Prepare pages auth logs for production rollout !138
+- Redirect unknown ACME challenges to the GitLab instance !141
+- Disable 3DES and other insecure cipher suites !145
+- Provide ability to disable old TLS versions !146
+
 v 1.5.0
 
 - Make extensionless URLs work !112
