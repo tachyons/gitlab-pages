@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
@@ -301,7 +300,7 @@ func (a *theApp) Run() {
 		go func(fd uintptr) {
 			defer wg.Done()
 
-			handler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP
+			handler := promhttp.Handler().ServeHTTP
 			err := listenAndServe(fd, handler, false, nil, nil)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "metrics"))
