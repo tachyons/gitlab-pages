@@ -186,6 +186,12 @@ func (d *D) HasAcmeChallenge(token string) bool {
 		return true
 	}
 
+	_, err = d.resolvePath(d.projectName, ".well-known/acme-challenge", token, "index.html")
+
+	if err == nil {
+		return true
+	}
+
 	return false
 }
 

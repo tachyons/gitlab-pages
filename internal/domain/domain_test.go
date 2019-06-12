@@ -226,6 +226,16 @@ func TestHasAcmeChallenge(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "Project containing acme challenge",
+			domain: &D{
+				group:       group{name: "group.acme"},
+				projectName: "with.acme.challenge",
+				config:      &domainConfig{HTTPSOnly: true},
+			},
+			token:    "foldertoken",
+			expected: true,
+		},
+		{
 			name: "Project containing another token",
 			domain: &D{
 				group:       group{name: "group.acme"},
