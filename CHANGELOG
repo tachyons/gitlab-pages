@@ -1,3 +1,7 @@
+v 1.6.1
+
+- Fix serving acme challenges with index.html
+
 v 1.6.0
 
 - Use proxy from environment for http request !131
