@@ -1,4 +1,4 @@
-## GitLab Pages Daemon
+## GitLab Pages Daemon test
 
 [![build status](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/build.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
 
