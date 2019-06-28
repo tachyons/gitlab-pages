@@ -23,6 +23,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
+	headerConfig "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -51,6 +52,7 @@ type theApp struct {
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
 	AcmeMiddleware *acme.Middleware
+	CustomHeaders  http.Header
 }
 
 func (a *theApp) isReady() bool {
@@ -229,6 +231,8 @@ func (a *theApp) serveFileOrNotFound(domain *domain.D) http.HandlerFunc {
 
 func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
 	https := r.TLS != nil
+	headerConfig.AddCustomHeaders(ww, a.CustomHeaders)
+
 	a.serveContent(ww, r, https)
 }
 
@@ -239,6 +243,7 @@ func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
 	if forwardedHost := r.Header.Get(xForwardedHost); forwardedHost != "" {
 		r.Host = forwardedHost
 	}
+	headerConfig.AddCustomHeaders(ww, a.CustomHeaders)
 
 	a.serveContent(ww, r, https)
 }
@@ -378,6 +383,14 @@ func runApp(config appConfig) {
 
 	if config.GitLabServer != "" {
 		a.AcmeMiddleware = &acme.Middleware{GitlabURL: config.GitLabServer}
+	}
+
+	if len(config.CustomHeaders) != 0 {
+		customHeaders, err := headerConfig.ParseHeaderString(config.CustomHeaders)
+		if err != nil {
+			log.Fatal(err)
+		}
+		a.CustomHeaders = customHeaders
 	}
 
 	configureLogging(config.LogFormat, config.LogVerbose)

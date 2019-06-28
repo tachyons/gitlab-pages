@@ -241,6 +241,19 @@ func TestCORSForbidsPOST(t *testing.T) {
 	}
 }
 
+func TestCustomHeaders(t *testing.T) {
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-header", "X-Test1:Testing1", "-header", "X-Test2:Testing2")
+	defer teardown()
+
+	for _, spec := range listeners {
+		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com:", "project/")
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+		assert.Equal(t, "Testing1", rsp.Header.Get("X-Test1"))
+		assert.Equal(t, "Testing2", rsp.Header.Get("X-Test2"))
+	}
+}
+
 func doCrossOriginRequest(t *testing.T, method, reqMethod, url string) *http.Response {
 	req, err := http.NewRequest(method, url, nil)
 	require.NoError(t, err)

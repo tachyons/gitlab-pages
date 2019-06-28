@@ -26,6 +26,7 @@ func init() {
 	flag.Var(&listenHTTP, "listen-http", "The address(es) to listen on for HTTP requests")
 	flag.Var(&listenHTTPS, "listen-https", "The address(es) to listen on for HTTPS requests")
 	flag.Var(&listenProxy, "listen-proxy", "The address(es) to listen on for proxy requests")
+	flag.Var(&header, "header", "The additional http header(s) that should be send to the client")
 }
 
 var (
@@ -68,6 +69,8 @@ var (
 	listenHTTP  MultiStringFlag
 	listenHTTPS MultiStringFlag
 	listenProxy MultiStringFlag
+
+	header MultiStringFlag
 )
 
 var (
@@ -95,6 +98,26 @@ func gitlabServerFromFlags() string {
 	return host.FromString(url.Host)
 }
 
+func setArtifactsServer(artifactsServer string, artifactsServerTimeout int, config *appConfig) {
+	u, err := url.Parse(artifactsServer)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// url.Parse ensures that the Scheme arttribute is always lower case.
+	if u.Scheme != "http" && u.Scheme != "https" {
+		errortracking.Capture(err)
+		log.Fatal(errArtifactSchemaUnsupported)
+	}
+
+	if artifactsServerTimeout < 1 {
+		errortracking.Capture(err)
+		log.Fatal(errArtifactsServerTimeoutValue)
+	}
+
+	config.ArtifactsServerTimeout = artifactsServerTimeout
+	config.ArtifactsServer = artifactsServer
+}
+
 func configFromFlags() appConfig {
 	var config appConfig
 
@@ -110,6 +133,7 @@ func configFromFlags() appConfig {
 	// tlsMinVersion and tlsMaxVersion are validated in appMain
 	config.TLSMinVersion = tlsconfig.AllTLSVersions[*tlsMinVersion]
 	config.TLSMaxVersion = tlsconfig.AllTLSVersions[*tlsMaxVersion]
+	config.CustomHeaders = header
 
 	for _, file := range []struct {
 		contents *[]byte
@@ -126,29 +150,8 @@ func configFromFlags() appConfig {
 		}
 	}
 
-	if *artifactsServerTimeout < 1 {
-		errortracking.Capture(errArtifactsServerTimeoutValue)
-		log.Fatal(errArtifactsServerTimeoutValue)
-	}
-
 	if *artifactsServer != "" {
-		u, err := url.Parse(*artifactsServer)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// url.Parse ensures that the Scheme arttribute is always lower case.
-		if u.Scheme != "http" && u.Scheme != "https" {
-			errortracking.Capture(err)
-			log.Fatal(errArtifactSchemaUnsupported)
-		}
-
-		if *artifactsServerTimeout < 1 {
-			errortracking.Capture(err)
-			log.Fatal(errArtifactsServerTimeoutValue)
-		}
-
-		config.ArtifactsServerTimeout = *artifactsServerTimeout
-		config.ArtifactsServer = *artifactsServer
+		setArtifactsServer(*artifactsServer, *artifactsServerTimeout, &config)
 	}
 
 	config.GitLabServer = gitlabServerFromFlags()
