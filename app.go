@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	mimedb "gitlab.com/lupine/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
@@ -35,6 +37,11 @@ const (
 
 var (
 	corsHandler = cors.New(cors.Options{AllowedMethods: []string{"GET"}})
+)
+
+var (
+	errStartListener = errors.New("Could not start listener")
+	errX509KeyPair   = errors.New("Could not initialize KeyPair")
 )
 
 type theApp struct {
@@ -254,7 +261,7 @@ func (a *theApp) Run() {
 			defer wg.Done()
 			err := listenAndServe(fd, a.ServeHTTP, a.HTTP2, nil, limiter)
 			if err != nil {
-				fatal(err)
+				capturingFatal(err, errortracking.WithField("listener", "http"))
 			}
 		}(fd)
 	}
@@ -266,7 +273,7 @@ func (a *theApp) Run() {
 			defer wg.Done()
 			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
 			if err != nil {
-				fatal(err)
+				capturingFatal(err, errortracking.WithField("listener", "https"))
 			}
 		}(fd)
 	}
@@ -278,7 +285,7 @@ func (a *theApp) Run() {
 			defer wg.Done()
 			err := listenAndServe(fd, a.ServeProxy, a.HTTP2, nil, limiter)
 			if err != nil {
-				fatal(err)
+				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
 			}
 		}(fd)
 	}
@@ -292,7 +299,7 @@ func (a *theApp) Run() {
 			handler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP
 			err := listenAndServe(fd, handler, false, nil, nil)
 			if err != nil {
-				fatal(err)
+				capturingFatal(err, errortracking.WithField("listener", "metrics"))
 			}
 		}(a.ListenMetrics)
 	}
@@ -317,6 +324,7 @@ func (a *theApp) listenAdminUnix(wg *sync.WaitGroup) {
 
 		l, err := net.FileListener(os.NewFile(fd, "[admin-socket-unix]"))
 		if err != nil {
+			errortracking.Capture(err, errortracking.WithField("listener", "admin unix socket"))
 			fatal(fmt.Errorf("failed to listen on FD %d: %v", fd, err))
 		}
 		defer l.Close()
@@ -335,7 +343,7 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 
 	cert, err := tls.X509KeyPair(a.AdminCertificate, a.AdminKey)
 	if err != nil {
-		fatal(err)
+		capturingFatal(err)
 	}
 
 	wg.Add(1)
@@ -344,7 +352,9 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 
 		l, err := net.FileListener(os.NewFile(fd, "[admin-socket-https]"))
 		if err != nil {
-			fatal(fmt.Errorf("failed to listen on FD %d: %v", fd, err))
+			errMsg := fmt.Sprintf("failed to listen on FD %d: %v", fd, err)
+			log.Error(errMsg)
+			capturingFatal(err, errortracking.WithField("listener", "admin https socket"))
 		}
 		defer l.Close()
 

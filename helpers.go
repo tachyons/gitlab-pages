@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+
+	"gitlab.com/gitlab-org/labkit/errortracking"
 )
 
 func readFile(file string) (result []byte) {
@@ -59,4 +61,9 @@ func fileForListener(l net.Listener) *os.File {
 	}
 
 	return f
+}
+
+func capturingFatal(err error, fields ...errortracking.CaptureOption) {
+	errortracking.Capture(err, fields...)
+	fatal(err)
 }

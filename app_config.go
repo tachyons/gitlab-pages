@@ -35,4 +35,7 @@ type appConfig struct {
 	ClientID     string
 	ClientSecret string
 	RedirectURI  string
+
+	SentryDSN         string
+	SentryEnvironment string
 }
