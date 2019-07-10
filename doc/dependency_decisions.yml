@@ -69,3 +69,9 @@
     :why: 
     :versions: []
     :when: 2019-04-05 10:26:09.636346000 Z
+- - :ignore
+  - github.com/certifi/gocertifi
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-07-10 17:01:35.894437233 Z

@@ -9,6 +9,18 @@
 			"revisionTime": "2018-03-21T16:47:47Z"
 		},
 		{
+			"checksumSHA1": "f964kTcl3PgMy2Zg+BSodsl0RFs=",
+			"path": "github.com/certifi/gocertifi",
+			"revision": "d2eda712971317d7dd278bc2a52acda7e945f97e",
+			"revisionTime": "2019-04-14T21:10:42Z"
+		},
+		{
+			"checksumSHA1": "DDb/mPtFh1OfbUXdXMaLxio0g48=",
+			"path": "github.com/getsentry/raven-go",
+			"revision": "5c24d5110e0e198d9ae16f1f3465366085001d92",
+			"revisionTime": "2019-06-19T09:25:23Z"
+		},
+		{
 			"checksumSHA1": "NPefLsS2pv0+YlXAuJJvkNOMgyE=",
 			"path": "github.com/golang/protobuf/jsonpb",
 			"revision": "b4deda0973fb4c70b50d226b1af49f3da59f5265",
@@ -43,14 +55,6 @@
 		{
 			"checksumSHA1": "ZIF0rnVzNLluFPqUebtJrVonMr4=",
 			"path": "github.com/golang/protobuf/ptypes/duration",
-			"revision": "b4deda0973fb4c70b50d226b1af49f3da59f5265",
-			"revisionTime": "2018-04-30T18:52:41Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
-		},
-		{
-			"checksumSHA1": "7Az4Zl9T11I+xOfjgs/3/YMJ24I=",
-			"path": "github.com/golang/protobuf/ptypes/empty",
 			"revision": "b4deda0973fb4c70b50d226b1af49f3da59f5265",
 			"revisionTime": "2018-04-30T18:52:41Z",
 			"version": "v1.1.0",
@@ -305,12 +309,22 @@
 			"revisionTime": "2018-04-12T13:09:56Z"
 		},
 		{
-			"checksumSHA1": "QdEuED/Ha1K6DUBVG/HLboBxFt8=",
-			"path": "gitlab.com/gitlab-org/gitlab-pages-proto/go",
-			"revision": "66dafd4b2ddf25df75993329e08792b070217903",
-			"revisionTime": "2018-04-05T10:22:53Z",
-			"version": "v0.0.2",
-			"versionExact": "v0.0.2"
+			"checksumSHA1": "86VccaJApU9EEq4KKen8DX9gMUM=",
+			"path": "gitlab.com/gitlab-org/labkit/correlation",
+			"revision": "ed6d5f223a90a4e9bb63f414a212e547edfd8d84",
+			"revisionTime": "2019-07-10T10:24:15Z"
+		},
+		{
+			"checksumSHA1": "XKPA3adbywKGnRFOPl1sHc0oUmM=",
+			"path": "gitlab.com/gitlab-org/labkit/errortracking",
+			"revision": "ed6d5f223a90a4e9bb63f414a212e547edfd8d84",
+			"revisionTime": "2019-07-10T10:24:15Z"
+		},
+		{
+			"checksumSHA1": "yWZietMQ0YjAXj4NEVrQAypOIBU=",
+			"path": "gitlab.com/gitlab-org/labkit/mask",
+			"revision": "ed6d5f223a90a4e9bb63f414a212e547edfd8d84",
+			"revisionTime": "2019-07-10T10:24:15Z"
 		},
 		{
 			"checksumSHA1": "UxFypaeBgKNoj1+mF/OwdtgfrWk=",

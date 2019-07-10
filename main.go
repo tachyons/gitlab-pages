@@ -10,6 +10,7 @@ import (
 
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
@@ -38,6 +39,8 @@ var (
 	artifactsServerTimeout = flag.Int("artifacts-server-timeout", 10, "Timeout (in seconds) for a proxied request to the artifacts server")
 	pagesStatus            = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")
 	metricsAddress         = flag.String("metrics-address", "", "The address to listen on for metrics requests")
+	sentryDSN              = flag.String("sentry-dsn", "", "The address for sending sentry crash reporting to")
+	sentryEnvironment      = flag.String("sentry-environment", "", "The environment for sentry crash reporting")
 	daemonUID              = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	daemonGID              = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 	daemonInplaceChroot    = flag.Bool("daemon-inplace-chroot", false, "Fall back to a non-bind-mount chroot of -pages-root when daemonizing")
@@ -124,6 +127,7 @@ func configFromFlags() appConfig {
 	}
 
 	if *artifactsServerTimeout < 1 {
+		errortracking.Capture(errArtifactsServerTimeoutValue)
 		log.Fatal(errArtifactsServerTimeoutValue)
 	}
 
@@ -134,10 +138,12 @@ func configFromFlags() appConfig {
 		}
 		// url.Parse ensures that the Scheme arttribute is always lower case.
 		if u.Scheme != "http" && u.Scheme != "https" {
+			errortracking.Capture(err)
 			log.Fatal(errArtifactSchemaUnsupported)
 		}
 
 		if *artifactsServerTimeout < 1 {
+			errortracking.Capture(err)
 			log.Fatal(errArtifactsServerTimeoutValue)
 		}
 
@@ -151,6 +157,8 @@ func configFromFlags() appConfig {
 	config.ClientID = *clientID
 	config.ClientSecret = *clientSecret
 	config.RedirectURI = *redirectURI
+	config.SentryDSN = *sentryDSN
+	config.SentryEnvironment = *sentryEnvironment
 
 	checkAuthenticationConfig(config)
 
@@ -183,6 +191,14 @@ func assertAuthConfig(config appConfig) {
 	}
 }
 
+func initErrorReporting(sentryDSN, sentryEnvironment string) {
+	errortracking.Initialize(
+		errortracking.WithSentryDSN(sentryDSN),
+		errortracking.WithVersion(fmt.Sprintf("%s-%s", VERSION, REVISION)),
+		errortracking.WithLoggerName("gitlab-pages"),
+		errortracking.WithSentryEnvironment(sentryEnvironment))
+}
+
 func appMain() {
 	var showVersion = flag.Bool("version", false, "Show version")
 
@@ -207,6 +223,9 @@ func appMain() {
 	}
 
 	config := configFromFlags()
+	if config.SentryDSN != "" {
+		initErrorReporting(config.SentryDSN, config.SentryEnvironment)
+	}
 
 	log.WithFields(log.Fields{
 		"admin-https-cert":              *adminHTTPSCert,
@@ -243,6 +262,7 @@ func appMain() {
 		"auth-client-id":                config.ClientID,
 		"auth-client-secret":            config.ClientSecret,
 		"auth-redirect-uri":             config.RedirectURI,
+		"sentry-dsn":                    config.SentryDSN,
 	}).Debug("Start daemon with configuration")
 
 	for _, cs := range [][]io.Closer{
@@ -256,6 +276,7 @@ func appMain() {
 
 	if *daemonUID != 0 || *daemonGID != 0 {
 		if err := daemonize(config, *daemonUID, *daemonGID, *daemonInplaceChroot); err != nil {
+			errortracking.Capture(err)
 			fatal(err)
 		}
 
