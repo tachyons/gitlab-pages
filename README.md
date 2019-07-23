@@ -234,6 +234,17 @@ values are `ssl3`, `tls1.0`, `tls1.1`, `tls1.2`, and `tls1.3` (if supported). Wh
 is used GitLab Pages will add `tls13=1` to `GODEBUG` to enable TLS 1.3.
 See https://golang.org/src/crypto/tls/tls.go for more.
 
+### Custom headers
+
+To specify custom headers that should be send with every request on GitLab pages use the `-header` argument.
+
+You can add as many headers as you like.
+
+Example:
+```sh
+./gitlab-pages -header "Content-Security-Policy: default-src 'self' *.example.com" -header "X-Test: Testing" ...
+```
+
 ### Configuration
 
 The daemon can be configured with any combination of these methods:
