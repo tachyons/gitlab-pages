@@ -168,46 +168,105 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 	return false
 }
 
-func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https bool) {
-	w := newLoggingResponseWriter(ww)
-	defer w.Log(r)
+// observabilityMiddleware will provide observability (logging, metrics)
+// for each request
+func (a *theApp) observabilityMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(ww http.ResponseWriter, r *http.Request) {
+		w := newLoggingResponseWriter(ww)
+		defer w.Log(r)
 
-	metrics.SessionsActive.Inc()
-	defer metrics.SessionsActive.Dec()
+		metrics.SessionsActive.Inc()
+		defer metrics.SessionsActive.Dec()
 
-	host, domain := a.getHostAndDomain(r)
+		handler.ServeHTTP(&w, r)
 
-	if a.AcmeMiddleware.ServeAcmeChallenges(&w, r, domain) {
-		return
-	}
-
-	if a.Auth.TryAuthenticate(&w, r, a.dm, &a.lock) {
-		return
-	}
-
-	if a.tryAuxiliaryHandlers(&w, r, https, host, domain) {
-		return
-	}
-
-	// Only for projects that have access control enabled
-	if domain.IsAccessControlEnabled(r) {
-		if a.Auth.CheckAuthentication(&w, r, domain.GetID(r)) {
-			return
-		}
-	}
-
-	// Serve static file, applying CORS headers if necessary
-	if a.DisableCrossOriginRequests {
-		a.serveFileOrNotFound(domain)(&w, r)
-	} else {
-		corsHandler.ServeHTTP(&w, r, a.serveFileOrNotFound(domain))
-	}
-
-	metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
+		metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
+	})
 }
 
-func (a *theApp) serveFileOrNotFound(domain *domain.D) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+// routingMiddleware will determine the host and domain for the request, for
+// downstream middlewares to use
+func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host, domain := a.getHostAndDomain(r)
+
+		r = request.WithHostAndDomain(r, host, domain)
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// customHeadersMiddleware will inject custom headers into the response
+func (a *theApp) customHeadersMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headerConfig.AddCustomHeaders(w, a.CustomHeaders)
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// acmeMiddleware will handle ACME challenges
+func (a *theApp) acmeMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		domain := request.GetDomain(r)
+
+		if a.AcmeMiddleware.ServeAcmeChallenges(w, r, domain) {
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// authMiddleware handles authentication requests
+func (a *theApp) authMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if a.Auth.TryAuthenticate(w, r, a.dm, &a.lock) {
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// auxiliaryMiddleware will handle status updates, not-ready requests and other
+// not static-content responses
+func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host := request.GetHost(r)
+		domain := request.GetDomain(r)
+		https := request.IsHTTPS(r)
+
+		if a.tryAuxiliaryHandlers(w, r, https, host, domain) {
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// accessControlMiddleware will handle authorization
+func (a *theApp) accessControlMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		domain := request.GetDomain(r)
+
+		// Only for projects that have access control enabled
+		if domain.IsAccessControlEnabled(r) {
+			// accessControlMiddleware
+			if a.Auth.CheckAuthentication(w, r, domain.GetID(r)) {
+				return
+			}
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// serveFileOrNotFoundHandler will serve static content or
+// return a 404 Not Found response
+func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		domain := request.GetDomain(r)
 		fileServed := domain.ServeFileHTTP(w, r)
 
 		if !fileServed {
@@ -226,29 +285,49 @@ func (a *theApp) serveFileOrNotFound(domain *domain.D) http.HandlerFunc {
 
 			domain.ServeNotFoundHTTP(w, r)
 		}
-	}
+	})
 }
 
-func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
-	https := r.TLS != nil
-	r = request.WithHTTPSFlag(r, https)
+// httpInitialMiddleware sets up HTTP requests
+func (a *theApp) httpInitialMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		https := r.TLS != nil
+		r = request.WithHTTPSFlag(r, https)
 
-	headerConfig.AddCustomHeaders(ww, a.CustomHeaders)
-
-	a.serveContent(ww, r, https)
+		handler.ServeHTTP(w, r)
+	})
 }
 
-func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
-	forwardedProto := r.Header.Get(xForwardedProto)
-	https := forwardedProto == xForwardedProtoHTTPS
-	r = request.WithHTTPSFlag(r, https)
+// proxyInitialMiddleware sets up proxy requests
+func (a *theApp) proxyInitialMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		forwardedProto := r.Header.Get(xForwardedProto)
+		https := forwardedProto == xForwardedProtoHTTPS
 
-	if forwardedHost := r.Header.Get(xForwardedHost); forwardedHost != "" {
-		r.Host = forwardedHost
+		r = request.WithHTTPSFlag(r, https)
+		if forwardedHost := r.Header.Get(xForwardedHost); forwardedHost != "" {
+			r.Host = forwardedHost
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+func (a *theApp) buildHandlerPipeline() http.Handler {
+	// Handlers should be applied in reverse order
+	handler := a.serveFileOrNotFoundHandler()
+	if !a.DisableCrossOriginRequests {
+		handler = corsHandler.Handler(handler)
 	}
-	headerConfig.AddCustomHeaders(ww, a.CustomHeaders)
+	handler = a.accessControlMiddleware(handler)
+	handler = a.auxiliaryMiddleware(handler)
+	handler = a.authMiddleware(handler)
+	handler = a.acmeMiddleware(handler)
+	handler = a.customHeadersMiddleware(handler)
+	handler = a.observabilityMiddleware(handler)
+	handler = a.routingMiddleware(handler)
 
-	a.serveContent(ww, r, https)
+	return handler
 }
 
 func (a *theApp) UpdateDomains(dm domain.Map) {
@@ -262,12 +341,18 @@ func (a *theApp) Run() {
 
 	limiter := netutil.NewLimiter(a.MaxConns)
 
+	// Use a common pipeline to use a single instance of each handler,
+	// instead of making two nearly identical pipelines
+	commonHandlerPipeline := a.buildHandlerPipeline()
+	proxyHandler := a.proxyInitialMiddleware(commonHandlerPipeline)
+	httpHandler := a.httpInitialMiddleware(commonHandlerPipeline)
+
 	// Listen for HTTP
 	for _, fd := range a.ListenHTTP {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(fd, a.ServeHTTP, a.HTTP2, nil, limiter)
+			err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "http"))
 			}
@@ -279,7 +364,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
+			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "https"))
 			}
@@ -291,7 +376,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(fd, a.ServeProxy, a.HTTP2, nil, limiter)
+			err := listenAndServe(fd, proxyHandler, a.HTTP2, nil, limiter)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
 			}
@@ -304,7 +389,7 @@ func (a *theApp) Run() {
 		go func(fd uintptr) {
 			defer wg.Done()
 
-			handler := promhttp.Handler().ServeHTTP
+			handler := promhttp.Handler()
 			err := listenAndServe(fd, handler, false, nil, nil)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "metrics"))
