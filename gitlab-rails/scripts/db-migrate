@@ -28,21 +28,9 @@ cd /srv/gitlab
 
 GITLAB_ROOT_PASSWORD=${INITIAL_PASSWORD} /srv/gitlab/bin/rake gitlab:db:configure && STATUS=$? || STATUS=$?
 
-# Disable authorized keys write
-# Workaround for disabling the authorized_keys write to the database.
-# A proper fix is being tracked in: https://gitlab.com/charts/helm.gitlab.io/issues/89
 if [ "$STATUS" = "0" ]; then
-  echo "Disable authorized keys write in the database"
-  /scripts/disable-auth-keys-write && STATUS=$? || STATUS=$?
-fi
-
-# Enable feature flags for object storage
-# - ci_enable_live_trace: archive traces in object storage as artifacts, live data in Redis
-# - import_export_object_storage: use object storage for project import / export tarballs
-if [ "$STATUS" = "0" ]; then
-  echo "Enabling 'ci_enable_live_trace', 'import_export_object_storage' feature flags"
-  /srv/gitlab/bin/rails runner -e production \
-    "Feature.enable('ci_enable_live_trace'); Feature.enable('import_export_object_storage');" && STATUS=$? || STATUS=$?
+  echo "Perform custom instance setup"
+  /scripts/custom-instance-setup && STATUS=$? || STATUS=$?
 fi
 
 # Update the status
