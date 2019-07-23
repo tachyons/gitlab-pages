@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -43,6 +44,14 @@ var (
 var (
 	errStartListener = errors.New("Could not start listener")
 	errX509KeyPair   = errors.New("Could not initialize KeyPair")
+)
+
+type ctxKey string
+
+const (
+	ctxHostKey   ctxKey = "host"
+	ctxDomainKey ctxKey = "domain"
+	ctxHTTPSKey  ctxKey = "https"
 )
 
 type theApp struct {
@@ -168,46 +177,55 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 	return false
 }
 
-func (a *theApp) serveContent(ww http.ResponseWriter, r *http.Request, https bool) {
-	w := newLoggingResponseWriter(ww)
-	defer w.Log(r)
+func (a *theApp) loggingMiddleware(handler http.Handler) http.Handler {
+	logrusEntry := log.WithField("system", "http")
 
-	metrics.SessionsActive.Inc()
-	defer metrics.SessionsActive.Dec()
+	return http.HandlerFunc(func(ww http.ResponseWriter, r *http.Request) {
+		w := newLoggingResponseWriter(ww, logrusEntry)
+		defer w.Log(r)
 
-	host, domain := a.getHostAndDomain(r)
+		metrics.SessionsActive.Inc()
+		defer metrics.SessionsActive.Dec()
 
-	if a.AcmeMiddleware.ServeAcmeChallenges(&w, r, domain) {
-		return
-	}
+		handler.ServeHTTP(&w, r)
 
-	if a.Auth.TryAuthenticate(&w, r, a.dm, &a.lock) {
-		return
-	}
-
-	if a.tryAuxiliaryHandlers(&w, r, https, host, domain) {
-		return
-	}
-
-	// Only for projects that have access control enabled
-	if domain.IsAccessControlEnabled(r) {
-		if a.Auth.CheckAuthentication(&w, r, domain.GetID(r)) {
-			return
-		}
-	}
-
-	// Serve static file, applying CORS headers if necessary
-	if a.DisableCrossOriginRequests {
-		a.serveFileOrNotFound(domain)(&w, r)
-	} else {
-		corsHandler.ServeHTTP(&w, r, a.serveFileOrNotFound(domain))
-	}
-
-	metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
+		metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
+	})
 }
 
-func (a *theApp) serveFileOrNotFound(domain *domain.D) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (a *theApp) routerMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		https := extractHTTPSFlag(r)
+
+		host, domain := a.getHostAndDomain(r)
+
+		if a.AcmeMiddleware.ServeAcmeChallenges(w, r, domain) {
+			return
+		}
+
+		if a.Auth.TryAuthenticate(w, r, a.dm, &a.lock) {
+			return
+		}
+
+		if a.tryAuxiliaryHandlers(w, r, https, host, domain) {
+			return
+		}
+
+		// Only for projects that have access control enabled
+		if domain.IsAccessControlEnabled(r) {
+			// accessControlMiddleware
+			if a.Auth.CheckAuthentication(w, r, domain.GetID(r)) {
+				return
+			}
+		}
+
+		handler.ServeHTTP(w, requestWithHostAndDomain(r, host, domain))
+	})
+}
+
+func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		domain := extractDomain(r)
 		fileServed := domain.ServeFileHTTP(w, r)
 
 		if !fileServed {
@@ -226,26 +244,47 @@ func (a *theApp) serveFileOrNotFound(domain *domain.D) http.HandlerFunc {
 
 			domain.ServeNotFoundHTTP(w, r)
 		}
-	}
+	})
 }
 
-func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
-	https := r.TLS != nil
-	headerConfig.AddCustomHeaders(ww, a.CustomHeaders)
+func (a *theApp) httpInitialMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		https := r.TLS != nil
+		headerConfig.AddCustomHeaders(w, a.CustomHeaders)
 
-	a.serveContent(ww, r, https)
+		handler.ServeHTTP(w, requestWithHTTPFlag(r, https))
+	})
 }
 
-func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
-	forwardedProto := r.Header.Get(xForwardedProto)
-	https := forwardedProto == xForwardedProtoHTTPS
+func (a *theApp) proxyInitialMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		forwardedProto := r.Header.Get(xForwardedProto)
+		https := forwardedProto == xForwardedProtoHTTPS
 
-	if forwardedHost := r.Header.Get(xForwardedHost); forwardedHost != "" {
-		r.Host = forwardedHost
+		if forwardedHost := r.Header.Get(xForwardedHost); forwardedHost != "" {
+			r.Host = forwardedHost
+		}
+		headerConfig.AddCustomHeaders(w, a.CustomHeaders)
+
+		handler.ServeHTTP(w, requestWithHTTPFlag(r, https))
+	})
+}
+
+func (a *theApp) buildHandlerPipeline(proxy bool) http.Handler {
+	handler := a.serveFileOrNotFoundHandler()
+	if !a.DisableCrossOriginRequests {
+		handler = corsHandler.Handler(handler)
 	}
-	headerConfig.AddCustomHeaders(ww, a.CustomHeaders)
+	handler = a.routerMiddleware(handler)
+	handler = a.loggingMiddleware(handler)
 
-	a.serveContent(ww, r, https)
+	if proxy {
+		handler = a.proxyInitialMiddleware(handler)
+	} else {
+		handler = a.httpInitialMiddleware(handler)
+	}
+
+	return handler
 }
 
 func (a *theApp) UpdateDomains(dm domain.Map) {
@@ -259,12 +298,15 @@ func (a *theApp) Run() {
 
 	limiter := netutil.NewLimiter(a.MaxConns)
 
+	httpHandler := a.buildHandlerPipeline(false)
+	proxyHandler := a.buildHandlerPipeline(true)
+
 	// Listen for HTTP
 	for _, fd := range a.ListenHTTP {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(fd, a.ServeHTTP, a.HTTP2, nil, limiter)
+			err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "http"))
 			}
@@ -276,7 +318,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, a.ServeHTTP, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
+			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "https"))
 			}
@@ -288,7 +330,7 @@ func (a *theApp) Run() {
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(fd, a.ServeProxy, a.HTTP2, nil, limiter)
+			err := listenAndServe(fd, proxyHandler, a.HTTP2, nil, limiter)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
 			}
@@ -301,7 +343,7 @@ func (a *theApp) Run() {
 		go func(fd uintptr) {
 			defer wg.Done()
 
-			handler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP
+			handler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{})
 			err := listenAndServe(fd, handler, false, nil, nil)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "metrics"))
@@ -400,4 +442,31 @@ func runApp(config appConfig) {
 	}
 
 	a.Run()
+}
+
+func requestWithHostAndDomain(r *http.Request, host string, domain *domain.D) *http.Request {
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, ctxHostKey, host)
+	ctx = context.WithValue(ctx, ctxDomainKey, domain)
+
+	return r.WithContext(ctx)
+}
+
+func requestWithHTTPFlag(r *http.Request, https bool) *http.Request {
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, ctxHTTPSKey, https)
+
+	return r.WithContext(ctx)
+}
+
+func extractHTTPSFlag(r *http.Request) bool {
+	return r.Context().Value(ctxHTTPSKey).(bool)
+}
+
+func extractHost(r *http.Request) string {
+	return r.Context().Value(ctxHostKey).(string)
+}
+
+func extractDomain(r *http.Request) *domain.D {
+	return r.Context().Value(ctxDomainKey).(*domain.D)
 }

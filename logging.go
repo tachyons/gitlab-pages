@@ -11,7 +11,6 @@ import (
 
 var (
 	accessLogFormat = "text"
-	logrusEntry     = log.WithField("system", "http")
 )
 
 func configureLogging(format string, verbose bool) {
@@ -30,16 +29,18 @@ func configureLogging(format string, verbose bool) {
 }
 
 type loggingResponseWriter struct {
-	rw      http.ResponseWriter
-	status  int
-	written int64
-	started time.Time
+	rw          http.ResponseWriter
+	status      int
+	written     int64
+	started     time.Time
+	logrusEntry *log.Entry
 }
 
-func newLoggingResponseWriter(rw http.ResponseWriter) loggingResponseWriter {
+func newLoggingResponseWriter(rw http.ResponseWriter, logrusEntry *log.Entry) loggingResponseWriter {
 	return loggingResponseWriter{
-		rw:      rw,
-		started: time.Now(),
+		rw:          rw,
+		started:     time.Now(),
+		logrusEntry: logrusEntry,
 	}
 }
 
@@ -100,7 +101,7 @@ func (l *loggingResponseWriter) Log(r *http.Request) {
 			fields["status"], fields["written"], fields["referer"], fields["userAgent"], fields["duration"],
 		)
 	case "json":
-		logrusEntry.WithFields(fields).Info("access")
+		l.logrusEntry.WithFields(fields).Info("access")
 	default:
 		panic("invalid access log format")
 	}

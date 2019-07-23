@@ -37,7 +37,7 @@ func (ln *keepAliveListener) Accept() (net.Conn, error) {
 	return conn, nil
 }
 
-func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConfig *tls.Config, limiter *netutil.Limiter) error {
+func listenAndServe(fd uintptr, handler http.Handler, useHTTP2 bool, tlsConfig *tls.Config, limiter *netutil.Limiter) error {
 	// create server
 	server := &http.Server{Handler: context.ClearHandler(handler), TLSConfig: tlsConfig}
 
@@ -64,7 +64,7 @@ func listenAndServe(fd uintptr, handler http.HandlerFunc, useHTTP2 bool, tlsConf
 	return server.Serve(&keepAliveListener{l})
 }
 
-func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.HandlerFunc, getCertificate tlsconfig.GetCertificateFunc, insecureCiphers bool, tlsMinVersion uint16, tlsMaxVersion uint16, useHTTP2 bool, limiter *netutil.Limiter) error {
+func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.Handler, getCertificate tlsconfig.GetCertificateFunc, insecureCiphers bool, tlsMinVersion uint16, tlsMaxVersion uint16, useHTTP2 bool, limiter *netutil.Limiter) error {
 	tlsConfig, err := tlsconfig.Create(cert, key, getCertificate, insecureCiphers, tlsMinVersion, tlsMaxVersion)
 	if err != nil {
 		return err
