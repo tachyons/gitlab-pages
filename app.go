@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,7 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
-	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	mimedb "gitlab.com/lupine/go-mimedb"
 
@@ -28,7 +27,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
-	"gitlab.com/gitlab-org/gitlab-pages/metrics"
+	"gitlab.com/gitlab-org/labkit/log"
 )
 
 const (
@@ -177,22 +176,6 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 	return false
 }
 
-func (a *theApp) loggingMiddleware(handler http.Handler) http.Handler {
-	logrusEntry := log.WithField("system", "http")
-
-	return http.HandlerFunc(func(ww http.ResponseWriter, r *http.Request) {
-		w := newLoggingResponseWriter(ww, logrusEntry)
-		defer w.Log(r)
-
-		metrics.SessionsActive.Inc()
-		defer metrics.SessionsActive.Dec()
-
-		handler.ServeHTTP(&w, r)
-
-		metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
-	})
-}
-
 func (a *theApp) routerMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		https := extractHTTPSFlag(r)
@@ -276,7 +259,7 @@ func (a *theApp) buildHandlerPipeline(proxy bool) http.Handler {
 		handler = corsHandler.Handler(handler)
 	}
 	handler = a.routerMiddleware(handler)
-	handler = a.loggingMiddleware(handler)
+	handler = log.AccessLogger(handler)
 
 	if proxy {
 		handler = a.proxyInitialMiddleware(handler)
@@ -399,8 +382,8 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 
 		l, err := net.FileListener(os.NewFile(fd, "[admin-socket-https]"))
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to listen on FD %d: %v", fd, err)
-			log.Error(errMsg)
+			errMsg := fmt.Errorf("failed to listen on FD %d: %v", fd, err)
+			log.WithError(errMsg).Error("error")
 			capturingFatal(err, errortracking.WithField("listener", "admin https socket"))
 		}
 		defer l.Close()
@@ -430,7 +413,7 @@ func runApp(config appConfig) {
 	if len(config.CustomHeaders) != 0 {
 		customHeaders, err := headerConfig.ParseHeaderString(config.CustomHeaders)
 		if err != nil {
-			log.Fatal(err)
+			log.WithError(err).Fatal("Unable to parse header string")
 		}
 		a.CustomHeaders = customHeaders
 	}
