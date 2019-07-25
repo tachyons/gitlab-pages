@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e
+
+# This `echo` should be updated whenever there are alterations to the script below
+echo "Disable authorized keys write in the database and enable the 'ci_enable_live_trace' feature flag"
+
+# Workaround for disabling the authorized_keys write to the database.
+# A proper fix is being tracked in: https://gitlab.com/gitlab-org/gitlab-ee/issues/4156
+#
+# Also, enable feature flags for object storage:
+# - ci_enable_live_trace: archive traces in object storage as artifacts, live data in Redis
+read -r -d '\0' CUSTOM_INSTANCE_SETUP <<- EOM
+(::ApplicationSetting.current_without_cache || ::ApplicationSetting.create_from_defaults).update_attribute(:authorized_keys_enabled, false)
+
+Feature.enable('ci_enable_live_trace')
+\0
+EOM
+
+/srv/gitlab/bin/rails runner -e production "$CUSTOM_INSTANCE_SETUP"
