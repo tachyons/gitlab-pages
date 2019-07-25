@@ -5,7 +5,7 @@
 [![coverage report](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/coverage.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
 
 This is a simple HTTP server written in Go, made to serve GitLab Pages with
-CNAMEs and SNI using HTTP/HTTP2. The minimum supported Go version is 1.8.
+CNAMEs and SNI using HTTP/HTTP2. The minimum supported Go version is v1.11.
 
 This is made to work in small to medium-scale environments. Start-up time scales
 with the number of projects being served, so the daemon is currently unsuitable

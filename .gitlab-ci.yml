@@ -27,18 +27,10 @@ verify:
     paths:
       - coverage.html
 
-test:1.8:
-  image: golang:1.8
-  <<: *test
-
-test:1.9:
-  image: golang:1.9
-  <<: *test
-
-test:1.10:
-  image: golang:1.10
-  <<: *test
-
 test:1.11:
   image: golang:1.11
+  <<: *test
+
+test:1.12:
+  image: golang:1.12
   <<: *test
