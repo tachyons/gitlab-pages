@@ -1,5 +1,5 @@
 include:
-  template: License-Management.gitlab-ci.yml
+  template: Security/License-Management.gitlab-ci.yml
 
 .test: &test
   script:
