@@ -1,3 +1,7 @@
+v 1.6.2
+
+- Security fix for recovering gitlab access token from cookies
+
 v 1.6.1
 
 - Fix serving acme challenges with index.html
