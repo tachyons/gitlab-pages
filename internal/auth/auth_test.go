@@ -1,4 +1,4 @@
-package auth_test
+package auth
 
 import (
 	"fmt"
@@ -12,17 +12,20 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 )
 
-func createAuth(t *testing.T) *auth.Auth {
-	return auth.New("pages.gitlab-example.com",
+func createAuth(t *testing.T) *Auth {
+	return New("pages.gitlab-example.com",
 		"something-very-secret",
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
 		"http://gitlab-example.com")
+}
+
+func defaultCookieStore() sessions.Store {
+	return createCookieStore("something-very-secret")
 }
 
 func TestTryAuthenticate(t *testing.T) {
@@ -85,8 +88,8 @@ func TestTryAuthenticateWithCodeAndState(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	store := sessions.NewCookieStore([]byte("something-very-secret"))
-	auth := auth.New("pages.gitlab-example.com",
+	store := defaultCookieStore()
+	auth := New("pages.gitlab-example.com",
 		"something-very-secret",
 		"id",
 		"secret",
@@ -124,8 +127,8 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	store := sessions.NewCookieStore([]byte("something-very-secret"))
-	auth := auth.New("pages.gitlab-example.com",
+	store := defaultCookieStore()
+	auth := New("pages.gitlab-example.com",
 		"something-very-secret",
 		"id",
 		"secret",
@@ -161,8 +164,8 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	store := sessions.NewCookieStore([]byte("something-very-secret"))
-	auth := auth.New("pages.gitlab-example.com",
+	store := defaultCookieStore()
+	auth := New("pages.gitlab-example.com",
 		"something-very-secret",
 		"id",
 		"secret",
@@ -199,8 +202,8 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	store := sessions.NewCookieStore([]byte("something-very-secret"))
-	auth := auth.New("pages.gitlab-example.com",
+	store := defaultCookieStore()
+	auth := New("pages.gitlab-example.com",
 		"something-very-secret",
 		"id",
 		"secret",
@@ -236,8 +239,8 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	store := sessions.NewCookieStore([]byte("something-very-secret"))
-	auth := auth.New("pages.gitlab-example.com",
+	store := defaultCookieStore()
+	auth := New("pages.gitlab-example.com",
 		"something-very-secret",
 		"id",
 		"secret",
@@ -274,8 +277,8 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	store := sessions.NewCookieStore([]byte("something-very-secret"))
-	auth := auth.New("pages.gitlab-example.com",
+	store := defaultCookieStore()
+	auth := New("pages.gitlab-example.com",
 		"something-very-secret",
 		"id",
 		"secret",
@@ -293,4 +296,11 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 
 	assert.Equal(t, true, auth.CheckAuthenticationWithoutProject(result, r))
 	assert.Equal(t, 302, result.Code)
+}
+
+func TestGenerateKeyPair(t *testing.T) {
+	signingSecret, encryptionSecret := generateKeyPair("something-very-secret")
+	assert.NotEqual(t, fmt.Sprint(signingSecret), fmt.Sprint(encryptionSecret))
+	assert.Equal(t, len(signingSecret), 32)
+	assert.Equal(t, len(encryptionSecret), 32)
 }
