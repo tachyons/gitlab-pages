@@ -1,10 +1,12 @@
 package auth
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -19,6 +21,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+
+	"golang.org/x/crypto/hkdf"
 )
 
 const (
@@ -499,9 +503,29 @@ func logRequest(r *http.Request) *log.Entry {
 	})
 }
 
+// generateKeyPair returns key pair for secure cookie: signing and encryption key
+func generateKeyPair(storeSecret string) ([]byte, []byte) {
+	hash := sha256.New
+	hkdf := hkdf.New(hash, []byte(storeSecret), []byte{}, []byte("PAGES_SIGNING_AND_ENCRYPTION_KEY"))
+	var keys [][]byte
+	for i := 0; i < 2; i++ {
+		key := make([]byte, 32)
+		if _, err := io.ReadFull(hkdf, key); err != nil {
+			log.WithError(err).Fatal("Can't generate key pair for secure cookies")
+		}
+		keys = append(keys, key)
+	}
+	return keys[0], keys[1]
+}
+
+func createCookieStore(storeSecret string) sessions.Store {
+	return sessions.NewCookieStore(generateKeyPair(storeSecret))
+}
+
 // New when authentication supported this will be used to create authentication handler
 func New(pagesDomain string, storeSecret string, clientID string, clientSecret string,
 	redirectURI string, gitLabServer string) *Auth {
+
 	return &Auth{
 		pagesDomain:  pagesDomain,
 		clientID:     clientID,
@@ -512,6 +536,6 @@ func New(pagesDomain string, storeSecret string, clientID string, clientSecret s
 			Timeout:   5 * time.Second,
 			Transport: httptransport.Transport,
 		},
-		store: sessions.NewCookieStore([]byte(storeSecret)),
+		store: createCookieStore(storeSecret),
 	}
 }
