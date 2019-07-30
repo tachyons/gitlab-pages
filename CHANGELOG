@@ -15,6 +15,10 @@ v 1.6.0
 - Disable 3DES and other insecure cipher suites !145
 - Provide ability to disable old TLS versions !146
 
+v 1.5.1
+
+- Security fix for recovering gitlab access token from cookies
+
 v 1.5.0
 
 - Make extensionless URLs work !112
