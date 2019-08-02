@@ -29,7 +29,7 @@ stages:
 .job-base: &job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
   services:
-  - docker:dind
+  - docker:19.03.0-dind
   dependencies: []
   retry: 1
   before_script:
