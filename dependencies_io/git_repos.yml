@@ -9,7 +9,7 @@ repos:
   replace_in_files:
     kubectl/Dockerfile: ARG YQ_VERSION="{version_clean}"
 - url: https://gitlab.com/gitlab-org/gitlab-monitor.git
-  installed: v4.1.0
+  installed: v4.2.0
   replace_in_files:
     ci_files/variables.yml: 'GITLAB_MONITOR_VERSION: "{version_clean}"'
     gitlab-monitor/Dockerfile: ARG GITLAB_MONITOR_VERSION={version_clean}
