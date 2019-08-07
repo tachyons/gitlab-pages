@@ -5,7 +5,7 @@ ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
 FROM ${FROM_IMAGE}:${TAG}
 
 ARG BUILD_DIR=/tmp/build
-ARG GIT_VERSION=2.21.0
+ARG GIT_VERSION=2.22.0
 
 RUN buildDeps=' \
     make \
