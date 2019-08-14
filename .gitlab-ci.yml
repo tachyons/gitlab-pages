@@ -29,8 +29,7 @@ verify:
       - coverage.html
       
 sast:
-    extends: .test
-    
+  stage: test:1.11
 
 test:1.11:
   image: golang:1.11
