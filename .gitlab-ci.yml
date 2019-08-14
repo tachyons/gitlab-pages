@@ -29,7 +29,8 @@ verify:
       - coverage.html
       
 sast:
-  before_script: make setup
+  before_script: 
+    - make setup
 
 test:1.11:
   image: golang:1.11
