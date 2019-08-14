@@ -27,6 +27,10 @@ verify:
   artifacts:
     paths:
       - coverage.html
+      
+sast:
+    extends: .test
+    
 
 test:1.11:
   image: golang:1.11
