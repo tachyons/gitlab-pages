@@ -1,0 +1,34 @@
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
+ARG BUILD_IMAGE=gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE} AS builder
+
+ARG RUBY_MAJOR_VERSION=2.6
+ARG RUBY_MINOR_VERSION=2.6.4
+ARG RUBYGEMS_VERSION=2.7.10
+ARG BUNDLER_VERSION=1.17.3
+
+ENV LANG=C.UTF-8
+
+RUN curl -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.gz | tar -xz \
+    && cd ruby-${RUBY_MINOR_VERSION} \
+    && ./configure --prefix=/usr --disable-dtrace --disable-install-doc --disable-install-rdoc --enable-shared --with-out-ext=dbm,readline --without-gmp --without-gdbm --without-tk \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install \
+    && gem update --system ${RUBYGEMS_VERSION} \
+    && gem install bundler --version ${BUNDLER_VERSION} --force --no-ri --no-rdoc \
+    && mkdir -p /ruby/{bin,lib,include} \
+    && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
+    && cp -R /usr/lib/{ruby,libruby.*} /ruby/lib \
+    && cp -R /usr/include/ruby-*/ /ruby/include
+
+FROM ${UBI_IMAGE}
+
+ENV CONFIG_TEMPLATE_DIRECTORY=/etc
+
+COPY --from=builder /ruby/ /usr/
+COPY scripts/ /scripts
+
+ENTRYPOINT ["/scripts/entrypoint.sh"]
+
+CMD [ "irb" ]

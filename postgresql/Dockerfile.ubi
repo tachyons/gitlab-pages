@@ -1,0 +1,18 @@
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
+ARG BUILD_IMAGE=gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE} AS builder
+
+ARG PG_VERSION=10.9
+
+ENV LANG=C.UTF-8
+
+RUN curl https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz | tar -xz \
+    && cd postgresql-${PG_VERSION} \
+    && ./configure --prefix=/usr/local/postgresql --disable-rpath --with-openssl \
+    && make -j $(nproc) \
+    && make -j $(nproc) install
+
+FROM ${UBI_IMAGE}
+
+COPY --from=builder /usr/local/postgresql /usr/local/postgresql

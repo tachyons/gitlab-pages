@@ -39,9 +39,12 @@ RUN apt-get update \
   && rm -rf /tmp/redis-${REDIS_VERSION} \
   && rm -rf /var/lib/apt/lists/*
 
+<<<<<<< HEAD
 # Add kubectl to enable sentinels to change labels during promotion
 COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
 
+=======
+>>>>>>> Create UBI-based CNG image
 COPY assets/ /
 
 CMD [ "touch /var/log/redis/runner.txt; chmod +w /var/log/redis/runner.txt; chmod +x /usr/local/bin/redis-launcher.sh" ]

@@ -1,0 +1,33 @@
+ARG BUILD_IMAGE=gitlab-ubi-builder:latest
+ARG RUBY_IMAGE=gitlab-ruby:ubi
+
+FROM ${RUBY_IMAGE} AS ruby
+
+RUN mkdir -p /ruby/{bin,lib,include} \
+    && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
+    && cp -R /usr/lib/{ruby/,libruby.*} /ruby/lib \
+    && cp -R /usr/include/ruby-*/ /ruby/include/
+
+FROM ${BUILD_IMAGE} AS builder
+
+ARG MAILROOM_VERSION=0.9.1
+
+COPY --from=ruby /ruby/ /usr/
+
+RUN gem install mail_room:${MAILROOM_VERSION} charlock_holmes:0.7.6 redis:4.0.1 redis-namespace:1.6.0
+
+FROM ${RUBY_IMAGE}
+
+ARG GITLAB_USER=git
+
+COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
+COPY --from=builder /usr/bin/mail_room /usr/bin/mail_room
+COPY scripts/process-wrapper /scripts/process-wrapper
+
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs libicu tzdata \
+    && adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
+    && mkdir /var/log/gitlab \
+    && touch /var/log/gitlab/mail_room.log \
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab
+
+CMD /scripts/process-wrapper

@@ -1,0 +1,43 @@
+ARG BUILD_IMAGE=gitlab-ubi-builder:latest
+ARG RUBY_IMAGE=gitlab-ruby:ubi
+ARG POSTGRESQL_IMAGE=postgresql:10.9-ubi
+
+FROM ${POSTGRESQL_IMAGE} AS postgresql
+FROM ${RUBY_IMAGE} AS ruby
+
+RUN mkdir -p /ruby/{bin,lib,include} \
+    && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
+    && cp -R /usr/lib/{ruby/,libruby.*} /ruby/lib \
+    && cp -R /usr/include/ruby-*/ /ruby/include/
+
+FROM ${BUILD_IMAGE} AS builder
+
+ARG GITLAB_EXPORTER_VERSION=5.0.0
+
+COPY --from=ruby /ruby/ /usr/
+COPY --from=postgresql /usr/local/postgresql/bin/ /usr/bin/
+COPY --from=postgresql /usr/local/postgresql/lib/ /usr/lib/
+COPY --from=postgresql /usr/local/postgresql/include/ /usr/include/
+COPY --from=postgresql /usr/local/postgresql/share/ /usr/share/
+
+RUN gem install gitlab-exporter -v ${GITLAB_EXPORTER_VERSION}
+
+FROM ${RUBY_IMAGE}
+
+ARG GITLAB_USER=git
+
+ENV CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab-exporter/templates
+ENV CONFIG_DIRECTORY=/etc/gitlab-exporter
+ENV CONFIG_FILENAME=gitlab-exporter.yml
+
+COPY --from=postgresql /usr/local/postgresql/lib/ /usr/lib/
+COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
+COPY --from=builder /usr/bin/gitlab-exporter /usr/bin/gitlab-exporter
+
+RUN adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
+    && mkdir -p /var/log/gitlab ${CONFIG_DIRECTORY} \
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab ${CONFIG_DIRECTORY}
+
+USER ${GITLAB_USER}:${GITLAB_USER}
+
+CMD /usr/bin/gitlab-exporter web -c ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}

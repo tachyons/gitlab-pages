@@ -1,0 +1,70 @@
+ARG BUILD_IMAGE=gitlab-ubi-builder:latest
+ARG GO_IMAGE=gitlab-go:ubi
+ARG RUBY_IMAGE=gitlab-ruby:ubi
+ARG GIT_IMAGE=git-base:ubi
+ARG SHELL_IMAGE=gitlab-shell:ubi
+
+FROM ${GO_IMAGE} AS golang
+FROM ${RUBY_IMAGE} AS ruby
+
+RUN mkdir -p /ruby/{bin,lib,include} \
+    && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
+    && cp -R /usr/lib/{ruby/,libruby.*} /ruby/lib \
+    && cp -R /usr/include/ruby-*/ /ruby/include/
+
+FROM ${BUILD_IMAGE} AS builder
+
+ARG GITALY_VERSION=master
+ARG BUNDLE_OPTIONS="--jobs 4 --without development test"
+
+ENV LANG=C.UTF-8
+
+COPY --from=ruby /ruby/ /usr/
+COPY --from=golang /usr/local/go/ /usr/local/go/
+COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
+
+RUN curl -L https://gitlab.com/gitlab-org/gitaly/-/archive/${GITALY_VERSION}/gitaly-${GITALY_VERSION}.tar.gz | tar -xz \
+    && cd gitaly-${GITALY_VERSION}/ruby \
+    && bundle install ${BUNDLE_OPTIONS} \
+    # && bundle exec gem uninstall --force google-protobuf grpc \
+    # && BUNDLE_FORCE_RUBY_PLATFORM=true bundle install ${BUNDLE_OPTIONS} \
+    && cd .. \
+    && cp -R ./ruby /srv/gitaly-ruby \
+    && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features /usr/lib/ruby/gems/*/cache/* \
+    && touch .ruby-bundle \
+    && make install
+
+FROM ${SHELL_IMAGE} AS shell
+FROM ${GIT_IMAGE}
+
+ARG GITLAB_USER=git
+
+COPY scripts/ /scripts/
+COPY config.toml /etc/gitaly/config.toml
+COPY gitconfig /usr/local/etc/gitconfig
+
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps libicu openssh-clients \
+    && adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
+    && mkdir -p /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories \
+    && touch /var/log/gitaly/gitaly.log \
+    && touch /var/log/gitaly/gitlab-shell.log \
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories
+
+COPY --from=builder /usr/local/bin/gitaly* /usr/local/bin/
+COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
+COPY --from=builder --chown=git /srv/gitaly-ruby /srv/gitaly-ruby
+COPY --from=shell --chown=git /srv/gitlab-shell /srv/gitlab-shell
+
+RUN cp /srv/gitlab-shell/config.yml.example /etc/gitaly/shell-config.yml \
+    && ln -s /etc/gitaly/shell-config.yml /srv/gitlab-shell/config.yml \
+    && chown ${GITLAB_USER}:${GITLAB_USER} /etc/gitaly/shell-config.yml /srv/gitlab-shell/config.yml
+
+USER ${GITLAB_USER}:${GITLAB_USER}
+
+ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitaly
+
+CMD "/scripts/process-wrapper"
+
+VOLUME /var/log/gitaly
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=5 CMD /scripts/healthcheck

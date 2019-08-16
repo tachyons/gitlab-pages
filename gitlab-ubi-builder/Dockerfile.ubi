@@ -1,0 +1,13 @@
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
+
+FROM ${UBI_IMAGE}
+
+ARG BUILD_DIR=/tmp/build
+ARG RHEL_REPOSITORY=https://downloads.redhat.com/redhat/rhel/rhel-8-beta/rhel-8-beta.repo
+
+RUN dnf --disableplugin=subscription-manager install -by --nodocs gcc gcc-c++ make cmake patch bzip2 zlib-devel openssl-devel curl-devel pcre2-devel libicu-devel libffi-devel \
+    && dnf --disableplugin=subscription-manager config-manager --add-repo ${RHEL_REPOSITORY} \
+    && dnf --disableplugin=subscription-manager --enablerepo=rhel-8-for-x86_64-* install -yb --nodocs readline-devel \
+    && mkdir -p ${BUILD_DIR}
+
+WORKDIR ${BUILD_DIR}

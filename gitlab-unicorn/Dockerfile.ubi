@@ -1,0 +1,30 @@
+ARG PYTHON_IMAGE=gitlab-python:ubi
+ARG RAILS_IMAGE=gitlab-rails-ee:ubi
+
+FROM ${PYTHON_IMAGE} AS python
+FROM ${RAILS_IMAGE}
+
+ARG DOCUTILS_VERSION=0.11
+ARG GITLAB_CONFIG=/srv/gitlab/config
+ARG GITLAB_USER=git
+
+COPY --from=python /usr/local/bin /usr/local/bin/
+COPY --from=python /usr/local/lib /usr/local/lib/
+COPY --from=python /usr/local/include /usr/local/include/
+COPY scripts/ /scripts
+COPY unicorn.rb ${GITLAB_CONFIG}/unicorn.rb
+
+ENV GITALY_FEATURE_DEFAULT_ON=1
+
+RUN pip3 install --compile docutils==${DOCUTILS_VERSION} \
+    && cd /srv/gitlab \
+    && sed -i 's/python2/python3/' $(bundle show gitlab-markup)/lib/github/markups.rb \
+    && mkdir -p public/uploads \
+    && chown ${GITLAB_USER}:${GITLAB_USER} public/uploads \
+    && chmod 0700 public/uploads
+
+USER ${GITLAB_USER}:${GITLAB_USER}
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
+
+CMD /scripts/process-wrapper

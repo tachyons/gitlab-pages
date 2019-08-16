@@ -1,0 +1,42 @@
+ARG BUILD_IMAGE=gitlab-ubi-builder:latest
+ARG GO_IMAGE=gitlab-go:ubi
+ARG GIT_IMAGE=git-base:ubi
+ARG RUBY_IMAGE=gitlab-ruby:ubi
+ARG RAILS_IMAGE=gitlab-rails-ee:ubi
+
+FROM ${GIT_IMAGE} AS git
+FROM ${GO_IMAGE} AS golang
+FROM ${BUILD_IMAGE} AS builder
+
+ARG WORKHORSE_VERSION=v5.2.0
+
+COPY --from=git /usr/local/bin/git* /usr/local/bin/
+COPY --from=git /usr/local/share/git-core/ /usr/local/share/git-core/
+COPY --from=git /usr/local/libexec/git-core/ /usr/local/libexec/git-core/
+COPY --from=golang /usr/local/go/ /usr/local/go/
+COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
+
+RUN curl -L https://gitlab.com/gitlab-org/gitlab-workhorse/-/archive/${WORKHORSE_VERSION}/gitlab-workhorse-${WORKHORSE_VERSION}.tar.gz | tar -xz \
+    && cd gitlab-workhorse-${WORKHORSE_VERSION} \
+    && make install
+
+FROM ${RAILS_IMAGE} AS rails
+FROM ${RUBY_IMAGE}
+
+ARG GITLAB_USER=git
+ARG GITLAB_DATA=/var/opt/gitlab
+
+RUN adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
+    && mkdir -p /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA} \
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA}
+
+COPY --from=builder /usr/local/bin/gitlab-* /usr/local/bin/
+COPY --from=rails --chown=git /srv/gitlab/public /srv/gitlab/public
+COPY --from=rails --chown=git /srv/gitlab/doc /srv/gitlab/doc
+COPY scripts/ /scripts/
+
+USER ${GITLAB_USER}:${GITLAB_USER}
+
+CMD /scripts/start-workhorse
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck

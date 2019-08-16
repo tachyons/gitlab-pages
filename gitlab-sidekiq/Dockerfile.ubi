@@ -1,0 +1,17 @@
+ARG RAILS_IMAGE=gitlab-rails-ee:ubi
+
+FROM ${RAILS_IMAGE}
+
+ARG GITLAB_USER=git
+
+ENV SIDEKIQ_CONCURRENCY=25
+ENV SIDEKIQ_TIMEOUT=4
+
+COPY scripts/  /scripts/
+
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs openssh-clients \
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
+
+USER ${GITLAB_USER}:${GITLAB_USER}
+
+CMD /scripts/process-wrapper

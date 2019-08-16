@@ -1,0 +1,25 @@
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
+ARG BUILD_IMAGE=gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE} AS builder
+
+ARG PYTHON_VERSION=3.7.3
+
+ENV LANG=C.UTF-8
+
+RUN curl -L https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz  | tar -xz \ 
+    && cd Python-${PYTHON_VERSION} \
+    && ./configure --prefix=/usr/local --enable-shared LDFLAGS='-Wl,--rpath=/usr/local/lib' \
+    && make \
+    && make install \
+    && ldconfig \
+    && rm -rf /usr/local/lib/python3.7/test \
+    && find /usr/local/lib/python3.7 -name '__pycache__' -type d -exec rm -r {} + 
+
+FROM ${UBI_IMAGE}
+
+COPY --from=builder /usr/local/bin /usr/local/bin/
+COPY --from=builder /usr/local/lib /usr/local/lib/
+COPY --from=builder /usr/local/include /usr/local/include/
+
+CMD [ "python3" ]
