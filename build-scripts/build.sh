@@ -47,11 +47,6 @@ function build_if_needed(){
     fi
 
     DOCKER_ARGS=( "$@" )
-    CACHE_IMAGE="$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CI_COMMIT_REF_SLUG"
-    if ! $(docker pull $CACHE_IMAGE > /dev/null); then
-      CACHE_IMAGE="$CI_REGISTRY_IMAGE/$CI_JOB_NAME:latest"
-      docker pull $CACHE_IMAGE || true
-    fi
 
     pushd $(get_trimmed_job_name)
 
@@ -59,7 +54,18 @@ function build_if_needed(){
       ./renderDockerfile
     fi
 
-    docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION" "${DOCKER_ARGS[@]}" --cache-from $CACHE_IMAGE .
+    # Skip the build cache if $DISABLE_DOCKER_BUILD_CACHE is set to any value
+    if [ -z ${DISABLE_DOCKER_BUILD_CACHE+x} ]; then
+      CACHE_IMAGE="$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CI_COMMIT_REF_SLUG"
+      if ! $(docker pull $CACHE_IMAGE > /dev/null); then
+        CACHE_IMAGE="$CI_REGISTRY_IMAGE/$CI_JOB_NAME:latest"
+        docker pull $CACHE_IMAGE || true
+      fi
+
+      DOCKER_ARGS+=(--cache-from $CACHE_IMAGE)
+    fi
+
+    docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION" "${DOCKER_ARGS[@]}" .
     # Push new image
     docker push "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION"
 
