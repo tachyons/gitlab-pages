@@ -9,7 +9,7 @@ setup: clean .GOPATH/.ok
 	go get github.com/fzipp/gocyclo
 
 build: .GOPATH/.ok
-	$Q go install $(if $V,-v) $(VERSION_FLAGS) $(IMPORT_PATH)
+	$Q go install $(if $V,-v) $(VERSION_FLAGS) -buildmode exe $(IMPORT_PATH)
 
 clean:
 	$Q rm -rf bin .GOPATH gitlab-pages
