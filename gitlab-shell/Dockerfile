@@ -18,7 +18,8 @@ RUN apt-get update \
 
 # install build deps
 RUN buildDeps=' \
-    sudo' \
+    sudo \
+    gcc' \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps \
     && rm -rf /var/lib/apt/lists/* \
