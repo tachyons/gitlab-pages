@@ -27,7 +27,8 @@ RUN mkdir /srv/gitlab-shell && \
     curl --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab-shell.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-shell/repository/archive.tar.bz2?sha=${GITLAB_SHELL_VERSION}" && \
     tar -xjf gitlab-shell.tar.bz2 --strip-components=1 && \
     rm gitlab-shell.tar.bz2 && \
-    ./bin/compile
+    ./bin/compile && \
+    rm -rf go go_build
 
 FROM ${FROM_IMAGE}:${TAG}
 
