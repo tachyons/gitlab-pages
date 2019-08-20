@@ -10,11 +10,6 @@ ARG GITLAB_NAMESPACE="gitlab-org"
 ARG FETCH_ARTIFACTS_PAT
 ARG CI_API_V4_URL
 
-# install runtime deps
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssh-server \
-  && rm -rf /var/lib/apt/lists/*
-
 # install build deps
 RUN buildDeps=' \
     sudo \
@@ -34,9 +29,6 @@ RUN mkdir /srv/gitlab-shell && \
     rm gitlab-shell.tar.bz2 && \
     ./bin/compile
 
-RUN SUDO_FORCE_REMOVE=yes apt-get purge -y --auto-remove $buildDeps \
-    && rm -rf ${BUILD_DIR}
-
 FROM ${FROM_IMAGE}:${TAG}
 
 ARG GITLAB_USER=git
@@ -46,11 +38,17 @@ ARG GITLAB_USER=git
 RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
     sed -i "s/${GITLAB_USER}:!/${GITLAB_USER}:*/" /etc/shadow
 
+# install runtime deps
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssh-server \
+  && rm -rf /var/lib/apt/lists/*
+
 # Create a run environment for SSHD
 RUN mkdir /srv/sshd && chown ${GITLAB_USER}:${GITLAB_USER} /srv/sshd
 
-RUN mkdir -p /var/log/gitlab-shell && chown ${GITLAB_USER} /var/log/gitlab-shell && \
-    sudo -u ${GITLAB_USER} -H touch /var/log/gitlab-shell/gitlab-shell.log
+RUN mkdir -p /var/log/gitlab-shell && \
+    touch /var/log/gitlab-shell/gitlab-shell.log && \
+    chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab-shell
 
 # Add scripts
 COPY --from=builder /srv/gitlab-shell/ /srv/gitlab-shell/
