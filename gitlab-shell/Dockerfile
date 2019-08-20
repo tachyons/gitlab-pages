@@ -6,7 +6,6 @@ FROM ${FROM_IMAGE}:${TAG} as builder
 
 ARG BUILD_DIR=/tmp/build
 ARG GITLAB_SHELL_VERSION=master
-ARG GITLAB_USER=git
 ARG GITLAB_NAMESPACE="gitlab-org"
 ARG FETCH_ARTIFACTS_PAT
 ARG CI_API_V4_URL
@@ -39,6 +38,8 @@ RUN SUDO_FORCE_REMOVE=yes apt-get purge -y --auto-remove $buildDeps \
     && rm -rf ${BUILD_DIR}
 
 FROM ${FROM_IMAGE}:${TAG}
+
+ARG GITLAB_USER=git
 
 # create gitlab user
 # openssh daemon does not allow locked user to login, change ! to *
