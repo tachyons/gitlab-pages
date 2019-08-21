@@ -31,7 +31,13 @@ RUN sudo -u ${GITLAB_USER} -H mkdir -p /home/${GITLAB_USER}/repositories
 # adjust git settings
 RUN sudo -u ${GITLAB_USER} -H git config --global gc.auto 0 && \
     sudo -u ${GITLAB_USER} -H git config --global core.autocrlf input && \
-    sudo -u ${GITLAB_USER} -H git config --global repack.writeBitmaps true
+    sudo -u ${GITLAB_USER} -H git config --global repack.writeBitmaps true && \
+    sudo -u ${GITLAB_USER} -H git config --global pack.threads 1 && \
+    sudo -u ${GITLAB_USER} -H git config --global receive.fsckobjects true && \
+    sudo -u ${GITLAB_USER} -H git config --global receive.advertisepushoptions true && \
+    sudo -u ${GITLAB_USER} -H git config --global transfer.hiderefs ^refs/tmp/ && \
+    sudo -u ${GITLAB_USER} -H git config --global transfer.hiderefs ^refs/keep-around/ && \
+    sudo -u ${GITLAB_USER} -H git config --global transfer.hiderefs ^refs/remotes/
 
 # Download and compile Gitaly
 ARG CACHE_BUSTER=false
