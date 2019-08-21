@@ -26,6 +26,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -229,12 +230,15 @@ func (a *theApp) serveFileOrNotFound(domain *domain.D) http.HandlerFunc {
 
 func (a *theApp) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
 	https := r.TLS != nil
+	r = request.WithHTTPSFlag(r, https)
+
 	a.serveContent(ww, r, https)
 }
 
 func (a *theApp) ServeProxy(ww http.ResponseWriter, r *http.Request) {
 	forwardedProto := r.Header.Get(xForwardedProto)
 	https := forwardedProto == xForwardedProtoHTTPS
+	r = request.WithHTTPSFlag(r, https)
 
 	if forwardedHost := r.Header.Get(xForwardedHost); forwardedHost != "" {
 		r.Host = forwardedHost
