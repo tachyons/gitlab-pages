@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 
 	"golang.org/x/crypto/hkdf"
 )
@@ -261,14 +262,14 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 }
 
 func getRequestAddress(r *http.Request) string {
-	if r.TLS != nil {
+	if request.IsHTTPS(r) {
 		return "https://" + r.Host + r.RequestURI
 	}
 	return "http://" + r.Host + r.RequestURI
 }
 
 func getRequestDomain(r *http.Request) string {
-	if r.TLS != nil {
+	if request.IsHTTPS(r) {
 		return "https://" + r.Host
 	}
 	return "http://" + r.Host

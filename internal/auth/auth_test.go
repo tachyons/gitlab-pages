@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
 func createAuth(t *testing.T) *Auth {
@@ -214,6 +215,7 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	reqURL, err := url.Parse("/auth?code=1&state=state")
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
+	r = request.WithHTTPSFlag(r, false)
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
@@ -289,6 +291,7 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	reqURL, err := url.Parse("/auth?code=1&state=state")
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
+	r = request.WithHTTPSFlag(r, false)
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"

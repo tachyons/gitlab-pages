@@ -37,6 +37,7 @@ var listeners = []ListenSpec{
 var (
 	httpListener  = listeners[0]
 	httpsListener = listeners[2]
+	proxyListener = listeners[4]
 )
 
 func skipUnlessEnabled(t *testing.T, conditions ...string) {
@@ -929,6 +930,71 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	// Fetch page in custom domain
 	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/", cookie)
 	assert.Equal(t, http.StatusOK, authrsp.StatusCode)
+}
+
+func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
+	skipUnlessEnabled(t, "not-inplace-chroot")
+
+	testServer := makeGitLabPagesAccessStub(t)
+	testServer.Start()
+	defer testServer.Close()
+
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
+	defer teardown()
+
+	rsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/", "", true)
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	cookie := rsp.Header.Get("Set-Cookie")
+
+	url, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	state := url.Query().Get("state")
+	require.Equal(t, url.Query().Get("domain"), "https://private.domain.com")
+	pagesrsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, url.Host, url.Path+"?"+url.RawQuery, "", true)
+	require.NoError(t, err)
+	defer pagesrsp.Body.Close()
+
+	pagescookie := pagesrsp.Header.Get("Set-Cookie")
+
+	// Go to auth page with correct state will cause fetching the token
+	authrsp, err := GetProxyRedirectPageWithCookie(t, proxyListener,
+		"projects.gitlab-example.com", "/auth?code=1&state="+state,
+		pagescookie, true)
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	url, err = url.Parse(authrsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	// Will redirect to custom domain
+	require.Equal(t, "private.domain.com", url.Host)
+	require.Equal(t, "1", url.Query().Get("code"))
+	require.Equal(t, state, url.Query().Get("state"))
+
+	// Run auth callback in custom domain
+	authrsp, err = GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com",
+		"/auth?code=1&state="+state, cookie, true)
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	// Will redirect to the page
+	cookie = authrsp.Header.Get("Set-Cookie")
+	require.Equal(t, http.StatusFound, authrsp.StatusCode)
+
+	url, err = url.Parse(authrsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	// Will redirect to custom domain
+	require.Equal(t, "https://private.domain.com/", url.String())
+	// Fetch page in custom domain
+	authrsp, err = GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/",
+		cookie, true)
+	require.Equal(t, http.StatusOK, authrsp.StatusCode)
 }
 
 func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
