@@ -62,17 +62,31 @@ to the **previous** release, or at any time for a security fix.
 
 GitLab may backport security fixes for up to three releases, which may
 correspond to three separate minor versions of GitLab Pages - and so three new
-versions to release.
+versions to release. See [Security releases](#Security releases) for the details.
 
-In either case, the fix should first be developed against the master branch,
-taking account of the [security release workflow](https://about.gitlab.com/handbook/engineering/workflow/#security-issues)
-if necessary. Once ready, the fix should be merged to master, where it will be
+In either case, the fix should first be developed against the master branch.
+Once ready, the fix should be merged to master, where it will be
 included in the next major or minor release as usual.
 
 The fix may be cherry-picked into each relevant stable branch, and a new patch
 release made in the same way as defined above.
 
+
+
 When updating `GITLAB_PAGES_VERSION` in the [GitLab](https://gitlab.com/gitlab-org/gitlab-ce)
 repository, you should target the relevant `X-Y-stable` branches there. In
 general, these branches should only ever have the patch version of GitLab pages
 incremented.
+
+## Security releases
+
+We follow general [security release workflow](https://about.gitlab.com/handbook/engineering/workflow/#security-issues) for pages releases.
+Use [Security Release](.gitlab/merge_request_templates/Security Release.md) template for security related merge requests.
+
+### After security release has been published
+
+Maintainer needs to manually sync tags and branches from dev.gitlab.org to gitlab.com:
+
+- [ ] Sync `master` branch
+- [ ] Sync affected `*-*-stable` branches
+- [ ] Sync affected `v*.*.*` tags
