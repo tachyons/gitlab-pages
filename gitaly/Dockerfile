@@ -36,8 +36,8 @@ RUN sudo -u ${GITLAB_USER} -H git config --global gc.auto 0 && \
     sudo -u ${GITLAB_USER} -H git config --global receive.fsckobjects true && \
     sudo -u ${GITLAB_USER} -H git config --global receive.advertisepushoptions true && \
     sudo -u ${GITLAB_USER} -H git config --global transfer.hiderefs ^refs/tmp/ && \
-    sudo -u ${GITLAB_USER} -H git config --global transfer.hiderefs ^refs/keep-around/ && \
-    sudo -u ${GITLAB_USER} -H git config --global transfer.hiderefs ^refs/remotes/
+    sudo -u ${GITLAB_USER} -H git config --global --add transfer.hiderefs ^refs/keep-around/ && \
+    sudo -u ${GITLAB_USER} -H git config --global --add transfer.hiderefs ^refs/remotes/
 
 # Download and compile Gitaly
 ARG CACHE_BUSTER=false
