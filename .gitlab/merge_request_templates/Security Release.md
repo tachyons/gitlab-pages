@@ -19,7 +19,7 @@ When submitting a merge request for gitlab-pages, CE and EE merge requests for u
 - [ ] MR targets `master`, or `X-Y-stable` for backports
 - [ ] Milestone is set for the version this MR applies to
 - [ ] Title of this MR is the same as for all backports
-- [ ] A [CHANGELOG entry](https://docs.gitlab.com/ee/development/changelog.html) is added without a `merge_request` value, with `type` set to `security`
+- [ ] A CHANGELOG entry is added
 - [ ] Add a link to this MR in the `links` section of related issue
 - [ ] Set up an CE MR: CE_MR_LINK_HERE
 - [ ] Set up an EE MR: EE_MR_LINK_HERE
