@@ -281,18 +281,18 @@ gitlab-sidekiq-ce:
     - gitlab-rails-ce
   <<: *except-ee
 
-gitlab-monitor:
+gitlab-exporter:
   <<: *job-base
   stage: phase-two
   script:
     - ruby_version=$(get_version gitlab-ruby)
-    - ruby_container=($(echo -n "$ruby_version$GITLAB_MONITOR_VERSION" | sha1sum))
+    - ruby_container=($(echo -n "$ruby_version$GITLAB_EXPORTER_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$ruby_container$TARGET_VERSION" | sha1sum))
-    - build_if_needed --build-arg "GITLAB_MONITOR_VERSION=$GITLAB_MONITOR_VERSION"
+    - build_if_needed --build-arg "GITLAB_EXPORTER_VERSION=$GITLAB_EXPORTER_VERSION"
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version"
     - push_if_master_or_stable_or_tag
-    - push_if_master_or_stable_or_tag $GITLAB_MONITOR_VERSION
+    - push_if_master_or_stable_or_tag $GITLAB_EXPORTER_VERSION
   dependencies:
       - gitlab-ruby
 
