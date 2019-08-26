@@ -12,7 +12,6 @@ ARG CI_API_V4_URL
 
 # install build deps
 RUN buildDeps=' \
-    sudo \
     gcc' \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps \
