@@ -47,6 +47,7 @@ RUN apt-get update \
 # Create a run environment for SSHD
 RUN mkdir /srv/sshd && chown ${GITLAB_USER}:${GITLAB_USER} /srv/sshd
 
+# Prepare logging directory
 RUN mkdir -p /var/log/gitlab-shell && \
     touch /var/log/gitlab-shell/gitlab-shell.log && \
     chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab-shell
