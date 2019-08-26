@@ -51,7 +51,7 @@ RUN mkdir -p /var/log/gitlab-shell && \
     touch /var/log/gitlab-shell/gitlab-shell.log && \
     chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab-shell
 
-# Add scripts
+# Pull in final executables and configuration
 COPY --from=builder /srv/gitlab-shell/ /srv/gitlab-shell/
 COPY scripts/  /scripts/
 COPY sshd_config /etc/ssh/
