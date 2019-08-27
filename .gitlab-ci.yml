@@ -190,6 +190,7 @@ gitlab-task-runner-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=($(echo -n "$ruby_version$rails_version$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
@@ -207,6 +208,7 @@ gitlab-task-runner-ce:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=($(echo -n "$ruby_version$rails_version$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
@@ -224,6 +226,7 @@ gitlab-unicorn-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=($(echo -n "$ruby_version$rails_version$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
@@ -240,6 +243,7 @@ gitlab-unicorn-ce:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=($(echo -n "$ruby_version$rails_version$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
@@ -256,6 +260,7 @@ gitlab-sidekiq-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=($(echo -n "$ruby_version$rails_version$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
@@ -272,6 +277,7 @@ gitlab-sidekiq-ce:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=($(echo -n "$ruby_version$rails_version$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
