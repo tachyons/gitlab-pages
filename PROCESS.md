@@ -25,8 +25,8 @@ any changes have been made). To do so:
 
     ```shell
     git checkout -b X-Y-stable master # MAJOR.MINOR
-    git push X-Y-stable https://gitlab.com/gitlab-org/gitlab-pages.git
-    git push X-Y-stable https://dev.gitlab.org/gitlab/gitlab-pages.git
+    git push https://gitlab.com/gitlab-org/gitlab-pages.git X-Y-stable
+    git push https://dev.gitlab.org/gitlab/gitlab-pages.git X-Y-stable
     ```
 
 1. Review the list of changes since the last release and create a changelog
@@ -38,8 +38,8 @@ any changes have been made). To do so:
     ```shell
     git fetch origin 1-0-stable
     git tag -a -s -m "Release v1.0.0" v1.0.0 origin/1-0-stable
-    git push v1.0.0 https://gitlab.com/gitlab-org/gitlab-pages.git
-    git push v1.0.0 https://dev.gitlab.org/gitlab/gitlab-pages.git
+    git push https://gitlab.com/gitlab-org/gitlab-pages.git v1.0.0
+    git push https://dev.gitlab.org/gitlab/gitlab-pages.git v1.0.0
     ```
 
 1. Create a merge request against [GitLab](https://gitlab.com/gitlab-org/gitlab-ce) to update `GITLAB_PAGES_VERSION`
