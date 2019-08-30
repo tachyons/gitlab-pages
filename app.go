@@ -345,52 +345,22 @@ func (a *theApp) Run() {
 
 	// Listen for HTTP
 	for _, fd := range a.ListenHTTP {
-		wg.Add(1)
-		go func(fd uintptr) {
-			defer wg.Done()
-			err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter)
-			if err != nil {
-				capturingFatal(err, errortracking.WithField("listener", "http"))
-			}
-		}(fd)
+		a.listenHTTPFD(&wg, fd, httpHandler, limiter)
 	}
 
 	// Listen for HTTPS
 	for _, fd := range a.ListenHTTPS {
-		wg.Add(1)
-		go func(fd uintptr) {
-			defer wg.Done()
-			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
-			if err != nil {
-				capturingFatal(err, errortracking.WithField("listener", "https"))
-			}
-		}(fd)
+		a.listenHTTPSFD(&wg, fd, httpHandler, limiter)
 	}
 
 	// Listen for HTTP proxy requests
 	for _, fd := range a.ListenProxy {
-		wg.Add(1)
-		go func(fd uintptr) {
-			defer wg.Done()
-			err := listenAndServe(fd, proxyHandler, a.HTTP2, nil, limiter)
-			if err != nil {
-				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
-			}
-		}(fd)
+		a.listenProxyFD(&wg, fd, proxyHandler, limiter)
 	}
 
 	// Serve metrics for Prometheus
 	if a.ListenMetrics != 0 {
-		wg.Add(1)
-		go func(fd uintptr) {
-			defer wg.Done()
-
-			handler := promhttp.Handler()
-			err := listenAndServe(fd, handler, false, nil, nil)
-			if err != nil {
-				capturingFatal(err, errortracking.WithField("listener", "metrics"))
-			}
-		}(a.ListenMetrics)
+		a.listenMetricsFD(&wg, a.ListenMetrics)
 	}
 
 	a.listenAdminUnix(&wg)
@@ -399,6 +369,55 @@ func (a *theApp) Run() {
 	go domain.Watch(a.Domain, a.UpdateDomains, time.Second)
 
 	wg.Wait()
+}
+
+func (a *theApp) listenHTTPFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, limiter *netutil.Limiter) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter)
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", "http"))
+		}
+	}()
+}
+
+func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, limiter *netutil.Limiter) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", "https"))
+		}
+	}()
+}
+
+func (a *theApp) listenProxyFD(wg *sync.WaitGroup, fd uintptr, proxyHandler http.Handler, limiter *netutil.Limiter) {
+	wg.Add(1)
+	go func() {
+		wg.Add(1)
+		go func(fd uintptr) {
+			defer wg.Done()
+			err := listenAndServe(fd, proxyHandler, a.HTTP2, nil, limiter)
+			if err != nil {
+				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
+			}
+		}(fd)
+	}()
+}
+
+func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		handler := promhttp.Handler()
+		err := listenAndServe(fd, handler, false, nil, nil)
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", "metrics"))
+		}
+	}()
 }
 
 func (a *theApp) listenAdminUnix(wg *sync.WaitGroup) {
