@@ -28,26 +28,10 @@ var (
 		Name: "gitlab_pages_last_domain_update_seconds",
 		Help: "UNIX timestamp of the last update",
 	})
-
-	// ProcessedRequests is the number of HTTP requests served
-	ProcessedRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "gitlab_pages_http_requests_total",
-		Help: "Total number of HTTP requests done serving",
-	},
-		[]string{"code", "method"},
-	)
-
-	// SessionsActive is the number of HTTP requests currently being processed
-	SessionsActive = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "gitlab_pages_http_active_sessions",
-		Help: "The number of HTTP requests currently being processed",
-	})
 )
 
 func init() {
 	prometheus.MustRegister(DomainsServed)
 	prometheus.MustRegister(DomainUpdates)
 	prometheus.MustRegister(DomainLastUpdateTime)
-	prometheus.MustRegister(ProcessedRequests)
-	prometheus.MustRegister(SessionsActive)
 }

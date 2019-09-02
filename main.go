@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 )
 
@@ -213,7 +214,10 @@ func appMain() {
 
 	printVersion(*showVersion, VERSION)
 
-	configureLogging(*logFormat, *logVerbose)
+	err := logging.ConfigureLogging(*logFormat, *logVerbose)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to initialize logging")
+	}
 
 	log.WithFields(log.Fields{
 		"version":  VERSION,

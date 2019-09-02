@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
+	"gitlab.com/gitlab-org/labkit/metrics"
 	mimedb "gitlab.com/lupine/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
@@ -25,9 +25,9 @@ import (
 	headerConfig "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
@@ -168,22 +168,6 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 	return false
 }
 
-// observabilityMiddleware will provide observability (logging, metrics)
-// for each request
-func (a *theApp) observabilityMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(ww http.ResponseWriter, r *http.Request) {
-		w := newLoggingResponseWriter(ww)
-		defer w.Log(r)
-
-		metrics.SessionsActive.Inc()
-		defer metrics.SessionsActive.Dec()
-
-		handler.ServeHTTP(&w, r)
-
-		metrics.ProcessedRequests.WithLabelValues(strconv.Itoa(w.status), r.Method).Inc()
-	})
-}
-
 // routingMiddleware will determine the host and domain for the request, for
 // downstream middlewares to use
 func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
@@ -313,7 +297,7 @@ func (a *theApp) proxyInitialMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
-func (a *theApp) buildHandlerPipeline() http.Handler {
+func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in reverse order
 	handler := a.serveFileOrNotFoundHandler()
 	if !a.DisableCrossOriginRequests {
@@ -324,10 +308,18 @@ func (a *theApp) buildHandlerPipeline() http.Handler {
 	handler = a.authMiddleware(handler)
 	handler = a.acmeMiddleware(handler)
 	handler = a.customHeadersMiddleware(handler)
-	handler = a.observabilityMiddleware(handler)
+	handler, err := logging.AccessLogger(handler, a.LogFormat)
+	if err != nil {
+		return nil, err
+	}
+
+	// Metrics
+	metricsMiddleware := metrics.NewHandlerFactory(metrics.WithNamespace("gitlab_pages"))
+	handler = metricsMiddleware(handler)
+
 	handler = a.routingMiddleware(handler)
 
-	return handler
+	return handler, nil
 }
 
 func (a *theApp) UpdateDomains(dm domain.Map) {
@@ -343,58 +335,32 @@ func (a *theApp) Run() {
 
 	// Use a common pipeline to use a single instance of each handler,
 	// instead of making two nearly identical pipelines
-	commonHandlerPipeline := a.buildHandlerPipeline()
+	commonHandlerPipeline, err := a.buildHandlerPipeline()
+	if err != nil {
+		log.WithError(err).Fatal("Unable to configure pipeline")
+	}
+
 	proxyHandler := a.proxyInitialMiddleware(commonHandlerPipeline)
 	httpHandler := a.httpInitialMiddleware(commonHandlerPipeline)
 
 	// Listen for HTTP
 	for _, fd := range a.ListenHTTP {
-		wg.Add(1)
-		go func(fd uintptr) {
-			defer wg.Done()
-			err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter)
-			if err != nil {
-				capturingFatal(err, errortracking.WithField("listener", "http"))
-			}
-		}(fd)
+		a.listenHTTPFD(&wg, fd, httpHandler, limiter)
 	}
 
 	// Listen for HTTPS
 	for _, fd := range a.ListenHTTPS {
-		wg.Add(1)
-		go func(fd uintptr) {
-			defer wg.Done()
-			err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
-			if err != nil {
-				capturingFatal(err, errortracking.WithField("listener", "https"))
-			}
-		}(fd)
+		a.listenHTTPSFD(&wg, fd, httpHandler, limiter)
 	}
 
 	// Listen for HTTP proxy requests
 	for _, fd := range a.ListenProxy {
-		wg.Add(1)
-		go func(fd uintptr) {
-			defer wg.Done()
-			err := listenAndServe(fd, proxyHandler, a.HTTP2, nil, limiter)
-			if err != nil {
-				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
-			}
-		}(fd)
+		a.listenProxyFD(&wg, fd, proxyHandler, limiter)
 	}
 
 	// Serve metrics for Prometheus
 	if a.ListenMetrics != 0 {
-		wg.Add(1)
-		go func(fd uintptr) {
-			defer wg.Done()
-
-			handler := promhttp.Handler()
-			err := listenAndServe(fd, handler, false, nil, nil)
-			if err != nil {
-				capturingFatal(err, errortracking.WithField("listener", "metrics"))
-			}
-		}(a.ListenMetrics)
+		a.listenMetricsFD(&wg, a.ListenMetrics)
 	}
 
 	a.listenAdminUnix(&wg)
@@ -403,6 +369,55 @@ func (a *theApp) Run() {
 	go domain.Watch(a.Domain, a.UpdateDomains, time.Second)
 
 	wg.Wait()
+}
+
+func (a *theApp) listenHTTPFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, limiter *netutil.Limiter) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter)
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", "http"))
+		}
+	}()
+}
+
+func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, limiter *netutil.Limiter) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", "https"))
+		}
+	}()
+}
+
+func (a *theApp) listenProxyFD(wg *sync.WaitGroup, fd uintptr, proxyHandler http.Handler, limiter *netutil.Limiter) {
+	wg.Add(1)
+	go func() {
+		wg.Add(1)
+		go func(fd uintptr) {
+			defer wg.Done()
+			err := listenAndServe(fd, proxyHandler, a.HTTP2, nil, limiter)
+			if err != nil {
+				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
+			}
+		}(fd)
+	}()
+}
+
+func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		handler := promhttp.Handler()
+		err := listenAndServe(fd, handler, false, nil, nil)
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", "metrics"))
+		}
+	}()
 }
 
 func (a *theApp) listenAdminUnix(wg *sync.WaitGroup) {
@@ -445,8 +460,8 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 
 		l, err := net.FileListener(os.NewFile(fd, "[admin-socket-https]"))
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to listen on FD %d: %v", fd, err)
-			log.Error(errMsg)
+			errMsg := fmt.Errorf("failed to listen on FD %d: %v", fd, err)
+			log.WithError(errMsg).Error("error")
 			capturingFatal(err, errortracking.WithField("listener", "admin https socket"))
 		}
 		defer l.Close()
@@ -459,6 +474,10 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 
 func runApp(config appConfig) {
 	a := theApp{appConfig: config}
+	err := logging.ConfigureLogging(a.LogFormat, a.LogVerbose)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to initialize logging")
+	}
 
 	if config.ArtifactsServer != "" {
 		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
@@ -476,16 +495,19 @@ func runApp(config appConfig) {
 	if len(config.CustomHeaders) != 0 {
 		customHeaders, err := headerConfig.ParseHeaderString(config.CustomHeaders)
 		if err != nil {
-			log.Fatal(err)
+			log.WithError(err).Fatal("Unable to parse header string")
 		}
 		a.CustomHeaders = customHeaders
 	}
-
-	configureLogging(config.LogFormat, config.LogVerbose)
 
 	if err := mimedb.LoadTypes(); err != nil {
 		log.WithError(err).Warn("Loading extended MIME database failed")
 	}
 
 	a.Run()
+}
+
+// fatal will log a fatal error and exit.
+func fatal(err error) {
+	log.WithError(err).Fatal()
 }

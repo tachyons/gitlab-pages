@@ -394,7 +394,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
 
-		assert.Contains(t, string(body), "gitlab_pages_http_active_sessions 0")
+		assert.Contains(t, string(body), "gitlab_pages_http_in_flight_requests 0")
 		assert.Contains(t, string(body), "gitlab_pages_served_domains 16")
 	}
 }

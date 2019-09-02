@@ -15,6 +15,12 @@
 			"revisionTime": "2019-04-14T21:10:42Z"
 		},
 		{
+			"checksumSHA1": "Se+tHrDK92BXj6/YoYuCXOH5jz0=",
+			"path": "github.com/client9/reopen",
+			"revision": "dbabf56e0beda57421ccdf6c7431a75a7d8a1562",
+			"revisionTime": "2018-03-16T01:46:14Z"
+		},
+		{
 			"checksumSHA1": "DDb/mPtFh1OfbUXdXMaLxio0g48=",
 			"path": "github.com/getsentry/raven-go",
 			"revision": "5c24d5110e0e198d9ae16f1f3465366085001d92",
@@ -186,6 +192,12 @@
 			"versionExact": "v1.5.0"
 		},
 		{
+			"checksumSHA1": "Aulh7C5SVOA4Jzt5eHNH6197Mbk=",
+			"path": "github.com/konsorten/go-windows-terminal-sequences",
+			"revision": "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e",
+			"revisionTime": "2019-02-26T22:47:05Z"
+		},
+		{
 			"checksumSHA1": "bKMZjd2wPw13VwoE7mBeSv5djFA=",
 			"comment": "v1.0.0-2-gc12348c",
 			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
@@ -285,12 +297,18 @@
 			"revision": "8dd4211afb5d08dbb39a533b9bb9e4b486351df6"
 		},
 		{
-			"checksumSHA1": "ySaT8G3I3y4MmnoXOYAAX0rC+p8=",
+			"checksumSHA1": "bQ+Wb430AXpen54AYtrR1Igfh18=",
+			"path": "github.com/sebest/xff",
+			"revision": "6c115e0ffa35d6a2e3f7a9e797c9cf07f0da4b9f",
+			"revisionTime": "2016-09-10T04:38:05Z"
+		},
+		{
+			"checksumSHA1": "+enshrlE9AS7iFQTrtHNWj4wAFw=",
 			"path": "github.com/sirupsen/logrus",
-			"revision": "d682213848ed68c0a260ca37d6dd5ace8423f5ba",
-			"revisionTime": "2017-12-05T20:32:29Z",
-			"version": "v1.0.4",
-			"versionExact": "v1.0.4"
+			"revision": "07a84ee7412e7a28663d92930a1d46f81b124ee1",
+			"revisionTime": "2019-07-01T14:35:06Z",
+			"version": "master",
+			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "4uEmekuD2eHuhPbwKVh/X9Y/ESo=",
@@ -311,20 +329,42 @@
 		{
 			"checksumSHA1": "86VccaJApU9EEq4KKen8DX9gMUM=",
 			"path": "gitlab.com/gitlab-org/labkit/correlation",
-			"revision": "ed6d5f223a90a4e9bb63f414a212e547edfd8d84",
-			"revisionTime": "2019-07-10T10:24:15Z"
+			"revision": "e86cd049fbcb3cad7155714c70b86a697d51e1ad",
+			"revisionTime": "2019-08-23T07:09:04Z",
+			"version": "master",
+			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "XKPA3adbywKGnRFOPl1sHc0oUmM=",
 			"path": "gitlab.com/gitlab-org/labkit/errortracking",
-			"revision": "ed6d5f223a90a4e9bb63f414a212e547edfd8d84",
-			"revisionTime": "2019-07-10T10:24:15Z"
+			"revision": "e86cd049fbcb3cad7155714c70b86a697d51e1ad",
+			"revisionTime": "2019-08-23T07:09:04Z",
+			"version": "master",
+			"versionExact": "master"
 		},
 		{
-			"checksumSHA1": "yWZietMQ0YjAXj4NEVrQAypOIBU=",
+			"checksumSHA1": "3/0keVU4UZOoFSNajbtnexV6Ou4=",
+			"path": "gitlab.com/gitlab-org/labkit/log",
+			"revision": "e86cd049fbcb3cad7155714c70b86a697d51e1ad",
+			"revisionTime": "2019-08-23T07:09:04Z",
+			"version": "master",
+			"versionExact": "master"
+		},
+		{
+			"checksumSHA1": "ZLOdEZjgtMyLATnFUv37eZqZFA0=",
 			"path": "gitlab.com/gitlab-org/labkit/mask",
-			"revision": "ed6d5f223a90a4e9bb63f414a212e547edfd8d84",
-			"revisionTime": "2019-07-10T10:24:15Z"
+			"revision": "e86cd049fbcb3cad7155714c70b86a697d51e1ad",
+			"revisionTime": "2019-08-23T07:09:04Z",
+			"version": "master",
+			"versionExact": "master"
+		},
+		{
+			"checksumSHA1": "VZCPUGjv5L6wEL0d32LmmP8mvHo=",
+			"path": "gitlab.com/gitlab-org/labkit/metrics",
+			"revision": "e86cd049fbcb3cad7155714c70b86a697d51e1ad",
+			"revisionTime": "2019-08-23T07:09:04Z",
+			"version": "master",
+			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "UxFypaeBgKNoj1+mF/OwdtgfrWk=",
