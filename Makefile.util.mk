@@ -1,6 +1,9 @@
-.PHONY: verify fmt vet lint complexity test cover list
+.PHONY: verify fmt vet lint complexity test cover list codequality
 
 verify: list fmt vet lint complexity
+
+codequality:
+	./scripts/codequality analyze --dev
 
 fmt: bin/goimports .GOPATH/.ok
 	$Q @./bin/goimports -local $(IMPORT_PATH) -l $(allfiles) | awk '{ print } END { if (NR>0) { print "Please run ./bin/goimports -w -local $(IMPORT_PATH) -l $(allfiles)"; exit 1 } }'

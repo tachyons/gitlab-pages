@@ -1,0 +1,24 @@
+---
+version: "2"
+plugins:
+  structure:
+    enabled: false
+  duplication:
+    enabled: false
+  gofmt:
+    enabled: true
+  golint:
+    enabled: true
+  govet:
+    enabled: true
+  gocyclo:
+    enabled: true
+    config:
+      over: 9
+  fixme:
+    enabled: false
+  shellcheck:
+    enabled: false
+exclude_patterns:
+- vendor/
+- .GOPATH/

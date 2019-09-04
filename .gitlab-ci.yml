@@ -17,6 +17,20 @@ license_management:
   variables:
     SETUP_CMD: echo "Skip setup. Dependency already vendored"
 
+code_quality:
+  image: docker:19.03-git
+  services:
+    - docker:19.03-dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    CODECLIMATE_FORMAT: json
+  dependencies: []
+  script:
+    - ./scripts/codequality analyze -f json --dev | tee gl-code-quality-report.json
+  artifacts:
+    paths: [gl-code-quality-report.json]
+    expire_in: 7d
+
 verify:
   image: golang:1.11
   script:
