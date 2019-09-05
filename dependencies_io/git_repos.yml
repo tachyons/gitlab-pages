@@ -9,7 +9,7 @@ repos:
   replace_in_files:
     kubectl/Dockerfile: ARG YQ_VERSION="{version_clean}"
 - url: https://gitlab.com/gitlab-org/gitlab-exporter.git
-  installed: v5.0.0
+  installed: v5.0.1
   replace_in_files:
     ci_files/variables.yml: 'GITLAB_EXPORTER_VERSION: "{version_clean}"'
     gitlab-exporter/Dockerfile: ARG GITLAB_EXPORTER_VERSION={version_clean}
