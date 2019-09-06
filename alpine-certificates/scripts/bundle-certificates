@@ -1,7 +1,9 @@
 #!/bin/sh
 
 # purge any existing state
-rm -r /etc/ssl/certs/*
+if [ $(ls -1 /etc/ssl/certs/ | wc -l) -gt 0 ]; then
+  rm -r /etc/ssl/certs/*
+fi
 
 # Update the CA certificates store in /etc/ssl/certs
 # - generated hashes
