@@ -1230,18 +1230,22 @@ func TestAcceptsSupportedCiphers(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func tlsConfigWithInsecureCiphersOnly() *tls.Config {
+	return &tls.Config{
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+			tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+		},
+		MaxVersion: tls.VersionTLS12, // ciphers for TLS1.3 are not configurable and will work if enabled
+	}
+}
+
 func TestRejectsUnsupportedCiphers(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
-	tlsConfig := &tls.Config{
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-			tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-		},
-	}
-	client, cleanup := ClientWithConfig(tlsConfig)
+	client, cleanup := ClientWithConfig(tlsConfigWithInsecureCiphersOnly())
 	defer cleanup()
 
 	rsp, err := client.Get(httpsListener.URL("/"))
@@ -1259,13 +1263,7 @@ func TestEnableInsecureCiphers(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-insecure-ciphers")
 	defer teardown()
 
-	tlsConfig := &tls.Config{
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-			tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-		},
-	}
-	client, cleanup := ClientWithConfig(tlsConfig)
+	client, cleanup := ClientWithConfig(tlsConfigWithInsecureCiphersOnly())
 	defer cleanup()
 
 	rsp, err := client.Get(httpsListener.URL("/"))
