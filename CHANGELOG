@@ -1,3 +1,8 @@
+v 1.8.1
+
+- Limit auth cookie max-age to 10 minutes
+- Use secure cookies for auth session
+
 v 1.8.0
 
 - Fix https downgrade in auth process
