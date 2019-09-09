@@ -1,3 +1,9 @@
+v 1.6.3
+
+- Fix https to http downgrade for auth process
+- Limit auth cookie max-age to 10 minutes
+- Use secure cookies for auth session
+
 v 1.6.2
 
 - Security fix for recovering gitlab access token from cookies
