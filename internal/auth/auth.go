@@ -22,6 +22,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 
 	"golang.org/x/crypto/hkdf"
 )
@@ -34,6 +35,7 @@ const (
 	tokenContentTemplate   = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
 	callbackPath           = "/auth"
 	authorizeProxyTemplate = "%s?domain=%s&state=%s"
+	authSessionMaxAge      = 60 * 10 // 10 minutes
 )
 
 var (
@@ -74,10 +76,10 @@ func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 
 	if session != nil {
 		// Cookie just for this domain
-		session.Options = &sessions.Options{
-			Path:     "/",
-			HttpOnly: true,
-		}
+		session.Options.Path = "/"
+		session.Options.HttpOnly = true
+		session.Options.Secure = request.IsHTTPS(r)
+		session.Options.MaxAge = authSessionMaxAge
 	}
 
 	return session, err
@@ -285,14 +287,14 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 }
 
 func getRequestAddress(r *http.Request) string {
-	if r.TLS != nil {
+	if request.IsHTTPS(r) {
 		return "https://" + r.Host + r.RequestURI
 	}
 	return "http://" + r.Host + r.RequestURI
 }
 
 func getRequestDomain(r *http.Request) string {
-	if r.TLS != nil {
+	if request.IsHTTPS(r) {
 		return "https://" + r.Host
 	}
 	return "http://" + r.Host
@@ -581,7 +583,6 @@ func createCookieStore(storeSecret string) sessions.Store {
 // New when authentication supported this will be used to create authentication handler
 func New(pagesDomain string, storeSecret string, clientID string, clientSecret string,
 	redirectURI string, gitLabServer string) *Auth {
-
 	return &Auth{
 		pagesDomain:  pagesDomain,
 		clientID:     clientID,

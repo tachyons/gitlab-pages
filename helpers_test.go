@@ -314,15 +314,31 @@ func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*ht
 	return GetRedirectPageWithCookie(t, spec, host, urlsuffix, "")
 }
 
+func GetProxyRedirectPageWithCookie(t *testing.T, spec ListenSpec, host string, urlsuffix string, cookie string, https bool) (*http.Response, error) {
+	schema := "http"
+	if https {
+		schema = "https"
+	}
+	header := http.Header{
+		"X-Forwarded-Proto": []string{schema},
+		"X-Forwarded-Host":  []string{host},
+		"cookie":            []string{cookie},
+	}
+
+	return GetRedirectPageWithHeaders(t, spec, host, urlsuffix, header)
+}
+
 func GetRedirectPageWithCookie(t *testing.T, spec ListenSpec, host, urlsuffix string, cookie string) (*http.Response, error) {
+	return GetRedirectPageWithHeaders(t, spec, host, urlsuffix, http.Header{"cookie": []string{cookie}})
+}
+
+func GetRedirectPageWithHeaders(t *testing.T, spec ListenSpec, host, urlsuffix string, header http.Header) (*http.Response, error) {
 	url := spec.URL(urlsuffix)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	if cookie != "" {
-		req.Header.Set("Cookie", cookie)
-	}
+	req.Header = header
 
 	req.Host = host
 
