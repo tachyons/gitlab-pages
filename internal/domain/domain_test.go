@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
@@ -45,27 +44,27 @@ func testGroupServeHTTPHost(t *testing.T, host string) {
 
 	serve := serveFileOrNotFound(testGroup)
 
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/"), nil, "main-dir")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/index"), nil, "main-dir")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/index.html"), nil, "main-dir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/"), nil, "main-dir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/index"), nil, "main-dir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/index.html"), nil, "main-dir")
 	testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project"), nil, "//"+host+"/project/")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/"), nil, "project-subdir")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/index"), nil, "project-subdir")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/index/"), nil, "project-subdir")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/index.html"), nil, "project-subdir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/"), nil, "project-subdir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/index"), nil, "project-subdir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/index/"), nil, "project-subdir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/index.html"), nil, "project-subdir")
 	testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project/subdir"), nil, "//"+host+"/project/subdir/")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project/subdir/"), nil, "project-subsubdir")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/"), nil, "project2-main")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index"), nil, "project2-main")
-	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index.html"), nil, "project2-main")
-	assert.HTTPError(t, serve, "GET", makeURL("/private.project/"), nil)
-	assert.HTTPError(t, serve, "GET", makeURL("//about.gitlab.com/%2e%2e"), nil)
-	assert.HTTPError(t, serve, "GET", makeURL("/symlink"), nil)
-	assert.HTTPError(t, serve, "GET", makeURL("/symlink/index.html"), nil)
-	assert.HTTPError(t, serve, "GET", makeURL("/symlink/subdir/"), nil)
-	assert.HTTPError(t, serve, "GET", makeURL("/project/fifo"), nil)
-	assert.HTTPError(t, serve, "GET", makeURL("/not-existing-file"), nil)
-	assert.HTTPRedirect(t, serve, "GET", makeURL("/project//about.gitlab.com/%2e%2e"), nil)
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/subdir/"), nil, "project-subsubdir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project2/"), nil, "project2-main")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index"), nil, "project2-main")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index.html"), nil, "project2-main")
+	require.HTTPError(t, serve, "GET", makeURL("/private.project/"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("//about.gitlab.com/%2e%2e"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/symlink"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/symlink/index.html"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/symlink/subdir/"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/project/fifo"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/not-existing-file"), nil)
+	require.HTTPRedirect(t, serve, "GET", makeURL("/project//about.gitlab.com/%2e%2e"), nil)
 }
 
 func TestGroupServeHTTP(t *testing.T) {
@@ -88,15 +87,15 @@ func TestDomainServeHTTP(t *testing.T) {
 		},
 	}
 
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/", nil, "project2-main")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/index.html", nil, "project2-main")
-	assert.HTTPRedirect(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil)
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil,
+	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/", nil, "project2-main")
+	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/index.html", nil, "project2-main")
+	require.HTTPRedirect(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil)
+	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil,
 		`<a href="/subdir/">Found</a>`)
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir/", nil, "project2-subdir")
-	assert.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir/index.html", nil, "project2-subdir")
-	assert.HTTPError(t, serveFileOrNotFound(testDomain), "GET", "//about.gitlab.com/%2e%2e", nil)
-	assert.HTTPError(t, serveFileOrNotFound(testDomain), "GET", "/not-existing-file", nil)
+	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir/", nil, "project2-subdir")
+	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir/index.html", nil, "project2-subdir")
+	require.HTTPError(t, serveFileOrNotFound(testDomain), "GET", "//about.gitlab.com/%2e%2e", nil)
+	require.HTTPError(t, serveFileOrNotFound(testDomain), "GET", "/not-existing-file", nil)
 }
 
 func TestIsHTTPSOnly(t *testing.T) {
@@ -200,7 +199,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req, _ := http.NewRequest(http.MethodGet, test.url, nil)
-			assert.Equal(t, test.expected, test.domain.IsHTTPSOnly(req))
+			require.Equal(t, test.expected, test.domain.IsHTTPSOnly(req))
 		})
 	}
 }
@@ -264,7 +263,7 @@ func TestHasAcmeChallenge(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expected, test.domain.HasAcmeChallenge(test.token))
+			require.Equal(t, test.expected, test.domain.HasAcmeChallenge(test.token))
 		})
 	}
 }
@@ -284,16 +283,16 @@ func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, valu
 		defer reader.Close()
 
 		contentEncoding := w.Header().Get("Content-Encoding")
-		assert.Equal(t, "gzip", contentEncoding, "Content-Encoding")
+		require.Equal(t, "gzip", contentEncoding, "Content-Encoding")
 
 		bytes, err := ioutil.ReadAll(reader)
 		require.NoError(t, err)
-		assert.Contains(t, string(bytes), str)
+		require.Contains(t, string(bytes), str)
 	} else {
-		assert.Contains(t, w.Body.String(), str)
+		require.Contains(t, w.Body.String(), str)
 	}
 
-	assert.Equal(t, contentType, w.Header().Get("Content-Type"))
+	require.Equal(t, contentType, w.Header().Get("Content-Type"))
 }
 
 func TestGroupServeHTTPGzip(t *testing.T) {
@@ -386,7 +385,7 @@ func TestGroup404ServeHTTP(t *testing.T) {
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/not/existing-file", nil, "Custom 404 group page")
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/", nil, "Custom 404 group page")
-	assert.HTTPBodyNotContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404.symlink/not/existing-file", nil, "Custom 404 project page")
+	require.HTTPBodyNotContains(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404.symlink/not/existing-file", nil, "Custom 404 project page")
 
 	// Ensure the namespace project's custom 404.html is not used by projects
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.no.404/not/existing-file", nil, "The page you're looking for could not be found.")
@@ -426,8 +425,8 @@ func TestGroupCertificate(t *testing.T) {
 	}
 
 	tls, err := testGroup.EnsureCertificate()
-	assert.Nil(t, tls)
-	assert.Error(t, err)
+	require.Nil(t, tls)
+	require.Error(t, err)
 }
 
 func TestDomainNoCertificate(t *testing.T) {
@@ -440,12 +439,12 @@ func TestDomainNoCertificate(t *testing.T) {
 	}
 
 	tls, err := testDomain.EnsureCertificate()
-	assert.Nil(t, tls)
-	assert.Error(t, err)
+	require.Nil(t, tls)
+	require.Error(t, err)
 
 	_, err2 := testDomain.EnsureCertificate()
-	assert.Error(t, err)
-	assert.Equal(t, err, err2)
+	require.Error(t, err)
+	require.Equal(t, err, err2)
 }
 
 func TestDomainCertificate(t *testing.T) {
@@ -460,7 +459,7 @@ func TestDomainCertificate(t *testing.T) {
 	}
 
 	tls, err := testDomain.EnsureCertificate()
-	assert.NotNil(t, tls)
+	require.NotNil(t, tls)
 	require.NoError(t, err)
 }
 
@@ -483,8 +482,8 @@ func TestCacheControlHeaders(t *testing.T) {
 	now := time.Now()
 	serveFileOrNotFound(testGroup)(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "max-age=600", w.Header().Get("Cache-Control"))
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, "max-age=600", w.Header().Get("Cache-Control"))
 
 	expires := w.Header().Get("Expires")
 	require.NotEmpty(t, expires)
@@ -492,7 +491,7 @@ func TestCacheControlHeaders(t *testing.T) {
 	expiresTime, err := time.Parse(time.RFC1123, expires)
 	require.NoError(t, err)
 
-	assert.WithinDuration(t, now.UTC().Add(10*time.Minute), expiresTime.UTC(), time.Minute)
+	require.WithinDuration(t, now.UTC().Add(10*time.Minute), expiresTime.UTC(), time.Minute)
 }
 
 func TestOpenNoFollow(t *testing.T) {

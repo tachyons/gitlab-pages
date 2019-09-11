@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,12 +17,12 @@ func AssertHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, val
 	require.NoError(t, err)
 	handler(w, req)
 
-	assert.Equal(t, http.StatusNotFound, w.Code, "HTTP status")
+	require.Equal(t, http.StatusNotFound, w.Code, "HTTP status")
 
 	if str != nil {
 		contentType, _, _ := mime.ParseMediaType(w.Header().Get("Content-Type"))
-		assert.Equal(t, "text/html", contentType, "Content-Type")
-		assert.Contains(t, w.Body.String(), str)
+		require.Equal(t, "text/html", contentType, "Content-Type")
+		require.Contains(t, w.Body.String(), str)
 	}
 }
 
@@ -31,7 +30,7 @@ func AssertHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, val
 func AssertRedirectTo(t *testing.T, handler http.HandlerFunc, method string,
 	url string, values url.Values, expectedURL string) {
 
-	assert.HTTPRedirect(t, handler, method, url, values)
+	require.HTTPRedirect(t, handler, method, url, values)
 
 	recorder := httptest.NewRecorder()
 
@@ -40,5 +39,5 @@ func AssertRedirectTo(t *testing.T, handler http.HandlerFunc, method string,
 
 	handler(recorder, req)
 
-	assert.Equal(t, expectedURL, recorder.Header().Get("Location"))
+	require.Equal(t, expectedURL, recorder.Header().Get("Location"))
 }

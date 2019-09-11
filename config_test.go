@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGitLabServerFromFlags(t *testing.T) {
@@ -48,7 +48,7 @@ func TestGitLabServerFromFlags(t *testing.T) {
 			gitLabServer = &test.gitLabServer
 			gitLabAuthServer = &test.gitLabAuthServer
 			artifactsServer = &test.artifactsServer
-			assert.Equal(t, test.expected, gitlabServerFromFlags())
+			require.Equal(t, test.expected, gitlabServerFromFlags())
 		})
 	}
 }

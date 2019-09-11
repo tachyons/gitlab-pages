@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // creates a new implementation of http.ResponseWriter that allows the
@@ -54,64 +54,64 @@ var (
 
 func TestGenerateemailHTML(t *testing.T) {
 	actual := generateErrorHTML(testingContent)
-	assert.Contains(t, actual, testingContent.title)
-	assert.Contains(t, actual, testingContent.statusString)
-	assert.Contains(t, actual, testingContent.header)
-	assert.Contains(t, actual, testingContent.subHeader)
+	require.Contains(t, actual, testingContent.title)
+	require.Contains(t, actual, testingContent.statusString)
+	require.Contains(t, actual, testingContent.header)
+	require.Contains(t, actual, testingContent.subHeader)
 }
 
 func TestServeErrorPage(t *testing.T) {
 	w := newTestResponseWriter(httptest.NewRecorder())
 	serveErrorPage(w, testingContent)
-	assert.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
-	assert.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
-	assert.Equal(t, w.Status(), testingContent.status)
+	require.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
+	require.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
+	require.Equal(t, w.Status(), testingContent.status)
 }
 
 func TestServe401(t *testing.T) {
 	w := newTestResponseWriter(httptest.NewRecorder())
 	Serve401(w)
-	assert.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
-	assert.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
-	assert.Equal(t, w.Status(), content401.status)
-	assert.Contains(t, w.Content(), content401.title)
-	assert.Contains(t, w.Content(), content401.statusString)
-	assert.Contains(t, w.Content(), content401.header)
-	assert.Contains(t, w.Content(), content401.subHeader)
+	require.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
+	require.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
+	require.Equal(t, w.Status(), content401.status)
+	require.Contains(t, w.Content(), content401.title)
+	require.Contains(t, w.Content(), content401.statusString)
+	require.Contains(t, w.Content(), content401.header)
+	require.Contains(t, w.Content(), content401.subHeader)
 }
 
 func TestServe404(t *testing.T) {
 	w := newTestResponseWriter(httptest.NewRecorder())
 	Serve404(w)
-	assert.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
-	assert.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
-	assert.Equal(t, w.Status(), content404.status)
-	assert.Contains(t, w.Content(), content404.title)
-	assert.Contains(t, w.Content(), content404.statusString)
-	assert.Contains(t, w.Content(), content404.header)
-	assert.Contains(t, w.Content(), content404.subHeader)
+	require.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
+	require.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
+	require.Equal(t, w.Status(), content404.status)
+	require.Contains(t, w.Content(), content404.title)
+	require.Contains(t, w.Content(), content404.statusString)
+	require.Contains(t, w.Content(), content404.header)
+	require.Contains(t, w.Content(), content404.subHeader)
 }
 
 func TestServe500(t *testing.T) {
 	w := newTestResponseWriter(httptest.NewRecorder())
 	Serve500(w)
-	assert.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
-	assert.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
-	assert.Equal(t, w.Status(), content500.status)
-	assert.Contains(t, w.Content(), content500.title)
-	assert.Contains(t, w.Content(), content500.statusString)
-	assert.Contains(t, w.Content(), content500.header)
-	assert.Contains(t, w.Content(), content500.subHeader)
+	require.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
+	require.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
+	require.Equal(t, w.Status(), content500.status)
+	require.Contains(t, w.Content(), content500.title)
+	require.Contains(t, w.Content(), content500.statusString)
+	require.Contains(t, w.Content(), content500.header)
+	require.Contains(t, w.Content(), content500.subHeader)
 }
 
 func TestServe502(t *testing.T) {
 	w := newTestResponseWriter(httptest.NewRecorder())
 	Serve502(w)
-	assert.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
-	assert.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
-	assert.Equal(t, w.Status(), content502.status)
-	assert.Contains(t, w.Content(), content502.title)
-	assert.Contains(t, w.Content(), content502.statusString)
-	assert.Contains(t, w.Content(), content502.header)
-	assert.Contains(t, w.Content(), content502.subHeader)
+	require.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
+	require.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
+	require.Equal(t, w.Status(), content502.status)
+	require.Contains(t, w.Content(), content502.title)
+	require.Contains(t, w.Content(), content502.statusString)
+	require.Contains(t, w.Content(), content502.header)
+	require.Contains(t, w.Content(), content502.subHeader)
 }

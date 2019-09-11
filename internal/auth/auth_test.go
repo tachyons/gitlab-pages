@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/gorilla/sessions"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
@@ -56,7 +55,7 @@ func TestTryAuthenticate(t *testing.T) {
 	require.NoError(t, err)
 	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
 
-	assert.Equal(t, false, auth.TryAuthenticate(result, r, make(domain.Map), &sync.RWMutex{}))
+	require.Equal(t, false, auth.TryAuthenticate(result, r, make(domain.Map), &sync.RWMutex{}))
 }
 
 func TestTryAuthenticateWithError(t *testing.T) {
@@ -67,8 +66,8 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	require.NoError(t, err)
 	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
 
-	assert.Equal(t, true, auth.TryAuthenticate(result, r, make(domain.Map), &sync.RWMutex{}))
-	assert.Equal(t, 401, result.Code)
+	require.Equal(t, true, auth.TryAuthenticate(result, r, make(domain.Map), &sync.RWMutex{}))
+	require.Equal(t, 401, result.Code)
 }
 
 func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
@@ -84,19 +83,19 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	session.Values["state"] = "state"
 	session.Save(r, result)
 
-	assert.Equal(t, true, auth.TryAuthenticate(result, r, make(domain.Map), &sync.RWMutex{}))
-	assert.Equal(t, 401, result.Code)
+	require.Equal(t, true, auth.TryAuthenticate(result, r, make(domain.Map), &sync.RWMutex{}))
+	require.Equal(t, 401, result.Code)
 }
 
 func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/oauth/token":
-			assert.Equal(t, "POST", r.Method)
+			require.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
 		case "/api/v4/projects/1000/pages_access":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
@@ -124,11 +123,11 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	})
 
 	result := httptest.NewRecorder()
-	assert.Equal(t, true, auth.TryAuthenticate(result, r, make(domain.Map), &sync.RWMutex{}))
-	assert.Equal(t, 302, result.Code)
-	assert.Equal(t, "https://pages.gitlab-example.com/project/", result.Header().Get("Location"))
-	assert.Equal(t, 600, result.Result().Cookies()[0].MaxAge)
-	assert.Equal(t, https, result.Result().Cookies()[0].Secure)
+	require.Equal(t, true, auth.TryAuthenticate(result, r, make(domain.Map), &sync.RWMutex{}))
+	require.Equal(t, 302, result.Code)
+	require.Equal(t, "https://pages.gitlab-example.com/project/", result.Header().Get("Location"))
+	require.Equal(t, 600, result.Result().Cookies()[0].MaxAge)
+	require.Equal(t, https, result.Result().Cookies()[0].Secure)
 }
 
 func TestTryAuthenticateWithCodeAndStateOverHTTP(t *testing.T) {
@@ -143,7 +142,7 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v4/projects/1000/pages_access":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
@@ -172,15 +171,15 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	assert.Equal(t, false, auth.CheckAuthentication(result, r, 1000))
-	assert.Equal(t, 200, result.Code)
+	require.Equal(t, false, auth.CheckAuthentication(result, r, 1000))
+	require.Equal(t, 200, result.Code)
 }
 
 func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v4/projects/1000/pages_access":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 		default:
 			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
@@ -209,15 +208,15 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	assert.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
-	assert.Equal(t, 404, result.Code)
+	require.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
+	require.Equal(t, 404, result.Code)
 }
 
 func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v4/projects/1000/pages_access":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
 		default:
@@ -248,15 +247,15 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	assert.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
-	assert.Equal(t, 302, result.Code)
+	require.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
+	require.Equal(t, 302, result.Code)
 }
 
 func TestCheckAuthenticationWithoutProject(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v4/user":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
 			t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
@@ -285,15 +284,15 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	assert.Equal(t, false, auth.CheckAuthenticationWithoutProject(result, r))
-	assert.Equal(t, 200, result.Code)
+	require.Equal(t, false, auth.CheckAuthenticationWithoutProject(result, r))
+	require.Equal(t, 200, result.Code)
 }
 
 func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v4/user":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
 		default:
@@ -324,13 +323,13 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	assert.Equal(t, true, auth.CheckAuthenticationWithoutProject(result, r))
-	assert.Equal(t, 302, result.Code)
+	require.Equal(t, true, auth.CheckAuthenticationWithoutProject(result, r))
+	require.Equal(t, 302, result.Code)
 }
 
 func TestGenerateKeyPair(t *testing.T) {
 	signingSecret, encryptionSecret := generateKeyPair("something-very-secret")
-	assert.NotEqual(t, fmt.Sprint(signingSecret), fmt.Sprint(encryptionSecret))
-	assert.Equal(t, len(signingSecret), 32)
-	assert.Equal(t, len(encryptionSecret), 32)
+	require.NotEqual(t, fmt.Sprint(signingSecret), fmt.Sprint(encryptionSecret))
+	require.Equal(t, len(signingSecret), 32)
+	require.Equal(t, len(encryptionSecret), 32)
 }
