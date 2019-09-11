@@ -58,14 +58,14 @@ func testGroupServeHTTPHost(t *testing.T, host string) {
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/"), nil, "project2-main")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index"), nil, "project2-main")
 	assert.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index.html"), nil, "project2-main")
-	assert.HTTPRedirect(t, serve, "GET", makeURL("/private.project/"), nil)
+	assert.HTTPError(t, serve, "GET", makeURL("/private.project/"), nil)
 	assert.HTTPError(t, serve, "GET", makeURL("//about.gitlab.com/%2e%2e"), nil)
 	assert.HTTPError(t, serve, "GET", makeURL("/symlink"), nil)
 	assert.HTTPError(t, serve, "GET", makeURL("/symlink/index.html"), nil)
 	assert.HTTPError(t, serve, "GET", makeURL("/symlink/subdir/"), nil)
 	assert.HTTPError(t, serve, "GET", makeURL("/project/fifo"), nil)
 	assert.HTTPError(t, serve, "GET", makeURL("/not-existing-file"), nil)
-	assert.HTTPError(t, serve, "GET", makeURL("/project//about.gitlab.com/%2e%2e"), nil)
+	assert.HTTPRedirect(t, serve, "GET", makeURL("/project//about.gitlab.com/%2e%2e"), nil)
 }
 
 func TestGroupServeHTTP(t *testing.T) {

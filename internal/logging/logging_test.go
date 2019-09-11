@@ -48,7 +48,7 @@ func TestGetExtraLogFields(t *testing.T) {
 			got := getExtraLogFields(req)
 			require.Equal(t, got["pages_https"], tt.https)
 			require.Equal(t, got["pages_host"], tt.host)
-			require.Equal(t, got["pages_project_id"], 0)
+			require.Equal(t, got["pages_project_id"], uint64(0x0))
 		})
 	}
 }

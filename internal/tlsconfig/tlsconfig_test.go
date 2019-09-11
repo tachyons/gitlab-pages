@@ -66,6 +66,6 @@ func TestCreate(t *testing.T) {
 	require.IsType(t, getCertificate, tlsConfig.GetCertificate)
 	require.True(t, tlsConfig.PreferServerCipherSuites)
 	require.Equal(t, preferredCipherSuites, tlsConfig.CipherSuites)
-	require.Equal(t, tls.VersionTLS11, tlsConfig.MinVersion)
-	require.Equal(t, tls.VersionTLS12, tlsConfig.MaxVersion)
+	require.Equal(t, uint16(tls.VersionTLS11), tlsConfig.MinVersion)
+	require.Equal(t, uint16(tls.VersionTLS12), tlsConfig.MaxVersion)
 }

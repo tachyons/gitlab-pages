@@ -1,7 +1,17 @@
 include:
   template: Security/License-Management.gitlab-ci.yml
 
-.test: &test
+.go-mod-cache:
+  variables:
+    GOPATH: $CI_PROJECT_DIR/.GOPATH
+  before_script:
+    - mkdir -p .GOPATH
+  cache:
+    paths:
+      - .GOPATH/pkg/mod/
+
+.tests:
+  extends: .go-mod-cache
   script:
   - echo "Running all tests without daemonizing..."
   - make test
@@ -15,9 +25,10 @@ include:
 
 license_management:
   variables:
-    SETUP_CMD: echo "Skip setup. Dependency already vendored"
+    LICENSE_MANAGEMENT_SETUP_CMD: go mod vendor
 
 verify:
+  extends: .go-mod-cache
   image: golang:1.11
   script:
     - make setup
@@ -28,13 +39,13 @@ verify:
       - coverage.html
 
 test:1.11:
+  extends: .tests
   image: golang:1.11
-  <<: *test
 
 test:1.12:
+  extends: .tests
   image: golang:1.12
-  <<: *test
 
 test:1.13:
+  extends: .tests
   image: golang:1.13
-  <<: *test
