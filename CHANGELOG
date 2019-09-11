@@ -27,7 +27,7 @@ v 1.7.0
 
 v 1.6.3
 
-- Fix https to http donwgrade for auth process
+- Fix https to http downgrade for auth process
 - Limit auth cookie max-age to 10 minutes
 - Use secure cookies for auth session
 
