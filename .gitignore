@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 shared/pages/.update
 /gitlab-pages
+/vendor
 
 admin.socket
 

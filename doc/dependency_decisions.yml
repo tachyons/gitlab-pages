@@ -75,3 +75,17 @@
     :why: 
     :versions: []
     :when: 2019-07-10 17:01:35.894437233 Z
+- - :license
+  - github.com/go-logfmt/logfmt
+  - MIT
+  - :who:
+    :why:
+    :versions: []
+    :when: 2019-09-10 14:57:15.905705202 Z
+- - :license
+  - github.com/pmezard/go-difflib
+  - BSD-3-Clause
+  - :who:
+    :why:
+    :versions: []
+    :when: 2019-09-10 14:59:14.300178506 Z
