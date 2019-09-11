@@ -29,7 +29,7 @@ func TestTimestampedJails(t *testing.T) {
 	j1 := jail.CreateTimestamped(prefix, mode)
 	j2 := jail.CreateTimestamped(prefix, mode)
 
-	assert.NotEqual(j1.Path, j2.Path())
+	assert.NotEqual(j1.Path(), j2.Path())
 }
 
 func TestJailPath(t *testing.T) {
