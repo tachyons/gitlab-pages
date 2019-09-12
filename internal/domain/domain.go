@@ -45,8 +45,8 @@ type project struct {
 	ID               uint64
 }
 
-// D is a domain that gitlab-pages can serve.
-type D struct {
+// Domain is a domain that gitlab-pages can serve.
+type Domain struct {
 	group
 
 	// custom domains:
@@ -59,7 +59,7 @@ type D struct {
 }
 
 // String implements Stringer.
-func (d *D) String() string {
+func (d *Domain) String() string {
 	if d.group.name != "" && d.projectName != "" {
 		return d.group.name + "/" + d.projectName
 	}
@@ -108,7 +108,7 @@ func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string 
 
 // Look up a project inside the domain based on the host and path. Returns the
 // project and its name (if applicable)
-func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
+func (d *Domain) getProjectWithSubpath(r *http.Request) (*project, string, string) {
 	// Check for a project specified in the URL: http://group.gitlab.io/projectA
 	// If present, these projects shadow the group domain.
 	split := strings.SplitN(r.URL.Path, "/", maxProjectDepth)
@@ -132,7 +132,7 @@ func (d *D) getProjectWithSubpath(r *http.Request) (*project, string, string) {
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
-func (d *D) IsHTTPSOnly(r *http.Request) bool {
+func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
 	if d == nil {
 		return false
 	}
@@ -151,7 +151,7 @@ func (d *D) IsHTTPSOnly(r *http.Request) bool {
 }
 
 // IsAccessControlEnabled figures out if the request is to a project that has access control enabled
-func (d *D) IsAccessControlEnabled(r *http.Request) bool {
+func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 	if d == nil {
 		return false
 	}
@@ -170,7 +170,7 @@ func (d *D) IsAccessControlEnabled(r *http.Request) bool {
 }
 
 // HasAcmeChallenge checks domain directory contains particular acme challenge
-func (d *D) HasAcmeChallenge(token string) bool {
+func (d *Domain) HasAcmeChallenge(token string) bool {
 	if d == nil {
 		return false
 	}
@@ -196,7 +196,7 @@ func (d *D) HasAcmeChallenge(token string) bool {
 }
 
 // IsNamespaceProject figures out if the request is to a namespace project
-func (d *D) IsNamespaceProject(r *http.Request) bool {
+func (d *Domain) IsNamespaceProject(r *http.Request) bool {
 	if d == nil {
 		return false
 	}
@@ -216,7 +216,7 @@ func (d *D) IsNamespaceProject(r *http.Request) bool {
 }
 
 // GetID figures out what is the ID of the project user tries to access
-func (d *D) GetID(r *http.Request) uint64 {
+func (d *Domain) GetID(r *http.Request) uint64 {
 	if d == nil {
 		return 0
 	}
@@ -233,7 +233,7 @@ func (d *D) GetID(r *http.Request) uint64 {
 }
 
 // HasProject figures out if the project exists that the user tries to access
-func (d *D) HasProject(r *http.Request) bool {
+func (d *Domain) HasProject(r *http.Request) bool {
 	if d == nil {
 		return false
 	}
@@ -252,7 +252,7 @@ func (d *D) HasProject(r *http.Request) bool {
 // Detect file's content-type either by extension or mime-sniffing.
 // Implementation is adapted from Golang's `http.serveContent()`
 // See https://github.com/golang/go/blob/902fc114272978a40d2e65c2510a18e870077559/src/net/http/fs.go#L194
-func (d *D) detectContentType(path string) (string, error) {
+func (d *Domain) detectContentType(path string) (string, error) {
 	contentType := mime.TypeByExtension(filepath.Ext(path))
 
 	if contentType == "" {
@@ -274,7 +274,7 @@ func (d *D) detectContentType(path string) (string, error) {
 	return contentType, nil
 }
 
-func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
+func (d *Domain) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
 	fullPath := handleGZip(w, r, origPath)
 
 	file, err := openNoFollow(fullPath)
@@ -306,7 +306,7 @@ func (d *D) serveFile(w http.ResponseWriter, r *http.Request, origPath string) e
 	return nil
 }
 
-func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, origPath string) error {
+func (d *Domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, origPath string) error {
 	fullPath := handleGZip(w, r, origPath)
 
 	// Open and serve content of file
@@ -340,7 +340,7 @@ func (d *D) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, or
 
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
+func (d *Domain) resolvePath(projectName string, subPath ...string) (string, error) {
 	publicPath := filepath.Join(d.group.name, projectName, "public")
 
 	// Don't use filepath.Join as cleans the path,
@@ -385,7 +385,7 @@ func (d *D) resolvePath(projectName string, subPath ...string) (string, error) {
 	return fullPath, nil
 }
 
-func (d *D) tryNotFound(w http.ResponseWriter, r *http.Request, projectName string) error {
+func (d *Domain) tryNotFound(w http.ResponseWriter, r *http.Request, projectName string) error {
 	page404, err := d.resolvePath(projectName, "404.html")
 	if err != nil {
 		return err
@@ -398,7 +398,7 @@ func (d *D) tryNotFound(w http.ResponseWriter, r *http.Request, projectName stri
 	return nil
 }
 
-func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, subPath ...string) error {
+func (d *Domain) tryFile(w http.ResponseWriter, r *http.Request, projectName string, subPath ...string) error {
 	fullPath, err := d.resolvePath(projectName, subPath...)
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
@@ -427,7 +427,7 @@ func (d *D) tryFile(w http.ResponseWriter, r *http.Request, projectName string, 
 	return d.serveFile(w, r, fullPath)
 }
 
-func (d *D) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool {
+func (d *Domain) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool {
 	project, projectName, subPath := d.getProjectWithSubpath(r)
 	if project == nil {
 		httperrors.Serve404(w)
@@ -441,7 +441,7 @@ func (d *D) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
-func (d *D) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
+func (d *Domain) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
 	project, projectName, _ := d.getProjectWithSubpath(r)
 	if project == nil {
 		httperrors.Serve404(w)
@@ -457,7 +457,7 @@ func (d *D) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
 	httperrors.Serve404(w)
 }
 
-func (d *D) serveFileFromConfig(w http.ResponseWriter, r *http.Request) bool {
+func (d *Domain) serveFileFromConfig(w http.ResponseWriter, r *http.Request) bool {
 	// Try to serve file for http://host/... => /group/project/...
 	if d.tryFile(w, r, d.projectName, r.URL.Path) == nil {
 		return true
@@ -466,7 +466,7 @@ func (d *D) serveFileFromConfig(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
-func (d *D) serveNotFoundFromConfig(w http.ResponseWriter, r *http.Request) {
+func (d *Domain) serveNotFoundFromConfig(w http.ResponseWriter, r *http.Request) {
 	// Try serving not found page for http://host/ => /group/project/404.html
 	if d.tryNotFound(w, r, d.projectName) == nil {
 		return
@@ -477,7 +477,7 @@ func (d *D) serveNotFoundFromConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 // EnsureCertificate parses the PEM-encoded certificate for the domain
-func (d *D) EnsureCertificate() (*tls.Certificate, error) {
+func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 	if d.config == nil {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
@@ -494,7 +494,7 @@ func (d *D) EnsureCertificate() (*tls.Certificate, error) {
 }
 
 // ServeFileHTTP implements http.Handler. Returns true if something was served, false if not.
-func (d *D) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
+func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	if d == nil {
 		httperrors.Serve404(w)
 		return true
@@ -508,7 +508,7 @@ func (d *D) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 }
 
 // ServeNotFoundHTTP implements http.Handler. Serves the not found pages from the projects.
-func (d *D) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
+func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	if d == nil {
 		httperrors.Serve404(w)
 		return

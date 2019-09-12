@@ -59,7 +59,7 @@ func (a *theApp) isReady() bool {
 	return a.dm != nil
 }
 
-func (a *theApp) domain(host string) *domain.D {
+func (a *theApp) domain(host string) *domain.Domain {
 	host = strings.ToLower(host)
 	a.lock.RLock()
 	defer a.lock.RUnlock()
@@ -97,7 +97,7 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 	http.Redirect(w, r, u.String(), statusCode)
 }
 
-func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.D) {
+func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.Domain) {
 	host, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		host = r.Host
@@ -106,7 +106,7 @@ func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.
 	return host, a.domain(host)
 }
 
-func (a *theApp) checkAuthenticationIfNotExists(domain *domain.D, w http.ResponseWriter, r *http.Request) bool {
+func (a *theApp) checkAuthenticationIfNotExists(domain *domain.Domain, w http.ResponseWriter, r *http.Request) bool {
 	if domain == nil || !domain.HasProject(r) {
 
 		// Only if auth is supported
@@ -132,7 +132,7 @@ func (a *theApp) checkAuthenticationIfNotExists(domain *domain.D, w http.Respons
 	return false
 }
 
-func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.D) bool {
+func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
 	// short circuit content serving to check for a status page
 	if r.RequestURI == a.appConfig.StatusPath {
 		a.healthCheck(w, r, https)

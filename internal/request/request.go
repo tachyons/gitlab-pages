@@ -28,7 +28,7 @@ func IsHTTPS(r *http.Request) bool {
 }
 
 // WithHostAndDomain saves host name and domain in the request's context
-func WithHostAndDomain(r *http.Request, host string, domain *domain.D) *http.Request {
+func WithHostAndDomain(r *http.Request, host string, domain *domain.Domain) *http.Request {
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, ctxHostKey, host)
 	ctx = context.WithValue(ctx, ctxDomainKey, domain)
@@ -42,6 +42,6 @@ func GetHost(r *http.Request) string {
 }
 
 // GetDomain extracts the domain from request's context
-func GetDomain(r *http.Request) *domain.D {
-	return r.Context().Value(ctxDomainKey).(*domain.D)
+func GetDomain(r *http.Request) *domain.Domain {
+	return r.Context().Value(ctxDomainKey).(*domain.Domain)
 }

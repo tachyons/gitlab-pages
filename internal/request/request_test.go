@@ -42,17 +42,17 @@ func TestWithHostAndDomain(t *testing.T) {
 	tests := []struct {
 		name   string
 		host   string
-		domain *domain.D
+		domain *domain.Domain
 	}{
 		{
 			name:   "values",
 			host:   "gitlab.com",
-			domain: &domain.D{},
+			domain: &domain.Domain{},
 		},
 		{
 			name:   "no_host",
 			host:   "",
-			domain: &domain.D{},
+			domain: &domain.Domain{},
 		},
 	}
 	for _, tt := range tests {

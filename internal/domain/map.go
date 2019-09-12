@@ -16,11 +16,11 @@ import (
 )
 
 // Map maps domain names to D instances.
-type Map map[string]*D
+type Map map[string]*Domain
 
 type domainsUpdater func(Map)
 
-func (dm Map) updateDomainMap(domainName string, domain *D) {
+func (dm Map) updateDomainMap(domainName string, domain *Domain) {
 	if old, ok := dm[domainName]; ok {
 		log.WithFields(log.Fields{
 			"domain_name":      domainName,
@@ -35,7 +35,7 @@ func (dm Map) updateDomainMap(domainName string, domain *D) {
 }
 
 func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
-	newDomain := &D{
+	newDomain := &Domain{
 		group:       group{name: groupName},
 		projectName: projectName,
 		config:      config,
@@ -51,7 +51,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 	groupDomain := dm[domainName]
 
 	if groupDomain == nil {
-		groupDomain = &D{
+		groupDomain = &Domain{
 			group: group{
 				name:      groupName,
 				projects:  make(projects),

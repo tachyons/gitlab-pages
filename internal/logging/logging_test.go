@@ -15,19 +15,19 @@ func TestGetExtraLogFields(t *testing.T) {
 		name   string
 		https  bool
 		host   string
-		domain *domain.D
+		domain *domain.Domain
 	}{
 		{
 			name:   "https",
 			https:  true,
 			host:   "githost.io",
-			domain: &domain.D{},
+			domain: &domain.Domain{},
 		},
 		{
 			name:   "http",
 			https:  false,
 			host:   "githost.io",
-			domain: &domain.D{},
+			domain: &domain.Domain{},
 		},
 		{
 			name:   "no_domain",
