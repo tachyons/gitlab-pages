@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/namsral/flag"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,7 +74,7 @@ func TestUnknownHostReturnsNotFound(t *testing.T) {
 
 		require.NoError(t, err)
 		rsp.Body.Close()
-		assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
+		require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 	}
 }
 
@@ -87,7 +86,7 @@ func TestUnknownProjectReturnsNotFound(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
+	require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 }
 
 func TestGroupDomainReturns200(t *testing.T) {
@@ -98,7 +97,7 @@ func TestGroupDomainReturns200(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestKnownHostReturns200(t *testing.T) {
@@ -145,7 +144,7 @@ func TestKnownHostReturns200(t *testing.T) {
 
 				require.NoError(t, err)
 				rsp.Body.Close()
-				assert.Equal(t, http.StatusOK, rsp.StatusCode)
+				require.Equal(t, http.StatusOK, rsp.StatusCode)
 			}
 		})
 	}
@@ -205,9 +204,9 @@ func TestCORSWhenDisabled(t *testing.T) {
 		for _, method := range []string{"GET", "OPTIONS"} {
 			rsp := doCrossOriginRequest(t, method, method, spec.URL("project/"))
 
-			assert.Equal(t, http.StatusOK, rsp.StatusCode)
-			assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
-			assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
+			require.Equal(t, http.StatusOK, rsp.StatusCode)
+			require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
+			require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
 		}
 	}
 }
@@ -221,9 +220,9 @@ func TestCORSAllowsGET(t *testing.T) {
 		for _, method := range []string{"GET", "OPTIONS"} {
 			rsp := doCrossOriginRequest(t, method, method, spec.URL("project/"))
 
-			assert.Equal(t, http.StatusOK, rsp.StatusCode)
-			assert.Equal(t, "*", rsp.Header.Get("Access-Control-Allow-Origin"))
-			assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
+			require.Equal(t, http.StatusOK, rsp.StatusCode)
+			require.Equal(t, "*", rsp.Header.Get("Access-Control-Allow-Origin"))
+			require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
 		}
 	}
 }
@@ -236,9 +235,9 @@ func TestCORSForbidsPOST(t *testing.T) {
 	for _, spec := range listeners {
 		rsp := doCrossOriginRequest(t, "OPTIONS", "POST", spec.URL("project/"))
 
-		assert.Equal(t, http.StatusOK, rsp.StatusCode)
-		assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
-		assert.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
+		require.Equal(t, http.StatusOK, rsp.StatusCode)
+		require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
+		require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
 	}
 }
 
@@ -249,9 +248,9 @@ func TestCustomHeaders(t *testing.T) {
 	for _, spec := range listeners {
 		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com:", "project/")
 		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, rsp.StatusCode)
-		assert.Equal(t, "Testing1", rsp.Header.Get("X-Test1"))
-		assert.Equal(t, "Testing2", rsp.Header.Get("X-Test2"))
+		require.Equal(t, http.StatusOK, rsp.StatusCode)
+		require.Equal(t, "Testing1", rsp.Header.Get("X-Test1"))
+		require.Equal(t, "Testing2", rsp.Header.Get("X-Test2"))
 	}
 }
 
@@ -288,7 +287,7 @@ func TestKnownHostWithPortReturns200(t *testing.T) {
 
 		require.NoError(t, err)
 		rsp.Body.Close()
-		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+		require.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
 
 }
@@ -301,12 +300,12 @@ func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 
 	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestHttpToHttpsRedirectEnabled(t *testing.T) {
@@ -317,14 +316,14 @@ func TestHttpToHttpsRedirectEnabled(t *testing.T) {
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
-	assert.Equal(t, 1, len(rsp.Header["Location"]))
-	assert.Equal(t, "https://group.gitlab-example.com/project/", rsp.Header.Get("Location"))
+	require.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
+	require.Equal(t, 1, len(rsp.Header["Location"]))
+	require.Equal(t, "https://group.gitlab-example.com/project/", rsp.Header.Get("Location"))
 
 	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestHttpsOnlyGroupEnabled(t *testing.T) {
@@ -335,7 +334,7 @@ func TestHttpsOnlyGroupEnabled(t *testing.T) {
 	rsp, err := GetRedirectPage(t, httpListener, "group.https-only.gitlab-example.com", "project1/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
+	require.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
 }
 
 func TestHttpsOnlyGroupDisabled(t *testing.T) {
@@ -346,7 +345,7 @@ func TestHttpsOnlyGroupDisabled(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpListener, "group.https-only.gitlab-example.com", "project2/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestHttpsOnlyProjectEnabled(t *testing.T) {
@@ -357,7 +356,7 @@ func TestHttpsOnlyProjectEnabled(t *testing.T) {
 	rsp, err := GetRedirectPage(t, httpListener, "test.my-domain.com", "/index.html")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
+	require.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
 }
 
 func TestHttpsOnlyProjectDisabled(t *testing.T) {
@@ -368,7 +367,7 @@ func TestHttpsOnlyProjectDisabled(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpListener, "test2.my-domain.com", "/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestHttpsOnlyDomainDisabled(t *testing.T) {
@@ -379,7 +378,7 @@ func TestHttpsOnlyDomainDisabled(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpListener, "no.cert.com", "/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestPrometheusMetricsCanBeScraped(t *testing.T) {
@@ -389,14 +388,13 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	defer teardown()
 
 	resp, err := http.Get("http://localhost:42345/metrics")
+	require.NoError(t, err)
 
-	if assert.NoError(t, err) {
-		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
 
-		assert.Contains(t, string(body), "gitlab_pages_http_in_flight_requests 0")
-		assert.Contains(t, string(body), "gitlab_pages_served_domains 16")
-	}
+	require.Contains(t, string(body), "gitlab_pages_http_in_flight_requests 0")
+	require.Contains(t, string(body), "gitlab_pages_served_domains 16")
 }
 
 func TestStatusPage(t *testing.T) {
@@ -407,7 +405,7 @@ func TestStatusPage(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestStatusNotYetReady(t *testing.T) {
@@ -419,7 +417,7 @@ func TestStatusNotYetReady(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
+	require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
 }
 
 func TestPageNotAvailableIfNotLoaded(t *testing.T) {
@@ -431,7 +429,7 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "index.html")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
+	require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
 }
 
 func TestObscureMIMEType(t *testing.T) {
@@ -448,7 +446,7 @@ func TestObscureMIMEType(t *testing.T) {
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 	mt, _, err := mime.ParseMediaType(rsp.Header.Get("Content-Type"))
 	require.NoError(t, err)
-	assert.Equal(t, "application/manifest+json", mt)
+	require.Equal(t, "application/manifest+json", mt)
 }
 
 func TestArtifactProxyRequest(t *testing.T) {
@@ -584,15 +582,15 @@ func TestArtifactProxyRequest(t *testing.T) {
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			assert.Equal(t, c.Status, resp.StatusCode)
-			assert.Equal(t, c.ContentType, resp.Header.Get("Content-Type"))
+			require.Equal(t, c.Status, resp.StatusCode)
+			require.Equal(t, c.ContentType, resp.Header.Get("Content-Type"))
 
 			if !((c.Status == http.StatusBadGateway) || (c.Status == http.StatusNotFound) || (c.Status == http.StatusInternalServerError)) {
 				body, err := ioutil.ReadAll(resp.Body)
 				require.NoError(t, err)
-				assert.Equal(t, c.Content, string(body))
-				assert.Equal(t, c.Length, resp.ContentLength)
-				assert.Equal(t, c.CacheControl, resp.Header.Get("Cache-Control"))
+				require.Equal(t, c.Content, string(body))
+				require.Equal(t, c.Length, resp.ContentLength)
+				require.Equal(t, c.CacheControl, resp.Header.Get("Cache-Control"))
 			}
 		})
 	}
@@ -611,7 +609,7 @@ func TestEnvironmentVariablesConfig(t *testing.T) {
 
 	require.NoError(t, err)
 	rsp.Body.Close()
-	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestMixedConfigSources(t *testing.T) {
@@ -628,7 +626,7 @@ func TestMixedConfigSources(t *testing.T) {
 		require.NoError(t, err)
 		rsp.Body.Close()
 
-		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+		require.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
 }
 
@@ -649,7 +647,7 @@ func TestMultiFlagEnvironmentVariables(t *testing.T) {
 
 		require.NoError(t, err)
 		rsp.Body.Close()
-		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+		require.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
 }
 
@@ -669,7 +667,7 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 
 		require.NoError(t, err)
 		rsp.Body.Close()
-		assert.Equal(t, http.StatusOK, rsp.StatusCode)
+		require.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
 }
 
@@ -682,7 +680,7 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 
 	require.NoError(t, err)
 	rsp.Body.Close()
-	assert.Equal(t, http.StatusInternalServerError, rsp.StatusCode)
+	require.Equal(t, http.StatusInternalServerError, rsp.StatusCode)
 }
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
@@ -695,24 +693,24 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	require.NoError(t, err)
 	defer rsp.Body.Close()
 
-	assert.Equal(t, http.StatusFound, rsp.StatusCode)
-	assert.Equal(t, 1, len(rsp.Header["Location"]))
+	require.Equal(t, http.StatusFound, rsp.StatusCode)
+	require.Equal(t, 1, len(rsp.Header["Location"]))
 	url, err := url.Parse(rsp.Header.Get("Location"))
 	require.NoError(t, err)
 	rsp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
 
-	assert.Equal(t, http.StatusFound, rsp.StatusCode)
-	assert.Equal(t, 1, len(rsp.Header["Location"]))
+	require.Equal(t, http.StatusFound, rsp.StatusCode)
+	require.Equal(t, 1, len(rsp.Header["Location"]))
 
 	url, err = url.Parse(rsp.Header.Get("Location"))
 	require.NoError(t, err)
 
-	assert.Equal(t, "https", url.Scheme)
-	assert.Equal(t, "gitlab-auth.com", url.Host)
-	assert.Equal(t, "/oauth/authorize", url.Path)
-	assert.Equal(t, "1", url.Query().Get("client_id"))
-	assert.Equal(t, "https://projects.gitlab-example.com/auth", url.Query().Get("redirect_uri"))
-	assert.NotEqual(t, "", url.Query().Get("state"))
+	require.Equal(t, "https", url.Scheme)
+	require.Equal(t, "gitlab-auth.com", url.Host)
+	require.Equal(t, "/oauth/authorize", url.Path)
+	require.Equal(t, "1", url.Query().Get("client_id"))
+	require.Equal(t, "https://projects.gitlab-example.com/auth", url.Query().Get("redirect_uri"))
+	require.NotEqual(t, "", url.Query().Get("state"))
 }
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
@@ -725,7 +723,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	require.NoError(t, err)
 	defer rsp.Body.Close()
 
-	assert.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
+	require.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
 }
 func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	skipUnlessEnabled(t)
@@ -743,7 +741,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	require.NoError(t, err)
 	defer authrsp.Body.Close()
 
-	assert.Equal(t, http.StatusUnauthorized, authrsp.StatusCode)
+	require.Equal(t, http.StatusUnauthorized, authrsp.StatusCode)
 }
 
 func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
@@ -769,7 +767,7 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 	defer authrsp.Body.Close()
 
 	// Will cause 503 because token endpoint is not available
-	assert.Equal(t, http.StatusServiceUnavailable, authrsp.StatusCode)
+	require.Equal(t, http.StatusServiceUnavailable, authrsp.StatusCode)
 }
 
 // makeGitLabPagesAccessStub provides a stub *httptest.Server to check pages_access API call.
@@ -787,22 +785,22 @@ func makeGitLabPagesAccessStub(t *testing.T) *httptest.Server {
 	return httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/oauth/token":
-			assert.Equal(t, "POST", r.Method)
+			require.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
 		case "/api/v4/user":
-			assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
 			switch {
 			case allowedProjects.MatchString(r.URL.Path):
-				assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+				require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 				w.WriteHeader(http.StatusOK)
 			case deniedProjects.MatchString(r.URL.Path):
-				assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+				require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 				w.WriteHeader(http.StatusUnauthorized)
 			case invalidTokenProjects.MatchString(r.URL.Path):
-				assert.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+				require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 				w.WriteHeader(http.StatusUnauthorized)
 				fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
 			default:
@@ -900,7 +898,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	require.NoError(t, err)
 
 	state := url.Query().Get("state")
-	assert.Equal(t, url.Query().Get("domain"), "http://private.domain.com")
+	require.Equal(t, url.Query().Get("domain"), "http://private.domain.com")
 
 	pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
 	require.NoError(t, err)
@@ -919,9 +917,9 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	require.NoError(t, err)
 
 	// Will redirect to custom domain
-	assert.Equal(t, "private.domain.com", url.Host)
-	assert.Equal(t, "1", url.Query().Get("code"))
-	assert.Equal(t, state, url.Query().Get("state"))
+	require.Equal(t, "private.domain.com", url.Host)
+	require.Equal(t, "1", url.Query().Get("code"))
+	require.Equal(t, state, url.Query().Get("state"))
 
 	// Run auth callback in custom domain
 	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/auth?code=1&state="+
@@ -932,17 +930,17 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 
 	// Will redirect to the page
 	cookie = authrsp.Header.Get("Set-Cookie")
-	assert.Equal(t, http.StatusFound, authrsp.StatusCode)
+	require.Equal(t, http.StatusFound, authrsp.StatusCode)
 
 	url, err = url.Parse(authrsp.Header.Get("Location"))
 	require.NoError(t, err)
 
 	// Will redirect to custom domain
-	assert.Equal(t, "http://private.domain.com/", url.String())
+	require.Equal(t, "http://private.domain.com/", url.String())
 
 	// Fetch page in custom domain
 	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/", cookie)
-	assert.Equal(t, http.StatusOK, authrsp.StatusCode)
+	require.Equal(t, http.StatusOK, authrsp.StatusCode)
 }
 
 func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
@@ -1018,12 +1016,12 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusFound, rsp.StatusCode)
+	require.Equal(t, http.StatusFound, rsp.StatusCode)
 	// Redirects to the projects under gitlab pages domain for authentication flow
 	url, err := url.Parse(rsp.Header.Get("Location"))
 	require.NoError(t, err)
-	assert.Equal(t, "projects.gitlab-example.com", url.Host)
-	assert.Equal(t, "/auth", url.Path)
+	require.Equal(t, "projects.gitlab-example.com", url.Host)
+	require.Equal(t, "/auth", url.Path)
 }
 func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
 	skipUnlessEnabled(t)
@@ -1033,7 +1031,7 @@ func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/project/nonexistent/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
-	assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
+	require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 }
 
 func TestAccessControl(t *testing.T) {
@@ -1146,14 +1144,14 @@ func TestAccessControl(t *testing.T) {
 			require.NoError(t, err)
 			defer rsp.Body.Close()
 
-			assert.Equal(t, http.StatusFound, rsp.StatusCode)
+			require.Equal(t, http.StatusFound, rsp.StatusCode)
 			cookie := rsp.Header.Get("Set-Cookie")
 
 			// Redirects to the projects under gitlab pages domain for authentication flow
 			url, err := url.Parse(rsp.Header.Get("Location"))
 			require.NoError(t, err)
-			assert.Equal(t, "projects.gitlab-example.com", url.Host)
-			assert.Equal(t, "/auth", url.Path)
+			require.Equal(t, "projects.gitlab-example.com", url.Host)
+			require.Equal(t, "/auth", url.Path)
 			state := url.Query().Get("state")
 
 			rsp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
@@ -1161,7 +1159,7 @@ func TestAccessControl(t *testing.T) {
 			require.NoError(t, err)
 			defer rsp.Body.Close()
 
-			assert.Equal(t, http.StatusFound, rsp.StatusCode)
+			require.Equal(t, http.StatusFound, rsp.StatusCode)
 			pagesDomainCookie := rsp.Header.Get("Set-Cookie")
 
 			// Go to auth page with correct state will cause fetching the token
@@ -1174,30 +1172,30 @@ func TestAccessControl(t *testing.T) {
 			// Will redirect auth callback to correct host
 			url, err = url.Parse(authrsp.Header.Get("Location"))
 			require.NoError(t, err)
-			assert.Equal(t, c.Host, url.Host)
-			assert.Equal(t, "/auth", url.Path)
+			require.Equal(t, c.Host, url.Host)
+			require.Equal(t, "/auth", url.Path)
 
 			// Request auth callback in project domain
 			authrsp, err = GetRedirectPageWithCookie(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery, cookie)
 
 			// server returns the ticket, user will be redirected to the project page
-			assert.Equal(t, http.StatusFound, authrsp.StatusCode)
+			require.Equal(t, http.StatusFound, authrsp.StatusCode)
 			cookie = authrsp.Header.Get("Set-Cookie")
 			rsp, err = GetRedirectPageWithCookie(t, httpsListener, c.Host, c.Path, cookie)
 
 			require.NoError(t, err)
 			defer rsp.Body.Close()
 
-			assert.Equal(t, c.Status, rsp.StatusCode)
-			assert.Equal(t, "", rsp.Header.Get("Cache-Control"))
+			require.Equal(t, c.Status, rsp.StatusCode)
+			require.Equal(t, "", rsp.Header.Get("Cache-Control"))
 
 			if c.RedirectBack {
 				url, err = url.Parse(rsp.Header.Get("Location"))
 				require.NoError(t, err)
 
-				assert.Equal(t, "https", url.Scheme)
-				assert.Equal(t, c.Host, url.Host)
-				assert.Equal(t, c.Path, url.Path)
+				require.Equal(t, "https", url.Scheme)
+				require.Equal(t, c.Host, url.Host)
+				require.Equal(t, c.Path, url.Path)
 			}
 		})
 	}

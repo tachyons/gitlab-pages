@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/jail"
@@ -21,7 +20,7 @@ func tmpJailPath() string {
 }
 
 func TestTimestampedJails(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	prefix := "jail"
 	var mode os.FileMode = 0755
@@ -29,33 +28,33 @@ func TestTimestampedJails(t *testing.T) {
 	j1 := jail.CreateTimestamped(prefix, mode)
 	j2 := jail.CreateTimestamped(prefix, mode)
 
-	assert.NotEqual(j1.Path(), j2.Path())
+	require.NotEqual(j1.Path(), j2.Path())
 }
 
 func TestJailPath(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	jailPath := tmpJailPath()
 	cage := jail.Create(jailPath, 0755)
 
-	assert.Equal(jailPath, cage.Path())
+	require.Equal(jailPath, cage.Path())
 }
 
 func TestJailBuild(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	jailPath := tmpJailPath()
 	cage := jail.Create(jailPath, 0755)
 
 	_, err := os.Stat(cage.Path())
-	assert.Error(err, "Jail path should not exist before Jail.Build()")
+	require.Error(err, "Jail path should not exist before Jail.Build()")
 
 	err = cage.Build()
-	require.NoError(t, err)
+	require.NoError(err)
 	defer cage.Dispose()
 
 	_, err = os.Stat(cage.Path())
-	require.NoError(t, err, "Jail path should exist after Jail.Build()")
+	require.NoError(err, "Jail path should exist after Jail.Build()")
 }
 
 func TestJailOnlySupportsOneBindMount(t *testing.T) {
@@ -86,32 +85,32 @@ func TestJailBuildCleansUpWhenMountFails(t *testing.T) {
 }
 
 func TestJailDispose(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	jailPath := tmpJailPath()
 	cage := jail.Create(jailPath, 0755)
 
 	err := cage.Build()
-	require.NoError(t, err)
+	require.NoError(err)
 
 	err = cage.Dispose()
-	require.NoError(t, err)
+	require.NoError(err)
 
 	_, err = os.Stat(cage.Path())
-	assert.Error(err, "Jail path should not exist after Jail.Dispose()")
+	require.Error(err, "Jail path should not exist after Jail.Dispose()")
 }
 
 func TestJailDisposeDoNotFailOnMissingPath(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	jailPath := tmpJailPath()
 	cage := jail.Create(jailPath, 0755)
 
 	_, err := os.Stat(cage.Path())
-	assert.Error(err, "Jail path should not exist")
+	require.Error(err, "Jail path should not exist")
 
 	err = cage.Dispose()
-	require.NoError(t, err)
+	require.NoError(err)
 }
 
 func TestJailWithCharacterDevice(t *testing.T) {
@@ -143,11 +142,11 @@ func TestJailWithCharacterDevice(t *testing.T) {
 	require.NoError(t, err)
 
 	isCharDev := fi.Mode()&os.ModeCharDevice == os.ModeCharDevice
-	assert.True(t, isCharDev, "Created file was not a character device")
+	require.True(t, isCharDev, "Created file was not a character device")
 
 	sys, ok = fi.Sys().(*syscall.Stat_t)
 	require.True(t, ok, "Couldn't determine rdev of created character device")
-	assert.Equal(t, expectedRdev, sys.Rdev, "Incorrect rdev for /dev/urandom")
+	require.Equal(t, expectedRdev, sys.Rdev, "Incorrect rdev for /dev/urandom")
 }
 
 func TestJailWithFiles(t *testing.T) {
@@ -180,7 +179,7 @@ func TestJailWithFiles(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
+			require := require.New(t)
 
 			cage := jail.CreateTimestamped("jail-mkdir", 0755)
 			for _, dir := range test.directories {
@@ -196,18 +195,18 @@ func TestJailWithFiles(t *testing.T) {
 			defer cage.Dispose()
 
 			if test.error {
-				assert.Error(err)
+				require.Error(err)
 			} else {
-				require.NoError(t, err)
+				require.NoError(err)
 
 				for _, dir := range test.directories {
 					_, err := os.Stat(path.Join(cage.Path(), dir))
-					require.NoError(t, err, "jailed dir should exist")
+					require.NoError(err, "jailed dir should exist")
 				}
 
 				for _, file := range test.files {
 					_, err := os.Stat(path.Join(cage.Path(), file))
-					require.NoError(t, err, "Jailed file should exist")
+					require.NoError(err, "Jailed file should exist")
 				}
 			}
 		})
@@ -215,7 +214,7 @@ func TestJailWithFiles(t *testing.T) {
 }
 
 func TestJailCopyTo(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	content := "hello"
 
@@ -232,24 +231,24 @@ func TestJailCopyTo(t *testing.T) {
 	jailedFilePath := cage.ExternalPath(path.Base(filePath))
 
 	err = cage.CopyTo(path.Base(filePath), filePath)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	err = cage.Build()
 	defer cage.Dispose()
-	require.NoError(t, err)
+	require.NoError(err)
 
 	jailedFI, err := os.Stat(jailedFilePath)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	fi, err := os.Stat(filePath)
-	require.NoError(t, err)
+	require.NoError(err)
 
-	assert.Equal(fi.Mode(), jailedFI.Mode(), "jailed file should preserve file mode")
-	assert.Equal(fi.Size(), jailedFI.Size(), "jailed file should have same size of original file")
+	require.Equal(fi.Mode(), jailedFI.Mode(), "jailed file should preserve file mode")
+	require.Equal(fi.Size(), jailedFI.Size(), "jailed file should have same size of original file")
 
 	jailedContent, err := ioutil.ReadFile(jailedFilePath)
-	require.NoError(t, err)
-	assert.Equal(content, string(jailedContent), "jailed file should preserve file content")
+	require.NoError(err)
+	require.Equal(content, string(jailedContent), "jailed file should preserve file content")
 }
 
 func TestJailLazyUnbind(t *testing.T) {
@@ -257,15 +256,15 @@ func TestJailLazyUnbind(t *testing.T) {
 		t.Skip("chroot binding requires linux and root permissions")
 	}
 
-	assert := assert.New(t)
+	require := require.New(t)
 
 	toBind, err := ioutil.TempDir("", "to-bind")
-	require.NoError(t, err)
+	require.NoError(err)
 	defer os.RemoveAll(toBind)
 
 	tmpFilePath := path.Join(toBind, "a-file")
 	tmpFile, err := os.OpenFile(tmpFilePath, os.O_CREATE, 0644)
-	require.NoError(t, err)
+	require.NoError(err)
 	tmpFile.Close()
 
 	jailPath := tmpJailPath()
@@ -275,28 +274,28 @@ func TestJailLazyUnbind(t *testing.T) {
 	cage.Bind("/my-bind", toBind)
 
 	err = cage.Build()
-	require.NoError(t, err, "jail build failed")
+	require.NoError(err, "jail build failed")
 
 	bindedTmpFilePath := cage.ExternalPath("/my-bind/a-file")
 	f, err := os.Open(bindedTmpFilePath)
-	require.NoError(t, err, "temporary file not binded")
-	require.NotNil(t, f)
+	require.NoError(err, "temporary file not binded")
+	require.NotNil(f)
 
 	err = cage.LazyUnbind()
-	require.NoError(t, err, "lazy unbind failed")
+	require.NoError(err, "lazy unbind failed")
 
 	f.Close()
 	_, err = os.Stat(bindedTmpFilePath)
-	assert.Error(err, "lazy unbind should remove mount-point after file close")
+	require.Error(err, "lazy unbind should remove mount-point after file close")
 
 	err = cage.Dispose()
-	require.NoError(t, err, "dispose failed")
+	require.NoError(err, "dispose failed")
 
 	_, err = os.Stat(cage.Path())
-	assert.Error(err, "Jail path should not exist after Jail.Dispose()")
+	require.Error(err, "Jail path should not exist after Jail.Dispose()")
 
 	_, err = os.Stat(tmpFilePath)
-	require.NoError(t, err, "disposing a jail should not delete files under binded directories")
+	require.NoError(err, "disposing a jail should not delete files under binded directories")
 }
 
 func TestJailIntoOnlyCleansSubpaths(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
@@ -83,12 +82,12 @@ func TestTryMakeRequest(t *testing.T) {
 			r := &http.Request{URL: reqURL}
 			art := artifact.New(testServer.URL, 1, "gitlab-example.io")
 
-			assert.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r))
-			assert.Equal(t, c.Status, result.Code)
-			assert.Equal(t, c.ContentType, result.Header().Get("Content-Type"))
-			assert.Equal(t, c.Length, result.Header().Get("Content-Length"))
-			assert.Equal(t, c.CacheControl, result.Header().Get("Cache-Control"))
-			assert.Equal(t, c.Content, string(result.Body.Bytes()))
+			require.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r))
+			require.Equal(t, c.Status, result.Code)
+			require.Equal(t, c.ContentType, result.Header().Get("Content-Type"))
+			require.Equal(t, c.Length, result.Header().Get("Content-Length"))
+			require.Equal(t, c.CacheControl, result.Header().Get("Cache-Control"))
+			require.Equal(t, c.Content, string(result.Body.Bytes()))
 
 		})
 	}
@@ -242,9 +241,9 @@ func TestBuildURL(t *testing.T) {
 				msg = msg + u.String()
 			}
 
-			assertOk := assert.Equal(t, c.Ok, ok, msg)
-			if assertOk && c.Ok {
-				assert.Equal(t, c.Expected, u.String(), c.Description)
+			require.Equal(t, c.Ok, ok, msg)
+			if c.Ok {
+				require.Equal(t, c.Expected, u.String(), c.Description)
 			}
 		})
 	}

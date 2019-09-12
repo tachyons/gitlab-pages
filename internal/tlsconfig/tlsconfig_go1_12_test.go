@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,9 +29,9 @@ func TestEnableTLS13(t *testing.T) {
 			require.NoError(t, err)
 
 			if tc.enableTLS13 {
-				assert.Regexp(t, "tls13=1", os.Getenv("GODEBUG"))
+				require.Regexp(t, "tls13=1", os.Getenv("GODEBUG"))
 			} else {
-				assert.NotRegexp(t, "tls13=1", godebug)
+				require.NotRegexp(t, "tls13=1", godebug)
 			}
 		})
 

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/karrick/godirwalk"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,19 +60,19 @@ func TestReadProjects(t *testing.T) {
 	}
 
 	for _, expected := range domains {
-		assert.Contains(t, domains, expected)
+		require.Contains(t, domains, expected)
 	}
 
 	for _, actual := range domains {
-		assert.Contains(t, expectedDomains, actual)
+		require.Contains(t, expectedDomains, actual)
 	}
 
 	// Check that multiple domains in the same project are recorded faithfully
 	exp1 := &domainConfig{Domain: "test.domain.com"}
-	assert.Equal(t, exp1, dm["test.domain.com"].config)
+	require.Equal(t, exp1, dm["test.domain.com"].config)
 
 	exp2 := &domainConfig{Domain: "other.domain.com", Certificate: "test", Key: "key"}
-	assert.Equal(t, exp2, dm["other.domain.com"].config)
+	require.Equal(t, exp2, dm["other.domain.com"].config)
 
 	// check subgroups
 	domain, ok := dm["group.test.io"]
@@ -105,7 +104,7 @@ func TestReadProjectsMaxDepth(t *testing.T) {
 	}
 
 	for _, expected := range domains {
-		assert.Contains(t, domains, expected)
+		require.Contains(t, domains, expected)
 	}
 
 	for _, actual := range domains {
@@ -113,7 +112,7 @@ func TestReadProjectsMaxDepth(t *testing.T) {
 		if !strings.HasSuffix(actual, defaultDomain) {
 			continue
 		}
-		assert.Contains(t, expectedDomains, actual)
+		require.Contains(t, expectedDomains, actual)
 	}
 
 	// check subgroups
@@ -165,15 +164,15 @@ func TestWatch(t *testing.T) {
 	defer os.Remove(updateFile)
 
 	domains := recvTimeout(t, update)
-	assert.NotNil(t, domains, "if the domains are fetched on start")
+	require.NotNil(t, domains, "if the domains are fetched on start")
 
 	writeRandomTimestamp(t)
 	domains = recvTimeout(t, update)
-	assert.NotNil(t, domains, "if the domains are updated after the creation")
+	require.NotNil(t, domains, "if the domains are updated after the creation")
 
 	writeRandomTimestamp(t)
 	domains = recvTimeout(t, update)
-	assert.NotNil(t, domains, "if the domains are updated after the timestamp change")
+	require.NotNil(t, domains, "if the domains are updated after the timestamp change")
 }
 
 func recvTimeout(t *testing.T, ch <-chan Map) Map {

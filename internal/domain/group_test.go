@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGroupDig(t *testing.T) {
@@ -89,9 +89,9 @@ func TestGroupDig(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			project, projectPath, urlPath := test.g.digProjectWithSubpath("", strings.Split(test.path, "/"))
 
-			assert.Equal(t, test.expectedProject, project)
-			assert.Equal(t, test.expectedProjectPath, projectPath)
-			assert.Equal(t, test.expectedPath, urlPath)
+			require.Equal(t, test.expectedProject, project)
+			require.Equal(t, test.expectedProjectPath, projectPath)
+			require.Equal(t, test.expectedPath, urlPath)
 		})
 	}
 }
