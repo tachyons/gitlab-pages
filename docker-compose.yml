@@ -1,14 +1,14 @@
 version: "3"
 services:
   omnibus:
-    image: gitlab/gitlab-${GITLAB_EDITION}:nightly
+    image: ${GITLAB_OMNIBUS_IMAGE}
     ports:
       - "${NGINX_HOST_PORT}:80"
     volumes:
     - ./dev/omnibus-config/gitlab.rb:/etc/gitlab/gitlab.rb
     - db-upgrade:/tmp/db-upgrade
   migrations:
-    image: registry.gitlab.com/gitlab-org/build/cng/gitlab-rails-${GITLAB_EDITION}:latest
+    image: ${GITLAB_RAILS_IMAGE}
     environment:
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
@@ -21,7 +21,7 @@ services:
       - ./dev/shell-secret:/var/opt/gitlab/config/secrets
       - db-upgrade:/var/opt/gitlab/.upgrade-status
   unicorn:
-    image: registry.gitlab.com/gitlab-org/build/cng/gitlab-unicorn-${GITLAB_EDITION}:latest
+    image: ${GITLAB_UNICORN_IMAGE}
     environment:
       - "GITLAB_HOST=localhost"
       - "GITLAB_PORT=${NGINX_HOST_PORT}"
@@ -40,7 +40,7 @@ services:
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/srv/gitlab/.gitlab_workhorse_secret
       - uploads:/srv/gitlab/public/uploads
   workhorse:
-    image: registry.gitlab.com/gitlab-org/build/cng/gitlab-workhorse-${GITLAB_EDITION}:latest
+    image: ${GITLAB_WORKHORSE_IMAGE}
     environment:
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
@@ -55,7 +55,7 @@ services:
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/etc/gitlab/gitlab-workhorse/secret
       - uploads:/srv/gitlab/public/uploads
   sidekiq:
-    image: registry.gitlab.com/gitlab-org/build/cng/gitlab-sidekiq-${GITLAB_EDITION}:latest
+    image: ${GITLAB_SIDEKIQ_IMAGE}
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
       - omnibus
@@ -68,7 +68,7 @@ services:
     volumes:
       - ./dev/sidekiq-config:/var/opt/gitlab/config/templates
   shell:
-    image: registry.gitlab.com/gitlab-org/build/cng/gitlab-shell:latest
+    image: ${GITLAB_SHELL_IMAGE}
     environment:
       - "CONFIG_TEMPLATE_DIRECTORY=/srv/gitlab-config"
       - "CONFIG_DIRECTORY=/srv/gitlab-shell"
@@ -78,7 +78,7 @@ services:
       - ./dev/shell-config:/srv/gitlab-config
       - ./dev/shell-secret:/srv/gitlab-secrets
   gitaly:
-    image: registry.gitlab.com/gitlab-org/build/cng/gitaly:latest
+    image: ${GITLAB_GITALY_IMAGE}
     ports:
       - "${GITALY_HOST_PORT}:8075"
     volumes:
