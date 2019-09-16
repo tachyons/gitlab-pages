@@ -238,7 +238,9 @@ do
       shift
       ;;
     *)
-      shift
+      usage
+      echo "Unexpected parameter: $key"
+      exit 1
       ;;
   esac
 done
