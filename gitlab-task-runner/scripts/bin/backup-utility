@@ -25,6 +25,7 @@ function usage()
      -f URL                                 http(s):/ftp:/file: URL with backup location. Use with --restore.
      -t TIMESTAMP                           Timestamp (part before '_gitlab_backup.tar' in archive name),
                                             can be used to specify backup source or target name.
+     --rsyncable                            Pass the '--rsyncable' parameter to gzip for artifact compression.
      --skip COMPONENT                       When specified, utility will skip the backup of COMPONENT.
                                             May be defined multiple times. Valid values for COMPONENT are
                                             db, repositories, and any of the object storages (e.g. 'lfs').
@@ -230,6 +231,10 @@ do
       ;;
     --restore)
       ACTION="restore"
+      shift
+      ;;
+    --rsyncable)
+      export GZIP_RSYNCABLE="yes"
       shift
       ;;
     --skip)

@@ -48,8 +48,10 @@ class ObjectStorageBackup
       return
     end
 
+    # build gzip command used for tar compression
+    gzip_cmd = 'gzip' + (ENV['GZIP_RSYNCABLE'] == 'yes' ? ' --rsyncable' : '')
 
-    cmd = %W(tar -czf #{@local_tar_path} -C /srv/gitlab/tmp/#{@name} . )
+    cmd = %W(tar -cf #{@local_tar_path} -I #{gzip_cmd} -C /srv/gitlab/tmp/#{@name} . )
     output, status = run_cmd(cmd)
     failure_abort(output) unless status.zero?
 
