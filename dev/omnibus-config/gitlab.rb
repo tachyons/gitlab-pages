@@ -3,7 +3,7 @@ redis['enable'] = true
 unicorn['enable'] = false
 sidekiq['enable'] = false
 mailroom['enable'] = false
-gitlab_monitor['enable'] = false
+gitlab_exporter['enable'] = false
 
 # gitaly
 gitaly['enable'] = false
