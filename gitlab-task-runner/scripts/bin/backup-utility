@@ -16,16 +16,19 @@ function usage()
 {
   cat << HEREDOC
 
-   Usage: backup-utility [--restore] [-f URL] [--skip COMPONENT] [--backend BACKEND]
+   Usage: backup-utility [--restore] [-f URL] [-t TIMESTAMP] [--skip COMPONENT] [--backend BACKEND]
 
-   optional arguments:
-     -h, --help                             show this help message and exit
-     --restore [-t TIMESTAMP | -f URL]      when specified utility restores from an existing backup specified
-                                            as a url or a timestamp of an existing backup in object storage
-     --skip COMPONENT                       when specified utility will skip the backup of this object store.
-                                            May be defined multiple times. Valid values for OBJECT are
-                                            db, repositories, and any of the object storages.
-     --backend BACKEND                      select the object storage backend to use for backups.
+   Options:
+     -h, --help                             Show this help message and exit.
+     --restore [-t TIMESTAMP | -f URL]      When specified, utility restores from an existing backup specified
+                                            as url or timestamp in object storage.
+     -f URL                                 http(s):/ftp:/file: URL with backup location. Use with --restore.
+     -t TIMESTAMP                           Timestamp (part before '_gitlab_backup.tar' in archive name),
+                                            can be used to specify backup source or target name.
+     --skip COMPONENT                       When specified, utility will skip the backup of COMPONENT.
+                                            May be defined multiple times. Valid values for COMPONENT are
+                                            db, repositories, and any of the object storages (e.g. 'lfs').
+     --backend BACKEND                      Object storage backend to use for backups.
                                             Can be either 's3' or 'gcs'.
 HEREDOC
 }
