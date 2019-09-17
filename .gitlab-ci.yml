@@ -1,6 +1,12 @@
 include:
   template: Security/License-Management.gitlab-ci.yml
 
+image: golang:1.11
+
+stages:
+  - prepare
+  - test
+
 .go-mod-cache:
   variables:
     GOPATH: $CI_PROJECT_DIR/.GOPATH
@@ -12,6 +18,8 @@ include:
 
 .tests:
   extends: .go-mod-cache
+  stage: test
+  needs: ['download deps']
   script:
   - echo "Running all tests without daemonizing..."
   - make test
@@ -24,12 +32,24 @@ include:
       - bin/gitlab-pages
 
 license_management:
+  stage: prepare
   variables:
     LICENSE_MANAGEMENT_SETUP_CMD: go mod vendor
 
+download deps:
+  extends: .go-mod-cache
+  stage: prepare
+  script:
+    - make deps-download
+  artifacts:
+    paths:
+      - go.mod
+      - go.sum
+
 verify:
   extends: .go-mod-cache
-  image: golang:1.11
+  stage: test
+  needs: ['download deps']
   script:
     - make setup
     - make verify
@@ -49,3 +69,10 @@ test:1.12:
 test:1.13:
   extends: .tests
   image: golang:1.13
+
+check deps:
+  extends: .go-mod-cache
+  stage: test
+  needs: ['download deps']
+  script:
+    - make deps-check

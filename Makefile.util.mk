@@ -24,7 +24,7 @@ bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ $(allpackages)
 
 # The acceptance tests cannot count for coverage
-cover: bin/gocovmerge .GOPATH/.ok
+cover: bin/gocovmerge .GOPATH/.ok gitlab-pages
 	@echo "NOTE: make cover does not exit 1 on failure, don't use it to check for tests success!"
 	$Q rm -f .GOPATH/cover/*.out .GOPATH/cover/all.merged
 	$(if $V,@echo "-- go test -coverpkg=./... -coverprofile=.GOPATH/cover/... ./...")
@@ -44,3 +44,16 @@ cover: bin/gocovmerge .GOPATH/.ok
 
 list: .GOPATH/.ok
 	@echo $(allpackages)
+
+deps-check: .GOPATH/.ok
+	go mod tidy
+	@if git diff --color=always --exit-code -- go.mod go.sum; then \
+		echo "go.mod and go.sum are ok"; \
+	else \
+    echo ""; \
+		echo "go.mod and go.sum are modified, please commit them";\
+		exit 1; \
+  fi;
+
+deps-download: .GOPATH/.ok
+	go mod download
