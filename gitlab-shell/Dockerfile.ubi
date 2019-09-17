@@ -1,7 +1,10 @@
-ARG BUILD_IMAGE=gitlab-ubi-builder:latest
-ARG GO_IMAGE=gitlab-go:ubi
-ARG RUBY_IMAGE=gitlab-ruby:ubi
+ARG CI_REGISTRY_IMAGE=
+ARG GO_TAG=
+ARG RUBY_TAG=
 
+ARG GO_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG}
+ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_TAG}
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
 
 FROM ${GO_IMAGE} AS golang
 FROM ${RUBY_IMAGE} AS ruby

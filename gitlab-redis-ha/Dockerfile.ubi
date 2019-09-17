@@ -1,6 +1,9 @@
+ARG CI_REGISTRY_IMAGE=
+ARG KUBECTL_VERSION=
+
 ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
-ARG BUILD_IMAGE=gitlab-ubi-builder:latest
-ARG KUBECTL_IMAGE=kubectl:1.12.10-ubi
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+ARG KUBECTL_IMAGE=${CI_REGISTRY_IMAGE}/kubectl:${KUBECTL_VERSION}
 
 FROM ${KUBECTL_IMAGE} AS kubectl
 FROM ${BUILD_IMAGE} AS builder

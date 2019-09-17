@@ -1,5 +1,8 @@
-ARG RUBY_IMAGE=gitlab-ruby:ubi
-ARG BUILD_IMAGE=gitlab-ubi-builder:latest
+ARG CI_REGISTRY_IMAGE=
+ARG RUBY_TAG=
+
+ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_TAG}
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
 
 FROM ${BUILD_IMAGE} AS builder
 

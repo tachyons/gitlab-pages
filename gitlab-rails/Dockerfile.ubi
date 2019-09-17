@@ -1,10 +1,15 @@
+ARG CI_REGISTRY_IMAGE=
+ARG TAG=
+ARG PG_IMAGE=
+ARG GEI_IMAGE=
+ARG ASSETS_IMAGE=
+
 ARG GITLAB_VERSION=v12.0.2-ee
 ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
-ARG BUILD_IMAGE=gitlab-ubi-builder:latest
-ARG RUBY_IMAGE=gitlab-ruby:ubi
-ARG POSTGRESQL_IMAGE=postgresql:10.9-ubi
-ARG GESI_IMAGE=gitlab-elasticsearch-indexer:ubi
-ARG ASSETS_IMAGE=registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee:${GITLAB_VERSION}
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${TAG}
+ARG POSTGRESQL_IMAGE=${PG_IMAGE}
+ARG GESI_IMAGE=${GEI_IMAGE}
 
 FROM ${RUBY_IMAGE} AS ruby
 

@@ -1,5 +1,7 @@
+ARG CI_REGISTRY_IMAGE=
+
 ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
-ARG BUILD_IMAGE=gitlab-ubi-builder:latest
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
 
 FROM ${BUILD_IMAGE} AS builder
 
