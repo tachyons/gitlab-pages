@@ -110,3 +110,10 @@
     :why: https://github.com/modern-go/reflect2/blob/master/LICENSE
     :versions: []
     :when: 2019-09-11 12:58:33.840590099 Z
+- - :license
+  - github.com/wadey/gocovmerge
+  - BSD-2
+  - :who: 
+    :why: 
+    :versions: []
+    :when: 2019-09-17 14:53:25.294515000 Z
