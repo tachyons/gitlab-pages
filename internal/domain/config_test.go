@@ -13,6 +13,10 @@ const configFile = "test-group/test-project/config.json"
 const invalidConfig = `{"Domains":{}}`
 const validConfig = `{"Domains":[{"Domain":"test"}]}`
 
+// temporary type alias
+type domainsConfig = legacyDomainsConfig
+type domainConfig = Config
+
 func TestDomainConfigValidness(t *testing.T) {
 	d := domainConfig{}
 	require.False(t, d.Valid("gitlab.io"))

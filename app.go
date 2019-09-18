@@ -258,7 +258,6 @@ func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 			// because the projects override the paths of the namespace project and they might be private even though
 			// namespace project is public.
 			if domain.IsNamespaceProject(r) {
-
 				if a.Auth.CheckAuthenticationWithoutProject(w, r) {
 					return
 				}

@@ -12,6 +12,7 @@ import (
 	"github.com/karrick/godirwalk"
 	log "github.com/sirupsen/logrus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -25,20 +26,25 @@ func (dm Map) updateDomainMap(domainName string, domain *Domain) {
 		log.WithFields(log.Fields{
 			"domain_name":      domainName,
 			"new_group":        domain.group,
-			"new_project_name": domain.projectName,
+			"new_project_name": domain.project,
 			"old_group":        old.group,
-			"old_project_name": old.projectName,
+			"old_project_name": old.project,
 		}).Error("Duplicate domain")
 	}
 
 	dm[domainName] = domain
 }
 
-func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
+func (dm Map) addDomain(rootDomain, groupName, projectName string, config *Config) {
 	newDomain := &Domain{
-		group:       group{name: groupName},
-		projectName: projectName,
-		config:      config,
+		group:   group{name: groupName},
+		project: projectName,
+		config:  config,
+		source: &source.Disk{
+			Project:      projectName,
+			Group:        groupName,
+			CustomDomain: (config != nil),
+		},
 	}
 
 	var domainName string
@@ -89,7 +95,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 	dm[domainName] = groupDomain
 }
 
-func (dm Map) readProjectConfig(rootDomain string, group, projectName string, config *domainsConfig) {
+func (dm Map) readProjectConfig(rootDomain string, group, projectName string, config *legacyDomainsConfig) {
 	if config == nil {
 		// This is necessary to preserve the previous behaviour where a
 		// group domain is created even if no config.json files are
@@ -131,7 +137,7 @@ func readProject(group, parent, projectName string, level int, fanIn chan<- jobR
 
 	// We read the config.json file _before_ fanning in, because it does disk
 	// IO and it does not need access to the domains map.
-	config := &domainsConfig{}
+	config := &legacyDomainsConfig{}
 	if err := config.Read(group, projectPath); err != nil {
 		config = nil
 	}
@@ -163,7 +169,7 @@ func readProjects(group, parent string, level int, buf []byte, fanIn chan<- jobR
 type jobResult struct {
 	group   string
 	project string
-	config  *domainsConfig
+	config  *legacyDomainsConfig
 }
 
 // ReadGroups walks the pages directory and populates dm with all the domains it finds.

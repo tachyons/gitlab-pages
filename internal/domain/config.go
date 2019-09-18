@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type domainConfig struct {
+type Config struct {
 	Domain        string
 	Certificate   string
 	Key           string
@@ -16,14 +16,14 @@ type domainConfig struct {
 	AccessControl bool   `json:"access_control"`
 }
 
-type domainsConfig struct {
-	Domains       []domainConfig
+type legacyDomainsConfig struct {
+	Domains       []Config
 	HTTPSOnly     bool   `json:"https_only"`
 	ID            uint64 `json:"id"`
 	AccessControl bool   `json:"access_control"`
 }
 
-func (c *domainConfig) Valid(rootDomain string) bool {
+func (c *Config) Valid(rootDomain string) bool {
 	if c.Domain == "" {
 		return false
 	}
@@ -34,7 +34,7 @@ func (c *domainConfig) Valid(rootDomain string) bool {
 	return !strings.HasSuffix(domain, rootDomain)
 }
 
-func (c *domainsConfig) Read(group, project string) (err error) {
+func (c *legacyDomainsConfig) Read(group, project string) (err error) {
 	configFile, err := os.Open(filepath.Join(group, project, "config.json"))
 	if err != nil {
 		return err
