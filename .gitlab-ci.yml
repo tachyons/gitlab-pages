@@ -1,5 +1,6 @@
 include:
-  template: Security/License-Management.gitlab-ci.yml
+  - template: Security/License-Management.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
 
 image: golang:1.11
 
