@@ -444,7 +444,7 @@ gitlab-workhorse-ee:
                       --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${GO_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
-                      --build-arg "RAILS_VERSION=${rails_container}${IMAGE_TAG_EXT}"
+                      --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"

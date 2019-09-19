@@ -20,7 +20,7 @@ COPY --from=python /usr/local/include /usr/local/include/
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs ca-certificates openssl \
     && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod
 
-COPY scripts/bin/* /usr/local/bin
+COPY scripts/bin/* /usr/local/bin/
 COPY scripts/lib/* /usr/lib/ruby/vendor_ruby
 
 USER ${GITLAB_USER}:${GITLAB_USER}

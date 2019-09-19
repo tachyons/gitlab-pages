@@ -7,7 +7,7 @@ ARG GO_TAG=
 ARG GO_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG}
 ARG GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG}
 ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_VERSION}
-ARG RAILS_IMAGE={CI_REGISTRY_IMAGE}/gitlab-rails-ee:${RAILS_VERSION}
+ARG RAILS_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-rails-ee:${RAILS_VERSION}
 ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
 
 FROM ${GIT_IMAGE} AS git
@@ -22,8 +22,13 @@ COPY --from=git /usr/local/libexec/git-core/ /usr/local/libexec/git-core/
 COPY --from=golang /usr/local/go/ /usr/local/go/
 COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
 
+<<<<<<< HEAD
 RUN curl -L https://gitlab.com/gitlab-org/gitlab-workhorse/-/archive/${WORKHORSE_VERSION}/gitlab-workhorse-${WORKHORSE_VERSION}.tar.gz | tar -xz \
     && cd gitlab-workhorse-${WORKHORSE_VERSION} \
+=======
+RUN curl -L https://gitlab.com/${WORKHORSE_NAMESPACE}/${WORKHORSE_PROJECT}/-/archive/${WORKHORSE_VERSION}/${WORKHORSE_PROJECT}-${WORKHORSE_VERSION}.tar.gz | tar -xz \
+    && cd ${WORKHORSE_PROJECT}-${WORKHORSE_VERSION} \
+>>>>>>> 563bb03... Fix minor build issues in UBI-based images
     && make install
 
 FROM ${RAILS_IMAGE} AS rails
