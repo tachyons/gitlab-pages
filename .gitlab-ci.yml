@@ -37,6 +37,9 @@ license_management:
   variables:
     LICENSE_MANAGEMENT_SETUP_CMD: go mod vendor
 
+sast:
+  stage: prepare
+
 download deps:
   extends: .go-mod-cache
   stage: prepare
