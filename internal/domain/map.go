@@ -36,7 +36,7 @@ func (dm Map) updateDomainMap(domainName string, domain *Domain) {
 
 func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
 	newDomain := &Domain{
-		group:       group{name: groupName},
+		group:       Group{name: groupName},
 		projectName: projectName,
 		config:      config,
 	}
@@ -52,7 +52,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 
 	if groupDomain == nil {
 		groupDomain = &Domain{
-			group: group{
+			group: Group{
 				name:      groupName,
 				projects:  make(projects),
 				subgroups: make(subgroups),
@@ -68,7 +68,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 		subgroupName := split[i]
 		subgroup := g.subgroups[subgroupName]
 		if subgroup == nil {
-			subgroup = &group{
+			subgroup = &Group{
 				name:      subgroupName,
 				projects:  make(projects),
 				subgroups: make(subgroups),
@@ -79,7 +79,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 		g = subgroup
 	}
 
-	g.projects[projectName] = &project{
+	g.projects[projectName] = &Project{
 		NamespaceProject: domainName == projectName,
 		HTTPSOnly:        httpsOnly,
 		AccessControl:    accessControl,

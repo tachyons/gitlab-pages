@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-type projects map[string]*project
-type subgroups map[string]*group
+type projects map[string]*Project
+type subgroups map[string]*Group
 
-type group struct {
+type Group struct {
 	name string
 
 	// nested groups
@@ -18,7 +18,7 @@ type group struct {
 	projects projects
 }
 
-func (g *group) digProjectWithSubpath(parentPath string, keys []string) (*project, string, string) {
+func (g *Group) digProjectWithSubpath(parentPath string, keys []string) (*Project, string, string) {
 	if len(keys) >= 1 {
 		head := keys[0]
 		tail := keys[1:]

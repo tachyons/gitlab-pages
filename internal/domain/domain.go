@@ -38,16 +38,9 @@ type locationFileNoExtensionError struct {
 	FullPath string
 }
 
-type project struct {
-	NamespaceProject bool
-	HTTPSOnly        bool
-	AccessControl    bool
-	ID               uint64
-}
-
 // Domain is a domain that gitlab-pages can serve.
 type Domain struct {
-	group
+	group Group
 
 	// custom domains:
 	projectName string
@@ -108,12 +101,12 @@ func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string 
 
 // Look up a project inside the domain based on the host and path. Returns the
 // project and its name (if applicable)
-func (d *Domain) getProjectWithSubpath(r *http.Request) (*project, string, string) {
+func (d *Domain) getProjectWithSubpath(r *http.Request) (*Project, string, string) {
 	// Check for a project specified in the URL: http://group.gitlab.io/projectA
 	// If present, these projects shadow the group domain.
 	split := strings.SplitN(r.URL.Path, "/", maxProjectDepth)
 	if len(split) >= 2 {
-		project, projectPath, urlPath := d.digProjectWithSubpath("", split[1:])
+		project, projectPath, urlPath := d.group.digProjectWithSubpath("", split[1:])
 		if project != nil {
 			return project, projectPath, urlPath
 		}
@@ -122,7 +115,7 @@ func (d *Domain) getProjectWithSubpath(r *http.Request) (*project, string, strin
 	// Since the URL doesn't specify a project (e.g. http://mydomain.gitlab.io),
 	// return the group project if it exists.
 	if host := host.FromRequest(r); host != "" {
-		if groupProject := d.projects[host]; groupProject != nil {
+		if groupProject := d.group.projects[host]; groupProject != nil {
 			return groupProject, host, strings.Join(split[1:], "/")
 		}
 	}

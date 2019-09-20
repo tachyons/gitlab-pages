@@ -77,7 +77,7 @@ func TestReadProjects(t *testing.T) {
 	// check subgroups
 	domain, ok := dm["group.test.io"]
 	require.True(t, ok, "missing group.test.io domain")
-	subgroup, ok := domain.subgroups["subgroup"]
+	subgroup, ok := domain.group.subgroups["subgroup"]
 	require.True(t, ok, "missing group.test.io subgroup")
 	_, ok = subgroup.projects["project"]
 	require.True(t, ok, "missing project for subgroup in group.test.io domain")

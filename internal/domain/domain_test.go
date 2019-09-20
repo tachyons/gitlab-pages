@@ -27,13 +27,13 @@ func serveFileOrNotFound(domain *Domain) http.HandlerFunc {
 func testGroupServeHTTPHost(t *testing.T, host string) {
 	testGroup := &Domain{
 		projectName: "",
-		group: group{
+		group: Group{
 			name: "group",
-			projects: map[string]*project{
-				"group.test.io":            &project{},
-				"group.gitlab-example.com": &project{},
-				"project":                  &project{},
-				"project2":                 &project{},
+			projects: map[string]*Project{
+				"group.test.io":            &Project{},
+				"group.gitlab-example.com": &Project{},
+				"project":                  &Project{},
+				"project2":                 &Project{},
 			},
 		},
 	}
@@ -80,7 +80,7 @@ func TestDomainServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &Domain{
-		group:       group{name: "group"},
+		group:       Group{name: "group"},
 		projectName: "project2",
 		config: &domainConfig{
 			Domain: "test.domain.com",
@@ -108,7 +108,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Custom domain with HTTPS-only enabled",
 			domain: &Domain{
-				group:       group{name: "group"},
+				group:       Group{name: "group"},
 				projectName: "project",
 				config:      &domainConfig{HTTPSOnly: true},
 			},
@@ -118,7 +118,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Custom domain with HTTPS-only disabled",
 			domain: &Domain{
-				group:       group{name: "group"},
+				group:       Group{name: "group"},
 				projectName: "project",
 				config:      &domainConfig{HTTPSOnly: false},
 			},
@@ -129,9 +129,9 @@ func TestIsHTTPSOnly(t *testing.T) {
 			name: "Default group domain with HTTPS-only enabled",
 			domain: &Domain{
 				projectName: "project",
-				group: group{
+				group: Group{
 					name:     "group",
-					projects: projects{"test-domain": &project{HTTPSOnly: true}},
+					projects: projects{"test-domain": &Project{HTTPSOnly: true}},
 				},
 			},
 			url:      "http://test-domain",
@@ -141,9 +141,9 @@ func TestIsHTTPSOnly(t *testing.T) {
 			name: "Default group domain with HTTPS-only disabled",
 			domain: &Domain{
 				projectName: "project",
-				group: group{
+				group: Group{
 					name:     "group",
-					projects: projects{"test-domain": &project{HTTPSOnly: false}},
+					projects: projects{"test-domain": &Project{HTTPSOnly: false}},
 				},
 			},
 			url:      "http://test-domain",
@@ -153,9 +153,9 @@ func TestIsHTTPSOnly(t *testing.T) {
 			name: "Case-insensitive default group domain with HTTPS-only enabled",
 			domain: &Domain{
 				projectName: "project",
-				group: group{
+				group: Group{
 					name:     "group",
-					projects: projects{"test-domain": &project{HTTPSOnly: true}},
+					projects: projects{"test-domain": &Project{HTTPSOnly: true}},
 				},
 			},
 			url:      "http://Test-domain",
@@ -165,9 +165,9 @@ func TestIsHTTPSOnly(t *testing.T) {
 			name: "Other group domain with HTTPS-only enabled",
 			domain: &Domain{
 				projectName: "project",
-				group: group{
+				group: Group{
 					name:     "group",
-					projects: projects{"project": &project{HTTPSOnly: true}},
+					projects: projects{"project": &Project{HTTPSOnly: true}},
 				},
 			},
 			url:      "http://test-domain/project",
@@ -177,9 +177,9 @@ func TestIsHTTPSOnly(t *testing.T) {
 			name: "Other group domain with HTTPS-only disabled",
 			domain: &Domain{
 				projectName: "project",
-				group: group{
+				group: Group{
 					name:     "group",
-					projects: projects{"project": &project{HTTPSOnly: false}},
+					projects: projects{"project": &Project{HTTPSOnly: false}},
 				},
 			},
 			url:      "http://test-domain/project",
@@ -188,7 +188,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Unknown project",
 			domain: &Domain{
-				group:       group{name: "group"},
+				group:       Group{name: "group"},
 				projectName: "project",
 			},
 			url:      "http://test-domain/project",
@@ -217,7 +217,7 @@ func TestHasAcmeChallenge(t *testing.T) {
 		{
 			name: "Project containing acme challenge",
 			domain: &Domain{
-				group:       group{name: "group.acme"},
+				group:       Group{name: "group.acme"},
 				projectName: "with.acme.challenge",
 				config:      &domainConfig{HTTPSOnly: true},
 			},
@@ -227,7 +227,7 @@ func TestHasAcmeChallenge(t *testing.T) {
 		{
 			name: "Project containing acme challenge",
 			domain: &Domain{
-				group:       group{name: "group.acme"},
+				group:       Group{name: "group.acme"},
 				projectName: "with.acme.challenge",
 				config:      &domainConfig{HTTPSOnly: true},
 			},
@@ -237,7 +237,7 @@ func TestHasAcmeChallenge(t *testing.T) {
 		{
 			name: "Project containing another token",
 			domain: &Domain{
-				group:       group{name: "group.acme"},
+				group:       Group{name: "group.acme"},
 				projectName: "with.acme.challenge",
 				config:      &domainConfig{HTTPSOnly: true},
 			},
@@ -253,7 +253,7 @@ func TestHasAcmeChallenge(t *testing.T) {
 		{
 			name: "Domain without config",
 			domain: &Domain{
-				group:       group{name: "group.acme"},
+				group:       Group{name: "group.acme"},
 				projectName: "with.acme.challenge",
 				config:      nil,
 			},
@@ -301,13 +301,13 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 
 	testGroup := &Domain{
 		projectName: "",
-		group: group{
+		group: Group{
 			name: "group",
-			projects: map[string]*project{
-				"group.test.io":            &project{},
-				"group.gitlab-example.com": &project{},
-				"project":                  &project{},
-				"project2":                 &project{},
+			projects: map[string]*Project{
+				"group.test.io":            &Project{},
+				"group.gitlab-example.com": &Project{},
+				"project":                  &Project{},
+				"project2":                 &Project{},
 			},
 		},
 	}
@@ -368,14 +368,14 @@ func TestGroup404ServeHTTP(t *testing.T) {
 
 	testGroup := &Domain{
 		projectName: "",
-		group: group{
+		group: Group{
 			name: "group.404",
-			projects: map[string]*project{
-				"domain.404":          &project{},
-				"group.404.test.io":   &project{},
-				"project.404":         &project{},
-				"project.404.symlink": &project{},
-				"project.no.404":      &project{},
+			projects: map[string]*Project{
+				"domain.404":          &Project{},
+				"group.404.test.io":   &Project{},
+				"project.404":         &Project{},
+				"project.404.symlink": &Project{},
+				"project.no.404":      &Project{},
 			},
 		},
 	}
@@ -396,7 +396,7 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &Domain{
-		group:       group{name: "group.404"},
+		group:       Group{name: "group.404"},
 		projectName: "domain.404",
 		config: &domainConfig{
 			Domain: "domain.404.com",
@@ -412,7 +412,7 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &Domain{
-		group: group{name: "group"},
+		group: Group{name: "group"},
 	}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
@@ -420,7 +420,7 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 
 func TestGroupCertificate(t *testing.T) {
 	testGroup := &Domain{
-		group:       group{name: "group"},
+		group:       Group{name: "group"},
 		projectName: "",
 	}
 
@@ -431,7 +431,7 @@ func TestGroupCertificate(t *testing.T) {
 
 func TestDomainNoCertificate(t *testing.T) {
 	testDomain := &Domain{
-		group:       group{name: "group"},
+		group:       Group{name: "group"},
 		projectName: "project2",
 		config: &domainConfig{
 			Domain: "test.domain.com",
@@ -449,7 +449,7 @@ func TestDomainNoCertificate(t *testing.T) {
 
 func TestDomainCertificate(t *testing.T) {
 	testDomain := &Domain{
-		group:       group{name: "group"},
+		group:       Group{name: "group"},
 		projectName: "project2",
 		config: &domainConfig{
 			Domain:      "test.domain.com",
@@ -468,10 +468,10 @@ func TestCacheControlHeaders(t *testing.T) {
 	defer cleanup()
 
 	testGroup := &Domain{
-		group: group{
+		group: Group{
 			name: "group",
-			projects: map[string]*project{
-				"group.test.io": &project{},
+			projects: map[string]*Project{
+				"group.test.io": &Project{},
 			},
 		},
 	}
