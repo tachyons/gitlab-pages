@@ -82,7 +82,7 @@ func TestDomainServeHTTP(t *testing.T) {
 	testDomain := &Domain{
 		group:       Group{name: "group"},
 		projectName: "project2",
-		config: &domainConfig{
+		config: &Config{
 			Domain: "test.domain.com",
 		},
 	}
@@ -110,7 +110,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 			domain: &Domain{
 				group:       Group{name: "group"},
 				projectName: "project",
-				config:      &domainConfig{HTTPSOnly: true},
+				config:      &Config{HTTPSOnly: true},
 			},
 			url:      "http://custom-domain",
 			expected: true,
@@ -120,7 +120,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 			domain: &Domain{
 				group:       Group{name: "group"},
 				projectName: "project",
-				config:      &domainConfig{HTTPSOnly: false},
+				config:      &Config{HTTPSOnly: false},
 			},
 			url:      "http://custom-domain",
 			expected: false,
@@ -219,7 +219,7 @@ func TestHasAcmeChallenge(t *testing.T) {
 			domain: &Domain{
 				group:       Group{name: "group.acme"},
 				projectName: "with.acme.challenge",
-				config:      &domainConfig{HTTPSOnly: true},
+				config:      &Config{HTTPSOnly: true},
 			},
 			token:    "existingtoken",
 			expected: true,
@@ -229,7 +229,7 @@ func TestHasAcmeChallenge(t *testing.T) {
 			domain: &Domain{
 				group:       Group{name: "group.acme"},
 				projectName: "with.acme.challenge",
-				config:      &domainConfig{HTTPSOnly: true},
+				config:      &Config{HTTPSOnly: true},
 			},
 			token:    "foldertoken",
 			expected: true,
@@ -239,7 +239,7 @@ func TestHasAcmeChallenge(t *testing.T) {
 			domain: &Domain{
 				group:       Group{name: "group.acme"},
 				projectName: "with.acme.challenge",
-				config:      &domainConfig{HTTPSOnly: true},
+				config:      &Config{HTTPSOnly: true},
 			},
 			token:    "notexistingtoken",
 			expected: false,
@@ -398,7 +398,7 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	testDomain := &Domain{
 		group:       Group{name: "group.404"},
 		projectName: "domain.404",
-		config: &domainConfig{
+		config: &Config{
 			Domain: "domain.404.com",
 		},
 	}
@@ -433,7 +433,7 @@ func TestDomainNoCertificate(t *testing.T) {
 	testDomain := &Domain{
 		group:       Group{name: "group"},
 		projectName: "project2",
-		config: &domainConfig{
+		config: &Config{
 			Domain: "test.domain.com",
 		},
 	}
@@ -451,7 +451,7 @@ func TestDomainCertificate(t *testing.T) {
 	testDomain := &Domain{
 		group:       Group{name: "group"},
 		projectName: "project2",
-		config: &domainConfig{
+		config: &Config{
 			Domain:      "test.domain.com",
 			Certificate: fixture.Certificate,
 			Key:         fixture.Key,

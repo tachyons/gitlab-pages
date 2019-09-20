@@ -68,10 +68,10 @@ func TestReadProjects(t *testing.T) {
 	}
 
 	// Check that multiple domains in the same project are recorded faithfully
-	exp1 := &domainConfig{Domain: "test.domain.com"}
+	exp1 := &Config{Domain: "test.domain.com"}
 	require.Equal(t, exp1, dm["test.domain.com"].config)
 
-	exp2 := &domainConfig{Domain: "other.domain.com", Certificate: "test", Key: "key"}
+	exp2 := &Config{Domain: "other.domain.com", Certificate: "test", Key: "key"}
 	require.Equal(t, exp2, dm["other.domain.com"].config)
 
 	// check subgroups

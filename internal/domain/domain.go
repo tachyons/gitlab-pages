@@ -44,7 +44,7 @@ type Domain struct {
 
 	// custom domains:
 	projectName string
-	config      *domainConfig
+	config      *Config
 
 	certificate      *tls.Certificate
 	certificateError error

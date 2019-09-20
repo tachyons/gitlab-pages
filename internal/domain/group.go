@@ -5,9 +5,7 @@ import (
 	"strings"
 )
 
-type projects map[string]*Project
-type subgroups map[string]*Group
-
+// Group represents a GitLab group with projects and subgroups
 type Group struct {
 	name string
 
@@ -17,6 +15,9 @@ type Group struct {
 	// group domains:
 	projects projects
 }
+
+type projects map[string]*Project
+type subgroups map[string]*Group
 
 func (g *Group) digProjectWithSubpath(parentPath string, keys []string) (*Project, string, string) {
 	if len(keys) >= 1 {
