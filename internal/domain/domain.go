@@ -16,17 +16,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
-)
-
-const (
-	subgroupScanLimit int = 21
-	// maxProjectDepth is set to the maximum nested project depth in gitlab (21) plus 3.
-	// One for the project, one for the first empty element of the split (URL.Path starts with /),
-	// and one for the real file path
-	maxProjectDepth int = subgroupScanLimit + 3
 )
 
 type locationDirectoryError struct {
@@ -38,13 +29,28 @@ type locationFileNoExtensionError struct {
 	FullPath string
 }
 
+type GroupConfig interface {
+	IsHTTPSOnly(*http.Request) (bool, error)
+	HasAccessControl(*http.Request) (bool, error)
+	IsNamespaceProject(*http.Request) (bool, error)
+	ProjectID(*http.Request) (uint64, error)
+	ProjectExists(*http.Request) (bool, error)
+	ProjectWithSubpath(*http.Request) (string, string, error)
+}
+
 // Domain is a domain that gitlab-pages can serve.
 type Domain struct {
-	group Group
+	Group   string
+	Project string
 
-	// custom domains:
-	projectName string
-	config      *Config
+	DomainName    string
+	Certificate   string
+	Key           string
+	HTTPSOnly     bool
+	ProjectID     uint64
+	AccessControl bool
+
+	GroupConfig GroupConfig // handles group domain config
 
 	certificate      *tls.Certificate
 	certificateError error
@@ -53,15 +59,19 @@ type Domain struct {
 
 // String implements Stringer.
 func (d *Domain) String() string {
-	if d.group.name != "" && d.projectName != "" {
-		return d.group.name + "/" + d.projectName
+	if d.Group != "" && d.Project != "" {
+		return d.Group + "/" + d.Project
 	}
 
-	if d.group.name != "" {
-		return d.group.name
+	if d.Group != "" {
+		return d.Group
 	}
 
-	return d.projectName
+	return d.Project
+}
+
+func (d *Domain) isCustomDomain() bool {
+	return d.GroupConfig == nil
 }
 
 func (l *locationDirectoryError) Error() string {
@@ -99,30 +109,6 @@ func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string 
 	return gzipPath
 }
 
-// Look up a project inside the domain based on the host and path. Returns the
-// project and its name (if applicable)
-func (d *Domain) getProjectWithSubpath(r *http.Request) (*Project, string, string) {
-	// Check for a project specified in the URL: http://group.gitlab.io/projectA
-	// If present, these projects shadow the group domain.
-	split := strings.SplitN(r.URL.Path, "/", maxProjectDepth)
-	if len(split) >= 2 {
-		project, projectPath, urlPath := d.group.digProjectWithSubpath("", split[1:])
-		if project != nil {
-			return project, projectPath, urlPath
-		}
-	}
-
-	// Since the URL doesn't specify a project (e.g. http://mydomain.gitlab.io),
-	// return the group project if it exists.
-	if host := host.FromRequest(r); host != "" {
-		if groupProject := d.group.projects[host]; groupProject != nil {
-			return groupProject, host, strings.Join(split[1:], "/")
-		}
-	}
-
-	return nil, "", ""
-}
-
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
 func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
@@ -131,13 +117,18 @@ func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
 	}
 
 	// Check custom domain config (e.g. http://example.com)
-	if d.config != nil {
-		return d.config.HTTPSOnly
+	// if d.!= nil {
+	if d.isCustomDomain() {
+		return d.HTTPSOnly
 	}
 
 	// Check projects served under the group domain, including the default one
-	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-		return project.HTTPSOnly
+	// TODO REFACTORING
+	// if project, _, _ := d.getProjectWithSubpath(r); project != nil {
+	// 	return project.HTTPSOnly
+	// }
+	if httpsOnly, err := d.GroupConfig.IsHTTPSOnly(r); err == nil {
+		return httpsOnly
 	}
 
 	return false
@@ -150,13 +141,16 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 	}
 
 	// Check custom domain config (e.g. http://example.com)
-	if d.config != nil {
-		return d.config.AccessControl
+	if d.isCustomDomain() {
+		return d.AccessControl
 	}
 
 	// Check projects served under the group domain, including the default one
-	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-		return project.AccessControl
+	// TODO RFR if project, _, _ := d.getProjectWithSubpath(r); project != nil {
+	//	return project.AccessControl
+	//}
+	if hasAccessControl, err := d.GroupConfig.HasAccessControl(r); err == nil {
+		return hasAccessControl
 	}
 
 	return false
@@ -168,18 +162,18 @@ func (d *Domain) HasAcmeChallenge(token string) bool {
 		return false
 	}
 
-	if d.config == nil {
+	if !d.isCustomDomain() {
 		return false
 	}
 
-	_, err := d.resolvePath(d.projectName, ".well-known/acme-challenge", token)
+	_, err := d.resolvePath(d.Project, ".well-known/acme-challenge", token)
 
 	// there is an acme challenge on disk
 	if err == nil {
 		return true
 	}
 
-	_, err = d.resolvePath(d.projectName, ".well-known/acme-challenge", token, "index.html")
+	_, err = d.resolvePath(d.Project, ".well-known/acme-challenge", token, "index.html")
 
 	if err == nil {
 		return true
@@ -196,13 +190,16 @@ func (d *Domain) IsNamespaceProject(r *http.Request) bool {
 
 	// If request is to a custom domain, we do not handle it as a namespace project
 	// as there can't be multiple projects under the same custom domain
-	if d.config != nil {
+	if d.isCustomDomain() {
 		return false
 	}
 
 	// Check projects served under the group domain, including the default one
-	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-		return project.NamespaceProject
+	// if project, _, _ := d.getProjectWithSubpath(r); project != nil {
+	//	return project.NamespaceProject
+	// }
+	if isNamespaceProject, err := d.GroupConfig.IsNamespaceProject(r); err == nil {
+		return isNamespaceProject
 	}
 
 	return false
@@ -214,12 +211,15 @@ func (d *Domain) GetID(r *http.Request) uint64 {
 		return 0
 	}
 
-	if d.config != nil {
-		return d.config.ID
+	if d.isCustomDomain() {
+		return d.ProjectID
 	}
 
-	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-		return project.ID
+	// if project, _, _ := d.getProjectWithSubpath(r); project != nil {
+	// 	return project.ID
+	// }
+	if projectID, err := d.GroupConfig.ProjectID(r); err == nil {
+		return projectID
 	}
 
 	return 0
@@ -231,12 +231,15 @@ func (d *Domain) HasProject(r *http.Request) bool {
 		return false
 	}
 
-	if d.config != nil {
+	if d.isCustomDomain() {
 		return true
 	}
 
-	if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-		return true
+	// if project, _, _ := d.getProjectWithSubpath(r); project != nil {
+	// 	return true
+	// }
+	if projectExists, err := d.GroupConfig.ProjectExists(r); err == nil {
+		return projectExists
 	}
 
 	return false
@@ -334,7 +337,7 @@ func (d *Domain) serveCustomFile(w http.ResponseWriter, r *http.Request, code in
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
 func (d *Domain) resolvePath(projectName string, subPath ...string) (string, error) {
-	publicPath := filepath.Join(d.group.name, projectName, "public")
+	publicPath := filepath.Join(d.Group, projectName, "public")
 
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
@@ -421,8 +424,9 @@ func (d *Domain) tryFile(w http.ResponseWriter, r *http.Request, projectName str
 }
 
 func (d *Domain) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool {
-	project, projectName, subPath := d.getProjectWithSubpath(r)
-	if project == nil {
+	// project, projectName, subPath := d.getProjectWithSubpath(r)
+	projectName, subPath, err := d.GroupConfig.ProjectWithSubpath(r)
+	if err != nil {
 		httperrors.Serve404(w)
 		return true
 	}
@@ -435,8 +439,10 @@ func (d *Domain) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool
 }
 
 func (d *Domain) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
-	project, projectName, _ := d.getProjectWithSubpath(r)
-	if project == nil {
+	// project, projectName, _ := d.getProjectWithSubpath(r)
+	projectName, _, err := d.GroupConfig.ProjectWithSubpath(r)
+
+	if err != nil {
 		httperrors.Serve404(w)
 		return
 	}
@@ -452,7 +458,7 @@ func (d *Domain) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) 
 
 func (d *Domain) serveFileFromConfig(w http.ResponseWriter, r *http.Request) bool {
 	// Try to serve file for http://host/... => /group/project/...
-	if d.tryFile(w, r, d.projectName, r.URL.Path) == nil {
+	if d.tryFile(w, r, d.Project, r.URL.Path) == nil {
 		return true
 	}
 
@@ -461,7 +467,7 @@ func (d *Domain) serveFileFromConfig(w http.ResponseWriter, r *http.Request) boo
 
 func (d *Domain) serveNotFoundFromConfig(w http.ResponseWriter, r *http.Request) {
 	// Try serving not found page for http://host/ => /group/project/404.html
-	if d.tryNotFound(w, r, d.projectName) == nil {
+	if d.tryNotFound(w, r, d.Project) == nil {
 		return
 	}
 
@@ -471,13 +477,13 @@ func (d *Domain) serveNotFoundFromConfig(w http.ResponseWriter, r *http.Request)
 
 // EnsureCertificate parses the PEM-encoded certificate for the domain
 func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
-	if d.config == nil {
+	if !d.isCustomDomain() {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
 	d.certificateOnce.Do(func() {
 		var cert tls.Certificate
-		cert, d.certificateError = tls.X509KeyPair([]byte(d.config.Certificate), []byte(d.config.Key))
+		cert, d.certificateError = tls.X509KeyPair([]byte(d.Certificate), []byte(d.Key))
 		if d.certificateError == nil {
 			d.certificate = &cert
 		}
@@ -493,7 +499,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	if d.config != nil {
+	if d.isCustomDomain() {
 		return d.serveFileFromConfig(w, r)
 	}
 
@@ -507,7 +513,7 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if d.config != nil {
+	if d.isCustomDomain() {
 		d.serveNotFoundFromConfig(w, r)
 	} else {
 		d.serveNotFoundFromGroup(w, r)

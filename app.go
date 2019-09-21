@@ -28,6 +28,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/dirs"
 )
 
 const (
@@ -47,7 +48,7 @@ var (
 
 type theApp struct {
 	appConfig
-	dm             domain.Map
+	dm             dirs.Map
 	lock           sync.RWMutex
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
@@ -322,7 +323,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	return handler, nil
 }
 
-func (a *theApp) UpdateDomains(dm domain.Map) {
+func (a *theApp) UpdateDomains(dm dirs.Map) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	a.dm = dm
@@ -366,7 +367,7 @@ func (a *theApp) Run() {
 	a.listenAdminUnix(&wg)
 	a.listenAdminHTTPS(&wg)
 
-	go domain.Watch(a.Domain, a.UpdateDomains, time.Second)
+	go dirs.Watch(a.Domain, a.UpdateDomains, time.Second)
 
 	wg.Wait()
 }

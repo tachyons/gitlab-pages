@@ -19,10 +19,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/dirs"
 
 	"golang.org/x/crypto/hkdf"
 )
@@ -108,7 +108,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 }
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
-func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
+func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm dirs.Map, lock *sync.RWMutex) bool {
 
 	if a == nil {
 		return false
@@ -200,7 +200,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, redirectURI, 302)
 }
 
-func (a *Auth) domainAllowed(domain string, dm domain.Map, lock *sync.RWMutex) bool {
+func (a *Auth) domainAllowed(domain string, dm dirs.Map, lock *sync.RWMutex) bool {
 	lock.RLock()
 	defer lock.RUnlock()
 
@@ -209,7 +209,7 @@ func (a *Auth) domainAllowed(domain string, dm domain.Map, lock *sync.RWMutex) b
 	return domain == a.pagesDomain || strings.HasSuffix("."+domain, a.pagesDomain) || present
 }
 
-func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, dm domain.Map, lock *sync.RWMutex) bool {
+func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, dm dirs.Map, lock *sync.RWMutex) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
 		domain := r.URL.Query().Get("domain")
