@@ -52,12 +52,12 @@ func (g *Group) digProjectWithSubpath(parentPath string, keys []string) (*Projec
 
 // Look up a project inside the domain based on the host and path. Returns the
 // project and its name (if applicable)
-func (group *Group) getProjectConfigWithSubpath(r *http.Request) (*ProjectConfig, string, string) {
+func (g *Group) getProjectConfigWithSubpath(r *http.Request) (*ProjectConfig, string, string) {
 	// Check for a project specified in the URL: http://group.gitlab.io/projectA
 	// If present, these projects shadow the group domain.
 	split := strings.SplitN(r.URL.Path, "/", maxProjectDepth)
 	if len(split) >= 2 {
-		projectConfig, projectPath, urlPath := group.digProjectWithSubpath("", split[1:])
+		projectConfig, projectPath, urlPath := g.digProjectWithSubpath("", split[1:])
 		if projectConfig != nil {
 			return projectConfig, projectPath, urlPath
 		}
@@ -66,7 +66,7 @@ func (group *Group) getProjectConfigWithSubpath(r *http.Request) (*ProjectConfig
 	// Since the URL doesn't specify a project (e.g. http://mydomain.gitlab.io),
 	// return the group project if it exists.
 	if host := host.FromRequest(r); host != "" {
-		if groupProject := group.projects[host]; groupProject != nil {
+		if groupProject := g.projects[host]; groupProject != nil {
 			return groupProject, host, strings.Join(split[1:], "/")
 		}
 	}
@@ -74,56 +74,66 @@ func (group *Group) getProjectConfigWithSubpath(r *http.Request) (*ProjectConfig
 	return nil, "", ""
 }
 
-func (g *Group) IsHTTPSOnly(r *http.Request) (bool, error) {
+// IsHTTPSOnly return true if project exists and has https-only setting
+// configured
+func (g *Group) IsHTTPSOnly(r *http.Request) bool {
 	project, _, _ := g.getProjectConfigWithSubpath(r)
 
 	if project != nil {
-		return project.HTTPSOnly, nil
+		return project.HTTPSOnly
 	}
 
-	return false, errors.New("project not found")
+	return false
 }
 
-func (g *Group) HasAccessControl(r *http.Request) (bool, error) {
+// HasAccessControl returns true if a group project has access control setting
+// enabled
+func (g *Group) HasAccessControl(r *http.Request) bool {
 	project, _, _ := g.getProjectConfigWithSubpath(r)
 
 	if project != nil {
-		return project.AccessControl, nil
+		return project.AccessControl
 	}
 
-	return false, errors.New("project not found")
+	return false
 }
 
-func (g *Group) IsNamespaceProject(r *http.Request) (bool, error) {
+// IsNamespaceProject return true if per-request config belongs to a namespace
+// project
+func (g *Group) IsNamespaceProject(r *http.Request) bool {
 	project, _, _ := g.getProjectConfigWithSubpath(r)
 
 	if project != nil {
-		return project.NamespaceProject, nil
+		return project.NamespaceProject
 	}
 
-	return false, errors.New("project not found")
+	return false
 }
 
-func (g *Group) ProjectID(r *http.Request) (uint64, error) {
+// ProjectID return a per-request group project ID
+func (g *Group) ProjectID(r *http.Request) uint64 {
 	project, _, _ := g.getProjectConfigWithSubpath(r)
 
 	if project != nil {
-		return project.ID, nil
+		return project.ID
 	}
 
-	return 0, errors.New("project not found")
+	return 0
 }
 
-func (g *Group) ProjectExists(r *http.Request) (bool, error) {
+// ProjectExists return true if project config has been found
+func (g *Group) ProjectExists(r *http.Request) bool {
 	project, _, _ := g.getProjectConfigWithSubpath(r)
 
 	if project != nil {
-		return true, nil
+		return true
 	}
 
-	return false, nil
+	return false
 }
 
+// ProjectWithSubpath tries to find project and its config recursively for a
+// given request to a group domain
 func (g *Group) ProjectWithSubpath(r *http.Request) (string, string, error) {
 	project, projectName, subPath := g.getProjectConfigWithSubpath(r)
 

@@ -29,12 +29,13 @@ type locationFileNoExtensionError struct {
 	FullPath string
 }
 
+// GroupConfig represents a per-request config for a group domain
 type GroupConfig interface {
-	IsHTTPSOnly(*http.Request) (bool, error)
-	HasAccessControl(*http.Request) (bool, error)
-	IsNamespaceProject(*http.Request) (bool, error)
-	ProjectID(*http.Request) (uint64, error)
-	ProjectExists(*http.Request) (bool, error)
+	IsHTTPSOnly(*http.Request) bool
+	HasAccessControl(*http.Request) bool
+	IsNamespaceProject(*http.Request) bool
+	ProjectID(*http.Request) uint64
+	ProjectExists(*http.Request) bool
 	ProjectWithSubpath(*http.Request) (string, string, error)
 }
 
@@ -123,15 +124,7 @@ func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
 	}
 
 	// Check projects served under the group domain, including the default one
-	// TODO REFACTORING
-	// if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-	// 	return project.HTTPSOnly
-	// }
-	if httpsOnly, err := d.GroupConfig.IsHTTPSOnly(r); err == nil {
-		return httpsOnly
-	}
-
-	return false
+	return d.GroupConfig.IsHTTPSOnly(r)
 }
 
 // IsAccessControlEnabled figures out if the request is to a project that has access control enabled
@@ -146,14 +139,7 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 	}
 
 	// Check projects served under the group domain, including the default one
-	// TODO RFR if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-	//	return project.AccessControl
-	//}
-	if hasAccessControl, err := d.GroupConfig.HasAccessControl(r); err == nil {
-		return hasAccessControl
-	}
-
-	return false
+	return d.GroupConfig.HasAccessControl(r)
 }
 
 // HasAcmeChallenge checks domain directory contains particular acme challenge
@@ -195,14 +181,7 @@ func (d *Domain) IsNamespaceProject(r *http.Request) bool {
 	}
 
 	// Check projects served under the group domain, including the default one
-	// if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-	//	return project.NamespaceProject
-	// }
-	if isNamespaceProject, err := d.GroupConfig.IsNamespaceProject(r); err == nil {
-		return isNamespaceProject
-	}
-
-	return false
+	return d.GroupConfig.IsNamespaceProject(r)
 }
 
 // GetID figures out what is the ID of the project user tries to access
@@ -215,14 +194,7 @@ func (d *Domain) GetID(r *http.Request) uint64 {
 		return d.ProjectID
 	}
 
-	// if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-	// 	return project.ID
-	// }
-	if projectID, err := d.GroupConfig.ProjectID(r); err == nil {
-		return projectID
-	}
-
-	return 0
+	return d.GroupConfig.ProjectID(r)
 }
 
 // HasProject figures out if the project exists that the user tries to access
@@ -235,14 +207,7 @@ func (d *Domain) HasProject(r *http.Request) bool {
 		return true
 	}
 
-	// if project, _, _ := d.getProjectWithSubpath(r); project != nil {
-	// 	return true
-	// }
-	if projectExists, err := d.GroupConfig.ProjectExists(r); err == nil {
-		return projectExists
-	}
-
-	return false
+	return d.GroupConfig.ProjectExists(r)
 }
 
 // Detect file's content-type either by extension or mime-sniffing.
