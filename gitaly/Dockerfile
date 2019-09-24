@@ -31,6 +31,7 @@ RUN sudo -u ${GITLAB_USER} -H mkdir -p /home/${GITLAB_USER}/repositories
 # adjust git settings
 RUN sudo -u ${GITLAB_USER} -H git config --global gc.auto 0 && \
     sudo -u ${GITLAB_USER} -H git config --global core.autocrlf input && \
+    sudo -u ${GITLAB_USER} -H git config --global core.fsyncObjectFiles true && \
     sudo -u ${GITLAB_USER} -H git config --global repack.writeBitmaps true && \
     sudo -u ${GITLAB_USER} -H git config --global pack.threads 1 && \
     sudo -u ${GITLAB_USER} -H git config --global receive.fsckobjects true && \
