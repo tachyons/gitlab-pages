@@ -62,7 +62,7 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		return nil, nil
 	}
 
-	if domain := a.domains.GetDomain(ch.ServerName); domain != nil {
+	if domain := a.domain(ch.ServerName); domain != nil {
 		tls, _ := domain.EnsureCertificate()
 		return tls, nil
 	}

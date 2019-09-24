@@ -118,7 +118,6 @@ func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
 	}
 
 	// Check custom domain config (e.g. http://example.com)
-	// if d.!= nil {
 	if d.isCustomDomain() {
 		return d.HTTPSOnly
 	}
@@ -389,7 +388,6 @@ func (d *Domain) tryFile(w http.ResponseWriter, r *http.Request, projectName str
 }
 
 func (d *Domain) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool {
-	// project, projectName, subPath := d.getProjectWithSubpath(r)
 	projectName, subPath, err := d.GroupConfig.ProjectWithSubpath(r)
 	if err != nil {
 		httperrors.Serve404(w)
@@ -404,7 +402,6 @@ func (d *Domain) serveFileFromGroup(w http.ResponseWriter, r *http.Request) bool
 }
 
 func (d *Domain) serveNotFoundFromGroup(w http.ResponseWriter, r *http.Request) {
-	// project, projectName, _ := d.getProjectWithSubpath(r)
 	projectName, _, err := d.GroupConfig.ProjectWithSubpath(r)
 
 	if err != nil {
