@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gorilla/securecookie"
@@ -22,7 +21,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/dirs"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 
 	"golang.org/x/crypto/hkdf"
 )
@@ -108,7 +107,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 }
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
-func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm dirs.Map, lock *sync.RWMutex) bool {
+func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains *source.Domains) bool {
 
 	if a == nil {
 		return false
@@ -126,7 +125,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, dm dirs.M
 
 	logRequest(r).Info("Receive OAuth authentication callback")
 
-	if a.handleProxyingAuth(session, w, r, dm, lock) {
+	if a.handleProxyingAuth(session, w, r, domains) {
 		return true
 	}
 
@@ -200,16 +199,17 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, redirectURI, 302)
 }
 
-func (a *Auth) domainAllowed(domain string, dm dirs.Map, lock *sync.RWMutex) bool {
-	lock.RLock()
-	defer lock.RUnlock()
+func (a *Auth) domainAllowed(domain string, domains *source.Domains) bool {
+	domainConfigured := (domain == a.pagesDomain) || strings.HasSuffix("."+domain, a.pagesDomain)
 
-	domain = strings.ToLower(domain)
-	_, present := dm[domain]
-	return domain == a.pagesDomain || strings.HasSuffix("."+domain, a.pagesDomain) || present
+	if domainConfigured {
+		return true
+	}
+
+	return domains.HasDomain(domain)
 }
 
-func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, dm dirs.Map, lock *sync.RWMutex) bool {
+func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domains *source.Domains) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
 		domain := r.URL.Query().Get("domain")
@@ -228,7 +228,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			host = proxyurl.Host
 		}
 
-		if !a.domainAllowed(host, dm, lock) {
+		if !a.domainAllowed(host, domains) {
 			logRequest(r).WithField("domain", host).Warn("Domain is not configured")
 			httperrors.Serve401(w)
 			return true

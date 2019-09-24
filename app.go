@@ -7,9 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
@@ -28,7 +26,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/dirs"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
 const (
@@ -48,8 +46,7 @@ var (
 
 type theApp struct {
 	appConfig
-	dm             dirs.Map
-	lock           sync.RWMutex
+	domains        *source.Domains
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
 	AcmeMiddleware *acme.Middleware
@@ -57,15 +54,7 @@ type theApp struct {
 }
 
 func (a *theApp) isReady() bool {
-	return a.dm != nil
-}
-
-func (a *theApp) domain(host string) *domain.Domain {
-	host = strings.ToLower(host)
-	a.lock.RLock()
-	defer a.lock.RUnlock()
-	domain, _ := a.dm[host]
-	return domain
+	return a.domains.Ready()
 }
 
 func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -73,7 +62,7 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		return nil, nil
 	}
 
-	if domain := a.domain(ch.ServerName); domain != nil {
+	if domain := a.domains.GetDomain(ch.ServerName); domain != nil {
 		tls, _ := domain.EnsureCertificate()
 		return tls, nil
 	}
@@ -105,6 +94,10 @@ func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.
 	}
 
 	return host, a.domain(host)
+}
+
+func (a *theApp) domain(host string) *domain.Domain {
+	return a.domains.GetDomain(host)
 }
 
 func (a *theApp) checkAuthenticationIfNotExists(domain *domain.Domain, w http.ResponseWriter, r *http.Request) bool {
@@ -206,7 +199,7 @@ func (a *theApp) acmeMiddleware(handler http.Handler) http.Handler {
 // authMiddleware handles authentication requests
 func (a *theApp) authMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if a.Auth.TryAuthenticate(w, r, a.dm, &a.lock) {
+		if a.Auth.TryAuthenticate(w, r, a.domains) {
 			return
 		}
 
@@ -323,12 +316,6 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	return handler, nil
 }
 
-func (a *theApp) UpdateDomains(dm dirs.Map) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
-	a.dm = dm
-}
-
 func (a *theApp) Run() {
 	var wg sync.WaitGroup
 
@@ -367,7 +354,7 @@ func (a *theApp) Run() {
 	a.listenAdminUnix(&wg)
 	a.listenAdminHTTPS(&wg)
 
-	go dirs.Watch(a.Domain, a.UpdateDomains, time.Second)
+	a.domains.Watch(a.Domain)
 
 	wg.Wait()
 }
@@ -474,7 +461,8 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 }
 
 func runApp(config appConfig) {
-	a := theApp{appConfig: config}
+	a := theApp{appConfig: config, domains: new(source.Domains)}
+
 	err := logging.ConfigureLogging(a.LogFormat, a.LogVerbose)
 	if err != nil {
 		log.WithError(err).Fatal("Failed to initialize logging")

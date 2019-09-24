@@ -1,4 +1,4 @@
-package dirs
+package groups
 
 import (
 	"encoding/json"

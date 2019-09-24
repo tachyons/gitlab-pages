@@ -5,14 +5,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"sync"
 	"testing"
 
 	"github.com/gorilla/sessions"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/dirs"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
 func createAuth(t *testing.T) *Auth {
@@ -55,7 +54,7 @@ func TestTryAuthenticate(t *testing.T) {
 	require.NoError(t, err)
 	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
 
-	require.Equal(t, false, auth.TryAuthenticate(result, r, make(dirs.Map), &sync.RWMutex{}))
+	require.Equal(t, false, auth.TryAuthenticate(result, r, new(source.Domains)))
 }
 
 func TestTryAuthenticateWithError(t *testing.T) {
@@ -66,7 +65,7 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	require.NoError(t, err)
 	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, make(dirs.Map), &sync.RWMutex{}))
+	require.Equal(t, true, auth.TryAuthenticate(result, r, new(source.Domains)))
 	require.Equal(t, 401, result.Code)
 }
 
@@ -83,7 +82,7 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	session.Values["state"] = "state"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, make(dirs.Map), &sync.RWMutex{}))
+	require.Equal(t, true, auth.TryAuthenticate(result, r, new(source.Domains)))
 	require.Equal(t, 401, result.Code)
 }
 
@@ -123,7 +122,7 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	})
 
 	result := httptest.NewRecorder()
-	require.Equal(t, true, auth.TryAuthenticate(result, r, make(dirs.Map), &sync.RWMutex{}))
+	require.Equal(t, true, auth.TryAuthenticate(result, r, new(source.Domains)))
 	require.Equal(t, 302, result.Code)
 	require.Equal(t, "https://pages.gitlab-example.com/project/", result.Header().Get("Location"))
 	require.Equal(t, 600, result.Result().Cookies()[0].MaxAge)
