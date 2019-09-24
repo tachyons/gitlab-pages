@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -45,6 +46,7 @@ func (dm Map) addDomain(rootDomain, groupName, projectName string, config *Domai
 		HTTPSOnly:     config.HTTPSOnly,
 		ProjectID:     config.ID,
 		AccessControl: config.AccessControl,
+		Serving:       serving.NewProjectDiskServing(projectName, groupName),
 	}
 
 	var domainName string
@@ -57,13 +59,16 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 	groupDomain := dm[domainName]
 
 	if groupDomain == nil {
+		group := &Group{
+			name:      groupName,
+			projects:  make(projects),
+			subgroups: make(subgroups),
+		}
+
 		groupDomain = &domain.Domain{
-			Group: groupName,
-			GroupConfig: &Group{
-				name:      groupName,
-				projects:  make(projects),
-				subgroups: make(subgroups),
-			},
+			Group:       groupName,
+			GroupConfig: group,
+			Serving:     serving.NewGroupDiskServing(groupName, group),
 		}
 	}
 

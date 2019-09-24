@@ -1,9 +1,31 @@
 package serving
 
-import "net/http"
+import (
+	"net/http"
 
-// Serving represents an interface used to serve pages for a given domain /
-// address
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
+)
+
 type Serving interface {
-	ServeHTTP(http.ResponseWriter, *http.Request)
+	ServeFileHTTP(http.ResponseWriter, *http.Request) bool
+	ServeNotFoundHTTP(http.ResponseWriter, *http.Request)
+	HasAcmeChallenge(token string) bool
+}
+
+func NewProjectDiskServing(project, group string) Serving {
+	return &disk.Project{
+		Location: project,
+		Reader: &disk.Reader{
+			Group: group,
+		},
+	}
+}
+
+func NewGroupDiskServing(group string, resolver disk.Resolver) Serving {
+	return &disk.Group{
+		Resolver: resolver,
+		Reader: &disk.Reader{
+			Group: group,
+		},
+	}
 }
