@@ -68,10 +68,10 @@ func TestReadProjects(t *testing.T) {
 	}
 
 	// Check that multiple domains in the same project are recorded faithfully
-	require.Equal(t, "test.domain.com", dm["test.domain.com"].DomainName)
-	require.Equal(t, "other.domain.com", dm["other.domain.com"].DomainName)
-	require.Equal(t, "test", dm["other.domain.com"].Certificate)
-	require.Equal(t, "key", dm["other.domain.com"].Key)
+	require.Equal(t, "test.domain.com", dm["test.domain.com"].ProjectConfig.DomainName)
+	require.Equal(t, "other.domain.com", dm["other.domain.com"].ProjectConfig.DomainName)
+	require.Equal(t, "test", dm["other.domain.com"].ProjectConfig.Certificate)
+	require.Equal(t, "key", dm["other.domain.com"].ProjectConfig.Key)
 
 	// check subgroups
 	domain, ok := dm["group.test.io"]

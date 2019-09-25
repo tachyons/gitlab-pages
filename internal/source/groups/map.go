@@ -37,14 +37,16 @@ func (dm Map) updateDomainMap(domainName string, domain *domain.Domain) {
 
 func (dm Map) addDomain(rootDomain, groupName, projectName string, config *DomainConfig) {
 	newDomain := &domain.Domain{
-		Group:         groupName,
-		Project:       projectName,
-		DomainName:    config.Domain,
-		Certificate:   config.Certificate,
-		Key:           config.Key,
-		HTTPSOnly:     config.HTTPSOnly,
-		ProjectID:     config.ID,
-		AccessControl: config.AccessControl,
+		Group:   groupName,
+		Project: projectName,
+		ProjectConfig: &domain.ProjectConfig{
+			DomainName:    config.Domain,
+			Certificate:   config.Certificate,
+			Key:           config.Key,
+			HTTPSOnly:     config.HTTPSOnly,
+			ProjectID:     config.ID,
+			AccessControl: config.AccessControl,
+		},
 	}
 
 	var domainName string

@@ -44,14 +44,8 @@ type Domain struct {
 	Group   string
 	Project string
 
-	DomainName    string
-	Certificate   string
-	Key           string
-	HTTPSOnly     bool
-	ProjectID     uint64
-	AccessControl bool
-
-	GroupConfig GroupConfig // handles group domain config
+	ProjectConfig *ProjectConfig
+	GroupConfig   GroupConfig // handles group domain config
 
 	certificate      *tls.Certificate
 	certificateError error
@@ -72,7 +66,19 @@ func (d *Domain) String() string {
 }
 
 func (d *Domain) isCustomDomain() bool {
-	return d.GroupConfig == nil
+	if d.isUnconfigured() {
+		panic("project config and group config should not be nil at the same time")
+	}
+
+	return d.ProjectConfig != nil && d.GroupConfig == nil
+}
+
+func (d *Domain) isUnconfigured() bool {
+	if d == nil {
+		return true
+	}
+
+	return d.ProjectConfig == nil && d.GroupConfig == nil
 }
 
 func (l *locationDirectoryError) Error() string {
@@ -113,13 +119,13 @@ func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
 func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
-	if d == nil {
+	if d.isUnconfigured() {
 		return false
 	}
 
 	// Check custom domain config (e.g. http://example.com)
 	if d.isCustomDomain() {
-		return d.HTTPSOnly
+		return d.ProjectConfig.HTTPSOnly
 	}
 
 	// Check projects served under the group domain, including the default one
@@ -128,13 +134,13 @@ func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
 
 // IsAccessControlEnabled figures out if the request is to a project that has access control enabled
 func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
-	if d == nil {
+	if d.isUnconfigured() {
 		return false
 	}
 
 	// Check custom domain config (e.g. http://example.com)
 	if d.isCustomDomain() {
-		return d.AccessControl
+		return d.ProjectConfig.AccessControl
 	}
 
 	// Check projects served under the group domain, including the default one
@@ -143,11 +149,7 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 
 // HasAcmeChallenge checks domain directory contains particular acme challenge
 func (d *Domain) HasAcmeChallenge(token string) bool {
-	if d == nil {
-		return false
-	}
-
-	if !d.isCustomDomain() {
+	if d.isUnconfigured() || !d.isCustomDomain() {
 		return false
 	}
 
@@ -169,7 +171,7 @@ func (d *Domain) HasAcmeChallenge(token string) bool {
 
 // IsNamespaceProject figures out if the request is to a namespace project
 func (d *Domain) IsNamespaceProject(r *http.Request) bool {
-	if d == nil {
+	if d.isUnconfigured() {
 		return false
 	}
 
@@ -185,12 +187,12 @@ func (d *Domain) IsNamespaceProject(r *http.Request) bool {
 
 // GetID figures out what is the ID of the project user tries to access
 func (d *Domain) GetID(r *http.Request) uint64 {
-	if d == nil {
+	if d.isUnconfigured() {
 		return 0
 	}
 
 	if d.isCustomDomain() {
-		return d.ProjectID
+		return d.ProjectConfig.ProjectID
 	}
 
 	return d.GroupConfig.ProjectID(r)
@@ -198,7 +200,7 @@ func (d *Domain) GetID(r *http.Request) uint64 {
 
 // HasProject figures out if the project exists that the user tries to access
 func (d *Domain) HasProject(r *http.Request) bool {
-	if d == nil {
+	if d.isUnconfigured() {
 		return false
 	}
 
@@ -439,13 +441,16 @@ func (d *Domain) serveNotFoundFromConfig(w http.ResponseWriter, r *http.Request)
 
 // EnsureCertificate parses the PEM-encoded certificate for the domain
 func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
-	if !d.isCustomDomain() {
+	if d.isUnconfigured() || !d.isCustomDomain() {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
 	d.certificateOnce.Do(func() {
 		var cert tls.Certificate
-		cert, d.certificateError = tls.X509KeyPair([]byte(d.Certificate), []byte(d.Key))
+		cert, d.certificateError = tls.X509KeyPair(
+			[]byte(d.ProjectConfig.Certificate),
+			[]byte(d.ProjectConfig.Key),
+		)
 		if d.certificateError == nil {
 			d.certificate = &cert
 		}
@@ -456,7 +461,7 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 
 // ServeFileHTTP implements http.Handler. Returns true if something was served, false if not.
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
-	if d == nil {
+	if d.isUnconfigured() {
 		httperrors.Serve404(w)
 		return true
 	}
@@ -470,7 +475,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 
 // ServeNotFoundHTTP implements http.Handler. Serves the not found pages from the projects.
 func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
-	if d == nil {
+	if d.isUnconfigured() {
 		httperrors.Serve404(w)
 		return
 	}

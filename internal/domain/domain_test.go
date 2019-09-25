@@ -28,9 +28,9 @@ func TestDomainServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &Domain{
-		Project:    "project2",
-		Group:      "group",
-		DomainName: "test.domain.com",
+		Project:       "project2",
+		Group:         "group",
+		ProjectConfig: &ProjectConfig{DomainName: "test.domain.com"},
 	}
 
 	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/", nil, "project2-main")
@@ -54,9 +54,9 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Custom domain with HTTPS-only enabled",
 			domain: &Domain{
-				Project:   "project",
-				Group:     "group",
-				HTTPSOnly: true,
+				Project:       "project",
+				Group:         "group",
+				ProjectConfig: &ProjectConfig{HTTPSOnly: true},
 			},
 			url:      "http://custom-domain",
 			expected: true,
@@ -64,9 +64,9 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Custom domain with HTTPS-only disabled",
 			domain: &Domain{
-				Project:   "project",
-				Group:     "group",
-				HTTPSOnly: false,
+				Project:       "project",
+				Group:         "group",
+				ProjectConfig: &ProjectConfig{HTTPSOnly: false},
 			},
 			url:      "http://custom-domain",
 			expected: false,
@@ -103,9 +103,9 @@ func TestHasAcmeChallenge(t *testing.T) {
 		{
 			name: "Project containing acme challenge",
 			domain: &Domain{
-				Group:     "group.acme",
-				Project:   "with.acme.challenge",
-				HTTPSOnly: true,
+				Group:         "group.acme",
+				Project:       "with.acme.challenge",
+				ProjectConfig: &ProjectConfig{HTTPSOnly: true},
 			},
 			token:    "existingtoken",
 			expected: true,
@@ -113,9 +113,9 @@ func TestHasAcmeChallenge(t *testing.T) {
 		{
 			name: "Project containing acme challenge",
 			domain: &Domain{
-				Group:     "group.acme",
-				Project:   "with.acme.challenge",
-				HTTPSOnly: true,
+				Group:         "group.acme",
+				Project:       "with.acme.challenge",
+				ProjectConfig: &ProjectConfig{HTTPSOnly: true},
 			},
 			token:    "foldertoken",
 			expected: true,
@@ -123,9 +123,9 @@ func TestHasAcmeChallenge(t *testing.T) {
 		{
 			name: "Project containing another token",
 			domain: &Domain{
-				Group:     "group.acme",
-				Project:   "with.acme.challenge",
-				HTTPSOnly: true,
+				Group:         "group.acme",
+				Project:       "with.acme.challenge",
+				ProjectConfig: &ProjectConfig{HTTPSOnly: true},
 			},
 			token:    "notexistingtoken",
 			expected: false,
@@ -136,15 +136,15 @@ func TestHasAcmeChallenge(t *testing.T) {
 			token:    "existingtoken",
 			expected: false,
 		},
-		// { TODO ask someone why this tests needs to be passing
-		// 	name: "Domain without config",
-		// 	domain: &Domain{
-		// 		Group:   "group.acme",
-		// 		Project: "with.acme.challenge",
-		// 	},
-		// 	token:    "existingtoken",
-		// 	expected: false,
-		// },
+		{
+			name: "Domain without config",
+			domain: &Domain{
+				Group:   "group.acme",
+				Project: "with.acme.challenge",
+			},
+			token:    "existingtoken",
+			expected: false,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -185,9 +185,9 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &Domain{
-		Group:      "group.404",
-		Project:    "domain.404",
-		DomainName: "domain.404.com",
+		Group:         "group.404",
+		Project:       "domain.404",
+		ProjectConfig: &ProjectConfig{DomainName: "domain.404.com"},
 	}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
@@ -218,9 +218,9 @@ func TestGroupCertificate(t *testing.T) {
 
 func TestDomainNoCertificate(t *testing.T) {
 	testDomain := &Domain{
-		Group:      "group",
-		Project:    "project2",
-		DomainName: "test.domain.com",
+		Group:         "group",
+		Project:       "project2",
+		ProjectConfig: &ProjectConfig{DomainName: "test.domain.com"},
 	}
 
 	tls, err := testDomain.EnsureCertificate()
@@ -234,11 +234,13 @@ func TestDomainNoCertificate(t *testing.T) {
 
 func TestDomainCertificate(t *testing.T) {
 	testDomain := &Domain{
-		Group:       "group",
-		Project:     "project2",
-		DomainName:  "test.domain.com",
-		Certificate: fixture.Certificate,
-		Key:         fixture.Key,
+		Group:   "group",
+		Project: "project2",
+		ProjectConfig: &ProjectConfig{
+			DomainName:  "test.domain.com",
+			Certificate: fixture.Certificate,
+			Key:         fixture.Key,
+		},
 	}
 
 	tls, err := testDomain.EnsureCertificate()
