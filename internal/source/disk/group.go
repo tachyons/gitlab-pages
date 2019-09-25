@@ -28,10 +28,10 @@ type Group struct {
 	projects projects
 }
 
-type projects map[string]*ProjectConfig
+type projects map[string]*projectConfig
 type subgroups map[string]*Group
 
-func (g *Group) digProjectWithSubpath(parentPath string, keys []string) (*ProjectConfig, string, string) {
+func (g *Group) digProjectWithSubpath(parentPath string, keys []string) (*projectConfig, string, string) {
 	if len(keys) >= 1 {
 		head := keys[0]
 		tail := keys[1:]
@@ -52,7 +52,7 @@ func (g *Group) digProjectWithSubpath(parentPath string, keys []string) (*Projec
 
 // Look up a project inside the domain based on the host and path. Returns the
 // project and its name (if applicable)
-func (g *Group) getProjectConfigWithSubpath(r *http.Request) (*ProjectConfig, string, string) {
+func (g *Group) getProjectConfigWithSubpath(r *http.Request) (*projectConfig, string, string) {
 	// Check for a project specified in the URL: http://group.gitlab.io/projectA
 	// If present, these projects shadow the group domain.
 	split := strings.SplitN(r.URL.Path, "/", maxProjectDepth)

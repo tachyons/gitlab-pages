@@ -13,53 +13,53 @@ const configFile = "test-group/test-project/config.json"
 const invalidConfig = `{"Domains":{}}`
 const validConfig = `{"Domains":[{"Domain":"test"}]}`
 
-func TestDomainConfigValidness(t *testing.T) {
-	d := DomainConfig{}
+func TestdomainConfigValidness(t *testing.T) {
+	d := domainConfig{}
 	require.False(t, d.Valid("gitlab.io"))
 
-	d = DomainConfig{Domain: "test"}
+	d = domainConfig{Domain: "test"}
 	require.True(t, d.Valid("gitlab.io"))
 
-	d = DomainConfig{Domain: "test"}
+	d = domainConfig{Domain: "test"}
 	require.True(t, d.Valid("gitlab.io"))
 
-	d = DomainConfig{Domain: "test.gitlab.io"}
+	d = domainConfig{Domain: "test.gitlab.io"}
 	require.False(t, d.Valid("gitlab.io"))
 
-	d = DomainConfig{Domain: "test.test.gitlab.io"}
+	d = domainConfig{Domain: "test.test.gitlab.io"}
 	require.False(t, d.Valid("gitlab.io"))
 
-	d = DomainConfig{Domain: "test.testgitlab.io"}
+	d = domainConfig{Domain: "test.testgitlab.io"}
 	require.True(t, d.Valid("gitlab.io"))
 
-	d = DomainConfig{Domain: "test.GitLab.Io"}
+	d = domainConfig{Domain: "test.GitLab.Io"}
 	require.False(t, d.Valid("gitlab.io"))
 }
 
-func TestDomainConfigRead(t *testing.T) {
+func TestdomainConfigRead(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	d := MultiDomainConfig{}
+	d := multiDomainConfig{}
 	err := d.Read("test-group", "test-project")
 	require.Error(t, err)
 
 	os.MkdirAll(filepath.Dir(configFile), 0700)
 	defer os.RemoveAll("test-group")
 
-	d = MultiDomainConfig{}
+	d = multiDomainConfig{}
 	err = d.Read("test-group", "test-project")
 	require.Error(t, err)
 
 	err = ioutil.WriteFile(configFile, []byte(invalidConfig), 0600)
 	require.NoError(t, err)
-	d = MultiDomainConfig{}
+	d = multiDomainConfig{}
 	err = d.Read("test-group", "test-project")
 	require.Error(t, err)
 
 	err = ioutil.WriteFile(configFile, []byte(validConfig), 0600)
 	require.NoError(t, err)
-	d = MultiDomainConfig{}
+	d = multiDomainConfig{}
 	err = d.Read("test-group", "test-project")
 	require.NoError(t, err)
 }

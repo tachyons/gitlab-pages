@@ -31,11 +31,11 @@ func testGroupServeHTTPHost(t *testing.T, host string) {
 		Group:   "group",
 		GroupConfig: &Group{
 			name: "group",
-			projects: map[string]*ProjectConfig{
-				"group.test.io":            &ProjectConfig{},
-				"group.gitlab-example.com": &ProjectConfig{},
-				"project":                  &ProjectConfig{},
-				"project2":                 &ProjectConfig{},
+			projects: map[string]*projectConfig{
+				"group.test.io":            &projectConfig{},
+				"group.gitlab-example.com": &projectConfig{},
+				"project":                  &projectConfig{},
+				"project2":                 &projectConfig{},
 			},
 		},
 	}
@@ -112,7 +112,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 				Project: "project",
 				GroupConfig: &Group{
 					name:     "group",
-					projects: projects{"test-domain": &ProjectConfig{HTTPSOnly: true}},
+					projects: projects{"test-domain": &projectConfig{HTTPSOnly: true}},
 				},
 			},
 			url:      "http://test-domain",
@@ -125,7 +125,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 				Project: "project",
 				GroupConfig: &Group{
 					name:     "group",
-					projects: projects{"test-domain": &ProjectConfig{HTTPSOnly: false}},
+					projects: projects{"test-domain": &projectConfig{HTTPSOnly: false}},
 				},
 			},
 			url:      "http://test-domain",
@@ -138,7 +138,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 				Group:   "group",
 				GroupConfig: &Group{
 					name:     "group",
-					projects: projects{"test-domain": &ProjectConfig{HTTPSOnly: true}},
+					projects: projects{"test-domain": &projectConfig{HTTPSOnly: true}},
 				},
 			},
 			url:      "http://Test-domain",
@@ -151,7 +151,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 				Group:   "group",
 				GroupConfig: &Group{
 					name:     "group",
-					projects: projects{"project": &ProjectConfig{HTTPSOnly: true}},
+					projects: projects{"project": &projectConfig{HTTPSOnly: true}},
 				},
 			},
 			url:      "http://test-domain/project",
@@ -164,7 +164,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 				Group:   "group",
 				GroupConfig: &Group{
 					name:     "group",
-					projects: projects{"project": &ProjectConfig{HTTPSOnly: false}},
+					projects: projects{"project": &projectConfig{HTTPSOnly: false}},
 				},
 			},
 			url:      "http://test-domain/project",
@@ -225,11 +225,11 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 		Group:   "group",
 		GroupConfig: &Group{
 			name: "group",
-			projects: map[string]*ProjectConfig{
-				"group.test.io":            &ProjectConfig{},
-				"group.gitlab-example.com": &ProjectConfig{},
-				"project":                  &ProjectConfig{},
-				"project2":                 &ProjectConfig{},
+			projects: map[string]*projectConfig{
+				"group.test.io":            &projectConfig{},
+				"group.gitlab-example.com": &projectConfig{},
+				"project":                  &projectConfig{},
+				"project2":                 &projectConfig{},
 			},
 		},
 	}
@@ -293,12 +293,12 @@ func TestGroup404ServeHTTP(t *testing.T) {
 		Group:   "group.404",
 		GroupConfig: &Group{
 			name: "group.404",
-			projects: map[string]*ProjectConfig{
-				"domain.404":          &ProjectConfig{},
-				"group.404.test.io":   &ProjectConfig{},
-				"project.404":         &ProjectConfig{},
-				"project.404.symlink": &ProjectConfig{},
-				"project.no.404":      &ProjectConfig{},
+			projects: map[string]*projectConfig{
+				"domain.404":          &projectConfig{},
+				"group.404.test.io":   &projectConfig{},
+				"project.404":         &projectConfig{},
+				"project.404.symlink": &projectConfig{},
+				"project.no.404":      &projectConfig{},
 			},
 		},
 	}
@@ -389,8 +389,8 @@ func TestCacheControlHeaders(t *testing.T) {
 		Group: "group",
 		GroupConfig: &Group{
 			name: "group",
-			projects: map[string]*ProjectConfig{
-				"group.test.io": &ProjectConfig{},
+			projects: map[string]*projectConfig{
+				"group.test.io": &projectConfig{},
 			},
 		},
 	}
