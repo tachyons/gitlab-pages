@@ -8,13 +8,13 @@ import (
 )
 
 func TestGroupDig(t *testing.T) {
-	matchingProject := &ProjectConfig{ID: 1}
+	matchingProject := &projectConfig{ID: 1}
 
 	tests := []struct {
 		name                string
 		g                   Group
 		path                string
-		expectedProject     *ProjectConfig
+		expectedProject     *projectConfig
 		expectedProjectPath string
 		expectedPath        string
 	}{
@@ -49,7 +49,7 @@ func TestGroupDig(t *testing.T) {
 				projects: projects{"projectb": matchingProject},
 				subgroups: subgroups{
 					"sub1": &Group{
-						projects: projects{"another": &ProjectConfig{}},
+						projects: projects{"another": &projectConfig{}},
 					},
 				},
 			},
@@ -66,7 +66,7 @@ func TestGroupDig(t *testing.T) {
 						projects: projects{"projectb": matchingProject},
 					},
 				},
-				projects: projects{"another": &ProjectConfig{}},
+				projects: projects{"another": &projectConfig{}},
 			},
 			expectedProject:     matchingProject,
 			expectedProjectPath: "sub1/projectb",
@@ -78,7 +78,7 @@ func TestGroupDig(t *testing.T) {
 			g: Group{
 				subgroups: subgroups{
 					"sub1": &Group{
-						projects: projects{"another": &ProjectConfig{}},
+						projects: projects{"another": &projectConfig{}},
 					},
 				},
 			},

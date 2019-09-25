@@ -35,7 +35,7 @@ func (dm Map) updateDomainMap(domainName string, domain *domain.Domain) {
 	dm[domainName] = domain
 }
 
-func (dm Map) addDomain(rootDomain, groupName, projectName string, config *DomainConfig) {
+func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
 	newDomain := &domain.Domain{
 		Group:   groupName,
 		Project: projectName,
@@ -88,7 +88,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 		g = subgroup
 	}
 
-	g.projects[projectName] = &ProjectConfig{
+	g.projects[projectName] = &projectConfig{
 		NamespaceProject: domainName == projectName,
 		HTTPSOnly:        httpsOnly,
 		AccessControl:    accessControl,
@@ -98,7 +98,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 	dm[domainName] = groupDomain
 }
 
-func (dm Map) readProjectConfig(rootDomain string, group, projectName string, config *MultiDomainConfig) {
+func (dm Map) readProjectConfig(rootDomain string, group, projectName string, config *multiDomainConfig) {
 	if config == nil {
 		// This is necessary to preserve the previous behaviour where a
 		// group domain is created even if no config.json files are
@@ -140,7 +140,7 @@ func readProject(group, parent, projectName string, level int, fanIn chan<- jobR
 
 	// We read the config.json file _before_ fanning in, because it does disk
 	// IO and it does not need access to the domains map.
-	config := &MultiDomainConfig{}
+	config := &multiDomainConfig{}
 	if err := config.Read(group, projectPath); err != nil {
 		config = nil
 	}
@@ -172,7 +172,7 @@ func readProjects(group, parent string, level int, buf []byte, fanIn chan<- jobR
 type jobResult struct {
 	group   string
 	project string
-	config  *MultiDomainConfig
+	config  *multiDomainConfig
 }
 
 // ReadGroups walks the pages directory and populates dm with all the domains it finds.
