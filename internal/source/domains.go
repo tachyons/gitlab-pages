@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/groups"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 )
 
 // Domains struct represents a map of all domains supported by pages. It is
 // currently reading them from disk.
 type Domains struct {
-	dm   groups.Map
+	dm   disk.Map
 	lock sync.RWMutex
 }
 
@@ -45,10 +45,10 @@ func (d *Domains) Ready() bool {
 // Watch starts the domain source, in this case it is reading domains from
 // groups on disk concurrently
 func (d *Domains) Watch(rootDomain string) {
-	go groups.Watch(rootDomain, d.updateDomains, time.Second)
+	go disk.Watch(rootDomain, d.updateDomains, time.Second)
 }
 
-func (d *Domains) updateDomains(dm groups.Map) {
+func (d *Domains) updateDomains(dm disk.Map) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
