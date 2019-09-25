@@ -82,9 +82,9 @@ func TestDomainServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &domain.Domain{
-		Group:      "group",
-		Project:    "project2",
-		DomainName: "test.domain.com",
+		Group:         "group",
+		Project:       "project2",
+		ProjectConfig: &domain.ProjectConfig{DomainName: "test.domain.com"},
 	}
 
 	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/", nil, "project2-main")
@@ -319,9 +319,9 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &domain.Domain{
-		Project:    "domain.404",
-		Group:      "group.404",
-		DomainName: "domain.404.com",
+		Project:       "domain.404",
+		Group:         "group.404",
+		ProjectConfig: &domain.ProjectConfig{DomainName: "domain.404.com"},
 	}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
@@ -352,9 +352,9 @@ func TestGroupCertificate(t *testing.T) {
 
 func TestDomainNoCertificate(t *testing.T) {
 	testDomain := &domain.Domain{
-		Group:      "group",
-		Project:    "project2",
-		DomainName: "test.domain.com",
+		Group:         "group",
+		Project:       "project2",
+		ProjectConfig: &domain.ProjectConfig{DomainName: "test.domain.com"},
 	}
 
 	tls, err := testDomain.EnsureCertificate()
@@ -368,11 +368,12 @@ func TestDomainNoCertificate(t *testing.T) {
 
 func TestDomainCertificate(t *testing.T) {
 	testDomain := &domain.Domain{
-		Project:     "project2",
-		Group:       "group",
-		DomainName:  "test.domain.com",
-		Certificate: fixture.Certificate,
-		Key:         fixture.Key,
+		Project: "project2",
+		Group:   "group",
+		ProjectConfig: &domain.ProjectConfig{DomainName: "test.domain.com",
+			Certificate: fixture.Certificate,
+			Key:         fixture.Key,
+		},
 	}
 
 	tls, err := testDomain.EnsureCertificate()
