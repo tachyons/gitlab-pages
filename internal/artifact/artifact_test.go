@@ -15,7 +15,83 @@ import (
 func TestTryMakeRequest(t *testing.T) {
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
 	contentType := "text/html; charset=utf-8"
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testServer := makeArtifactServerStub(t, content, contentType)
+	defer testServer.Close()
+
+	cases := []struct {
+		Path         string
+		Token        string
+		Status       int
+		Content      string
+		Length       string
+		CacheControl string
+		ContentType  string
+		Description  string
+	}{
+		{
+			"/200.html",
+			"",
+			http.StatusOK,
+			content,
+			"90",
+			"max-age=3600",
+			"text/html; charset=utf-8",
+			"basic successful request",
+		},
+		{
+			"/200.html",
+			"token",
+			http.StatusOK,
+			content,
+			"90",
+			"",
+			"text/html; charset=utf-8",
+			"basic successful request",
+		},
+		{
+			"/max-caching.html",
+			"",
+			http.StatusIMUsed,
+			content,
+			"90",
+			"max-age=3600",
+			"text/html; charset=utf-8",
+			"max caching request",
+		},
+		{
+			"/non-caching.html",
+			"",
+			http.StatusTeapot,
+			content,
+			"90",
+			"",
+			"text/html; charset=utf-8",
+			"no caching request",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Description, func(t *testing.T) {
+			result := httptest.NewRecorder()
+			reqURL, err := url.Parse("/-/subgroup/project/-/jobs/1/artifacts" + c.Path)
+			require.NoError(t, err)
+			r := &http.Request{URL: reqURL}
+			art := artifact.New(testServer.URL, 1, "gitlab-example.io")
+
+			require.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r, c.Token, func(resp *http.Response) bool { return false }))
+			require.Equal(t, c.Status, result.Code)
+			require.Equal(t, c.ContentType, result.Header().Get("Content-Type"))
+			require.Equal(t, c.Length, result.Header().Get("Content-Length"))
+			require.Equal(t, c.CacheControl, result.Header().Get("Cache-Control"))
+			require.Equal(t, c.Content, string(result.Body.Bytes()))
+
+		})
+	}
+}
+
+// provide stub for testing different artifact responses
+func makeArtifactServerStub(t *testing.T, content string, contentType string) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", contentType)
 		switch r.URL.RawPath {
 		case "/projects/group%2Fsubgroup%2Fproject/jobs/1/artifacts/200.html":
@@ -34,63 +110,6 @@ func TestTryMakeRequest(t *testing.T) {
 		}
 		fmt.Fprint(w, content)
 	}))
-	defer testServer.Close()
-
-	cases := []struct {
-		Path         string
-		Status       int
-		Content      string
-		Length       string
-		CacheControl string
-		ContentType  string
-		Description  string
-	}{
-		{
-			"/200.html",
-			http.StatusOK,
-			content,
-			"90",
-			"max-age=3600",
-			"text/html; charset=utf-8",
-			"basic successful request",
-		},
-		{
-			"/max-caching.html",
-			http.StatusIMUsed,
-			content,
-			"90",
-			"max-age=3600",
-			"text/html; charset=utf-8",
-			"max caching request",
-		},
-		{
-			"/non-caching.html",
-			http.StatusTeapot,
-			content,
-			"90",
-			"",
-			"text/html; charset=utf-8",
-			"no caching request",
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.Description, func(t *testing.T) {
-			result := httptest.NewRecorder()
-			reqURL, err := url.Parse("/-/subgroup/project/-/jobs/1/artifacts" + c.Path)
-			require.NoError(t, err)
-			r := &http.Request{URL: reqURL}
-			art := artifact.New(testServer.URL, 1, "gitlab-example.io")
-
-			require.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r))
-			require.Equal(t, c.Status, result.Code)
-			require.Equal(t, c.ContentType, result.Header().Get("Content-Type"))
-			require.Equal(t, c.Length, result.Header().Get("Content-Length"))
-			require.Equal(t, c.CacheControl, result.Header().Get("Cache-Control"))
-			require.Equal(t, c.Content, string(result.Body.Bytes()))
-
-		})
-	}
 }
 
 func TestBuildURL(t *testing.T) {

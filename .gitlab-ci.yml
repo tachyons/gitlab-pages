@@ -56,6 +56,7 @@ verify:
   needs: ['download deps']
   script:
     - make setup
+    - make generate-mocks
     - make verify
     - make cover
   artifacts:

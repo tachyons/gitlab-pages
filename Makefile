@@ -2,7 +2,7 @@ IMPORT_PATH := gitlab.com/gitlab-org/gitlab-pages
 V := 1
 
 # Space separated patterns of packages to skip in list, test, fmt.
-IGNORED_PACKAGES := /vendor/ /internal/httputil/
+IGNORED_PACKAGES := /vendor/ /internal/httputil/ /internal/mocks/
 
 # GitLab Pages is statically compiled without CGO to help it in chroot mode
 export CGO_ENABLED := 0
