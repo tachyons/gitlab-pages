@@ -3,7 +3,8 @@
 set -e
 
 echo "Starting unicorn"
-/srv/gitlab/bin/bundle exec unicorn -E production -c /srv/gitlab/config/unicorn.rb /srv/gitlab/config.ru &
+/srv/gitlab/bin/bundle exec unicorn -E production -c /srv/gitlab/config/unicorn.rb /srv/gitlab/config.ru \
+    2>&1 > /var/log/gitlab/unicorn-process.log &
 
 tail -f /var/log/gitlab/*
 

@@ -104,7 +104,7 @@ RUN mv /srv/gitlab/log /var/log/gitlab \
     && chmod -R ug+rwX shared/pages/ \
     && chmod 0700 public/uploads \
     && sed -e '/host: localhost/d' -e '/port: 80/d' -i config/gitlab.yml \
-    && sed -e "s/# user:.*/user: ${GITLAB_USER}/" -e "s:/home/git/repositories:${DATADIR}/repo:" -i config/gitlab.yml
+    && sed -e "s/# user:.*/user: ${GITLAB_USER}/" -e "s:/home/git/repositories:${GITLAB_DATA}/repo:" -i config/gitlab.yml
 
 ENV RAILS_ENV=production
 ENV EXECJS_RUNTIME=Disabled
