@@ -1,3 +1,7 @@
+v 1.10.0
+
+- Add support for previewing artifacts that are not public !134
+
 v 1.9.0
 
 - Add full HTTP metrics and logging to GitLab pages using LabKit
