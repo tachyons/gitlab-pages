@@ -24,6 +24,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	headerConfig "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -51,6 +52,7 @@ type theApp struct {
 	lock           sync.RWMutex
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
+	Handlers       *handlers.Handlers
 	AcmeMiddleware *acme.Middleware
 	CustomHeaders  http.Header
 }
@@ -145,9 +147,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	// In the event a host is prefixed with the artifact prefix an artifact
-	// value is created, and an attempt to proxy the request is made
-	if a.Artifact.TryMakeRequest(host, w, r) {
+	if a.Handlers.HandleArtifactRequest(host, w, r) {
 		return true
 	}
 
@@ -487,6 +487,8 @@ func runApp(config appConfig) {
 		a.Auth = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
 			config.RedirectURI, config.GitLabServer)
 	}
+
+	a.Handlers = handlers.New(a.Auth, a.Artifact)
 
 	if config.GitLabServer != "" {
 		a.AcmeMiddleware = &acme.Middleware{GitlabURL: config.GitLabServer}

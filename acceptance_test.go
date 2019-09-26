@@ -596,6 +596,143 @@ func TestArtifactProxyRequest(t *testing.T) {
 	}
 }
 
+func TestPrivateArtifactProxyRequest(t *testing.T) {
+	skipUnlessEnabled(t, "not-inplace-chroot")
+
+	setupTransport(t)
+
+	testServer := makeGitLabPagesAccessStub(t)
+
+	keyFile, certFile := CreateHTTPSFixtureFiles(t)
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	require.NoError(t, err)
+	defer os.Remove(keyFile)
+	defer os.Remove(certFile)
+
+	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+	testServer.StartTLS()
+	defer testServer.Close()
+
+	cases := []struct {
+		Host         string
+		Path         string
+		Status       int
+		BinaryOption string
+		Description  string
+	}{
+		{
+			"group.gitlab-example.com",
+			"/-/private/-/jobs/1/artifacts/200.html",
+			http.StatusOK,
+			"",
+			"basic proxied request for private project",
+		},
+		{
+			"group.gitlab-example.com",
+			"/-/subgroup/private/-/jobs/1/artifacts/200.html",
+			http.StatusOK,
+			"",
+			"basic proxied request for subgroup",
+		},
+		{
+			"group.gitlab-example.com",
+			"/-/private/-/jobs/1/artifacts/delayed_200.html",
+			http.StatusBadGateway,
+			"-artifacts-server-timeout=1",
+			"502 error while attempting to proxy",
+		},
+		{
+			"group.gitlab-example.com",
+			"/-/private/-/jobs/1/artifacts/404.html",
+			http.StatusNotFound,
+			"",
+			"Proxying 404 from server",
+		},
+		{
+			"group.gitlab-example.com",
+			"/-/private/-/jobs/1/artifacts/500.html",
+			http.StatusInternalServerError,
+			"",
+			"Proxying 500 from server",
+		},
+	}
+
+	// Ensure the IP address is used in the URL, as we're relying on IP SANs to
+	// validate
+	artifactServerURL := testServer.URL + "/api/v4"
+	t.Log("Artifact server URL", artifactServerURL)
+
+	for _, c := range cases {
+
+		t.Run(fmt.Sprintf("Proxy Request Test with AC: %s", c.Description), func(t *testing.T) {
+			teardown := RunPagesProcessWithSSLCertFile(
+				t,
+				*pagesBinary,
+				listeners,
+				"",
+				certFile,
+				"-artifacts-server="+artifactServerURL,
+				"-auth-client-id=1",
+				"-auth-client-secret=1",
+				"-auth-server="+testServer.URL,
+				"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
+				"-auth-secret=something-very-secret",
+				c.BinaryOption,
+			)
+			defer teardown()
+
+			resp, err := GetRedirectPage(t, httpListener, c.Host, c.Path)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			require.Equal(t, http.StatusFound, resp.StatusCode)
+
+			cookie := resp.Header.Get("Set-Cookie")
+
+			// Redirects to the projects under gitlab pages domain for authentication flow
+			url, err := url.Parse(resp.Header.Get("Location"))
+			require.NoError(t, err)
+			require.Equal(t, "projects.gitlab-example.com", url.Host)
+			require.Equal(t, "/auth", url.Path)
+			state := url.Query().Get("state")
+
+			resp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
+
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			require.Equal(t, http.StatusFound, resp.StatusCode)
+			pagesDomainCookie := resp.Header.Get("Set-Cookie")
+
+			// Go to auth page with correct state will cause fetching the token
+			authrsp, err := GetRedirectPageWithCookie(t, httpsListener, "projects.gitlab-example.com", "/auth?code=1&state="+
+				state, pagesDomainCookie)
+
+			require.NoError(t, err)
+			defer authrsp.Body.Close()
+
+			// Will redirect auth callback to correct host
+			url, err = url.Parse(authrsp.Header.Get("Location"))
+			require.NoError(t, err)
+			require.Equal(t, c.Host, url.Host)
+			require.Equal(t, "/auth", url.Path)
+
+			// Request auth callback in project domain
+			authrsp, err = GetRedirectPageWithCookie(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery, cookie)
+
+			// server returns the ticket, user will be redirected to the project page
+			require.Equal(t, http.StatusFound, authrsp.StatusCode)
+			cookie = authrsp.Header.Get("Set-Cookie")
+			resp, err = GetRedirectPageWithCookie(t, httpsListener, c.Host, c.Path, cookie)
+
+			require.Equal(t, c.Status, resp.StatusCode)
+
+			require.NoError(t, err)
+			defer resp.Body.Close()
+		})
+	}
+}
+
 func TestEnvironmentVariablesConfig(t *testing.T) {
 	skipUnlessEnabled(t)
 	os.Setenv("LISTEN_HTTP", net.JoinHostPort(httpListener.Host, httpListener.Port))
@@ -778,10 +915,6 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 //   2000-2999: Unauthorized
 //   3000-3999: Invalid token
 func makeGitLabPagesAccessStub(t *testing.T) *httptest.Server {
-	allowedProjects := regexp.MustCompile(`/api/v4/projects/1\d{3}/pages_access`)
-	deniedProjects := regexp.MustCompile(`/api/v4/projects/2\d{3}/pages_access`)
-	invalidTokenProjects := regexp.MustCompile(`/api/v4/projects/3\d{3}/pages_access`)
-
 	return httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/oauth/token":
@@ -792,22 +925,10 @@ func makeGitLabPagesAccessStub(t *testing.T) *httptest.Server {
 			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
-			switch {
-			case allowedProjects.MatchString(r.URL.Path):
-				require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-				w.WriteHeader(http.StatusOK)
-			case deniedProjects.MatchString(r.URL.Path):
-				require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-				w.WriteHeader(http.StatusUnauthorized)
-			case invalidTokenProjects.MatchString(r.URL.Path):
-				require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-				w.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
-			default:
-				t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
-				w.Header().Set("Content-Type", "text/html; charset=utf-8")
-				w.WriteHeader(http.StatusNotFound)
+			if handleAccessControlArtifactRequests(t, w, r) {
+				return
 			}
+			handleAccessControlRequests(t, w, r)
 		}
 	}))
 }
@@ -876,6 +997,72 @@ func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
 			require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 		},
 	)
+}
+
+func handleAccessControlArtifactRequests(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
+	authorization := r.Header.Get("Authorization")
+
+	switch {
+	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/delayed_200.html`).MatchString(r.URL.Path):
+		sleepIfAuthorized(t, authorization, w)
+		return true
+	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/404.html`).MatchString(r.URL.Path):
+		w.WriteHeader(http.StatusNotFound)
+		return true
+	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/500.html`).MatchString(r.URL.Path):
+		returnIfAuthorized(t, authorization, w, http.StatusInternalServerError)
+		return true
+	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/200.html`).MatchString(r.URL.Path):
+		returnIfAuthorized(t, authorization, w, http.StatusOK)
+		return true
+	case regexp.MustCompile(`/api/v4/projects/group/subgroup/private/jobs/\d+/artifacts/200.html`).MatchString(r.URL.Path):
+		returnIfAuthorized(t, authorization, w, http.StatusOK)
+		return true
+	default:
+		return false
+	}
+}
+
+func handleAccessControlRequests(t *testing.T, w http.ResponseWriter, r *http.Request) {
+	allowedProjects := regexp.MustCompile(`/api/v4/projects/1\d{3}/pages_access`)
+	deniedProjects := regexp.MustCompile(`/api/v4/projects/2\d{3}/pages_access`)
+	invalidTokenProjects := regexp.MustCompile(`/api/v4/projects/3\d{3}/pages_access`)
+
+	switch {
+	case allowedProjects.MatchString(r.URL.Path):
+		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	case deniedProjects.MatchString(r.URL.Path):
+		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusUnauthorized)
+	case invalidTokenProjects.MatchString(r.URL.Path):
+		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
+	default:
+		t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+func returnIfAuthorized(t *testing.T, authorization string, w http.ResponseWriter, status int) {
+	if authorization != "" {
+		require.Equal(t, "Bearer abc", authorization)
+		w.WriteHeader(status)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+func sleepIfAuthorized(t *testing.T, authorization string, w http.ResponseWriter) {
+	if authorization != "" {
+		require.Equal(t, "Bearer abc", authorization)
+		time.Sleep(2 * time.Second)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
+
 }
 
 func TestAccessControlUnderCustomDomain(t *testing.T) {
@@ -1034,14 +1221,18 @@ func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 }
 
-func TestAccessControl(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-
+func setupTransport(t *testing.T) {
 	transport := (TestHTTPSClient.Transport).(*http.Transport)
 	defer func(t time.Duration) {
 		transport.ResponseHeaderTimeout = t
 	}(transport.ResponseHeaderTimeout)
 	transport.ResponseHeaderTimeout = 5 * time.Second
+}
+
+func TestAccessControl(t *testing.T) {
+	skipUnlessEnabled(t, "not-inplace-chroot")
+
+	setupTransport(t)
 
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)

@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -332,4 +334,90 @@ func TestGenerateKeyPair(t *testing.T) {
 	require.NotEqual(t, fmt.Sprint(signingSecret), fmt.Sprint(encryptionSecret))
 	require.Equal(t, len(signingSecret), 32)
 	require.Equal(t, len(encryptionSecret), 32)
+}
+
+func TestGetTokenIfExistsWhenTokenExists(t *testing.T) {
+	store := sessions.NewCookieStore([]byte("something-very-secret"))
+	auth := New("pages.gitlab-example.com",
+		"something-very-secret",
+		"id",
+		"secret",
+		"http://pages.gitlab-example.com/auth",
+		"")
+
+	result := httptest.NewRecorder()
+	reqURL, err := url.Parse("/")
+	require.NoError(t, err)
+	r := &http.Request{URL: reqURL}
+	r = request.WithHTTPSFlag(r, false)
+
+	session, _ := store.Get(r, "gitlab-pages")
+	session.Values["access_token"] = "abc"
+	session.Save(r, result)
+
+	token, err := auth.GetTokenIfExists(result, r)
+	require.Equal(t, "abc", token)
+}
+
+func TestGetTokenIfExistsWhenTokenDoesNotExist(t *testing.T) {
+	store := sessions.NewCookieStore([]byte("something-very-secret"))
+	auth := New("pages.gitlab-example.com",
+		"something-very-secret",
+		"id",
+		"secret",
+		"http://pages.gitlab-example.com/auth",
+		"")
+
+	result := httptest.NewRecorder()
+	reqURL, err := url.Parse("http://pages.gitlab-example.com/test")
+	require.NoError(t, err)
+	r := &http.Request{URL: reqURL, Host: "pages.gitlab-example.com", RequestURI: "/test"}
+	r = request.WithHTTPSFlag(r, false)
+
+	session, _ := store.Get(r, "gitlab-pages")
+	session.Save(r, result)
+
+	token, err := auth.GetTokenIfExists(result, r)
+	require.Equal(t, "", token)
+	require.Equal(t, nil, err)
+}
+
+func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
+	auth := New("pages.gitlab-example.com",
+		"something-very-secret",
+		"id",
+		"secret",
+		"http://pages.gitlab-example.com/auth",
+		"")
+
+	result := httptest.NewRecorder()
+	reqURL, err := url.Parse("http://pages.gitlab-example.com/test")
+	require.NoError(t, err)
+	r := &http.Request{URL: reqURL, Host: "pages.gitlab-example.com", RequestURI: "/test"}
+	r = request.WithHTTPSFlag(r, false)
+
+	resp := &http.Response{StatusCode: http.StatusUnauthorized, Body: ioutil.NopCloser(bytes.NewReader([]byte("{\"error\":\"invalid_token\"}")))}
+
+	require.Equal(t, true, auth.CheckResponseForInvalidToken(result, r, resp))
+	require.Equal(t, http.StatusFound, result.Result().StatusCode)
+	require.Equal(t, "http://pages.gitlab-example.com/test", result.Header().Get("Location"))
+}
+
+func TestCheckResponseForInvalidTokenWhenNotInvalidToken(t *testing.T) {
+	auth := New("pages.gitlab-example.com",
+		"something-very-secret",
+		"id",
+		"secret",
+		"http://pages.gitlab-example.com/auth",
+		"")
+
+	result := httptest.NewRecorder()
+	reqURL, err := url.Parse("/something")
+	require.NoError(t, err)
+	r := &http.Request{URL: reqURL}
+	r = request.WithHTTPSFlag(r, false)
+
+	resp := &http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader([]byte("ok")))}
+
+	require.Equal(t, false, auth.CheckResponseForInvalidToken(result, r, resp))
 }

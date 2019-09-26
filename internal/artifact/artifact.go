@@ -1,6 +1,7 @@
 package artifact
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,8 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/gitlab-org/labkit/errortracking"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 )
 
 const (
@@ -26,7 +30,10 @@ const (
 
 var (
 	// Captures subgroup + project, job ID and artifacts path
-	pathExtractor = regexp.MustCompile(`(?i)\A/-/(.*)/-/jobs/(\d+)/artifacts(/[^?]*)\z`)
+	pathExtractor            = regexp.MustCompile(`(?i)\A/-/(.*)/-/jobs/(\d+)/artifacts(/[^?]*)\z`)
+	errCreateArtifactRequest = errors.New("Failed to create the artifact request")
+	errArtifactRequest       = errors.New("Failed to request the artifact")
+	errArtifactResponse      = errors.New("Artifact request response was not successful")
 )
 
 // Artifact proxies requests for artifact files to the GitLab artifacts API
@@ -51,8 +58,9 @@ func New(server string, timeoutSeconds int, pagesDomain string) *Artifact {
 
 // TryMakeRequest will attempt to proxy a request and write it to the argument
 // http.ResponseWriter, ultimately returning a bool that indicates if the
-// http.ResponseWriter has been written to in any capacity.
-func (a *Artifact) TryMakeRequest(host string, w http.ResponseWriter, r *http.Request) bool {
+// http.ResponseWriter has been written to in any capacity. Additional handler func
+// may be given which should return true if it did handle the response.
+func (a *Artifact) TryMakeRequest(host string, w http.ResponseWriter, r *http.Request, token string, additionalHandler func(*http.Response) bool) bool {
 	if a == nil || a.server == "" || host == "" {
 		return false
 	}
@@ -62,14 +70,33 @@ func (a *Artifact) TryMakeRequest(host string, w http.ResponseWriter, r *http.Re
 		return false
 	}
 
-	a.makeRequest(w, reqURL)
+	a.makeRequest(w, r, reqURL, token, additionalHandler)
+
 	return true
 }
 
-func (a *Artifact) makeRequest(w http.ResponseWriter, reqURL *url.URL) {
-	resp, err := a.client.Get(reqURL.String())
+func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *url.URL, token string, additionalHandler func(*http.Response) bool) {
+	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
+		logging.LogRequest(r).WithError(err).Error(errCreateArtifactRequest)
+		errortracking.Capture(err, errortracking.WithRequest(r))
+		httperrors.Serve500(w)
+		return
+	}
+
+	if token != "" {
+		req.Header.Add("Authorization", "Bearer "+token)
+	}
+	resp, err := a.client.Do(req)
+
+	if err != nil {
+		logging.LogRequest(r).WithError(err).Error(errArtifactRequest)
+		errortracking.Capture(err, errortracking.WithRequest(r))
 		httperrors.Serve502(w)
+		return
+	}
+
+	if additionalHandler(resp) {
 		return
 	}
 
@@ -79,13 +106,15 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, reqURL *url.URL) {
 	}
 
 	if resp.StatusCode == http.StatusInternalServerError {
+		logging.LogRequest(r).Error(errArtifactResponse)
+		errortracking.Capture(errArtifactResponse, errortracking.WithRequest(r))
 		httperrors.Serve500(w)
 		return
 	}
 
-	// we only cache responses within the 2xx series response codes
-	if (resp.StatusCode >= minStatusCode) && (resp.StatusCode <= maxStatusCode) {
-		w.Header().Set("Cache-Control", "max-age=3600")
+	// we only cache responses within the 2xx series response codes and that were not private
+	if token == "" {
+		addCacheHeader(w, resp)
 	}
 
 	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
@@ -93,6 +122,12 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, reqURL *url.URL) {
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 	return
+}
+
+func addCacheHeader(w http.ResponseWriter, resp *http.Response) {
+	if (resp.StatusCode >= minStatusCode) && (resp.StatusCode <= maxStatusCode) {
+		w.Header().Set("Cache-Control", "max-age=3600")
+	}
 }
 
 // BuildURL returns a pointer to a url.URL for where the request should be
