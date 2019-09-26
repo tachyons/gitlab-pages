@@ -6,6 +6,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 )
 
+// Serving is an interface used to define a serving driver
 type Serving interface {
 	ServeFileHTTP(http.ResponseWriter, *http.Request) bool
 	ServeNotFoundHTTP(http.ResponseWriter, *http.Request)

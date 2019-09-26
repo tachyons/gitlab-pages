@@ -18,6 +18,7 @@ type GroupConfig interface {
 	IsNamespaceProject(*http.Request) bool
 	ProjectID(*http.Request) uint64
 	ProjectExists(*http.Request) bool
+	ProjectWithSubpath(*http.Request) (string, string, error)
 }
 
 // Domain is a domain that gitlab-pages can serve.
@@ -27,7 +28,8 @@ type Domain struct {
 
 	GroupConfig   GroupConfig // handles group domain config
 	ProjectConfig *ProjectConfig
-	Serving       serving.Serving
+
+	serving serving.Serving
 
 	certificate      *tls.Certificate
 	certificateError error
@@ -61,6 +63,19 @@ func (d *Domain) isUnconfigured() bool {
 	}
 
 	return d.ProjectConfig == nil && d.GroupConfig == nil
+}
+
+// Serving returns domain serving driver
+func (d *Domain) Serving() serving.Serving {
+	if d.serving == nil {
+		if d.isCustomDomain() {
+			d.serving = serving.NewProjectDiskServing(d.Project, d.Group)
+		} else {
+			d.serving = serving.NewGroupDiskServing(d.Group, d.GroupConfig)
+		}
+	}
+
+	return d.serving
 }
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
@@ -100,7 +115,7 @@ func (d *Domain) HasAcmeChallenge(token string) bool {
 		return false
 	}
 
-	return d.Serving.HasAcmeChallenge(token)
+	return d.Serving().HasAcmeChallenge(token)
 }
 
 // IsNamespaceProject figures out if the request is to a namespace project
@@ -178,7 +193,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 	}
 
-	return d.Serving.ServeFileHTTP(w, r)
+	return d.Serving().ServeFileHTTP(w, r)
 }
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
@@ -188,5 +203,5 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d.Serving.ServeNotFoundHTTP(w, r)
+	d.Serving().ServeNotFoundHTTP(w, r)
 }
