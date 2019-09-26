@@ -24,11 +24,9 @@ type domainsUpdater func(Map)
 func (dm Map) updateDomainMap(domainName string, domain *domain.Domain) {
 	if old, ok := dm[domainName]; ok {
 		log.WithFields(log.Fields{
-			"domain_name":      domainName,
-			"new_group":        domain.Group,
-			"new_project_name": domain.Project,
-			"old_group":        old.Group,
-			"old_project_name": old.Project,
+			"domain_name":  domainName,
+			"new_location": domain.Location,
+			"old_location": old.Location,
 		}).Error("Duplicate domain")
 	}
 
@@ -37,21 +35,15 @@ func (dm Map) updateDomainMap(domainName string, domain *domain.Domain) {
 
 func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
 	newDomain := &domain.Domain{
-		Group:   groupName,
-		Project: projectName,
-		ProjectConfig: &domain.ProjectConfig{
-			DomainName:    config.Domain,
-			Certificate:   config.Certificate,
-			Key:           config.Key,
-			HTTPSOnly:     config.HTTPSOnly,
-			ProjectID:     config.ID,
-			AccessControl: config.AccessControl,
-		},
+		Name:            strings.ToLower(config.Domain),
+		Customized:      true, // TODO remove
+		CertificateCert: config.Certificate,
+		CertificateKey:  config.Key,
+		Location:        filepath.Join(groupName, projectName),
+		Resolver:        &customProjectResolver{config: config},
 	}
 
-	var domainName string
-	domainName = strings.ToLower(config.Domain)
-	dm.updateDomainMap(domainName, newDomain)
+	dm.updateDomainMap(newDomain.Name, newDomain)
 }
 
 func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, httpsOnly bool, accessControl bool, id uint64) {
@@ -59,21 +51,23 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 	groupDomain := dm[domainName]
 
 	if groupDomain == nil {
-		group := &Group{
+		groupResolver := &Group{
 			name:      groupName,
 			projects:  make(projects),
 			subgroups: make(subgroups),
 		}
 
 		groupDomain = &domain.Domain{
-			Group:       groupName,
-			GroupConfig: group,
+			Name:       domainName,
+			Customized: false, // TODO remove
+			Location:   groupName,
+			Resolver:   groupResolver,
 		}
 	}
 
 	split := strings.SplitN(strings.ToLower(projectPath), "/", maxProjectDepth)
 	projectName := split[len(split)-1]
-	g := groupDomain.GroupConfig.(*Group)
+	g := groupDomain.Resolver.(*Group)
 
 	for i := 0; i < len(split)-1; i++ {
 		subgroupName := split[i]

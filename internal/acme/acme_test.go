@@ -11,7 +11,7 @@ type domainStub struct {
 	hasAcmeChallenge bool
 }
 
-func (d *domainStub) HasAcmeChallenge(_ string) bool {
+func (d *domainStub) HasAcmeChallenge(_ *http.Request, _ string) bool {
 	return d.hasAcmeChallenge
 }
 

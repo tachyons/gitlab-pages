@@ -1,32 +1,23 @@
 package serving
 
 import (
-	"net/http"
-
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 )
 
 // Serving is an interface used to define a serving driver
 type Serving interface {
-	ServeFileHTTP(http.ResponseWriter, *http.Request) bool
-	ServeNotFoundHTTP(http.ResponseWriter, *http.Request)
-	HasAcmeChallenge(token string) bool
+	ServeFileHTTP(Handler) bool
+	ServeNotFoundHTTP(Handler)
+	HasAcmeChallenge(handler Handler, token string) bool
 }
 
-func NewProjectDiskServing(project, group string) Serving {
-	return &disk.Project{
-		Location: project,
-		Reader: &disk.Reader{
-			Group: group,
-		},
-	}
-}
-
-func NewGroupDiskServing(group string, resolver disk.Resolver) Serving {
-	return &disk.Group{
-		Resolver: resolver,
-		Reader: &disk.Reader{
-			Group: group,
+// NewDiskServing returns a serving instance that is capable of reading files
+// from the disk
+func NewDiskServing(domain, location string) Serving {
+	return &diskServing{
+		disk: &disk.Serving{
+			Domain: domain,
+			Reader: &disk.Reader{Location: location},
 		},
 	}
 }

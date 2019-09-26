@@ -8,48 +8,54 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
+// Reader is a disk access driver
 type Reader struct {
-	Group string
+	Location string
 }
 
-func (reader *Reader) tryFile(w http.ResponseWriter, r *http.Request, projectName string, subPath ...string) error {
-	fullPath, err := reader.resolvePath(projectName, subPath...)
+func (reader *Reader) tryFile(h handler) error {
+	fullPath, err := reader.resolvePath(h.LookupPath(), h.Subpath())
+
+	request := h.Request()
+	host := request.Host
+	urlPath := request.URL.Path
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
-		if endsWithSlash(r.URL.Path) {
-			fullPath, err = reader.resolvePath(projectName, filepath.Join(subPath...), "index.html")
+		if endsWithSlash(urlPath) {
+			fullPath, err = reader.resolvePath(h.LookupPath(), h.Subpath(), "index.html")
 		} else {
 			// Concat Host with URL.Path
-			redirectPath := "//" + r.Host + "/"
-			redirectPath += strings.TrimPrefix(r.URL.Path, "/")
+			redirectPath := "//" + host + "/"
+			redirectPath += strings.TrimPrefix(urlPath, "/")
 
 			// Ensure that there's always "/" at end
 			redirectPath = strings.TrimSuffix(redirectPath, "/") + "/"
-			http.Redirect(w, r, redirectPath, 302)
+			http.Redirect(h.Writer(), h.Request(), redirectPath, 302)
 			return nil
 		}
 	}
 
 	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
-		fullPath, err = reader.resolvePath(projectName, strings.TrimSuffix(filepath.Join(subPath...), "/")+".html")
+		fullPath, err = reader.resolvePath(h.LookupPath(), strings.TrimSuffix(h.Subpath(), "/")+".html")
 	}
 
 	if err != nil {
 		return err
 	}
 
-	return reader.serveFile(w, r, fullPath)
+	return reader.serveFile(h.Writer(), h.Request(), fullPath, h.HasAccessControl())
 }
 
-func (reader *Reader) tryNotFound(w http.ResponseWriter, r *http.Request, projectName string) error {
-	page404, err := reader.resolvePath(projectName, "404.html")
+func (reader *Reader) tryNotFound(h handler) error {
+	page404, err := reader.resolvePath(h.LookupPath(), "404.html")
 	if err != nil {
 		return err
 	}
 
-	err = reader.serveCustomFile(w, r, http.StatusNotFound, page404)
+	err = reader.serveCustomFile(h.Writer(), h.Request(), http.StatusNotFound, page404)
 	if err != nil {
 		return err
 	}
@@ -58,8 +64,8 @@ func (reader *Reader) tryNotFound(w http.ResponseWriter, r *http.Request, projec
 
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (reader *Reader) resolvePath(projectName string, subPath ...string) (string, error) {
-	publicPath := filepath.Join(reader.Group, projectName, "public")
+func (reader *Reader) resolvePath(lookupPath string, subPath ...string) (string, error) {
+	publicPath := filepath.Join(reader.Location, lookupPath, "public")
 
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
@@ -103,7 +109,7 @@ func (reader *Reader) resolvePath(projectName string, subPath ...string) (string
 	return fullPath, nil
 }
 
-func (reader *Reader) serveFile(w http.ResponseWriter, r *http.Request, origPath string) error {
+func (reader *Reader) serveFile(w http.ResponseWriter, r *http.Request, origPath string, accessControl bool) error {
 	fullPath := handleGZip(w, r, origPath)
 
 	file, err := openNoFollow(fullPath)
@@ -116,6 +122,12 @@ func (reader *Reader) serveFile(w http.ResponseWriter, r *http.Request, origPath
 	fi, err := file.Stat()
 	if err != nil {
 		return err
+	}
+
+	if !accessControl {
+		// Set caching headers
+		w.Header().Set("Cache-Control", "max-age=600")
+		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 	}
 
 	contentType, err := detectContentType(origPath)

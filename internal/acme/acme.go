@@ -18,7 +18,7 @@ type Middleware struct {
 
 // Domain interface represent D from domain package
 type Domain interface {
-	HasAcmeChallenge(string) bool
+	HasAcmeChallenge(*http.Request, string) bool
 }
 
 // ServeAcmeChallenges identifies if request is acme-challenge and redirects to GitLab in that case
@@ -31,7 +31,7 @@ func (m *Middleware) ServeAcmeChallenges(w http.ResponseWriter, r *http.Request,
 		return false
 	}
 
-	if domain.HasAcmeChallenge(filepath.Base(r.URL.Path)) {
+	if domain.HasAcmeChallenge(r, filepath.Base(r.URL.Path)) {
 		return false
 	}
 
