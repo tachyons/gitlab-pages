@@ -25,13 +25,6 @@ type Domain struct {
 	Group   string
 	Project string
 
-	DomainName    string
-	Certificate   string
-	Key           string
-	HTTPSOnly     bool
-	ProjectID     uint64
-	AccessControl bool
-
 	GroupConfig   GroupConfig // handles group domain config
 	ProjectConfig *ProjectConfig
 	Serving       serving.Serving
