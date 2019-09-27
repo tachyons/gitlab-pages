@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 	"golang.org/x/sys/unix"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
 
 func endsWithSlash(path string) bool {
