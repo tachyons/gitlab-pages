@@ -39,7 +39,8 @@ COPY --from=postgresql /usr/local/postgresql/lib/ /usr/lib/
 COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
 COPY --from=builder /usr/bin/gitlab-exporter /usr/bin/gitlab-exporter
 
-RUN adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps \
+    adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab ${CONFIG_DIRECTORY} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab ${CONFIG_DIRECTORY}
 
