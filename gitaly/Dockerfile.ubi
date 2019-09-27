@@ -22,6 +22,8 @@ RUN mkdir -p /ruby/{bin,lib,include} \
 FROM ${BUILD_IMAGE} AS builder
 
 ARG GITALY_VERSION=master
+ARG GITALY_NAMESPACE=gitlab-org
+ARG GITALY_PROJECT=gitaly
 ARG BUNDLE_OPTIONS="--jobs 4 --without development test"
 
 ENV LANG=C.UTF-8
@@ -30,8 +32,8 @@ COPY --from=ruby /ruby/ /usr/
 COPY --from=golang /usr/local/go/ /usr/local/go/
 COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
 
-RUN curl -L https://gitlab.com/gitlab-org/gitaly/-/archive/${GITALY_VERSION}/gitaly-${GITALY_VERSION}.tar.gz | tar -xz \
-    && cd gitaly-${GITALY_VERSION}/ruby \
+RUN curl -L https://gitlab.com/${GITALY_NAMESPACE}/${GITALY_PROJECT}/-/archive/${GITALY_VERSION}/${GITALY_PROJECT}-${GITALY_VERSION}.tar.gz | tar -xz \
+    && cd ${GITALY_PROJECT}-${GITALY_VERSION}/ruby \
     && bundle install ${BUNDLE_OPTIONS} \
     # && bundle exec gem uninstall --force google-protobuf grpc \
     # && BUNDLE_FORCE_RUBY_PLATFORM=true bundle install ${BUNDLE_OPTIONS} \

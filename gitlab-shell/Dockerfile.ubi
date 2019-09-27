@@ -17,13 +17,15 @@ RUN mkdir -p /ruby/{bin,lib,include} \
 FROM ${BUILD_IMAGE} AS builder
 
 ARG GITLAB_SHELL_VERSION=master
+ARG GITLAB_SHELL_NAMESPACE=gitlab-org
+ARG GITLAB_SHELL_PROJECT=gitlab-shell
 
 COPY --from=ruby /ruby/ /usr/
 COPY --from=golang /usr/local/go/ /usr/local/go/
 COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
 
-RUN curl -L https://gitlab.com/gitlab-org/gitlab-shell/-/archive/${GITLAB_SHELL_VERSION}/gitlab-shell-${GITLAB_SHELL_VERSION}.tar.gz | tar -xz \
-    && cd gitlab-shell-${GITLAB_SHELL_VERSION} \
+RUN curl -L https://gitlab.com/${GITLAB_SHELL_NAMESPACE}/${GITLAB_SHELL_PROJECT}/-/archive/${GITLAB_SHELL_VERSION}/${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION}.tar.gz | tar -xz \
+    && cd ${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION} \
     && ./bin/compile \
     && rm -rf go/ go_build/ spec/ \
     && cd .. && mv gitlab-shell-${GITLAB_SHELL_VERSION} /srv/gitlab-shell

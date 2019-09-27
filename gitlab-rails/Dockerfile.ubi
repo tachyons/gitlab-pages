@@ -23,6 +23,7 @@ FROM ${ASSETS_IMAGE} AS assets
 FROM ${BUILD_IMAGE} AS builder
 
 ARG GITLAB_NAMESPACE=gitlab-org
+ARG GITLAB_PROJECT=gitlab
 ARG GITLAB_EDITION=gitlab-ee
 ARG NODE_VERSION=12.9.1
 ARG YARN_VERSION=1.17.3
@@ -53,8 +54,8 @@ ENV NODE_ENV=production
 ENV USE_DB=false
 ENV SKIP_STORAGE_VALIDATION=true
 
-RUN curl -L https://gitlab.com/${GITLAB_NAMESPACE}/${GITLAB_EDITION}/-/archive/${GITLAB_VERSION}/${GITLAB_EDITION}-${GITLAB_VERSION}.tar.gz | tar -xz \
-    && cd ${GITLAB_EDITION}-${GITLAB_VERSION} \
+RUN curl -L https://gitlab.com/${GITLAB_NAMESPACE}/${GITLAB_PROJECT}/-/archive/${GITLAB_VERSION}/${GITLAB_PROJECT}-${GITLAB_VERSION}.tar.gz | tar -xz \
+    && cd ${GITLAB_PROJECT}-${GITLAB_VERSION} \
     && printf ${GITLAB_EDITION} | cut -d '-' -f 2 > REVISION \
     && printf 'gitlab-cloud-native-image' > INSTALLATION_TYPE \
     && for cfg in config/{gitlab,resque,secrets,database}.yml config/initializers/rack_attack.rb; do cp ${cfg}.example ${cfg} ; done \
