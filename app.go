@@ -461,7 +461,7 @@ func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
 }
 
 func runApp(config appConfig) {
-	a := theApp{appConfig: config, domains: new(source.Domains)}
+	a := theApp{appConfig: config, domains: source.NewDomains()}
 
 	err := logging.ConfigureLogging(a.LogFormat, a.LogVerbose)
 	if err != nil {

@@ -13,7 +13,16 @@ import (
 // currently reading them from disk.
 type Domains struct {
 	dm   disk.Map
-	lock sync.RWMutex
+	lock *sync.RWMutex
+}
+
+// NewDomains is a factory method for domains initializing a mutex. It should
+// not initialize `dm` as we later check the readiness by comparing it with a
+// nil value.
+func NewDomains() *Domains {
+	return &Domains{
+		lock: new(sync.RWMutex),
+	}
 }
 
 // GetDomain returns a domain from the domains map
