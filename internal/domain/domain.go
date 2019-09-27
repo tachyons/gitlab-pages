@@ -41,11 +41,12 @@ func (d *Domain) isUnconfigured() bool {
 }
 
 func (d *Domain) resolve(r *http.Request) (*Project, string) {
-	// TODO use lookupPaths first
+	// TODO use lookupPaths to cache information about projects better, to
+	// improve performance and resilience
 
 	project, subpath, _ := d.Resolver.Resolve(r)
-	// current implementation does not return errors in any case
 
+	// Current implementation does not return errors in any case
 	if project == nil {
 		return nil, ""
 	}
@@ -109,12 +110,16 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 
 // HasAcmeChallenge checks domain directory contains particular acme challenge
 func (d *Domain) HasAcmeChallenge(r *http.Request, token string) bool {
-	// TODO is that safe to redirect to acme challenge in GitLab if it is a grup domain/
+	// TODO is that safe to redirect to acme challenge in GitLab if it is a grup domain?
 	if d.isUnconfigured() || !d.HasProject(r) {
 		return false
 	}
 
-	return d.Serving().HasAcmeChallenge(d.toHandler(nil, r), token) // TODO
+	// TODO we should improve that, we need different type of information to
+	// check if the ACME challenge is present in the serving. We should devise a
+	// better interface here or we should to extract this responsibility
+	// somewhere else.
+	return d.Serving().HasAcmeChallenge(d.toHandler(nil, r), token)
 }
 
 // IsNamespaceProject figures out if the request is to a namespace project
