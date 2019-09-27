@@ -62,7 +62,7 @@ func (d *Domain) resolve(r *http.Request) (*Project, string) {
 	return project, subpath
 }
 
-func (d *Domain) getProject(r *http.Request) *Project {
+func (d *Domain) GetProject(r *http.Request) *Project {
 	project, _ := d.resolve(r)
 
 	return project
@@ -88,10 +88,6 @@ func (d *Domain) toHandler(w http.ResponseWriter, r *http.Request) *handler {
 	}
 }
 
-func (d *Domain) hasProject(r *http.Request) bool {
-	return d.getProject(r) != nil
-}
-
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
 func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
@@ -99,7 +95,7 @@ func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
 		return false
 	}
 
-	if project := d.getProject(r); project != nil {
+	if project := d.GetProject(r); project != nil {
 		return project.IsHTTPSOnly
 	}
 
@@ -112,7 +108,7 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 		return false
 	}
 
-	if project := d.getProject(r); project != nil {
+	if project := d.GetProject(r); project != nil {
 		return project.HasAccessControl
 	}
 
@@ -121,7 +117,7 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 
 // HasAcmeChallenge checks domain directory contains particular acme challenge
 func (d *Domain) HasAcmeChallenge(r *http.Request, token string) bool {
-	if d.isUnconfigured() || !d.isCustomDomain() || !d.hasProject(r) {
+	if d.isUnconfigured() || !d.isCustomDomain() || !d.HasProject(r) {
 		return false
 	}
 
@@ -140,7 +136,7 @@ func (d *Domain) IsNamespaceProject(r *http.Request) bool {
 		return false
 	}
 
-	if project := d.getProject(r); project != nil {
+	if project := d.GetProject(r); project != nil {
 		return project.IsNamespaceProject
 	}
 
@@ -153,7 +149,7 @@ func (d *Domain) GetID(r *http.Request) uint64 {
 		return 0
 	}
 
-	if project := d.getProject(r); project != nil {
+	if project := d.GetProject(r); project != nil {
 		return project.ID
 	}
 
@@ -166,11 +162,7 @@ func (d *Domain) HasProject(r *http.Request) bool {
 		return false
 	}
 
-	if project := d.getProject(r); project != nil {
-		return true
-	}
-
-	return false
+	return d.GetProject(r) != nil
 }
 
 // EnsureCertificate parses the PEM-encoded certificate for the domain
@@ -196,7 +188,7 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 
 // ServeFileHTTP returns true if something was served, false if not.
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
-	if d.isUnconfigured() || !d.hasProject(r) {
+	if d.isUnconfigured() || !d.HasProject(r) {
 		httperrors.Serve404(w)
 		return true
 	}
@@ -206,7 +198,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
 func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
-	if d.isUnconfigured() || !d.hasProject(r) {
+	if d.isUnconfigured() || !d.HasProject(r) {
 		httperrors.Serve404(w)
 		return
 	}
