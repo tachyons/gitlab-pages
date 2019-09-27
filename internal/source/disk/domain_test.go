@@ -362,7 +362,6 @@ func TestDomainNoCertificate(t *testing.T) {
 
 func TestDomainCertificate(t *testing.T) {
 	testDomain := &domain.Domain{
-		Customized:      true, // TODO
 		Location:        "group/project2",
 		Name:            "test.domain.com",
 		CertificateCert: fixture.Certificate,

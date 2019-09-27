@@ -36,7 +36,6 @@ func (dm Map) updateDomainMap(domainName string, domain *domain.Domain) {
 func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
 	newDomain := &domain.Domain{
 		Name:            strings.ToLower(config.Domain),
-		Customized:      true, // TODO remove
 		CertificateCert: config.Certificate,
 		CertificateKey:  config.Key,
 		Location:        filepath.Join(groupName, projectName),
@@ -58,10 +57,9 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 		}
 
 		groupDomain = &domain.Domain{
-			Name:       domainName,
-			Customized: false, // TODO remove
-			Location:   groupName,
-			Resolver:   groupResolver,
+			Name:     domainName,
+			Location: groupName,
+			Resolver: groupResolver,
 		}
 	}
 

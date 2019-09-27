@@ -16,7 +16,6 @@ type Domain struct {
 	Location        string
 	CertificateCert string
 	CertificateKey  string
-	Customized      bool // TODO we should get rid of this
 
 	Resolver Resolver
 
@@ -31,14 +30,6 @@ type Domain struct {
 // String implements Stringer.
 func (d *Domain) String() string {
 	return d.Name
-}
-
-func (d *Domain) isCustomDomain() bool {
-	if d.isUnconfigured() {
-		panic("project config and group config should not be nil at the same time")
-	}
-
-	return d.Customized
 }
 
 func (d *Domain) isUnconfigured() bool {
@@ -62,6 +53,7 @@ func (d *Domain) resolve(r *http.Request) (*Project, string) {
 	return project, subpath
 }
 
+// GetProject returns a project details based on the request
 func (d *Domain) GetProject(r *http.Request) *Project {
 	project, _ := d.resolve(r)
 
@@ -117,7 +109,8 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 
 // HasAcmeChallenge checks domain directory contains particular acme challenge
 func (d *Domain) HasAcmeChallenge(r *http.Request, token string) bool {
-	if d.isUnconfigured() || !d.isCustomDomain() || !d.HasProject(r) {
+	// TODO is that safe to redirect to acme challenge in GitLab if it is a grup domain/
+	if d.isUnconfigured() || !d.HasProject(r) {
 		return false
 	}
 
@@ -127,12 +120,6 @@ func (d *Domain) HasAcmeChallenge(r *http.Request, token string) bool {
 // IsNamespaceProject figures out if the request is to a namespace project
 func (d *Domain) IsNamespaceProject(r *http.Request) bool {
 	if d.isUnconfigured() {
-		return false
-	}
-
-	// If request is to a custom domain, we do not handle it as a namespace project
-	// as there can't be multiple projects under the same custom domain
-	if d.isCustomDomain() { // TODO do we need a separate path for this
 		return false
 	}
 
@@ -167,8 +154,7 @@ func (d *Domain) HasProject(r *http.Request) bool {
 
 // EnsureCertificate parses the PEM-encoded certificate for the domain
 func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
-	// TODO check len certificates instead of custom domain!
-	if d.isUnconfigured() || !d.isCustomDomain() {
+	if d.isUnconfigured() || len(d.CertificateKey) == 0 || len(d.CertificateCert) == 0 {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
