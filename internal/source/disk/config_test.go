@@ -13,7 +13,7 @@ const configFile = "test-group/test-project/config.json"
 const invalidConfig = `{"Domains":{}}`
 const validConfig = `{"Domains":[{"Domain":"test"}]}`
 
-func TestdomainConfigValidness(t *testing.T) {
+func TestDomainConfigValidness(t *testing.T) {
 	d := domainConfig{}
 	require.False(t, d.Valid("gitlab.io"))
 
@@ -36,7 +36,7 @@ func TestdomainConfigValidness(t *testing.T) {
 	require.False(t, d.Valid("gitlab.io"))
 }
 
-func TestdomainConfigRead(t *testing.T) {
+func TestDomainConfigRead(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
