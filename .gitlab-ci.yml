@@ -195,6 +195,7 @@ gitlab-task-runner-ee:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container"
+                      --build-arg "PYTHON_TAG=${PYTHON_VERSION}"
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
@@ -213,6 +214,7 @@ gitlab-task-runner-ce:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
                       --build-arg "TAG=$rails_container"
+                      --build-arg "PYTHON_TAG=${PYTHON_VERSION}"
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
