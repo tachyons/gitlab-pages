@@ -28,18 +28,6 @@ RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
 # create default repository directory
 RUN sudo -u ${GITLAB_USER} -H mkdir -p /home/${GITLAB_USER}/repositories
 
-# adjust git settings
-RUN sudo -u ${GITLAB_USER} -H git config --global gc.auto 0 && \
-    sudo -u ${GITLAB_USER} -H git config --global core.autocrlf input && \
-    sudo -u ${GITLAB_USER} -H git config --global core.fsyncObjectFiles true && \
-    sudo -u ${GITLAB_USER} -H git config --global repack.writeBitmaps true && \
-    sudo -u ${GITLAB_USER} -H git config --global pack.threads 1 && \
-    sudo -u ${GITLAB_USER} -H git config --global receive.fsckobjects true && \
-    sudo -u ${GITLAB_USER} -H git config --global receive.advertisepushoptions true && \
-    sudo -u ${GITLAB_USER} -H git config --global transfer.hiderefs ^refs/tmp/ && \
-    sudo -u ${GITLAB_USER} -H git config --global --add transfer.hiderefs ^refs/keep-around/ && \
-    sudo -u ${GITLAB_USER} -H git config --global --add transfer.hiderefs ^refs/remotes/
-
 # Download and compile Gitaly
 ARG CACHE_BUSTER=false
 RUN cd ${BUILD_DIR} && \
@@ -69,8 +57,9 @@ RUN mkdir -p /var/log/gitaly && \
     touch /var/log/gitaly/gitlab-shell.log && chown -R ${GITLAB_USER} /var/log/gitaly
 
 # Add scripts
-COPY scripts/  /scripts/
+COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
+COPY gitconfig /usr/local/etc/gitconfig
 
 RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /etc/gitaly /scripts
 USER ${GITLAB_USER}:${GITLAB_USER}

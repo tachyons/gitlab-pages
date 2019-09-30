@@ -1,0 +1,16 @@
+[core]
+    autocrlf = input
+    fsyncObjectFiles = true
+[gc]
+    auto = 0
+[repack]
+    writeBitmaps = true
+[pack]
+    threads = 1
+[receive]
+    fsckobjects = true
+    advertisepushoptions = true
+[transfer]
+    hiderefs = ^refs/tmp/
+    hiderefs = ^refs/keep-around/
+    hiderefs = ^refs/remotes/
