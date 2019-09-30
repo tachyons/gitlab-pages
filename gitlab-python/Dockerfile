@@ -2,7 +2,6 @@ FROM debian:stretch-slim
 
 ARG BUILD_DIR=/tmp/build
 ARG PYTHON_VERSION="3.7.3"
-ARG DOCUTILS_VERSION="0.11"
 
 RUN buildDeps=' \
   build-essential \
@@ -23,7 +22,6 @@ RUN buildDeps=' \
   ./configure --enable-shared --with-readline=editline --with-dbmliborder= && make && \
   make install && \
   ldconfig && \
-  /usr/local/bin/pip3 install --compile docutils==${DOCUTILS_VERSION} && \
   rm -rf /usr/local/lib/python/3.7/lib-dynload/dbm.* && \
   rm -rf /usr/local/lib/python/3.7/lib-dynload/_sqlite3.* && \
   rm -rf /usr/local/lib/python/3.7/test && \
