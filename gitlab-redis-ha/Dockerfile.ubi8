@@ -10,6 +10,8 @@ FROM ${BUILD_IMAGE} AS builder
 
 ARG REDIS_VERSION=3.2.12
 
+# This will make it easier to debug Redis performance issues.
+# See: https://gitlab.com/gitlab-org/omnibus-gitlab/merge_requests/3421
 ENV CFLAGS=-fno-omit-frame-pointer
 
 RUN curl -L http://download.redis.io/releases/redis-${REDIS_VERSION}.tar.gz | tar -xz \
