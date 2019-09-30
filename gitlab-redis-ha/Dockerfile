@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM debian:stretch-slim
+ARG CI_REGISTRY_IMAGE=registry.gitlab.com/gitlab-org/build/cng
+ARG KUBECTL_VERSION=v1.12.10
 
-# Add kubectl to enable sentinels to change labels during promotion
-ADD https://storage.googleapis.com/kubernetes-release/release/v1.10.4/bin/linux/amd64/kubectl /usr/local/bin/kubectl
-RUN chmod +x /usr/local/bin/kubectl
+FROM ${CI_REGISTRY_IMAGE}/kubectl:${KUBECTL_VERSION} AS kubectl
+
+FROM debian:stretch-slim
 
 ENV REDIS_VERSION 3.2.12
 
@@ -38,12 +39,10 @@ RUN apt-get update \
   && rm -rf /tmp/redis-${REDIS_VERSION} \
   && rm -rf /var/lib/apt/lists/*
 
-COPY redis-master.conf /etc/redis/master.conf
-COPY redis-slave.conf /etc/redis/slave.conf
-COPY redis-sentinel.conf /etc/redis/sentinel.conf
-COPY label-updater.sh /usr/local/bin/label-updater.sh
-COPY redis-launcher.sh /usr/local/bin/redis-launcher.sh
-COPY promote.sh /usr/local/bin/promote.sh
+# Add kubectl to enable sentinels to change labels during promotion
+COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
+
+COPY assets/ /
 
 CMD [ "touch /var/log/redis/runner.txt; chmod +w /var/log/redis/runner.txt; chmod +x /usr/local/bin/redis-launcher.sh" ]
 CMD [ "/usr/local/bin/redis-launcher.sh | tee /var/log/redis/runner.txt" ]
