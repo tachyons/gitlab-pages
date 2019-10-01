@@ -7,5 +7,5 @@ type LookupPath struct {
 	IsNamespaceProject bool
 	IsHTTPSOnly        bool
 	HasAccessControl   bool
-	ID                 uint64
+	ProjectID          uint64
 }

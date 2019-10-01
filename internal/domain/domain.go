@@ -43,21 +43,21 @@ func (d *Domain) resolve(r *http.Request) (*serving.LookupPath, string) {
 	// TODO use lookupPaths to cache information about projects better, to
 	// improve performance and resilience
 
-	project, subpath, _ := d.Resolver.Resolve(r)
+	lookupPath, subpath, _ := d.Resolver.Resolve(r)
 
 	// Current implementation does not return errors in any case
-	if project == nil {
+	if lookupPath == nil {
 		return nil, ""
 	}
 
-	return project, subpath
+	return lookupPath, subpath
 }
 
-// GetProject returns a project details based on the request
-func (d *Domain) GetProject(r *http.Request) *serving.LookupPath {
-	project, _ := d.resolve(r)
+// GetLookupPath returns a project details based on the request
+func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
+	lookupPath, _ := d.resolve(r)
 
-	return project
+	return lookupPath
 }
 
 // Serving returns domain serving driver
@@ -87,8 +87,8 @@ func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
 		return false
 	}
 
-	if project := d.GetProject(r); project != nil {
-		return project.IsHTTPSOnly
+	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
+		return lookupPath.IsHTTPSOnly
 	}
 
 	return false
@@ -100,8 +100,8 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 		return false
 	}
 
-	if project := d.GetProject(r); project != nil {
-		return project.HasAccessControl
+	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
+		return lookupPath.HasAccessControl
 	}
 
 	return false
@@ -113,33 +113,33 @@ func (d *Domain) IsNamespaceProject(r *http.Request) bool {
 		return false
 	}
 
-	if project := d.GetProject(r); project != nil {
-		return project.IsNamespaceProject
+	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
+		return lookupPath.IsNamespaceProject
 	}
 
 	return false
 }
 
-// GetID figures out what is the ID of the project user tries to access
-func (d *Domain) GetID(r *http.Request) uint64 {
+// GetProjectID figures out what is the ID of the project user tries to access
+func (d *Domain) GetProjectID(r *http.Request) uint64 {
 	if d.isUnconfigured() {
 		return 0
 	}
 
-	if project := d.GetProject(r); project != nil {
-		return project.ID
+	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
+		return lookupPath.ProjectID
 	}
 
 	return 0
 }
 
-// HasProject figures out if the project exists that the user tries to access
-func (d *Domain) HasProject(r *http.Request) bool {
+// HasLookupPath figures out if the project exists that the user tries to access
+func (d *Domain) HasLookupPath(r *http.Request) bool {
 	if d.isUnconfigured() {
 		return false
 	}
 
-	return d.GetProject(r) != nil
+	return d.GetLookupPath(r) != nil
 }
 
 // EnsureCertificate parses the PEM-encoded certificate for the domain
@@ -164,7 +164,7 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 
 // ServeFileHTTP returns true if something was served, false if not.
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
-	if d.isUnconfigured() || !d.HasProject(r) {
+	if d.isUnconfigured() || !d.HasLookupPath(r) {
 		// TODO: this seems to be wrong:
 		// as we should rather return false,
 		// and fallback to `ServeNotFoundHTTP`
@@ -178,7 +178,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
 func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
-	if d.isUnconfigured() || !d.HasProject(r) {
+	if d.isUnconfigured() || !d.HasLookupPath(r) {
 		httperrors.Serve404(w)
 		return
 	}

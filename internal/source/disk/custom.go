@@ -14,14 +14,14 @@ type customProjectResolver struct {
 
 // TODO tests
 func (p *customProjectResolver) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
-	project := &serving.LookupPath{
+	lookupPath := &serving.LookupPath{
 		Location:           "/",
 		Path:               p.path,
 		IsNamespaceProject: false,
 		IsHTTPSOnly:        p.config.HTTPSOnly,
 		HasAccessControl:   p.config.AccessControl,
-		ID:                 p.config.ID,
+		ProjectID:          p.config.ID,
 	}
 
-	return project, r.URL.Path, nil
+	return lookupPath, r.URL.Path, nil
 }

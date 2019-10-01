@@ -101,7 +101,7 @@ func (a *theApp) domain(host string) *domain.Domain {
 }
 
 func (a *theApp) checkAuthenticationIfNotExists(domain *domain.Domain, w http.ResponseWriter, r *http.Request) bool {
-	if domain == nil || !domain.HasProject(r) {
+	if domain == nil || !domain.HasLookupPath(r) {
 
 		// Only if auth is supported
 		if a.Auth.IsAuthSupported() {
@@ -231,7 +231,7 @@ func (a *theApp) accessControlMiddleware(handler http.Handler) http.Handler {
 		// Only for projects that have access control enabled
 		if domain.IsAccessControlEnabled(r) {
 			// accessControlMiddleware
-			if a.Auth.CheckAuthentication(w, r, domain.GetID(r)) {
+			if a.Auth.CheckAuthentication(w, r, domain.GetProjectID(r)) {
 				return
 			}
 		}

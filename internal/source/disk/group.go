@@ -85,14 +85,14 @@ func (g *Group) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 		return nil, "", nil // it is not an error when project does not exist
 	}
 
-	project := &serving.LookupPath{
+	lookupPath := &serving.LookupPath{
 		Location:           location,
 		Path:               filepath.Join(g.name, projectPath, "public"),
 		IsNamespaceProject: projectConfig.NamespaceProject,
 		IsHTTPSOnly:        projectConfig.HTTPSOnly,
 		HasAccessControl:   projectConfig.AccessControl,
-		ID:                 projectConfig.ID,
+		ProjectID:          projectConfig.ID,
 	}
 
-	return project, subPath, nil
+	return lookupPath, subPath, nil
 }
