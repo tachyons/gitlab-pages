@@ -3,11 +3,25 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
 FROM ${UBI_IMAGE}
 
 ARG BUILD_DIR=/tmp/build
-ARG RHEL_REPOSITORY=https://downloads.redhat.com/redhat/rhel/rhel-8-beta/rhel-8-beta.repo
+ARG LIBEDIT_VERSION=20170329-3.1
 
-RUN dnf --disableplugin=subscription-manager install -by --nodocs gcc gcc-c++ make cmake patch bzip2 zlib-devel openssl-devel curl-devel pcre2-devel libicu-devel libffi-devel \
-    && dnf --disableplugin=subscription-manager config-manager --add-repo ${RHEL_REPOSITORY} \
-    && dnf --disableplugin=subscription-manager --enablerepo=rhel-8-for-x86_64-* install -yb --nodocs readline-devel \
-    && mkdir -p ${BUILD_DIR}
+ENV LIBDIR=/usr/lib64
+ENV INCLUDEDIR=/usr/include
+
+RUN dnf --disableplugin=subscription-manager install -by --nodocs gcc gcc-c++ make cmake patch bzip2 ncurses zlib-devel libedit openssl-devel curl-devel pcre2-devel libicu-devel libffi-devel ncurses-devel \
+    && mkdir -p ${BUILD_DIR} \
+    && cd ${BUILD_DIR} \
+    # Adding libedit development headers from source.
+    # Instructions are adapted from `libedit-3.1-23.20170329cvs.el8.src.rpm` spec.
+    && curl https://thrysoee.dk/editline/libedit-${LIBEDIT_VERSION}.tar.gz | tar -xz \
+    && cd libedit-${LIBEDIT_VERSION} \
+    && ./configure --disable-static --disable-silent-rules --prefix=/usr --libdir=${LIBDIR} --includedir=${INCLUDEDIR} \
+    && sed -i 's/lncurses/ltinfo/' src/Makefile \
+    && sed -i -e 's/ -lncurses//' libedit.pc \
+    && make -j $(nproc) \
+    && cp -P src/.libs/libedit.so ${LIBDIR}/libedit.so \
+    && cp libedit.pc ${LIBDIR}/pkgconfig/ \
+    && cp src/histedit.h ${INCLUDEDIR}/ \
+    && cp -R src/editline/ ${INCLUDEDIR}/
 
 WORKDIR ${BUILD_DIR}

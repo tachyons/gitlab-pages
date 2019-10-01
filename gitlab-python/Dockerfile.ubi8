@@ -11,9 +11,9 @@ ENV LANG=C.UTF-8
 
 RUN curl -L https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz  | tar -xz \ 
     && cd Python-${PYTHON_VERSION} \
-    && ./configure --prefix=/usr/local --enable-shared LDFLAGS='-Wl,--rpath=/usr/local/lib' \
-    && make \
-    && make install \
+    && ./configure --prefix=/usr/local --enable-shared --with-readline=editline LDFLAGS='-Wl,--rpath=/usr/local/lib' \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install \
     && ldconfig \
     && rm -rf /usr/local/lib/python3.7/test \
     && find /usr/local/lib/python3.7 -name '__pycache__' -type d -exec rm -r {} + 
