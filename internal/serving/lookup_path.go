@@ -1,6 +1,6 @@
 package serving
 
-// Project holds a domain / project configuration
+// LookupPath holds a domain project configuration needed to handle a request
 type LookupPath struct {
 	Location           string
 	Path               string
