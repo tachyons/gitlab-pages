@@ -22,13 +22,14 @@ type Map map[string]*domain.Domain
 type domainsUpdater func(Map)
 
 func (dm Map) updateDomainMap(domainName string, domain *domain.Domain) {
-	if old, ok := dm[domainName]; ok {
-		log.WithFields(log.Fields{
-			"domain_name":  domainName,
-			"new_location": domain.Location,
-			"old_location": old.Location,
-		}).Error("Duplicate domain")
-	}
+	// TODOHERE:
+	// if old, ok := dm[domainName]; ok {
+	// 	log.WithFields(log.Fields{
+	// 		"domain_name": domainName,
+	// 		"new_location": domain.Location,
+	// 		"old_location": old.Location,
+	// 	}).Error("Duplicate domain")
+	// }
 
 	dm[domainName] = domain
 }
@@ -38,8 +39,10 @@ func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domai
 		Name:            strings.ToLower(config.Domain),
 		CertificateCert: config.Certificate,
 		CertificateKey:  config.Key,
-		Location:        filepath.Join(groupName, projectName),
-		Resolver:        &customProjectResolver{config: config},
+		Resolver: &customProjectResolver{
+			config: config,
+			path:   filepath.Join(groupName, projectName, "public"),
+		},
 	}
 
 	dm.updateDomainMap(newDomain.Name, newDomain)
@@ -58,7 +61,6 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 
 		groupDomain = &domain.Domain{
 			Name:     domainName,
-			Location: groupName,
 			Resolver: groupResolver,
 		}
 	}

@@ -11,16 +11,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 type stubbedResolver struct {
-	project *Project
+	project *serving.LookupPath
 	subpath string
 	err     error
 }
 
-func (resolver *stubbedResolver) Resolve(*http.Request) (*Project, string, error) {
+func (resolver *stubbedResolver) Resolve(*http.Request) (*serving.LookupPath, string, error) {
 	return resolver.project, resolver.subpath, resolver.err
 }
 
@@ -42,8 +43,12 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Custom domain with HTTPS-only enabled",
 			domain: &Domain{
-				Location: "group/project",
-				Resolver: &stubbedResolver{project: &Project{IsHTTPSOnly: true}},
+				Resolver: &stubbedResolver{
+					project: &serving.LookupPath{
+						Path:        "group/project/public",
+						IsHTTPSOnly: true,
+					},
+				},
 			},
 			url:      "http://custom-domain",
 			expected: true,
@@ -51,17 +56,19 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Custom domain with HTTPS-only disabled",
 			domain: &Domain{
-				Location: "group/project",
-				Resolver: &stubbedResolver{project: &Project{IsHTTPSOnly: false}},
+				Resolver: &stubbedResolver{
+					project: &serving.LookupPath{
+						Path:        "group/project/public",
+						IsHTTPSOnly: false,
+					},
+				},
 			},
 			url:      "http://custom-domain",
 			expected: false,
 		},
 		{
-			name: "Unknown project",
-			domain: &Domain{
-				Location: "group/project",
-			},
+			name:     "Unknown project",
+			domain:   &Domain{},
 			url:      "http://test-domain/project",
 			expected: false,
 		},
@@ -106,17 +113,13 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testDomain := &Domain{
-		Location: "group",
-	}
+	testDomain := &Domain{}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
 
 func TestGroupCertificate(t *testing.T) {
-	testGroup := &Domain{
-		Location: "group",
-	}
+	testGroup := &Domain{}
 
 	tls, err := testGroup.EnsureCertificate()
 	require.Nil(t, tls)
@@ -125,8 +128,7 @@ func TestGroupCertificate(t *testing.T) {
 
 func TestDomainNoCertificate(t *testing.T) {
 	testDomain := &Domain{
-		Name:     "test.domain.com",
-		Location: "group/project2",
+		Name: "test.domain.com",
 	}
 
 	tls, err := testDomain.EnsureCertificate()

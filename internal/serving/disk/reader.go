@@ -9,23 +9,24 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
 
 // Reader is a disk access driver
 type Reader struct {
-	Location string
 }
 
-func (reader *Reader) tryFile(h handler) error {
-	fullPath, err := reader.resolvePath(h.LookupPath(), h.Subpath())
+func (reader *Reader) tryFile(h serving.Handler) error {
+	fullPath, err := reader.resolvePath(h.LookupPath.Path, h.SubPath)
 
-	request := h.Request()
+	request := h.Request
 	host := request.Host
 	urlPath := request.URL.Path
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(urlPath) {
-			fullPath, err = reader.resolvePath(h.LookupPath(), h.Subpath(), "index.html")
+			fullPath, err = reader.resolvePath(h.LookupPath.Path, h.SubPath, "index.html")
 		} else {
 			// Concat Host with URL.Path
 			redirectPath := "//" + host + "/"
@@ -33,29 +34,29 @@ func (reader *Reader) tryFile(h handler) error {
 
 			// Ensure that there's always "/" at end
 			redirectPath = strings.TrimSuffix(redirectPath, "/") + "/"
-			http.Redirect(h.Writer(), h.Request(), redirectPath, 302)
+			http.Redirect(h.Writer, h.Request, redirectPath, 302)
 			return nil
 		}
 	}
 
 	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
-		fullPath, err = reader.resolvePath(h.LookupPath(), strings.TrimSuffix(h.Subpath(), "/")+".html")
+		fullPath, err = reader.resolvePath(h.LookupPath.Path, strings.TrimSuffix(h.SubPath, "/")+".html")
 	}
 
 	if err != nil {
 		return err
 	}
 
-	return reader.serveFile(h.Writer(), h.Request(), fullPath, h.HasAccessControl())
+	return reader.serveFile(h.Writer, h.Request, fullPath, h.LookupPath.HasAccessControl)
 }
 
-func (reader *Reader) tryNotFound(h handler) error {
-	page404, err := reader.resolvePath(h.LookupPath(), "404.html")
+func (reader *Reader) tryNotFound(h serving.Handler) error {
+	page404, err := reader.resolvePath(h.LookupPath.Path, "404.html")
 	if err != nil {
 		return err
 	}
 
-	err = reader.serveCustomFile(h.Writer(), h.Request(), http.StatusNotFound, page404)
+	err = reader.serveCustomFile(h.Writer, h.Request, http.StatusNotFound, page404)
 	if err != nil {
 		return err
 	}
@@ -64,9 +65,7 @@ func (reader *Reader) tryNotFound(h handler) error {
 
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (reader *Reader) resolvePath(lookupPath string, subPath ...string) (string, error) {
-	publicPath := filepath.Join(reader.Location, lookupPath, "public")
-
+func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string, error) {
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
 	// (including ..)

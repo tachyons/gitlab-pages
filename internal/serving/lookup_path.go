@@ -1,8 +1,9 @@
-package domain
+package serving
 
 // Project holds a domain / project configuration
-type Project struct {
-	LookupPath         string
+type LookupPath struct {
+	Location           string
+	Path               string
 	IsNamespaceProject bool
 	IsHTTPSOnly        bool
 	HasAccessControl   bool

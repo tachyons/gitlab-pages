@@ -8,19 +8,18 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 )
 
 // Domain is a domain that gitlab-pages can serve.
 type Domain struct {
 	Name            string
-	Location        string
 	CertificateCert string
 	CertificateKey  string
 
 	Resolver Resolver
 
-	lookupPaths map[string]*Project
-	serving     serving.Serving
+	serving serving.Serving
 
 	certificate      *tls.Certificate
 	certificateError error
@@ -40,7 +39,7 @@ func (d *Domain) isUnconfigured() bool {
 	return d.Resolver == nil
 }
 
-func (d *Domain) resolve(r *http.Request) (*Project, string) {
+func (d *Domain) resolve(r *http.Request) (*serving.LookupPath, string) {
 	// TODO use lookupPaths to cache information about projects better, to
 	// improve performance and resilience
 
@@ -55,7 +54,7 @@ func (d *Domain) resolve(r *http.Request) (*Project, string) {
 }
 
 // GetProject returns a project details based on the request
-func (d *Domain) GetProject(r *http.Request) *Project {
+func (d *Domain) GetProject(r *http.Request) *serving.LookupPath {
 	project, _ := d.resolve(r)
 
 	return project
@@ -64,20 +63,20 @@ func (d *Domain) GetProject(r *http.Request) *Project {
 // Serving returns domain serving driver
 func (d *Domain) Serving() serving.Serving {
 	if d.serving == nil {
-		d.serving = serving.NewDiskServing(d.Name, d.Location)
+		d.serving = disk.New()
 	}
 
 	return d.serving
 }
 
-func (d *Domain) toHandler(w http.ResponseWriter, r *http.Request) *handler {
+func (d *Domain) toHandler(w http.ResponseWriter, r *http.Request) serving.Handler {
 	project, subpath := d.resolve(r)
 
-	return &handler{
-		writer:  w,
-		request: r,
-		project: project,
-		subpath: subpath,
+	return serving.Handler{
+		Writer:     w,
+		Request:    r,
+		LookupPath: project,
+		SubPath:    subpath,
 	}
 }
 
@@ -106,20 +105,6 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 	}
 
 	return false
-}
-
-// HasAcmeChallenge checks domain directory contains particular acme challenge
-func (d *Domain) HasAcmeChallenge(r *http.Request, token string) bool {
-	// TODO is that safe to redirect to acme challenge in GitLab if it is a grup domain?
-	if d.isUnconfigured() || !d.HasProject(r) {
-		return false
-	}
-
-	// TODO we should improve that, we need different type of information to
-	// check if the ACME challenge is present in the serving. We should devise a
-	// better interface here or we should to extract this responsibility
-	// somewhere else.
-	return d.Serving().HasAcmeChallenge(d.toHandler(nil, r), token)
 }
 
 // IsNamespaceProject figures out if the request is to a namespace project
@@ -180,6 +165,10 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 // ServeFileHTTP returns true if something was served, false if not.
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	if d.isUnconfigured() || !d.HasProject(r) {
+		// TODO: this seems to be wrong:
+		// as we should rather return false,
+		// and fallback to `ServeNotFoundHTTP`
+		// to handle this case
 		httperrors.Serve404(w)
 		return true
 	}

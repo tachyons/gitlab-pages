@@ -27,7 +27,6 @@ func serveFileOrNotFound(domain *domain.Domain) http.HandlerFunc {
 
 func testGroupServeHTTPHost(t *testing.T, host string) {
 	testGroup := &domain.Domain{
-		Location: "group",
 		Resolver: &Group{
 			name: "group",
 			projects: map[string]*projectConfig{
@@ -81,9 +80,9 @@ func TestDomainServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &domain.Domain{
-		Name:     "test.domain.com",
-		Location: "group/project2",
+		Name: "test.domain.com",
 		Resolver: &customProjectResolver{
+			path:   "group/project2/public",
 			config: &domainConfig{},
 		},
 	}
@@ -109,7 +108,6 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Default group domain with HTTPS-only enabled",
 			domain: &domain.Domain{
-				Location: "group/project",
 				Resolver: &Group{
 					name:     "group",
 					projects: projects{"test-domain": &projectConfig{HTTPSOnly: true}},
@@ -121,7 +119,6 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Default group domain with HTTPS-only disabled",
 			domain: &domain.Domain{
-				Location: "group/project",
 				Resolver: &Group{
 					name:     "group",
 					projects: projects{"test-domain": &projectConfig{HTTPSOnly: false}},
@@ -133,7 +130,6 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Case-insensitive default group domain with HTTPS-only enabled",
 			domain: &domain.Domain{
-				Location: "group/project",
 				Resolver: &Group{
 					name:     "group",
 					projects: projects{"test-domain": &projectConfig{HTTPSOnly: true}},
@@ -145,7 +141,6 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Other group domain with HTTPS-only enabled",
 			domain: &domain.Domain{
-				Location: "group/project",
 				Resolver: &Group{
 					name:     "group",
 					projects: projects{"project": &projectConfig{HTTPSOnly: true}},
@@ -157,7 +152,6 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Other group domain with HTTPS-only disabled",
 			domain: &domain.Domain{
-				Location: "group/project",
 				Resolver: &Group{
 					name:     "group",
 					projects: projects{"project": &projectConfig{HTTPSOnly: false}},
@@ -167,10 +161,8 @@ func TestIsHTTPSOnly(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "Unknown project",
-			domain: &domain.Domain{
-				Location: "group/project",
-			},
+			name:     "Unknown project",
+			domain:   &domain.Domain{},
 			url:      "http://test-domain/project",
 			expected: false,
 		},
@@ -216,7 +208,6 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	defer cleanup()
 
 	testGroup := &domain.Domain{
-		Location: "group",
 		Resolver: &Group{
 			name: "group",
 			projects: map[string]*projectConfig{
@@ -283,7 +274,6 @@ func TestGroup404ServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testGroup := &domain.Domain{
-		Location: "group.404",
 		Resolver: &Group{
 			name: "group.404",
 			projects: map[string]*projectConfig{
@@ -312,8 +302,8 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &domain.Domain{
-		Location: "group.404/domain.404",
 		Resolver: &customProjectResolver{
+			path:   "group.404/domain.404/public",
 			config: &domainConfig{Domain: "domain.404.com"},
 		},
 	}
@@ -326,17 +316,13 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testDomain := &domain.Domain{
-		Location: "group",
-	}
+	testDomain := &domain.Domain{}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
 
 func TestGroupCertificate(t *testing.T) {
-	testGroup := &domain.Domain{
-		Location: "group",
-	}
+	testGroup := &domain.Domain{}
 
 	tls, err := testGroup.EnsureCertificate()
 	require.Nil(t, tls)
@@ -345,8 +331,8 @@ func TestGroupCertificate(t *testing.T) {
 
 func TestDomainNoCertificate(t *testing.T) {
 	testDomain := &domain.Domain{
-		Location: "group/project2",
 		Resolver: &customProjectResolver{
+			path:   "group/project2/public",
 			config: &domainConfig{Domain: "test.domain.com"},
 		},
 	}
@@ -362,11 +348,12 @@ func TestDomainNoCertificate(t *testing.T) {
 
 func TestDomainCertificate(t *testing.T) {
 	testDomain := &domain.Domain{
-		Location:        "group/project2",
 		Name:            "test.domain.com",
 		CertificateCert: fixture.Certificate,
 		CertificateKey:  fixture.Key,
-		Resolver:        &customProjectResolver{},
+		Resolver: &customProjectResolver{
+			path: "group/project2/public",
+		},
 	}
 
 	tls, err := testDomain.EnsureCertificate()
@@ -379,7 +366,6 @@ func TestCacheControlHeaders(t *testing.T) {
 	defer cleanup()
 
 	testGroup := &domain.Domain{
-		Location: "group",
 		Resolver: &Group{
 			name: "group",
 			projects: map[string]*projectConfig{
