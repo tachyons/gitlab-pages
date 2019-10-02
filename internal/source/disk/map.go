@@ -22,14 +22,11 @@ type Map map[string]*domain.Domain
 type domainsUpdater func(Map)
 
 func (dm Map) updateDomainMap(domainName string, domain *domain.Domain) {
-	// TODOHERE:
-	// if old, ok := dm[domainName]; ok {
-	// 	log.WithFields(log.Fields{
-	// 		"domain_name": domainName,
-	// 		"new_location": domain.Location,
-	// 		"old_location": old.Location,
-	// 	}).Error("Duplicate domain")
-	// }
+	if _, ok := dm[domainName]; ok {
+		log.WithFields(log.Fields{
+			"domain_name": domainName,
+		}).Error("Duplicate domain")
+	}
 
 	dm[domainName] = domain
 }

@@ -40,9 +40,6 @@ func (d *Domain) isUnconfigured() bool {
 }
 
 func (d *Domain) resolve(r *http.Request) (*serving.LookupPath, string) {
-	// TODO use lookupPaths to cache information about projects better, to
-	// improve performance and resilience
-
 	lookupPath, subpath, _ := d.Resolver.Resolve(r)
 
 	// Current implementation does not return errors in any case
