@@ -1,3 +1,8 @@
+v 1.11.0
+
+- Refactor domain package and extract disk serving !189
+- Separate domain config source !188
+
 v 1.10.0
 
 - Add support for previewing artifacts that are not public !134
