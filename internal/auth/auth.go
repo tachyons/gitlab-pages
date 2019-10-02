@@ -364,6 +364,19 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 	return token, nil
 }
 
+func (a *Auth) checkSessionIsValid(w http.ResponseWriter, r *http.Request) *sessions.Session {
+	session, err := a.checkSession(w, r)
+	if err != nil {
+		return nil
+	}
+
+	if a.checkTokenExists(session, w, r) {
+		return nil
+	}
+
+	return session
+}
+
 func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
 	// If no access token redirect to OAuth login page
 	if session.Values["access_token"] == nil {
@@ -424,25 +437,19 @@ func (a *Auth) IsAuthSupported() bool {
 	return true
 }
 
-// CheckAuthenticationWithoutProject checks if user is authenticated and has a valid token
-func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request) bool {
-
-	if a == nil {
-		// No auth supported
-		return false
-	}
-
-	session, err := a.checkSession(w, r)
-	if err != nil {
-		return true
-	}
-
-	if a.checkTokenExists(session, w, r) {
+func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
+	session := a.checkSessionIsValid(w, r)
+	if session == nil {
 		return true
 	}
 
 	// Access token exists, authorize request
-	url := fmt.Sprintf(apiURLUserTemplate, a.gitLabServer)
+	var url string
+	if projectID > 0 {
+		url = fmt.Sprintf(apiURLProjectTemplate, a.gitLabServer, projectID)
+	} else {
+		url = fmt.Sprintf(apiURLUserTemplate, a.gitLabServer)
+	}
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
@@ -456,23 +463,58 @@ func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.
 	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
 	resp, err := a.apiClient.Do(req)
 
-	if checkResponseForInvalidToken(resp, err) {
-		logRequest(r).Warn("Access token was invalid, destroying session")
-
-		destroySession(session, w, r)
+	if err == nil && checkResponseForInvalidToken(resp, session, w, r) {
 		return true
 	}
 
 	if err != nil || resp.StatusCode != 200 {
-		// We return 404 if for some reason token is not valid to avoid (not) existence leak
 		if err != nil {
 			logRequest(r).WithError(err).Error("Failed to retrieve info with token")
 		}
 
+		// We return 404 if for some reason token is not valid to avoid (not) existence leak
 		httperrors.Serve404(w)
 		return true
 	}
 
+	return false
+}
+
+// CheckAuthenticationWithoutProject checks if user is authenticated and has a valid token
+func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request) bool {
+
+	if a == nil {
+		// No auth supported
+		return false
+	}
+
+	return a.checkAuthentication(w, r, 0)
+}
+
+// GetTokenIfExists returns the token if it exists
+func (a *Auth) GetTokenIfExists(w http.ResponseWriter, r *http.Request) (string, error) {
+	if a == nil {
+		return "", nil
+	}
+
+	session, err := a.checkSession(w, r)
+	if err != nil {
+		return "", errors.New("Error retrieving the session")
+	}
+
+	if session.Values["access_token"] != nil {
+		return session.Values["access_token"].(string), nil
+	}
+
+	return "", nil
+}
+
+// RequireAuth will trigger authentication flow if no token exists
+func (a *Auth) RequireAuth(w http.ResponseWriter, r *http.Request) bool {
+	session := a.checkSessionIsValid(w, r)
+	if session == nil {
+		return true
+	}
 	return false
 }
 
@@ -488,51 +530,31 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 		return true
 	}
 
+	return a.checkAuthentication(w, r, projectID)
+}
+
+// CheckResponseForInvalidToken checks response for invalid token and destroys session if it was invalid
+func (a *Auth) CheckResponseForInvalidToken(w http.ResponseWriter, r *http.Request,
+	resp *http.Response) bool {
+	if a == nil {
+		// No auth supported
+		return false
+	}
+
 	session, err := a.checkSession(w, r)
 	if err != nil {
 		return true
 	}
 
-	if a.checkTokenExists(session, w, r) {
-		return true
-	}
-
-	// Access token exists, authorize request
-	url := fmt.Sprintf(apiURLProjectTemplate, a.gitLabServer, projectID)
-	req, err := http.NewRequest("GET", url, nil)
-
-	if err != nil {
-		errortracking.Capture(err, errortracking.WithRequest(req))
-
-		httperrors.Serve500(w)
-		return true
-	}
-
-	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
-	resp, err := a.apiClient.Do(req)
-
-	if checkResponseForInvalidToken(resp, err) {
-		logRequest(r).Warn("Access token was invalid, destroying session")
-
-		destroySession(session, w, r)
-		return true
-	}
-
-	if err != nil || resp.StatusCode != 200 {
-		if err != nil {
-			logRequest(r).WithError(err).Error("Failed to retrieve info with token")
-		}
-
-		// We return 404 if user has no access to avoid user knowing if the pages really existed or not
-		httperrors.Serve404(w)
+	if checkResponseForInvalidToken(resp, session, w, r) {
 		return true
 	}
 
 	return false
 }
 
-func checkResponseForInvalidToken(resp *http.Response, err error) bool {
-	if err == nil && resp.StatusCode == 401 {
+func checkResponseForInvalidToken(resp *http.Response, session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
+	if resp.StatusCode == http.StatusUnauthorized {
 		errResp := errorResponse{}
 
 		// Parse response
@@ -545,6 +567,9 @@ func checkResponseForInvalidToken(resp *http.Response, err error) bool {
 
 		if errResp.Error == "invalid_token" {
 			// Token is invalid
+			logRequest(r).Warn("Access token was invalid, destroying session")
+
+			destroySession(session, w, r)
 			return true
 		}
 	}

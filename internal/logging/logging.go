@@ -78,3 +78,11 @@ func AccessLogger(handler http.Handler, format string) (http.Handler, error) {
 		log.WithAccessLogger(accessLogger),
 	), nil
 }
+
+// LogRequest will inject request host and path to the logged messages
+func LogRequest(r *http.Request) *logrus.Entry {
+	return log.WithFields(log.Fields{
+		"host": r.Host,
+		"path": r.URL.Path,
+	})
+}

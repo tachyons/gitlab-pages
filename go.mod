@@ -6,6 +6,7 @@ require (
 	github.com/certifi/gocertifi v0.0.0-20190905060710-a5e0173ced67 // indirect
 	github.com/fzipp/gocyclo v0.0.0-20150627053110-6acd4345c835
 	github.com/gogo/protobuf v1.3.0 // indirect
+	github.com/golang/mock v1.3.1
 	github.com/gorilla/context v1.1.1
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
