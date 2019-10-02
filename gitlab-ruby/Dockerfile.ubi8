@@ -18,10 +18,11 @@ RUN curl -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RU
     && ./configure --prefix=/usr --disable-dtrace --disable-install-doc --disable-install-rdoc --enable-shared --with-out-ext=dbm,readline --without-gmp --without-gdbm --without-tk \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install \
-    && curl -sL https://github.com/connoratherton/rb-readline/archive/v${RBREADLINE_VERSION}.tar.gz | tar -xz \
-    && ruby rb-readline-${RBREADLINE_VERSION}/setup.rb \
     && gem update --no-document --system ${RUBYGEMS_VERSION} \
     && gem install bundler --version ${BUNDLER_VERSION} --force --no-document \
+    && cd .. \
+    && curl -sL https://github.com/connoratherton/rb-readline/archive/v${RBREADLINE_VERSION}.tar.gz | tar -xz \
+    && ruby rb-readline-${RBREADLINE_VERSION}/setup.rb \
     && mkdir -p /ruby/{bin,lib,include} \
     && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
     && cp -R /usr/lib/{ruby,libruby.*} /ruby/lib \
