@@ -117,7 +117,7 @@ function push_if_master_or_stable_or_tag(){
   # involves pushing CONTAINER_VERSION, CI_COMMIT_REF_SLUG tags also) because
   # we may not be syncing build images, but only the user facing images.
   if [ "$CI_REGISTRY" == "registry.gitlab.com" ] && [ -n "$CI_COMMIT_TAG" ]; then
-    exit 0
+    return
   fi
 
   if is_master || is_stable || is_tag; then
