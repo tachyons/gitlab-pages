@@ -21,7 +21,7 @@ type Domains struct {
 // nil value.
 func NewDomains() *Domains {
 	return &Domains{
-		lock: new(sync.RWMutex),
+		lock: &sync.RWMutex{},
 	}
 }
 
