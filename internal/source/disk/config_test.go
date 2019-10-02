@@ -1,4 +1,4 @@
-package domain
+package disk
 
 import (
 	"io/ioutil"
@@ -40,26 +40,26 @@ func TestDomainConfigRead(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	d := domainsConfig{}
+	d := multiDomainConfig{}
 	err := d.Read("test-group", "test-project")
 	require.Error(t, err)
 
 	os.MkdirAll(filepath.Dir(configFile), 0700)
 	defer os.RemoveAll("test-group")
 
-	d = domainsConfig{}
+	d = multiDomainConfig{}
 	err = d.Read("test-group", "test-project")
 	require.Error(t, err)
 
 	err = ioutil.WriteFile(configFile, []byte(invalidConfig), 0600)
 	require.NoError(t, err)
-	d = domainsConfig{}
+	d = multiDomainConfig{}
 	err = d.Read("test-group", "test-project")
 	require.Error(t, err)
 
 	err = ioutil.WriteFile(configFile, []byte(validConfig), 0600)
 	require.NoError(t, err)
-	d = domainsConfig{}
+	d = multiDomainConfig{}
 	err = d.Read("test-group", "test-project")
 	require.NoError(t, err)
 }

@@ -1,4 +1,4 @@
-package domain
+package disk
 
 import (
 	"strings"
@@ -8,25 +8,25 @@ import (
 )
 
 func TestGroupDig(t *testing.T) {
-	matchingProject := &project{ID: 1}
+	matchingProject := &projectConfig{ID: 1}
 
 	tests := []struct {
 		name                string
-		g                   group
+		g                   Group
 		path                string
-		expectedProject     *project
+		expectedProject     *projectConfig
 		expectedProjectPath string
 		expectedPath        string
 	}{
 		{
 			name: "empty group",
 			path: "projectb/demo/features.html",
-			g:    group{},
+			g:    Group{},
 		},
 		{
 			name: "group with project",
 			path: "projectb/demo/features.html",
-			g: group{
+			g: Group{
 				projects: projects{"projectb": matchingProject},
 			},
 			expectedProject:     matchingProject,
@@ -36,7 +36,7 @@ func TestGroupDig(t *testing.T) {
 		{
 			name: "group with project and no path in URL",
 			path: "projectb",
-			g: group{
+			g: Group{
 				projects: projects{"projectb": matchingProject},
 			},
 			expectedProject:     matchingProject,
@@ -45,11 +45,11 @@ func TestGroupDig(t *testing.T) {
 		{
 			name: "group with subgroup and project",
 			path: "projectb/demo/features.html",
-			g: group{
+			g: Group{
 				projects: projects{"projectb": matchingProject},
 				subgroups: subgroups{
-					"sub1": &group{
-						projects: projects{"another": &project{}},
+					"sub1": &Group{
+						projects: projects{"another": &projectConfig{}},
 					},
 				},
 			},
@@ -60,13 +60,13 @@ func TestGroupDig(t *testing.T) {
 		{
 			name: "group with project inside a subgroup",
 			path: "sub1/projectb/demo/features.html",
-			g: group{
+			g: Group{
 				subgroups: subgroups{
-					"sub1": &group{
+					"sub1": &Group{
 						projects: projects{"projectb": matchingProject},
 					},
 				},
-				projects: projects{"another": &project{}},
+				projects: projects{"another": &projectConfig{}},
 			},
 			expectedProject:     matchingProject,
 			expectedProjectPath: "sub1/projectb",
@@ -75,10 +75,10 @@ func TestGroupDig(t *testing.T) {
 		{
 			name: "group with matching subgroup but no project",
 			path: "sub1/projectb/demo/features.html",
-			g: group{
+			g: Group{
 				subgroups: subgroups{
-					"sub1": &group{
-						projects: projects{"another": &project{}},
+					"sub1": &Group{
+						projects: projects{"another": &projectConfig{}},
 					},
 				},
 			},

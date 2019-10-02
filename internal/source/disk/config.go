@@ -1,4 +1,4 @@
-package domain
+package disk
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// DomainConfig represents a custom domain config
 type domainConfig struct {
 	Domain        string
 	Certificate   string
@@ -16,13 +17,23 @@ type domainConfig struct {
 	AccessControl bool   `json:"access_control"`
 }
 
-type domainsConfig struct {
+// MultiDomainConfig represents a group of custom domain configs
+type multiDomainConfig struct {
 	Domains       []domainConfig
 	HTTPSOnly     bool   `json:"https_only"`
 	ID            uint64 `json:"id"`
 	AccessControl bool   `json:"access_control"`
 }
 
+// ProjectConfig is a project-level configuration
+type projectConfig struct {
+	NamespaceProject bool
+	HTTPSOnly        bool
+	AccessControl    bool
+	ID               uint64
+}
+
+// Valid validates a custom domain config for a root domain
 func (c *domainConfig) Valid(rootDomain string) bool {
 	if c.Domain == "" {
 		return false
@@ -34,13 +45,13 @@ func (c *domainConfig) Valid(rootDomain string) bool {
 	return !strings.HasSuffix(domain, rootDomain)
 }
 
-func (c *domainsConfig) Read(group, project string) (err error) {
+// Read reads a multi domain config and decodes it from a `config.json`
+func (c *multiDomainConfig) Read(group, project string) error {
 	configFile, err := os.Open(filepath.Join(group, project, "config.json"))
 	if err != nil {
 		return err
 	}
 	defer configFile.Close()
 
-	err = json.NewDecoder(configFile).Decode(c)
-	return
+	return json.NewDecoder(configFile).Decode(c)
 }

@@ -1,4 +1,4 @@
-package domain
+package disk
 
 import (
 	"crypto/rand"
@@ -68,16 +68,15 @@ func TestReadProjects(t *testing.T) {
 	}
 
 	// Check that multiple domains in the same project are recorded faithfully
-	exp1 := &domainConfig{Domain: "test.domain.com"}
-	require.Equal(t, exp1, dm["test.domain.com"].config)
-
-	exp2 := &domainConfig{Domain: "other.domain.com", Certificate: "test", Key: "key"}
-	require.Equal(t, exp2, dm["other.domain.com"].config)
+	require.Equal(t, "test.domain.com", dm["test.domain.com"].ProjectConfig.DomainName)
+	require.Equal(t, "other.domain.com", dm["other.domain.com"].ProjectConfig.DomainName)
+	require.Equal(t, "test", dm["other.domain.com"].ProjectConfig.Certificate)
+	require.Equal(t, "key", dm["other.domain.com"].ProjectConfig.Key)
 
 	// check subgroups
 	domain, ok := dm["group.test.io"]
 	require.True(t, ok, "missing group.test.io domain")
-	subgroup, ok := domain.subgroups["subgroup"]
+	subgroup, ok := domain.GroupConfig.(*Group).subgroups["subgroup"]
 	require.True(t, ok, "missing group.test.io subgroup")
 	_, ok = subgroup.projects["project"]
 	require.True(t, ok, "missing project for subgroup in group.test.io domain")
@@ -118,7 +117,7 @@ func TestReadProjectsMaxDepth(t *testing.T) {
 	// check subgroups
 	domain, ok := dm["group-0.test.io"]
 	require.True(t, ok, "missing group-0.test.io domain")
-	subgroup := &domain.group
+	subgroup := domain.GroupConfig.(*Group)
 	for i := 0; i < levels; i++ {
 		subgroup, ok = subgroup.subgroups["sub"]
 		if i <= subgroupScanLimit {

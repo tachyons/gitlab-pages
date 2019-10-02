@@ -1,4 +1,4 @@
-package domain
+package disk
 
 import (
 	"bytes"
@@ -12,22 +12,23 @@ import (
 	"github.com/karrick/godirwalk"
 	log "github.com/sirupsen/logrus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-// Map maps domain names to D instances.
-type Map map[string]*Domain
+// Map maps domain names to Domain instances.
+type Map map[string]*domain.Domain
 
 type domainsUpdater func(Map)
 
-func (dm Map) updateDomainMap(domainName string, domain *Domain) {
+func (dm Map) updateDomainMap(domainName string, domain *domain.Domain) {
 	if old, ok := dm[domainName]; ok {
 		log.WithFields(log.Fields{
 			"domain_name":      domainName,
-			"new_group":        domain.group,
-			"new_project_name": domain.projectName,
-			"old_group":        old.group,
-			"old_project_name": old.projectName,
+			"new_group":        domain.Group,
+			"new_project_name": domain.Project,
+			"old_group":        old.Group,
+			"old_project_name": old.Project,
 		}).Error("Duplicate domain")
 	}
 
@@ -35,10 +36,17 @@ func (dm Map) updateDomainMap(domainName string, domain *Domain) {
 }
 
 func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
-	newDomain := &Domain{
-		group:       group{name: groupName},
-		projectName: projectName,
-		config:      config,
+	newDomain := &domain.Domain{
+		Group:   groupName,
+		Project: projectName,
+		ProjectConfig: &domain.ProjectConfig{
+			DomainName:    config.Domain,
+			Certificate:   config.Certificate,
+			Key:           config.Key,
+			HTTPSOnly:     config.HTTPSOnly,
+			ProjectID:     config.ID,
+			AccessControl: config.AccessControl,
+		},
 	}
 
 	var domainName string
@@ -51,8 +59,9 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 	groupDomain := dm[domainName]
 
 	if groupDomain == nil {
-		groupDomain = &Domain{
-			group: group{
+		groupDomain = &domain.Domain{
+			Group: groupName,
+			GroupConfig: &Group{
 				name:      groupName,
 				projects:  make(projects),
 				subgroups: make(subgroups),
@@ -62,13 +71,13 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 
 	split := strings.SplitN(strings.ToLower(projectPath), "/", maxProjectDepth)
 	projectName := split[len(split)-1]
-	g := &groupDomain.group
+	g := groupDomain.GroupConfig.(*Group)
 
 	for i := 0; i < len(split)-1; i++ {
 		subgroupName := split[i]
 		subgroup := g.subgroups[subgroupName]
 		if subgroup == nil {
-			subgroup = &group{
+			subgroup = &Group{
 				name:      subgroupName,
 				projects:  make(projects),
 				subgroups: make(subgroups),
@@ -79,7 +88,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 		g = subgroup
 	}
 
-	g.projects[projectName] = &project{
+	g.projects[projectName] = &projectConfig{
 		NamespaceProject: domainName == projectName,
 		HTTPSOnly:        httpsOnly,
 		AccessControl:    accessControl,
@@ -89,7 +98,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 	dm[domainName] = groupDomain
 }
 
-func (dm Map) readProjectConfig(rootDomain string, group, projectName string, config *domainsConfig) {
+func (dm Map) readProjectConfig(rootDomain string, group, projectName string, config *multiDomainConfig) {
 	if config == nil {
 		// This is necessary to preserve the previous behaviour where a
 		// group domain is created even if no config.json files are
@@ -131,7 +140,7 @@ func readProject(group, parent, projectName string, level int, fanIn chan<- jobR
 
 	// We read the config.json file _before_ fanning in, because it does disk
 	// IO and it does not need access to the domains map.
-	config := &domainsConfig{}
+	config := &multiDomainConfig{}
 	if err := config.Read(group, projectPath); err != nil {
 		config = nil
 	}
@@ -163,7 +172,7 @@ func readProjects(group, parent string, level int, buf []byte, fanIn chan<- jobR
 type jobResult struct {
 	group   string
 	project string
-	config  *domainsConfig
+	config  *multiDomainConfig
 }
 
 // ReadGroups walks the pages directory and populates dm with all the domains it finds.
