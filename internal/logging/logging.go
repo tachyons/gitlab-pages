@@ -55,7 +55,7 @@ func getAccessLogger(format string) (*logrus.Logger, error) {
 func getExtraLogFields(r *http.Request) log.Fields {
 	var projectID uint64
 	if d := request.GetDomain(r); d != nil {
-		projectID = d.GetID(r)
+		projectID = d.GetProjectID(r)
 	}
 
 	return log.Fields{

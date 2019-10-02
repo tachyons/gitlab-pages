@@ -11,8 +11,12 @@ type domainStub struct {
 	hasAcmeChallenge bool
 }
 
-func (d *domainStub) HasAcmeChallenge(_ string) bool {
-	return d.hasAcmeChallenge
+func (d *domainStub) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
+	if r.URL.Path == "/.well-known/acme-challenge/token" {
+		return d.hasAcmeChallenge
+	}
+
+	return false
 }
 
 func serveAcmeOrNotFound(m *Middleware, domain Domain) http.HandlerFunc {

@@ -68,15 +68,15 @@ func TestReadProjects(t *testing.T) {
 	}
 
 	// Check that multiple domains in the same project are recorded faithfully
-	require.Equal(t, "test.domain.com", dm["test.domain.com"].ProjectConfig.DomainName)
-	require.Equal(t, "other.domain.com", dm["other.domain.com"].ProjectConfig.DomainName)
-	require.Equal(t, "test", dm["other.domain.com"].ProjectConfig.Certificate)
-	require.Equal(t, "key", dm["other.domain.com"].ProjectConfig.Key)
+	require.Equal(t, "test.domain.com", dm["test.domain.com"].Name)
+	require.Equal(t, "other.domain.com", dm["other.domain.com"].Name)
+	require.Equal(t, "test", dm["other.domain.com"].CertificateCert)
+	require.Equal(t, "key", dm["other.domain.com"].CertificateKey)
 
 	// check subgroups
 	domain, ok := dm["group.test.io"]
 	require.True(t, ok, "missing group.test.io domain")
-	subgroup, ok := domain.GroupConfig.(*Group).subgroups["subgroup"]
+	subgroup, ok := domain.Resolver.(*Group).subgroups["subgroup"]
 	require.True(t, ok, "missing group.test.io subgroup")
 	_, ok = subgroup.projects["project"]
 	require.True(t, ok, "missing project for subgroup in group.test.io domain")
@@ -117,7 +117,7 @@ func TestReadProjectsMaxDepth(t *testing.T) {
 	// check subgroups
 	domain, ok := dm["group-0.test.io"]
 	require.True(t, ok, "missing group-0.test.io domain")
-	subgroup := domain.GroupConfig.(*Group)
+	subgroup := domain.Resolver.(*Group)
 	for i := 0; i < levels; i++ {
 		subgroup, ok = subgroup.subgroups["sub"]
 		if i <= subgroupScanLimit {

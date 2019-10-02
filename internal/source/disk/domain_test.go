@@ -27,9 +27,7 @@ func serveFileOrNotFound(domain *domain.Domain) http.HandlerFunc {
 
 func testGroupServeHTTPHost(t *testing.T, host string) {
 	testGroup := &domain.Domain{
-		Project: "",
-		Group:   "group",
-		GroupConfig: &Group{
+		Resolver: &Group{
 			name: "group",
 			projects: map[string]*projectConfig{
 				"group.test.io":            &projectConfig{},
@@ -82,9 +80,11 @@ func TestDomainServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &domain.Domain{
-		Group:         "group",
-		Project:       "project2",
-		ProjectConfig: &domain.ProjectConfig{DomainName: "test.domain.com"},
+		Name: "test.domain.com",
+		Resolver: &customProjectResolver{
+			path:   "group/project2/public",
+			config: &domainConfig{},
+		},
 	}
 
 	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/", nil, "project2-main")
@@ -108,9 +108,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Default group domain with HTTPS-only enabled",
 			domain: &domain.Domain{
-				Group:   "group",
-				Project: "project",
-				GroupConfig: &Group{
+				Resolver: &Group{
 					name:     "group",
 					projects: projects{"test-domain": &projectConfig{HTTPSOnly: true}},
 				},
@@ -121,9 +119,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Default group domain with HTTPS-only disabled",
 			domain: &domain.Domain{
-				Group:   "group",
-				Project: "project",
-				GroupConfig: &Group{
+				Resolver: &Group{
 					name:     "group",
 					projects: projects{"test-domain": &projectConfig{HTTPSOnly: false}},
 				},
@@ -134,9 +130,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Case-insensitive default group domain with HTTPS-only enabled",
 			domain: &domain.Domain{
-				Project: "project",
-				Group:   "group",
-				GroupConfig: &Group{
+				Resolver: &Group{
 					name:     "group",
 					projects: projects{"test-domain": &projectConfig{HTTPSOnly: true}},
 				},
@@ -147,9 +141,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Other group domain with HTTPS-only enabled",
 			domain: &domain.Domain{
-				Project: "project",
-				Group:   "group",
-				GroupConfig: &Group{
+				Resolver: &Group{
 					name:     "group",
 					projects: projects{"project": &projectConfig{HTTPSOnly: true}},
 				},
@@ -160,9 +152,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 		{
 			name: "Other group domain with HTTPS-only disabled",
 			domain: &domain.Domain{
-				Project: "project",
-				Group:   "group",
-				GroupConfig: &Group{
+				Resolver: &Group{
 					name:     "group",
 					projects: projects{"project": &projectConfig{HTTPSOnly: false}},
 				},
@@ -171,11 +161,8 @@ func TestIsHTTPSOnly(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "Unknown project",
-			domain: &domain.Domain{
-				Group:   "group",
-				Project: "project",
-			},
+			name:     "Unknown project",
+			domain:   &domain.Domain{},
 			url:      "http://test-domain/project",
 			expected: false,
 		},
@@ -221,9 +208,7 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	defer cleanup()
 
 	testGroup := &domain.Domain{
-		Project: "",
-		Group:   "group",
-		GroupConfig: &Group{
+		Resolver: &Group{
 			name: "group",
 			projects: map[string]*projectConfig{
 				"group.test.io":            &projectConfig{},
@@ -289,9 +274,7 @@ func TestGroup404ServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testGroup := &domain.Domain{
-		Project: "",
-		Group:   "group.404",
-		GroupConfig: &Group{
+		Resolver: &Group{
 			name: "group.404",
 			projects: map[string]*projectConfig{
 				"domain.404":          &projectConfig{},
@@ -319,9 +302,10 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	testDomain := &domain.Domain{
-		Project:       "domain.404",
-		Group:         "group.404",
-		ProjectConfig: &domain.ProjectConfig{DomainName: "domain.404.com"},
+		Resolver: &customProjectResolver{
+			path:   "group.404/domain.404/public",
+			config: &domainConfig{Domain: "domain.404.com"},
+		},
 	}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom 404 group page")
@@ -332,18 +316,13 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testDomain := &domain.Domain{
-		Group: "group",
-	}
+	testDomain := &domain.Domain{}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
 
 func TestGroupCertificate(t *testing.T) {
-	testGroup := &domain.Domain{
-		Group:   "group",
-		Project: "",
-	}
+	testGroup := &domain.Domain{}
 
 	tls, err := testGroup.EnsureCertificate()
 	require.Nil(t, tls)
@@ -352,9 +331,10 @@ func TestGroupCertificate(t *testing.T) {
 
 func TestDomainNoCertificate(t *testing.T) {
 	testDomain := &domain.Domain{
-		Group:         "group",
-		Project:       "project2",
-		ProjectConfig: &domain.ProjectConfig{DomainName: "test.domain.com"},
+		Resolver: &customProjectResolver{
+			path:   "group/project2/public",
+			config: &domainConfig{Domain: "test.domain.com"},
+		},
 	}
 
 	tls, err := testDomain.EnsureCertificate()
@@ -368,11 +348,11 @@ func TestDomainNoCertificate(t *testing.T) {
 
 func TestDomainCertificate(t *testing.T) {
 	testDomain := &domain.Domain{
-		Project: "project2",
-		Group:   "group",
-		ProjectConfig: &domain.ProjectConfig{DomainName: "test.domain.com",
-			Certificate: fixture.Certificate,
-			Key:         fixture.Key,
+		Name:            "test.domain.com",
+		CertificateCert: fixture.Certificate,
+		CertificateKey:  fixture.Key,
+		Resolver: &customProjectResolver{
+			path: "group/project2/public",
 		},
 	}
 
@@ -386,8 +366,7 @@ func TestCacheControlHeaders(t *testing.T) {
 	defer cleanup()
 
 	testGroup := &domain.Domain{
-		Group: "group",
-		GroupConfig: &Group{
+		Resolver: &Group{
 			name: "group",
 			projects: map[string]*projectConfig{
 				"group.test.io": &projectConfig{},
