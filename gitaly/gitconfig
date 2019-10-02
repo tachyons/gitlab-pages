@@ -1,9 +1,6 @@
 [core]
     autocrlf = input
-<<<<<<< HEAD
     fsyncObjectFiles = true
-=======
->>>>>>> Create UBI-based CNG image
 [gc]
     auto = 0
 [repack]
@@ -16,8 +13,4 @@
 [transfer]
     hiderefs = ^refs/tmp/
     hiderefs = ^refs/keep-around/
-<<<<<<< HEAD
     hiderefs = ^refs/remotes/
-=======
-    hiderefs = ^refs/remotes/
->>>>>>> Create UBI-based CNG image
