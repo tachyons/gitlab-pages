@@ -34,7 +34,6 @@ ENV CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab-exporter/templates
 ENV CONFIG_DIRECTORY=/etc/gitlab-exporter
 ENV CONFIG_FILENAME=gitlab-exporter.yml
 
-COPY --from=postgresql /usr/local/postgresql/lib/ /usr/lib/
 COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
 COPY --from=builder /usr/bin/gitlab-exporter /usr/bin/gitlab-exporter
 
