@@ -451,7 +451,7 @@ sync-images:
   when: manual
   script:
     - cat artifacts/images/* > image_versions.txt
-    - rm artifacts/*
+    - rm -rf artifacts/*
     - sh build-scripts/docker_image_sync.sh image_versions.txt
   artifacts:
     paths:
