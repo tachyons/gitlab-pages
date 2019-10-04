@@ -144,7 +144,7 @@ gitlab-go:
     - build_if_needed --build-arg "GO_VERSION=$GO_VERSION"
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
-    - if [ -n "$BUILDING_IMAGE" ]; then
+    - if [[ -n "${BUILDING_IMAGE}" && "${UBI_PIPELINE}" = "true" ]]; then
     -   tag_and_push ${GO_VERSION}${IMAGE_TAG_EXT}
     - fi
     - push_if_master_or_stable_or_tag
@@ -442,8 +442,7 @@ gitlab-workhorse-ee:
     - rails_container=$(cat artifacts/rails_container_ee.txt)
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_WORKHORSE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
-    - build_if_needed --build-arg "TAG=$git_version${IMAGE_TAG_EXT}"
-                      --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
+    - build_if_needed --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${GO_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
                       --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"

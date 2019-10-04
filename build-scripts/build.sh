@@ -122,7 +122,7 @@ function push_if_master_or_stable_or_tag(){
 
   # UBI-based images are not part of release.
   if [ "$UBI_IMAGES" == "true" ]; then
-    exit 0
+    return 0
   fi
 
   if is_master || is_stable || is_tag; then
