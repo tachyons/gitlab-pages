@@ -82,7 +82,7 @@ COPY --from=postgresql /usr/local/postgresql/bin/ /usr/bin/
 COPY --from=postgresql /usr/local/postgresql/lib/ /usr/lib/
 COPY --from=builder /usr/local/lib/libre2.* /usr/local/lib/
 
-RUN dnf --disableplugin=subscription-manager install -yb --nodocs libicu tzdata \
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs libicu tzdata uuid \
     && adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
     && mkdir -p ${GITLAB_DATA}/{.upgrade-status,data,repo,config} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} ${GITLAB_DATA} \

@@ -11,7 +11,7 @@ ENV LANG=C.UTF-8
 
 RUN curl https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz | tar -xz \
     && cd postgresql-${PG_VERSION} \
-    && ./configure --prefix=/usr/local/postgresql --disable-rpath --with-openssl --with-libedit-preferred \
+    && ./configure --prefix=/usr/local/postgresql --disable-rpath --with-openssl --with-libedit-preferred --with-uuid=e2fs \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install
 

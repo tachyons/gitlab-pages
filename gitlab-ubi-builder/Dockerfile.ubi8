@@ -8,7 +8,10 @@ ARG LIBEDIT_VERSION=20170329-3.1
 ENV LIBDIR=/usr/lib64
 ENV INCLUDEDIR=/usr/include
 
-RUN dnf --disableplugin=subscription-manager install -by --nodocs gcc gcc-c++ perl make cmake patch bzip2 ncurses zlib-devel libedit openssl-devel curl-devel pcre2-devel libicu-devel libffi-devel ncurses-devel \
+RUN dnf --disableplugin=subscription-manager install -by --nodocs \
+        cmake gcc gcc-c++ make patch perl \
+        bzip2 libedit ncurses uuid \
+        curl-devel libicu-devel libffi-devel libuuid-devel openssl-devel ncurses-devel pcre2-devel zlib-devel \
     && mkdir -p ${BUILD_DIR} \
     && cd ${BUILD_DIR} \
     # Adding libedit development headers from source.
