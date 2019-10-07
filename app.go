@@ -3,10 +3,8 @@ package main
 import (
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -17,7 +15,6 @@ import (
 	mimedb "gitlab.com/lupine/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/admin"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	headerConfig "gitlab.com/gitlab-org/gitlab-pages/internal/config"
@@ -351,9 +348,6 @@ func (a *theApp) Run() {
 		a.listenMetricsFD(&wg, a.ListenMetrics)
 	}
 
-	a.listenAdminUnix(&wg)
-	a.listenAdminHTTPS(&wg)
-
 	a.domains.Watch(a.Domain)
 
 	wg.Wait()
@@ -404,58 +398,6 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 		err := listenAndServe(fd, handler, false, nil, nil)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", "metrics"))
-		}
-	}()
-}
-
-func (a *theApp) listenAdminUnix(wg *sync.WaitGroup) {
-	fd := a.ListenAdminUnix
-	if fd == 0 {
-		return
-	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		l, err := net.FileListener(os.NewFile(fd, "[admin-socket-unix]"))
-		if err != nil {
-			errortracking.Capture(err, errortracking.WithField("listener", "admin unix socket"))
-			fatal(fmt.Errorf("failed to listen on FD %d: %v", fd, err))
-		}
-		defer l.Close()
-
-		if err := admin.NewServer(string(a.AdminToken)).Serve(l); err != nil {
-			fatal(err)
-		}
-	}()
-}
-
-func (a *theApp) listenAdminHTTPS(wg *sync.WaitGroup) {
-	fd := a.ListenAdminHTTPS
-	if fd == 0 {
-		return
-	}
-
-	cert, err := tls.X509KeyPair(a.AdminCertificate, a.AdminKey)
-	if err != nil {
-		capturingFatal(err)
-	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		l, err := net.FileListener(os.NewFile(fd, "[admin-socket-https]"))
-		if err != nil {
-			errMsg := fmt.Errorf("failed to listen on FD %d: %v", fd, err)
-			log.WithError(errMsg).Error("error")
-			capturingFatal(err, errortracking.WithField("listener", "admin https socket"))
-		}
-		defer l.Close()
-
-		if err := admin.NewTLSServer(string(a.AdminToken), &cert).Serve(l); err != nil {
-			fatal(err)
 		}
 	}()
 }

@@ -48,11 +48,11 @@ var (
 	daemonInplaceChroot    = flag.Bool("daemon-inplace-chroot", false, "Fall back to a non-bind-mount chroot of -pages-root when daemonizing")
 	logFormat              = flag.String("log-format", "text", "The log output format: 'text' or 'json'")
 	logVerbose             = flag.Bool("log-verbose", false, "Verbose logging")
-	adminSecretPath        = flag.String("admin-secret-path", "", "Path to the file containing the admin secret token")
-	adminUnixListener      = flag.String("admin-unix-listener", "", "The path for the admin API unix socket listener (optional)")
-	adminHTTPSListener     = flag.String("admin-https-listener", "", "The listen address for the admin API HTTPS listener (optional)")
-	adminHTTPSCert         = flag.String("admin-https-cert", "", "The path to the certificate file for the admin API (optional)")
-	adminHTTPSKey          = flag.String("admin-https-key", "", "The path to the key file for the admin API (optional)")
+	_                      = flag.String("admin-secret-path", "", "DEPRECATED")
+	_                      = flag.String("admin-unix-listener", "", "DEPRECATED")
+	_                      = flag.String("admin-https-listener", "", "DEPRECATED")
+	_                      = flag.String("admin-https-cert", "", "DEPRECATED")
+	_                      = flag.String("admin-https-key", "", "DEPRECATED")
 	secret                 = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long.")
 	gitLabAuthServer       = flag.String("auth-server", "", "DEPRECATED, use gitlab-server instead. GitLab server, for example https://www.gitlab.com")
 	gitLabServer           = flag.String("gitlab-server", "", "GitLab server, for example https://www.gitlab.com")
@@ -142,9 +142,6 @@ func configFromFlags() appConfig {
 	}{
 		{&config.RootCertificate, *pagesRootCert},
 		{&config.RootKey, *pagesRootKey},
-		{&config.AdminCertificate, *adminHTTPSCert},
-		{&config.AdminKey, *adminHTTPSKey},
-		{&config.AdminToken, *adminSecretPath},
 	} {
 		if file.path != "" {
 			*file.contents = readFile(file.path)
@@ -235,11 +232,6 @@ func appMain() {
 	}
 
 	log.WithFields(log.Fields{
-		"admin-https-cert":              *adminHTTPSCert,
-		"admin-https-key":               *adminHTTPSKey,
-		"admin-https-listener":          *adminHTTPSListener,
-		"admin-unix-listener":           *adminUnixListener,
-		"admin-secret-path":             *adminSecretPath,
 		"artifacts-server":              *artifactsServer,
 		"artifacts-server-timeout":      *artifactsServerTimeout,
 		"daemon-gid":                    *daemonGID,
@@ -275,8 +267,6 @@ func appMain() {
 	for _, cs := range [][]io.Closer{
 		createAppListeners(&config),
 		createMetricsListener(&config),
-		createAdminUnixListener(&config),
-		createAdminHTTPSListener(&config),
 	} {
 		defer closeAll(cs)
 	}
@@ -356,52 +346,6 @@ func createMetricsListener(config *appConfig) []io.Closer {
 	log.WithFields(log.Fields{
 		"listener": addr,
 	}).Debug("Set up metrics listener")
-
-	return []io.Closer{l, f}
-}
-
-// createAdminUnixListener returns net.Listener and *os.File instances. The
-// caller must ensure they don't get closed or garbage-collected (which
-// implies closing) too soon.
-func createAdminUnixListener(config *appConfig) []io.Closer {
-	unixPath := *adminUnixListener
-	if unixPath == "" {
-		return nil
-	}
-
-	if *adminSecretPath == "" {
-		fatal(fmt.Errorf("missing admin secret token file"))
-	}
-
-	l, f := createUnixSocket(unixPath)
-	config.ListenAdminUnix = f.Fd()
-
-	log.WithFields(log.Fields{
-		"listener": unixPath,
-	}).Debug("Set up admin unix socket")
-
-	return []io.Closer{l, f}
-}
-
-// createAdminHTTPSListener returns net.Listener and *os.File instances. The
-// caller must ensure they don't get closed or garbage-collected (which
-// implies closing) too soon.
-func createAdminHTTPSListener(config *appConfig) []io.Closer {
-	addr := *adminHTTPSListener
-	if addr == "" {
-		return nil
-	}
-
-	if *adminSecretPath == "" {
-		fatal(fmt.Errorf("missing admin secret token file"))
-	}
-
-	l, f := createSocket(addr)
-	config.ListenAdminHTTPS = f.Fd()
-
-	log.WithFields(log.Fields{
-		"listener": addr,
-	}).Debug("Set up admin HTTPS socket")
 
 	return []io.Closer{l, f}
 }

@@ -6,20 +6,15 @@ type appConfig struct {
 	ArtifactsServerTimeout int
 	RootCertificate        []byte
 	RootKey                []byte
-	AdminCertificate       []byte
-	AdminKey               []byte
-	AdminToken             []byte
 	MaxConns               int
 
-	ListenHTTP       []uintptr
-	ListenHTTPS      []uintptr
-	ListenProxy      []uintptr
-	ListenMetrics    uintptr
-	ListenAdminUnix  uintptr
-	ListenAdminHTTPS uintptr
-	InsecureCiphers  bool
-	TLSMinVersion    uint16
-	TLSMaxVersion    uint16
+	ListenHTTP      []uintptr
+	ListenHTTPS     []uintptr
+	ListenProxy     []uintptr
+	ListenMetrics   uintptr
+	InsecureCiphers bool
+	TLSMinVersion   uint16
+	TLSMaxVersion   uint16
 
 	HTTP2        bool
 	RedirectHTTP bool

@@ -271,8 +271,6 @@ func updateFds(config *appConfig, cmd *exec.Cmd) {
 
 	for _, fdPtr := range []*uintptr{
 		&config.ListenMetrics,
-		&config.ListenAdminUnix,
-		&config.ListenAdminHTTPS,
 	} {
 		if *fdPtr != 0 {
 			*fdPtr = daemonUpdateFd(cmd, *fdPtr)

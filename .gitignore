@@ -3,8 +3,6 @@ shared/pages/.update
 /gitlab-pages
 /vendor
 
-admin.socket
-
 # Used by the makefile
 /.GOPATH
 /bin
