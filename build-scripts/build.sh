@@ -82,7 +82,7 @@ function tag_and_push(){
 }
 
 function push_latest(){
-  tag_and_push "latest"
+  tag_and_push "latest${IMAGE_TAG_EXT}"
 }
 
 function get_version(){
