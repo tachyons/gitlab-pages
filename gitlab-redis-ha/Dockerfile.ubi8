@@ -1,0 +1,36 @@
+ARG CI_REGISTRY_IMAGE=
+ARG KUBECTL_VERSION=
+
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+ARG KUBECTL_IMAGE=${CI_REGISTRY_IMAGE}/kubectl:${KUBECTL_VERSION}
+
+FROM ${KUBECTL_IMAGE} AS kubectl
+FROM ${BUILD_IMAGE} AS builder
+
+ARG REDIS_VERSION=3.2.12
+
+# This will make it easier to debug Redis performance issues.
+# See: https://gitlab.com/gitlab-org/omnibus-gitlab/merge_requests/3421
+ENV CFLAGS=-fno-omit-frame-pointer
+
+RUN curl -L http://download.redis.io/releases/redis-${REDIS_VERSION}.tar.gz | tar -xz \
+    && cd redis-${REDIS_VERSION} \
+    && make \
+    && make install
+
+FROM ${UBI_IMAGE}
+
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
+COPY assets/ /
+
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs hostname \
+    && mkdir -p /var/log/redis \
+    && touch /var/log/redis/runner.txt \
+    && chmod +x /usr/local/bin/kubectl \
+    && chmod +w /var/log/redis/runner.txt
+
+CMD [ "/usr/local/bin/redis-launcher.sh | tee /var/log/redis/runner.txt" ]
+
+ENTRYPOINT [ "bash", "-c" ]

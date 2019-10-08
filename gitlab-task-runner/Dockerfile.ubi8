@@ -1,0 +1,28 @@
+ARG CI_REGISTRY_IMAGE=
+ARG FROM_IMAGE=
+ARG TAG=
+ARG PYTHON_TAG=
+
+ARG RAILS_IMAGE=${FROM_IMAGE}:${TAG}
+ARG PYTHON_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_TAG}
+
+FROM ${PYTHON_IMAGE} AS python
+FROM ${RAILS_IMAGE}
+
+ARG S3CMD_VERSION=2.0.1
+ARG GSUTIL_VERSION=4.42
+ARG GITLAB_USER=git
+
+COPY --from=python /usr/local/bin /usr/local/bin/
+COPY --from=python /usr/local/lib /usr/local/lib/
+COPY --from=python /usr/local/include /usr/local/include/
+
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs ca-certificates openssl \
+    && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod
+
+COPY scripts/bin/* /usr/local/bin/
+COPY scripts/lib/* /usr/lib/ruby/vendor_ruby
+
+USER ${GITLAB_USER}:${GITLAB_USER}
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

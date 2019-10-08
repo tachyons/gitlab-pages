@@ -1,0 +1,21 @@
+ARG CI_REGISTRY_IMAGE=
+ARG RUBY_TAG=
+
+ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_TAG}
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE} AS builder
+
+ARG GIT_VERSION=2.23.0
+
+RUN curl https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz | tar -xz \
+    && cd git-${GIT_VERSION} \
+    && printf 'USE_LIBPCRE2=YesPlease\nNO_PERL=YesPlease\nNO_EXPAT=YesPlease\nNO_TCLTK=YesPlease\nNO_GETTEXT=YesPlease\nNO_PYTHON=YesPlease\nNO_INSTALL_HARDLINKS=YesPlease\nNO_R_TO_GCC_LINKER=YesPlease\n' > config.mak \
+    && make all prefix=/usr/local \
+    && make install prefix=/usr/local
+
+FROM ${RUBY_IMAGE}
+
+COPY --from=builder /usr/local/bin/git* /usr/local/bin/
+COPY --from=builder /usr/local/share/git-core/ /usr/local/share/git-core/
+COPY --from=builder /usr/local/libexec/git-core/ /usr/local/libexec/git-core/

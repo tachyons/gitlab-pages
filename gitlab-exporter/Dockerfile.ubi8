@@ -1,0 +1,47 @@
+ARG CI_REGISTRY_IMAGE=
+ARG TAG=
+ARG PG_TAG=
+
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${TAG}
+ARG POSTGRESQL_IMAGE=${CI_REGISTRY_IMAGE}/postgresql:${PG_TAG}
+
+FROM ${POSTGRESQL_IMAGE} AS postgresql
+FROM ${RUBY_IMAGE} AS ruby
+
+RUN mkdir -p /ruby/{bin,lib,include} \
+    && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
+    && cp -R /usr/lib/{ruby/,libruby.*} /ruby/lib \
+    && cp -R /usr/include/ruby-*/ /ruby/include/
+
+FROM ${BUILD_IMAGE} AS builder
+
+ARG GITLAB_EXPORTER_VERSION=5.0.1
+
+COPY --from=ruby /ruby/ /usr/
+COPY --from=postgresql /usr/local/postgresql/bin/ /usr/bin/
+COPY --from=postgresql /usr/local/postgresql/lib/ /usr/lib/
+COPY --from=postgresql /usr/local/postgresql/include/ /usr/include/
+COPY --from=postgresql /usr/local/postgresql/share/ /usr/share/
+
+RUN gem install gitlab-exporter -v ${GITLAB_EXPORTER_VERSION}
+
+FROM ${RUBY_IMAGE}
+
+ARG GITLAB_USER=git
+
+ENV CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab-exporter/templates
+ENV CONFIG_DIRECTORY=/etc/gitlab-exporter
+ENV CONFIG_FILENAME=gitlab-exporter.yml
+
+COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
+COPY --from=builder /usr/bin/gitlab-exporter /usr/bin/gitlab-exporter
+
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps uuid \
+    && adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
+    && mkdir -p /var/log/gitlab ${CONFIG_DIRECTORY} \
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab ${CONFIG_DIRECTORY}
+
+USER ${GITLAB_USER}:${GITLAB_USER}
+
+CMD /usr/bin/gitlab-exporter web -c ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}

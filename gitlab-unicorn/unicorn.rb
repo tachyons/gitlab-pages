@@ -28,7 +28,7 @@ listen "0.0.0.0:8080", :tcp_nopush => true
 timeout 60
 
 # feel free to point this anywhere accessible on the filesystem
-pid "/home/git/unicorn.pid"
+pid "#{ENV['HOME']}/unicorn.pid"
 
 # combine Ruby 2.0.0dev or REE with "preload_app true" for memory savings
 # http://rubyenterpriseedition.com/faq.html#adapt_apps_for_cow

@@ -1,0 +1,30 @@
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
+
+FROM ${UBI_IMAGE}
+
+ARG BUILD_DIR=/tmp/build
+ARG LIBEDIT_VERSION=20170329-3.1
+
+ENV LIBDIR=/usr/lib64
+ENV INCLUDEDIR=/usr/include
+
+RUN dnf --disableplugin=subscription-manager install -by --nodocs \
+        cmake gcc gcc-c++ make patch perl \
+        bzip2 libedit ncurses uuid \
+        curl-devel libicu-devel libffi-devel libuuid-devel openssl-devel ncurses-devel pcre2-devel zlib-devel \
+    && mkdir -p ${BUILD_DIR} \
+    && cd ${BUILD_DIR} \
+    # Adding libedit development headers from source.
+    # Instructions are adapted from `libedit-3.1-23.20170329cvs.el8.src.rpm` spec.
+    && curl https://thrysoee.dk/editline/libedit-${LIBEDIT_VERSION}.tar.gz | tar -xz \
+    && cd libedit-${LIBEDIT_VERSION} \
+    && ./configure --disable-static --disable-silent-rules --prefix=/usr --libdir=${LIBDIR} --includedir=${INCLUDEDIR} \
+    && sed -i 's/lncurses/ltinfo/' src/Makefile \
+    && sed -i -e 's/ -lncurses//' libedit.pc \
+    && make -j $(nproc) \
+    && cp -P src/.libs/libedit.so ${LIBDIR}/libedit.so \
+    && cp libedit.pc ${LIBDIR}/pkgconfig/ \
+    && cp src/histedit.h ${INCLUDEDIR}/ \
+    && cp -R src/editline/ ${INCLUDEDIR}/
+
+WORKDIR ${BUILD_DIR}

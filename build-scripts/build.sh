@@ -36,7 +36,7 @@ function fetch_assets(){
 }
 
 function needs_build(){
-  force_build || is_nightly || ! $(docker pull "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION" > /dev/null);
+  force_build || is_nightly || ! $(docker pull "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION${IMAGE_TAG_EXT}" > /dev/null);
 }
 
 function build_if_needed(){
@@ -56,28 +56,28 @@ function build_if_needed(){
 
     # Skip the build cache if $DISABLE_DOCKER_BUILD_CACHE is set to any value
     if [ -z ${DISABLE_DOCKER_BUILD_CACHE+x} ]; then
-      CACHE_IMAGE="$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CI_COMMIT_REF_SLUG"
+      CACHE_IMAGE="$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}"
       if ! $(docker pull $CACHE_IMAGE > /dev/null); then
-        CACHE_IMAGE="$CI_REGISTRY_IMAGE/$CI_JOB_NAME:latest"
+        CACHE_IMAGE="$CI_REGISTRY_IMAGE/$CI_JOB_NAME:latest${IMAGE_TAG_EXT}"
         docker pull $CACHE_IMAGE || true
       fi
 
       DOCKER_ARGS+=(--cache-from $CACHE_IMAGE)
     fi
 
-    docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION" "${DOCKER_ARGS[@]}" .
+    docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} .
     # Push new image
-    docker push "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION"
+    docker push "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION${IMAGE_TAG_EXT}"
 
     # Create a tag based on Branch/Tag name for easy reference
-    tag_and_push $CI_COMMIT_REF_SLUG
+    tag_and_push $CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}
     popd
   fi
-  echo "$CI_JOB_NAME:$CONTAINER_VERSION" > "artifacts/images/$CI_JOB_NAME.txt"
+  echo "$CI_JOB_NAME:$CONTAINER_VERSION${IMAGE_TAG_EXT}" > "artifacts/$CI_JOB_NAME.txt"
 }
 
 function tag_and_push(){
-  docker tag "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION" "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$1"
+  docker tag "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$1"
   docker push "$CI_REGISTRY_IMAGE/$CI_JOB_NAME:$1"
 }
 
@@ -118,6 +118,11 @@ function push_if_master_or_stable_or_tag(){
   # we may not be syncing build images, but only the user facing images.
   if [ "$CI_REGISTRY" == "registry.gitlab.com" ] && [ -n "$CI_COMMIT_TAG" ]; then
     return
+  fi
+
+  # UBI-based images are not part of release.
+  if [ "$UBI_IMAGES" == "true" ]; then
+    return 0
   fi
 
   if is_master || is_stable || is_tag; then
