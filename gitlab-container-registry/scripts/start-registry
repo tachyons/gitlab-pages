@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e
+
+touch /var/log/gitlab/registry.log
+
+registry serve /srv/gitlab/config/registry.yml \
+>> /var/log/gitlab/registry.log 2>&1 &
+
+tail -f /var/log/gitlab/registry.log
+
+wait
