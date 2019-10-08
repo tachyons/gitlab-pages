@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+
+cd /srv/gitlab
+
+# Start geo_log_cursor, logging via stdout.
+echo "Starting geo_log_cursor"
+/srv/gitlab/ee/bin/geo_log_cursor --stdout-logging ${GEO_LOGCURSOR_ARGUMENTS}

@@ -253,6 +253,23 @@ gitlab-task-runner-ce:
     - gitlab-rails-ce
   <<: *except-ee
 
+gitlab-geo-logcursor:
+  <<: *job-base
+  stage: phase-six
+  script:
+    - ruby_version=$(get_version gitlab-ruby)
+    - rails_version=$(get_version gitlab-rails)
+    - rails_container=$(cat artifacts/rails_container_ee.txt)
+    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
+    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container"
+    - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
+                      --build-arg "TAG=$rails_container"
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
+  dependencies:
+    - gitlab-rails-ee
+  <<: *except-ce
+
 gitlab-unicorn-ee:
   <<: *job-base
   stage: phase-six
