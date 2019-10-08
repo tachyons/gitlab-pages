@@ -45,7 +45,7 @@ stages:
     -   export DOCKERFILE_EXT='.ubi8'
     -   export IMAGE_TAG_EXT='-ubi8'
     - fi
-    - if [ -n "$GITALY_SERVER_VERSION" ]; then 
+    - if [ -n "$GITALY_SERVER_VERSION" ]; then
     -   export GITALY_VERSION=$GITALY_SERVER_VERSION;
     - fi
     - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
@@ -262,10 +262,10 @@ gitlab-geo-logcursor:
     - rails_container=$(cat artifacts/rails_container_ee.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container"
+    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
-                      --build-arg "TAG=$rails_container"
-    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
+                      --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
   <<: *except-ce
@@ -399,8 +399,8 @@ git-base:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
-    - build_if_needed --build-arg "TAG=$go_version" 
-                      --build-arg "GIT_VERSION=$GIT_VERSION" 
+    - build_if_needed --build-arg "TAG=$go_version"
+                      --build-arg "GIT_VERSION=$GIT_VERSION"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
     - if [ -n "$BUILDING_IMAGE" ]; then
     -  tag_and_push $GIT_VERSION${IMAGE_TAG_EXT}
