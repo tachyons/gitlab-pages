@@ -73,7 +73,7 @@ function build_if_needed(){
     tag_and_push $CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}
     popd
   fi
-  echo "$CI_JOB_NAME:$CONTAINER_VERSION${IMAGE_TAG_EXT}" > "artifacts/$CI_JOB_NAME.txt"
+  echo "$CI_JOB_NAME:$CONTAINER_VERSION${IMAGE_TAG_EXT}" > "artifacts/images/$CI_JOB_NAME.txt"
 }
 
 function tag_and_push(){
