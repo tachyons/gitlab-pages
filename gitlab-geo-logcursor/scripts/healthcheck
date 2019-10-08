@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -e
+
+# Check that geo_log_cursor is running
+/usr/bin/pgrep -f "/srv/gitlab/ee/bin/geo_log_cursor"

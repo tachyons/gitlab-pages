@@ -2,16 +2,24 @@
 
 WAIT_FOR_TIMEOUT="${WAIT_FOR_TIMEOUT:-5}"
 
+# Configure for which schema to be verifying
+SCHEMA_FILE=db/schema.rb
+SCHEMA_RAKE_TASK=db:version
+if [ "${DB_SCHEMA_TARGET,,}" == "geo" ]; then
+  SCHEMA_FILE=ee/db/geo/schema.rb
+  SCHEMA_RAKE_TASK=geo:db:version
+fi
+
 cd /srv/gitlab
 
 # fetch the schema desired version directly from the source code
-SCHEMA_VERSION=$(grep '(version: ' /srv/gitlab/db/schema.rb | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)) do/\1/')
+SCHEMA_VERSION=$(grep '(version: ' ${SCHEMA_FILE} | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)) do/\1/')
 
 # Compare desired schema version to active schema version in the database
 # - set BYPASS_SCHEMA_VERSION to skip version check, and only test DB online
 function checkSchemaVersion() {
     # Ask for the current DB schema version, via Rake
-    DB_SCHEMA_VERSION=$(/srv/gitlab/bin/bundle exec rake db:version)
+    DB_SCHEMA_VERSION=$(/srv/gitlab/bin/bundle exec rake ${SCHEMA_RAKE_TASK})
 
     # If rake failed, we're not connected to the DB, and DB_SCHEMA_VERSION is empty.
     if [ $? -ne 0 ]; then
