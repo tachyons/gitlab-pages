@@ -117,3 +117,17 @@
     :why: 
     :versions: []
     :when: 2019-09-17 14:53:25.294515000 Z
+- - :license
+  - gopkg.in/check.v1
+  - BSD-2-Clause
+  - :who: Krasimir Angelov
+    :why: https://github.com/go-check/check/blob/e54ca221ea41951970e0249fb5163642c915dbb2/LICENSE
+    :versions: []
+    :when: 2019-10-08 02:12:00.000000000 Z
+- - :license
+  - github.com/kr/pretty
+  - MIT
+  - :who: Krasimir Angelov
+    :why: https://github.com/kr/pretty/blob/088c856450c08c03eb32f7a6c221e6eefaa10e6f/License
+    :versions: []
+    :when: 2019-10-08 02:12:00.000000000 Z
