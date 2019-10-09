@@ -1,5 +1,0 @@
-#!/bin/bash
-
-set -e
-
-printf "GET / HTTP/1.1\n\n" > /dev/tcp/127.0.0.1/${GITLAB_CONTAINER_REGISTRY_LISTEN_PORT:-5000}

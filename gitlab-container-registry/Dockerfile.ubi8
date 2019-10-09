@@ -1,5 +1,4 @@
 ARG CI_REGISTRY_IMAGE=
-ARG RUBY_VERSION=
 ARG GIT_TAG=
 ARG GO_TAG=
 ARG DOCKER_BUILDTAGS=
@@ -7,11 +6,11 @@ ARG DOCKER_BUILDTAGS=
 ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
 ARG GO_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG}
 ARG GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG}
-ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_VERSION}
 ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
 ARG DOCKER_BUILDTAGS="include_oss include_gcs"
 
 FROM ${GIT_IMAGE} AS git
+FROM ${GO_IMAGE} AS golang
 FROM ${BUILD_IMAGE} AS builder
 
 ARG REGISTRY_VERSION=v2.7.1
@@ -34,19 +33,14 @@ RUN GOPATH=${GOPATH} go get gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT}
 FROM ${UBI_IMAGE}
 
 ARG GITLAB_USER=git
-ARG GITLAB_DATA=/var/opt/gitlab
 
-ENV LANG=C.UTF-8
+RUN adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER}
 
-RUN adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
-    && mkdir -p /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA} \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA}
-
-COPY --from=builder /usr/local/bin/registry /usr/local/bin/registry
-COPY scripts/ /scripts/
+COPY --from=builder /usr/local/bin/registry /bin/registry
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
-CMD /scripts/start-registry
+ENV CONFIG_DIRECTORY=/etc/docker/registry
+ENV CONFIG_FILENAME=config.yml
 
-HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
+CMD /bin/registry serve ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}

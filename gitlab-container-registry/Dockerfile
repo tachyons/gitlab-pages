@@ -23,28 +23,20 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
-FROM debian:stretch-slim
+FROM alpine:3.10
 
-ARG DATADIR=/var/opt/gitlab
-ARG CONFIG=/srv/gitlab/config
 ARG GITLAB_USER=git
 
 # create gitlab user
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates \
-  && rm -rf /var/lib/apt/lists/* \
-  && adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} \
-  && install -d -o ${GITLAB_USER} /var/log/gitlab/ \
-  && install -d -o ${GITLAB_USER} ${DATADIR} \
-  && install -d -o ${GITLAB_USER} ${CONFIG}
+RUN set -ex \
+  && apk add --no-cache ca-certificates apache2-utils \
+  && adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER}
 
-COPY --from=builder /usr/local/bin/registry /usr/local/bin/registry
+COPY --from=builder /usr/local/bin/registry /bin/registry
 
 USER $GITLAB_USER:$GITLAB_USER
 
-COPY scripts/ /scripts/
+ENV CONFIG_DIRECTORY=/etc/docker/registry
+ENV CONFIG_FILENAME=config.yml
 
-CMD /scripts/start-registry
-
-HEALTHCHECK --interval=30s --timeout=30s --retries=5 \
-CMD /scripts/healthcheck
+CMD /bin/registry serve ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
