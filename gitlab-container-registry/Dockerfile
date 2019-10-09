@@ -23,13 +23,14 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
-FROM alpine:3.10
+FROM debian:stretch-slim
 
 ARG GITLAB_USER=git
 
 # create gitlab user
-RUN set -ex \
-  && apk add --no-cache ca-certificates apache2-utils \
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates apache2-utils \
+  && rm -rf /var/lib/apt/lists/* \
   && adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER}
 
 COPY --from=builder /usr/local/bin/registry /bin/registry
