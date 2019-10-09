@@ -12,7 +12,8 @@ ENV DB_SCHEMA_TARGET=geo
 
 COPY scripts/  /scripts/
 
-RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps \
+    chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
