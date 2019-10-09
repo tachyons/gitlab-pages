@@ -1,0 +1,22 @@
+ARG FROM_IMAGE=
+ARG TAG=
+
+ARG RAILS_IMAGE=${FROM_IMAGE}:${TAG}
+
+FROM ${RAILS_IMAGE}
+
+ARG GITLAB_USER=git
+
+# Control the target for `wait-for-deps` schema check
+ENV DB_SCHEMA_TARGET=geo
+
+COPY scripts/  /scripts/
+
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps \
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
+
+USER ${GITLAB_USER}:${GITLAB_USER}
+
+CMD /scripts/process-wrapper
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
