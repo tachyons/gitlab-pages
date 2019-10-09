@@ -51,7 +51,7 @@ function fetch_remote_backup(){
   else # It's a timestamp
     file_name="$1_gitlab_backup.tar"
     if [ "${BACKUP_BACKEND}" = "s3" ]; then
-      s3cmd sync "s3://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null
+      s3cmd get "s3://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null
     elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
       gsutil cp "gs://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null
     else
@@ -145,7 +145,7 @@ function backup(){
   write_backup_info $skipped
   pack_backup $backup_name
   if [ "${BACKUP_BACKEND}" = "s3" ]; then
-    s3cmd sync ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
+    s3cmd put ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
     echo "[DONE] Backup can be found at s3://$BACKUP_BUCKET_NAME/${backup_name}.tar"
   elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
     gsutil cp -n ${backup_tars_path}/${backup_name}.tar gs://$BACKUP_BUCKET_NAME > /dev/null
