@@ -51,7 +51,7 @@ COPY config.toml /etc/gitaly/config.toml
 COPY gitconfig /usr/local/etc/gitconfig
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps net-tools libicu openssh-clients \
-    && adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
+    && adduser -m ${GITLAB_USER} \
     && mkdir -p /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories \
     && touch /var/log/gitaly/gitaly.log \
     && touch /var/log/gitaly/gitlab-shell.log \

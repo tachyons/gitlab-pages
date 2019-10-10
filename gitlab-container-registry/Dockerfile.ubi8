@@ -33,7 +33,7 @@ FROM ${UBI_IMAGE}
 
 ARG GITLAB_USER=git
 
-RUN adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER}
+RUN adduser -m ${GITLAB_USER}
 
 COPY --from=builder /usr/local/bin/registry /bin/registry
 

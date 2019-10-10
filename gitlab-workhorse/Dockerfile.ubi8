@@ -44,7 +44,7 @@ ARG GITLAB_DATA=/var/opt/gitlab
 ENV LANG=C.UTF-8
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs perl \
-    && adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
+    && adduser -m ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA}
 
