@@ -450,6 +450,24 @@ gitaly:
   dependencies:
     - gitlab-shell
 
+gitlab-container-registry:
+  <<: *job-base
+  stage: phase-four
+  script:
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$TARGET_VERSION" | sha1sum))
+    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
+    - build_if_needed --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
+                      --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
+                      --build-arg "REGISTRY_NAMESPACE=${GITLAB_NAMESPACE}"
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
+  dependencies:
+    - git-base
+    - gitlab-go
+
 gitlab-workhorse-ee:
   <<: *job-base
   stage: phase-six
