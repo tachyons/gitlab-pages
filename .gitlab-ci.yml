@@ -462,7 +462,7 @@ gitlab-container-registry:
     - build_if_needed --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
-                      --build-arg "REGISTRY_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "REGISTRY_NAMESPACE=gitlab-org"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - git-base
