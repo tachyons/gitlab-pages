@@ -46,6 +46,7 @@ LABEL source="https://gitlab.com/gitlab-org/container-registry" \
 RUN adduser -m ${GITLAB_USER}
 
 COPY --from=builder /usr/local/bin/registry /bin/registry
+COPY scripts/ /scripts/
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
@@ -53,3 +54,5 @@ ENV CONFIG_DIRECTORY=/etc/docker/registry
 ENV CONFIG_FILENAME=config.yml
 
 CMD /bin/registry serve ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
