@@ -5,7 +5,17 @@ ARG RAILS_IMAGE=${FROM_IMAGE}:${TAG}
 
 FROM ${RAILS_IMAGE}
 
+ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+
+LABEL source="https://github.com/mperham/sidekiq" \
+      name="GitLab Sidekiq" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="Geo Log Cursor daemon." \
+      description="Geo Log Cursor daemon."
 
 ENV SIDEKIQ_CONCURRENCY=25
 ENV SIDEKIQ_TIMEOUT=4

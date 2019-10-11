@@ -318,6 +318,7 @@ gitlab-sidekiq-ee:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
