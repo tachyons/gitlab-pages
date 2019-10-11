@@ -156,7 +156,7 @@ func TestWatch(t *testing.T) {
 	require.NoError(t, os.RemoveAll(updateFile))
 
 	update := make(chan Map)
-	go Watch("gitlab.io", func(dm Map) {
+	go watch("gitlab.io", func(dm Map) {
 		update <- dm
 	}, time.Microsecond*50)
 
