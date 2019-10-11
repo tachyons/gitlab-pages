@@ -46,6 +46,15 @@ FROM ${GIT_IMAGE}
 
 ARG GITLAB_USER=git
 
+LABEL source="https://gitlab.com/gitlab-org/gitaly" \
+      name="Gitaly" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITALY_VERSION} \
+      release=${GITALY_VERSION} \
+      summary="Gitaly is a Git RPC service for handling all the git calls made by GitLab." \
+      description="Gitaly is a Git RPC service for handling all the git calls made by GitLab."
+
 COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
 COPY gitconfig /usr/local/etc/gitconfig
