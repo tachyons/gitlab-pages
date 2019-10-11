@@ -36,7 +36,7 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY assets/ /
 
-RUN dnf --disableplugin=subscription-manager install -yb --nodocs hostname \
+RUN dnf --disableplugin=subscription-manager install -yb --nodocs hostname procps \
     && mkdir -p /var/log/redis \
     && touch /var/log/redis/runner.txt \
     && chmod +x /usr/local/bin/kubectl \
@@ -45,3 +45,5 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs hostname \
 CMD [ "/usr/local/bin/redis-launcher.sh | tee /var/log/redis/runner.txt" ]
 
 ENTRYPOINT [ "bash", "-c" ]
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
