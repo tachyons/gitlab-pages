@@ -34,4 +34,6 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps libicu 
     && touch /var/log/gitlab/mail_room.log \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab
 
+USER ${GITLAB_USER}:${GITLAB_USER}
+
 CMD /scripts/process-wrapper
