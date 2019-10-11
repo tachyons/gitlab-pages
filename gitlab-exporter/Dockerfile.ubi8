@@ -28,7 +28,17 @@ RUN gem install gitlab-exporter -v ${GITLAB_EXPORTER_VERSION}
 
 FROM ${RUBY_IMAGE}
 
+ARG GITLAB_EXPORTER_VERSION
 ARG GITLAB_USER=git
+
+LABEL source="https://gitlab.com/gitlab-org/gitlab-exporter" \
+      name="GitLab Exporter" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_EXPORTER_VERSION} \
+      release=${GITLAB_EXPORTER_VERSION} \
+      summary="Prometheus Web exporter for GitLab." \
+      description="Prometheus Web exporter for GitLab."
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab-exporter/templates
 ENV CONFIG_DIRECTORY=/etc/gitlab-exporter
