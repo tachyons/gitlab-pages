@@ -32,8 +32,18 @@ RUN curl -L https://gitlab.com/${GITLAB_SHELL_NAMESPACE}/${GITLAB_SHELL_PROJECT}
 
 FROM ${RUBY_IMAGE}
 
+ARG GITLAB_SHELL_VERSION
 ARG GITLAB_USER=git
 ARG RHEL_REPOSITORY=https://downloads.redhat.com/redhat/rhel/rhel-8-beta/rhel-8-beta.repo
+
+LABEL source="https://gitlab.com/gitlab-org/gitlab-shell" \
+      name="GitLab Shell" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_SHELL_VERSION} \
+      release=${GITLAB_SHELL_VERSION} \
+      summary="SSH access and repository management app for GitLab." \
+      description="SSH access and repository management app for GitLab."
 
 COPY --from=ruby /ruby/ /usr/
 COPY --from=builder /srv/gitlab-shell/ /srv/gitlab-shell/
