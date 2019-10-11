@@ -108,7 +108,6 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
 func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains *source.Domains) bool {
-
 	if a == nil {
 		return false
 	}
