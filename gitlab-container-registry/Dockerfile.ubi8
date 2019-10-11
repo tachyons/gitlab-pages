@@ -31,7 +31,17 @@ RUN GOPATH=${GOPATH} go get gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT}
 
 FROM ${UBI_IMAGE}
 
+ARG REGISTRY_VERSION
 ARG GITLAB_USER=git
+
+LABEL source="https://gitlab.com/gitlab-org/container-registry" \
+      name="Container Registry" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${REGISTRY_VERSION} \
+      release=${REGISTRY_VERSION} \
+      summary="The Docker toolset to pack, ship, store, and deliver content." \
+      description="The Docker toolset to pack, ship, store, and deliver content. This is a fork of official Docker Registry 2.0 implementation."
 
 RUN adduser -m ${GITLAB_USER}
 

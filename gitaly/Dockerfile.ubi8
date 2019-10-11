@@ -44,6 +44,7 @@ RUN curl -L https://gitlab.com/${GITALY_NAMESPACE}/${GITALY_PROJECT}/-/archive/$
 FROM ${SHELL_IMAGE} AS shell
 FROM ${GIT_IMAGE}
 
+ARG GITALY_VERSION
 ARG GITLAB_USER=git
 
 LABEL source="https://gitlab.com/gitlab-org/gitaly" \
