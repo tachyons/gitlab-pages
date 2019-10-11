@@ -14,7 +14,7 @@ ARG GITLAB_CONFIG=/srv/gitlab/config
 ARG GITLAB_VERSION
 ARG GITLAB_USER=git
 
-LABEL source="https://github.com/gitlab-org/gitlab" \
+LABEL source="https://gitlab.com/gitlab-org/gitlab" \
       name="GitLab Unicorn" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \

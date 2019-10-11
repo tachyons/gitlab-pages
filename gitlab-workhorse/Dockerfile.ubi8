@@ -38,8 +38,18 @@ RUN curl https://sno.phy.queensu.ca/~phil/exiftool/Image-ExifTool-${EXIFTOOL_VER
 FROM ${RAILS_IMAGE} AS rails
 FROM ${RUBY_IMAGE}
 
+ARG WORKHORSE_VERSION
 ARG GITLAB_USER=git
 ARG GITLAB_DATA=/var/opt/gitlab
+
+LABEL source="https://gitlab.com/gitlab-org/gitlab-workhorse" \
+      name="GitLab Workhorse" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${WORKHORSE_VERSION} \
+      release=${WORKHORSE_VERSION} \
+      summary="Gitlab Workhorse is a smart reverse proxy for GitLab." \
+      description="Gitlab Workhorse is a smart reverse proxy for GitLab. It handles large HTTP requests."
 
 ENV LANG=C.UTF-8
 
