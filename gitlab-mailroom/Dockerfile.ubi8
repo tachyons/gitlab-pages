@@ -22,7 +22,17 @@ RUN gem install mail_room:${MAILROOM_VERSION} charlock_holmes:0.7.6 redis:4.0.1 
 
 FROM ${RUBY_IMAGE}
 
+ARG MAILROOM_VERSION
 ARG GITLAB_USER=git
+
+LABEL source="https://github.com/tpitale/mail_room/" \
+      name="GitLab Mailroom" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${MAILROOM_VERSION} \
+      release=${MAILROOM_VERSION} \
+      summary="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received." \
+      description="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received."
 
 COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
 COPY --from=builder /usr/bin/mail_room /usr/bin/mail_room
