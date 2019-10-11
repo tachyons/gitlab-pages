@@ -36,7 +36,7 @@ LABEL source="https://github.com/tpitale/mail_room/" \
 
 COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
 COPY --from=builder /usr/bin/mail_room /usr/bin/mail_room
-COPY scripts/process-wrapper /scripts/process-wrapper
+COPY scripts/ /scripts/
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps libicu tzdata \
     && adduser -m ${GITLAB_USER} \
@@ -47,3 +47,5 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps libicu 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
 CMD /scripts/process-wrapper
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
