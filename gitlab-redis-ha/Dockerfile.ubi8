@@ -21,6 +21,17 @@ RUN curl -L http://download.redis.io/releases/redis-${REDIS_VERSION}.tar.gz | ta
 
 FROM ${UBI_IMAGE}
 
+ARG REDIS_VERSION
+
+LABEL source="https://github.com/tpitale/mail_room/" \
+      name="GitLab Redis HA" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${REDIS_VERSION} \
+      release=${REDIS_VERSION} \
+      summary="High availability for Redis with Redis Sentinel." \
+      description="High availability for Redis with Redis Sentinel."
+
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY assets/ /
