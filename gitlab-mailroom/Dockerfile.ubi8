@@ -29,7 +29,7 @@ COPY --from=builder /usr/bin/mail_room /usr/bin/mail_room
 COPY scripts/process-wrapper /scripts/process-wrapper
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps libicu tzdata \
-    && adduser -m ${GITLAB_USER} && passwd -d ${GITLAB_USER} \
+    && adduser -m ${GITLAB_USER} \
     && mkdir /var/log/gitlab \
     && touch /var/log/gitlab/mail_room.log \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab
