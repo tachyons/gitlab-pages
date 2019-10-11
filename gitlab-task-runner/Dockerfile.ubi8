@@ -23,7 +23,6 @@ LABEL source="https://github.com/gitlab-org/gitlab" \
       summary="Task Runner is an entry point for interaction with other containers in the cluster." \
       description="Task Runner is an entry point for interaction with other containers in the cluster. It contains scripts for running Rake tasks, backup, restore, and tools to intract with object storage."
 
-
 COPY --from=python /usr/local/bin /usr/local/bin/
 COPY --from=python /usr/local/lib /usr/local/lib/
 COPY --from=python /usr/local/include /usr/local/include/
