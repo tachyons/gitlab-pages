@@ -8,16 +8,16 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 )
 
-// Domains struct represents a map of all domains supported by pages. It is
-// currently reading them from disk.
+// Disk struct represents a map of all domains supported by pages that are
+// stored on a disk with corresponding `config.json`.
 type Disk struct {
 	dm   Map
 	lock *sync.RWMutex
 }
 
-// NewDomains is a factory method for domains initializing a mutex. It should
-// not initialize `dm` as we later check the readiness by comparing it with a
-// nil value.
+// New is a factory method for the Disk source. It is initializing a mutex. It
+// should not initialize `dm` as we later check the readiness by comparing it
+// with a nil value.
 func New() *Disk {
 	return &Disk{
 		lock: &sync.RWMutex{},
