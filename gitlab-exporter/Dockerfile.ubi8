@@ -46,6 +46,7 @@ ENV CONFIG_FILENAME=gitlab-exporter.yml
 
 COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
 COPY --from=builder /usr/bin/gitlab-exporter /usr/bin/gitlab-exporter
+COPY scripts/ /scripts/
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps uuid \
     && adduser -m ${GITLAB_USER} \
@@ -55,3 +56,5 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps uuid \
 USER ${GITLAB_USER}:${GITLAB_USER}
 
 CMD /usr/bin/gitlab-exporter web -c ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
