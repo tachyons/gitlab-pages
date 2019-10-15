@@ -138,7 +138,7 @@ gitlab-redis-ha:
   stage: phase-two
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$(date -u +%D)" | sha1sum))
-    - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}${IMAGE_TAG_EXT}"
+    - build_if_needed --build-arg "KUBECTL_TAG=${KUBECTL_VERSION}${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag
 
 gitlab-go:

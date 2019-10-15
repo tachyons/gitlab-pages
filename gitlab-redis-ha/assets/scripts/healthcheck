@@ -2,4 +2,18 @@
 
 set -e
 
-/usr/bin/pgrep -f redis
+
+if [ -n "${REDIS_PASSWORD_FILE}" ]; then
+  password="$(cat ${REDIS_PASSWORD_FILE})"
+  opts="-a ${password} --no-auth-warning"
+fi
+
+if [ "${SENTINEL}" = 'true' ]; then
+  port=${GITLAB_REDIS_SENTINEL_LISTEN_PORT:-26379}
+else
+  port=${GITLAB_REDIS_LISTEN_PORT:-6379}
+fi
+
+response=$(redis-cli -h localhost -p ${port} ${opts} ping &> /dev/null)
+
+[ "${response}" = 'PONG' -o ! "${SENTINEL}" = 'true' -a "${response}" = 'LOADING Redis is loading the dataset in memory' ]
