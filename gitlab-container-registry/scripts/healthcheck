@@ -2,4 +2,6 @@
 
 set -e
 
-printf "GET / HTTP/1.1\n\n" > /dev/tcp/127.0.0.1/${GITLAB_CONTAINER_REGISTRY_LISTEN_PORT:-5000}
+status=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:${GITLAB_CONTAINER_REGISTRY_LISTEN_PORT:-5000}/v2/)
+
+[[ '200 401' =~ "$status" ]]
