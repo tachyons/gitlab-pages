@@ -21,7 +21,7 @@ class ObjectStorageBackup
   def backup
     if @backend == "s3"
       check_bucket_cmd = %W(s3cmd ls s3://#{@remote_bucket_name})
-      cmd = %W(s3cmd --stop-on-error sync s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
+      cmd = %W(s3cmd --stop-on-error --delete-removed sync s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
     elsif @backend == "gcs"
       check_bucket_cmd = %W(gsutil ls gs://#{@remote_bucket_name})
       cmd = %W(gsutil -m rsync -r gs://#{@remote_bucket_name} /srv/gitlab/tmp/#{@name})
@@ -74,13 +74,8 @@ class ObjectStorageBackup
 
   def upload_to_object_storage(source_path)
     if @backend == "s3"
-      # s3cmd treats `-` as a special filename for using stdin, as a result
-      # we need a slightly different syntax to support syncing the `-` directory (used for system uploads)
-      if File.basename(source_path) == '-'
-        cmd = %W(s3cmd --stop-on-error sync #{source_path}/ s3://#{@remote_bucket_name}/-/)
-      else
-        cmd = %W(s3cmd --stop-on-error sync #{source_path} s3://#{@remote_bucket_name})
-      end
+      dir_name = File.basename(source_path)
+      cmd = %W(s3cmd --stop-on-error sync #{source_path}/ s3://#{@remote_bucket_name}/#{dir_name}/)
     elsif @backend == "gcs"
       cmd = %W(gsutil -m rsync -r #{source_path}/ gs://#{@remote_bucket_name})
     end
