@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/certifi/gocertifi v0.0.0-20190905060710-a5e0173ced67 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fzipp/gocyclo v0.0.0-20150627053110-6acd4345c835
 	github.com/getsentry/raven-go v0.1.2 // indirect
 	github.com/golang/mock v1.3.1
