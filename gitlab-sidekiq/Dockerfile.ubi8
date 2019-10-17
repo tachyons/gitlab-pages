@@ -5,12 +5,22 @@ ARG RAILS_IMAGE=${FROM_IMAGE}:${TAG}
 
 FROM ${RAILS_IMAGE}
 
+ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+
+LABEL source="https://github.com/mperham/sidekiq" \
+      name="GitLab Sidekiq" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="Geo Log Cursor daemon." \
+      description="Geo Log Cursor daemon."
 
 ENV SIDEKIQ_CONCURRENCY=25
 ENV SIDEKIQ_TIMEOUT=4
 
-COPY scripts/  /scripts/
+COPY scripts/ /scripts/
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps openssh-clients \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
@@ -18,3 +28,5 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps openssh
 USER ${GITLAB_USER}:${GITLAB_USER}
 
 CMD /scripts/process-wrapper
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck

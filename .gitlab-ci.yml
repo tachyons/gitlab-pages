@@ -138,7 +138,7 @@ gitlab-redis-ha:
   stage: phase-two
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$(date -u +%D)" | sha1sum))
-    - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}${IMAGE_TAG_EXT}"
+    - build_if_needed --build-arg "KUBECTL_TAG=${KUBECTL_VERSION}${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag
 
 gitlab-go:
@@ -229,6 +229,7 @@ gitlab-task-runner-ee:
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "PYTHON_TAG=${PYTHON_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
+                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
@@ -265,6 +266,7 @@ gitlab-geo-logcursor:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
@@ -283,6 +285,7 @@ gitlab-unicorn-ee:
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "PYTHON_TAG=${PYTHON_VERSION}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
@@ -317,6 +320,7 @@ gitlab-sidekiq-ee:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee

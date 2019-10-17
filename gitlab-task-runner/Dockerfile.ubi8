@@ -11,7 +11,17 @@ FROM ${RAILS_IMAGE}
 
 ARG S3CMD_VERSION=2.0.1
 ARG GSUTIL_VERSION=4.42
+ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+
+LABEL source="https://gitlab.com/gitlab-org/gitlab" \
+      name="GitLab Task Runner" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="Task Runner is an entry point for interaction with other containers in the cluster." \
+      description="Task Runner is an entry point for interaction with other containers in the cluster. It contains scripts for running Rake tasks, backup, restore, and tools to intract with object storage."
 
 COPY --from=python /usr/local/bin /usr/local/bin/
 COPY --from=python /usr/local/lib /usr/local/lib/

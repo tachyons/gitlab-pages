@@ -1,9 +1,9 @@
 ARG CI_REGISTRY_IMAGE=
-ARG KUBECTL_VERSION=
+ARG KUBECTL_TAG=
 
 ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
 ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
-ARG KUBECTL_IMAGE=${CI_REGISTRY_IMAGE}/kubectl:${KUBECTL_VERSION}
+ARG KUBECTL_IMAGE=${CI_REGISTRY_IMAGE}/kubectl:${KUBECTL_TAG}
 
 FROM ${KUBECTL_IMAGE} AS kubectl
 FROM ${BUILD_IMAGE} AS builder
@@ -21,6 +21,17 @@ RUN curl -L http://download.redis.io/releases/redis-${REDIS_VERSION}.tar.gz | ta
 
 FROM ${UBI_IMAGE}
 
+ARG REDIS_VERSION
+
+LABEL source="https://redis.io" \
+      name="GitLab Redis HA" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${REDIS_VERSION} \
+      release=${REDIS_VERSION} \
+      summary="High availability for Redis with Redis Sentinel." \
+      description="High availability for Redis with Redis Sentinel."
+
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY assets/ /
@@ -34,3 +45,5 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs hostname \
 CMD [ "/usr/local/bin/redis-launcher.sh | tee /var/log/redis/runner.txt" ]
 
 ENTRYPOINT [ "bash", "-c" ]
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck

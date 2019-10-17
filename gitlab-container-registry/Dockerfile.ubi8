@@ -31,11 +31,22 @@ RUN GOPATH=${GOPATH} go get gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT}
 
 FROM ${UBI_IMAGE}
 
+ARG REGISTRY_VERSION
 ARG GITLAB_USER=git
+
+LABEL source="https://gitlab.com/gitlab-org/container-registry" \
+      name="Container Registry" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${REGISTRY_VERSION} \
+      release=${REGISTRY_VERSION} \
+      summary="The Docker toolset to pack, ship, store, and deliver content." \
+      description="The Docker toolset to pack, ship, store, and deliver content. This is a fork of official Docker Registry 2.0 implementation."
 
 RUN adduser -m ${GITLAB_USER}
 
 COPY --from=builder /usr/local/bin/registry /bin/registry
+COPY scripts/ /scripts/
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
@@ -43,3 +54,5 @@ ENV CONFIG_DIRECTORY=/etc/docker/registry
 ENV CONFIG_FILENAME=config.yml
 
 CMD /bin/registry serve ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck

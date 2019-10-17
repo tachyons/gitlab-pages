@@ -5,7 +5,17 @@ ARG RAILS_IMAGE=${FROM_IMAGE}:${TAG}
 
 FROM ${RAILS_IMAGE}
 
+ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+
+LABEL source="https://gitlab.com/gitlab-org/gitlab" \
+      name="GitLab Geo Log Cursor" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="Geo Log Cursor daemon." \
+      description="Geo Log Cursor daemon."
 
 # Control the target for `wait-for-deps` schema check
 ENV DB_SCHEMA_TARGET=geo

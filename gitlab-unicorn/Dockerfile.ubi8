@@ -11,7 +11,17 @@ FROM ${RAILS_IMAGE}
 
 ARG DOCUTILS_VERSION=0.11
 ARG GITLAB_CONFIG=/srv/gitlab/config
+ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+
+LABEL source="https://gitlab.com/gitlab-org/gitlab" \
+      name="GitLab Unicorn" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="GitLab Unicorn run the GitLab Rails application with Unicorn web server." \
+      description="GitLab Unicorn run the GitLab Rails application with Unicorn web server."
 
 COPY --from=python /usr/local/bin /usr/local/bin/
 COPY --from=python /usr/local/lib /usr/local/lib/
