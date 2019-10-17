@@ -1,10 +1,14 @@
 # Building Images
 
-Building these images is done through GitLab CI. By default triggering a CI build will use the latest upstream gitlab master,
-and build both gitlab-ce and gitlab-ee versions.
+Building these images is done through GitLab CI. By default triggering a CI
+build will use the latest upstream gitlab master, and build both gitlab-ce and
+gitlab-ee versions.
 
-For tagging specific versions of GitLab as part of our regular automated release process, the CI pipeline is triggered from the gitlab-ce and gitlab-ee repos when tagged, and those repos pass
-along the ref information to inform this project what GitLab versions to build.
+For releasing new versions, the repo gets tagged by the corresponding GitLab
+version by `release-tools` and the tag pipeline running on the dev.gitlab.org
+mirror of the project will build the images and push them to dev registry. At
+the time of publishing, these images will be copied to the com registry and
+hence will be available to the public to use.
 
 ## Manually triggering the pipeline for a reference
 
