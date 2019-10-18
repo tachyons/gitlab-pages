@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/deprecatedargs"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
@@ -200,30 +201,9 @@ func initErrorReporting(sentryDSN, sentryEnvironment string) {
 		errortracking.WithSentryEnvironment(sentryEnvironment))
 }
 
-func appMain() {
-	var showVersion = flag.Bool("version", false, "Show version")
-
-	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
-	flag.Parse()
-	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
-		fatal(err)
-	}
-
-	printVersion(*showVersion, VERSION)
-
-	err := logging.ConfigureLogging(*logFormat, *logVerbose)
-	if err != nil {
-		log.WithError(err).Fatal("Failed to initialize logging")
-	}
-
-	log.WithFields(log.Fields{
-		"version":  VERSION,
-		"revision": REVISION,
-	}).Print("GitLab Pages Daemon")
-	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
-
-	if err := os.Chdir(*pagesRoot); err != nil {
-		fatal(err)
+func loadConfig() appConfig {
+	if err := deprecatedargs.Validate(os.Args[1:]); err != nil {
+		log.WithError(err)
 	}
 
 	config := configFromFlags()
@@ -256,13 +236,40 @@ func appMain() {
 		"tls-min-version":               *tlsMinVersion,
 		"tls-max-version":               *tlsMaxVersion,
 		"use-http-2":                    config.HTTP2,
-		"auth-secret":                   config.StoreSecret,
 		"gitlab-server":                 config.GitLabServer,
-		"auth-client-id":                config.ClientID,
-		"auth-client-secret":            config.ClientSecret,
 		"auth-redirect-uri":             config.RedirectURI,
-		"sentry-dsn":                    config.SentryDSN,
 	}).Debug("Start daemon with configuration")
+
+	return config
+}
+
+func appMain() {
+	var showVersion = flag.Bool("version", false, "Show version")
+
+	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
+	flag.Parse()
+	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
+		fatal(err)
+	}
+
+	printVersion(*showVersion, VERSION)
+
+	err := logging.ConfigureLogging(*logFormat, *logVerbose)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to initialize logging")
+	}
+
+	log.WithFields(log.Fields{
+		"version":  VERSION,
+		"revision": REVISION,
+	}).Print("GitLab Pages Daemon")
+	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
+
+	if err := os.Chdir(*pagesRoot); err != nil {
+		fatal(err)
+	}
+
+	config := loadConfig()
 
 	for _, cs := range [][]io.Closer{
 		createAppListeners(&config),
