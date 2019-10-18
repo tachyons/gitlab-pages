@@ -29,10 +29,12 @@ path = "/home/git/repositories"
 token = 'gitalytokengitalytoken'
 
 # # You can optionally configure Gitaly to output JSON-formatted log messages to stdout
-# [logging]
-# format = "json"
+[logging]
+format = "json"
+level = "info"
+dir = "/var/log/gitaly"
 # # Additionally exceptions can be reported to Sentry
-# sentry_dsn = "https://<key>:<secret>@sentry.io/<project>"
+#sentry_dsn = "https://<key>:<secret>@sentry.io/<project>"
 
 # # You can optionally configure Gitaly to record histogram latencies on GRPC method calls
 # [prometheus]
