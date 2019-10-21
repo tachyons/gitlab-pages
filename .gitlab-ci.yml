@@ -382,8 +382,8 @@ gitlab-shell:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - export git_container=$(cat artifacts/git_container.txt)
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version${IMAGE_TAG_EXT}"
-    - build_if_needed --build-arg "TAG=$go_version${IMAGE_TAG_EXT}"
+    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_container${IMAGE_TAG_EXT}"
+    - build_if_needed --build-arg "TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GIT_TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
