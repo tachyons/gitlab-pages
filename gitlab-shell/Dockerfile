@@ -1,7 +1,11 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG=latest
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
+ARG GIT_TAG=latest
 
+ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
+ARG GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG}
+
+FROM ${GIT_IMAGE} AS git
 FROM ${FROM_IMAGE}:${TAG} as builder
 
 ARG BUILD_DIR=/tmp/build
@@ -9,6 +13,10 @@ ARG GITLAB_SHELL_VERSION=master
 ARG GITLAB_NAMESPACE="gitlab-org"
 ARG FETCH_ARTIFACTS_PAT
 ARG CI_API_V4_URL
+
+COPY --from=git /usr/local/bin/git* /usr/local/bin/
+COPY --from=git /usr/local/share/git-core/ /usr/local/share/git-core/
+COPY --from=git /usr/local/libexec/git-core/ /usr/local/libexec/git-core/
 
 # install build deps
 RUN buildDeps=' \
