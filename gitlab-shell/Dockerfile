@@ -20,7 +20,7 @@ COPY --from=git /usr/local/libexec/git-core/ /usr/local/libexec/git-core/
 
 # install build deps
 RUN buildDeps=' \
-    gcc make' \
+    gcc make libpcre2-dev' \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps \
     && rm -rf /var/lib/apt/lists/* \
