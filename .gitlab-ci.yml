@@ -375,15 +375,17 @@ gitlab-mailroom:
 
 gitlab-shell:
   <<: *job-base
-  stage: phase-three
+  stage: phase-four
   script:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version${IMAGE_TAG_EXT}"
-    - build_if_needed --build-arg "TAG=$go_version${IMAGE_TAG_EXT}"
+    - export git_container=$(cat artifacts/git_container.txt)
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
+    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_container${IMAGE_TAG_EXT}"
+    - build_if_needed --build-arg "TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GIT_TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_SHELL_VERSION=${GITLAB_SHELL_VERSION}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
@@ -394,6 +396,7 @@ gitlab-shell:
     - echo -n "${CONTAINER_VERSION}" > artifacts/shell_container.txt
   dependencies:
     - gitlab-go
+    - git-base
 
 git-base:
   <<: *job-base
@@ -410,6 +413,7 @@ git-base:
     -  tag_and_push $GIT_VERSION${IMAGE_TAG_EXT}
     - fi
     - push_if_master_or_stable_or_tag
+    - echo -n "${CONTAINER_VERSION}" > artifacts/git_container.txt
 
 gitlab-elasticsearch-indexer:
   <<: *job-base
@@ -431,7 +435,7 @@ gitlab-elasticsearch-indexer:
 
 gitaly:
   <<: *job-base
-  stage: phase-four
+  stage: phase-five
   script:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
