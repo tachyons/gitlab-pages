@@ -19,11 +19,8 @@ RUN apt-get update \
   ca-certificates \
   openssl \
   tar \
-  python python-pip \
-  python-setuptools \
   && ldconfig \
-  && pip install --upgrade s3cmd==${S3CMD_VERSION} \
-  && pip3 install gsutil==${GSUTIL_VERSION} crcmod \
+  && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
   && rm -rf /var/lib/apt/lists/*
 
 ARG GITLAB_USER=git
