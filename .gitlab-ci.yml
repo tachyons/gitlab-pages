@@ -61,7 +61,7 @@ stages:
   only:
     # REMOVE: short circuit the pipeline for test purposes.
     variables:
-      - $CI_JOB_NAME == "kubectl"
+      - $CI_JOB_NAME == "gitlab-python"
       - $CI_JOB_NAME == "gitlab-ruby"
 
 .build-job-base: &build-job-base
@@ -83,7 +83,7 @@ stages:
     variables:
     # REMOVE: short circuit the pipeline for test purposes.
     # - $UBI_PIPELINE == "true"
-      - $CI_JOB_NAME == "build:kubectl"
+      - $CI_JOB_NAME == "build:gitlab-python"
       - $CI_JOB_NAME == "build:gitlab-ruby"
 
 gitlab-ubi-builder:
@@ -182,9 +182,19 @@ alpine-certificates:
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag ${CA_PKG_VERSION}
 
+build:gitlab-python:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
+    - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
+    - copy_assets
+
 gitlab-python:
   <<: *job-base
   stage: phase-one
+  dependencies:
+    - build:gitlab-python
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
     - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
@@ -613,6 +623,7 @@ ubi-assets-release:
   dependencies:
     - build:kubectl
     - build:postgresql
+    - build:gitlab-python
     - build:gitlab-ruby
   only:
     variables:

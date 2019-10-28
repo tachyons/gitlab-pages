@@ -1,0 +1,20 @@
+ARG CI_REGISTRY_IMAGE=
+
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE}
+
+ARG PYTHON_VERSION=3.7.3
+
+ENV LANG=C.UTF-8
+
+RUN mkdir /assets \
+    && curl -L https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz  | tar -xz \ 
+    && cd Python-${PYTHON_VERSION} \
+    && ./configure --prefix=/usr/local --enable-shared --with-readline=editline LDFLAGS='-Wl,--rpath=/usr/local/lib' \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install \
+    && ldconfig \
+    && rm -rf /usr/local/lib/python3.7/test \
+    && find /usr/local/lib/python3.7 -name '__pycache__' -type d -exec rm -r {} + \
+    cp -R  --parents /usr/local/{bin,lib,include} /assets
