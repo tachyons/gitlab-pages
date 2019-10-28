@@ -156,11 +156,14 @@ copy_assets() {
     docker create --name "assets-${CONTAINER_VERSION}${IMAGE_TAG_EXT}" ${CI_REGISTRY_IMAGE}/${CI_JOB_NAME#build:*}:${CONTAINER_VERSION}${IMAGE_TAG_EXT}
     docker cp "assets-${CONTAINER_VERSION}${IMAGE_TAG_EXT}:/assets" "artifacts/ubi/${CI_JOB_NAME#build:*}"
     docker rm "assets-${CONTAINER_VERSION}${IMAGE_TAG_EXT}"
+    cd artifacts/ubi/${CI_JOB_NAME#build:*}/assets
+    tar -czf ../../${CI_JOB_NAME#build:*}.tar.gz ./*
+    cd ../.. && rm -rf ./${CI_JOB_NAME#build:*}
   fi
 }
 
 use_assets() {
-  if [ "${UBI_PIPELINE}" = 'true' -a -d "artifacts/ubi/${CI_JOB_NAME#build:*}/assets" ]; then
-    cp -R "artifacts/ubi/${CI_JOB_NAME#build:*}/assets" "${CI_JOB_NAME#build:*}/assets"
+  if [ "${UBI_PIPELINE}" = 'true' -a -f "artifacts/ubi/${CI_JOB_NAME#build:*}.tar.gz" ]; then
+    cp -R "artifacts/ubi/${CI_JOB_NAME#build:*}.tar.gz" "${CI_JOB_NAME#build:*}/assets.tar.gz"
   fi
 }

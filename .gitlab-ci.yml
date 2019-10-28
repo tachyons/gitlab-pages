@@ -593,3 +593,19 @@ sync-images:
       - artifacts/
   only:
     - tags@gitlab/charts/components/images
+
+ubi-assets-release:
+  stage: release
+  dependencies:
+    - build:kubectl
+    - build:postgresql
+  only:
+    variables:
+      - $UBI_PIPELINE == "true"
+  script:
+    - cd artifacts/ubi
+    - tar -cvf ../gitlab-ubi-assets-${TARGET_VERSION}.tar --remove-files ./*
+    - cd .. && rm -rf ./ubi
+  artifacts:
+    paths:
+      - artifacts/
