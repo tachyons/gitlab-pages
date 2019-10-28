@@ -61,8 +61,8 @@ stages:
   only:
     # REMOVE: short circuit the pipeline for test purposes.
     variables:
-      - $CI_JOB_NAME =~ /(build\:)?kubectl/
-      - $CI_JOB_NAME =~ /(build\:)?postgresql/
+      - $CI_JOB_NAME == "kubectl"
+      - $CI_JOB_NAME == "gitlab-ruby"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -74,28 +74,42 @@ stages:
     - export DOCKERFILE_EXT='.build.ubi8'
     - export IMAGE_TAG_EXT='-assets-ubi8'
     - export UBI_BUILD_IMAGE='true'
+    - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
+    - export TARGET_VERSION=$(get_target_version)
   artifacts:
     paths:
       - artifacts/
   only:
     variables:
-      - $UBI_PIPELINE == "true"
+    # REMOVE: short circuit the pipeline for test purposes.
+    # - $UBI_PIPELINE == "true"
+      - $CI_JOB_NAME == "build:kubectl"
+      - $CI_JOB_NAME == "build:gitlab-ruby"
 
 gitlab-ubi-builder:
   <<: *job-base
   stage: prepare
   only:
     variables:
-      # CHANGE: short circuit the pipeline for test purposes.
-      #- $UBI_PIPELINE == "true"
+    # REMOVE: short circuit the pipeline for test purposes.
+    # - $UBI_PIPELINE == "true"
       - $UBI_PIPELINE == ""
   script:
     - build_if_needed
     - push_latest
 
+build:gitlab-ruby:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - build_if_needed
+    - copy_assets
+
 gitlab-ruby:
   <<: *job-base
   stage: phase-one
+  dependencies:
+    - build:gitlab-ruby
   script:
     - build_if_needed
     - push_if_master_or_stable_or_tag
@@ -599,6 +613,7 @@ ubi-assets-release:
   dependencies:
     - build:kubectl
     - build:postgresql
+    - build:gitlab-ruby
   only:
     variables:
       - $UBI_PIPELINE == "true"
