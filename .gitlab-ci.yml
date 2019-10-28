@@ -5,7 +5,7 @@ before_script:
 
 stages:
   - prepare
-  - phase-one:prepare
+  - prepare:phase-one
   - phase-one
   - phase-two
   - phase-three
@@ -62,6 +62,7 @@ stages:
     # REMOVE: short circuit the pipeline for test purposes.
     variables:
       - $CI_JOB_NAME =~ /(build\:)?kubectl/
+      - $CI_JOB_NAME =~ /(build\:)?postgresql/
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -85,7 +86,9 @@ gitlab-ubi-builder:
   stage: prepare
   only:
     variables:
-      - $UBI_PIPELINE == "true"
+      # CHANGE: short circuit the pipeline for test purposes.
+      #- $UBI_PIPELINE == "true"
+      - $UBI_PIPELINE == ""
   script:
     - build_if_needed
     - push_latest
@@ -97,9 +100,19 @@ gitlab-ruby:
     - build_if_needed
     - push_if_master_or_stable_or_tag
 
+build:postgresql:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${PG_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "PG_VERSION=$PG_VERSION"
+    - copy_assets
+
 postgresql:
   <<: *job-base
   stage: phase-one
+  dependencies:
+    - build:postgresql
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PG_VERSION" | sha1sum))
     - build_if_needed --build-arg "PG_VERSION=$PG_VERSION"
@@ -121,7 +134,7 @@ cfssl-self-sign:
 
 build:kubectl:
   <<: *build-job-base
-  stage: phase-one:prepare
+  stage: prepare:phase-one
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"

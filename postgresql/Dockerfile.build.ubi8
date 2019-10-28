@@ -1,0 +1,21 @@
+ARG CI_REGISTRY_IMAGE=
+
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE}
+
+ARG PG_VERSION=10.9
+
+ENV LANG=C.UTF-8
+
+RUN mkdir /assets \
+    && curl https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz -o postgresql-${PG_VERSION}.tar.gz \
+    && curl https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz.md5 -o postgresql-${PG_VERSION}.tar.gz.md5 \
+    && [ "$(cat postgresql-${PG_VERSION}.tar.gz.md5)" = "$(md5sum postgresql-${PG_VERSION}.tar.gz)" ] \
+    && tar -xzf postgresql-${PG_VERSION}.tar.gz \
+    && cd postgresql-${PG_VERSION} \
+    && ./configure --prefix=/usr/local/postgresql --disable-rpath --with-openssl --with-libedit-preferred --with-uuid=e2fs \
+    && make -j "$(nproc)" \
+    && make -j "$(nproc)" install \
+    && cp -R --parents /usr/local/postgresql /assets 
