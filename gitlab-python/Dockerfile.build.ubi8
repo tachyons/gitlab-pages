@@ -11,8 +11,7 @@ ENV LANG=C.UTF-8
 RUN mkdir /assets \
     && curl -L https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz -o Python-${PYTHON_VERSION}.tgz \
     && curl -L https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz.asc -o Python-${PYTHON_VERSION}.tgz.asc \
-    && curl -L https://www.python.org/static/files/pubkeys.txt | gpg --import \
-    && gpg2 --verify Python-${PYTHON_VERSION}.tgz.asc Python-${PYTHON_VERSION}.tgz \
+    && gpg2 --auto-key-retrieve --verify Python-${PYTHON_VERSION}.tgz.asc Python-${PYTHON_VERSION}.tgz \
     && tar -xzf Python-${PYTHON_VERSION}.tgz \
     && cd Python-${PYTHON_VERSION} \
     && ./configure --prefix=/usr/local --enable-shared --with-readline=editline LDFLAGS='-Wl,--rpath=/usr/local/lib' \
