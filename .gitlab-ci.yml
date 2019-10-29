@@ -61,7 +61,7 @@ stages:
   only:
     # REMOVE: short circuit the pipeline for test purposes.
     variables:
-      - $CI_JOB_NAME == "gitlab-redis-ha"
+      - $CI_JOB_NAME == "git-base"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -82,7 +82,7 @@ stages:
     variables:
     # REMOVE: short circuit the pipeline for test purposes.
     # - $UBI_PIPELINE == "true"
-      - $CI_JOB_NAME == "build:gitlab-redis-ha"
+      - $CI_JOB_NAME == "build:git-base"
 
 gitlab-ubi-builder:
   <<: *job-base
@@ -485,9 +485,19 @@ gitlab-shell:
     - gitlab-go
     - git-base
 
+build:git-base:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - build_if_needed --build-arg "GIT_VERSION=$GIT_VERSION"
+    - copy_assets
+
 git-base:
   <<: *job-base
   stage: phase-three
+  dependencies:
+    - build:git-base
   script:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
@@ -644,6 +654,7 @@ ubi-assets-release:
     - build:gitlab-ruby
     - build:gitlab-go
     - build:gitlab-redis-ha
+    - build:git-base
   only:
     variables:
       - $UBI_PIPELINE == "true"

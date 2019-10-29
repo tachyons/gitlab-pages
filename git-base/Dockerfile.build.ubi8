@@ -1,0 +1,23 @@
+ARG CI_REGISTRY_IMAGE=
+
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE}
+
+ARG GIT_VERSION=2.23.0
+
+RUN mkdir /assets \
+    && curl https://mirrors.edge.kernel.org/pub/software/scm/git/sha256sums.asc -o sha256sums.asc \
+    && gpg2 --auto-key-retrieve --verify sha256sums.asc \
+    && curl https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz -o git-${GIT_VERSION}.tar.gz \
+    && grep -q $(sha256sum git-${GIT_VERSION}.tar.gz) sha256sums.asc \
+    && tar -xzf git-${GIT_VERSION}.tar.gz \
+    && cd git-${GIT_VERSION} \
+    && printf 'USE_LIBPCRE2=YesPlease\nNO_PERL=YesPlease\nNO_EXPAT=YesPlease\nNO_TCLTK=YesPlease\nNO_GETTEXT=YesPlease\nNO_PYTHON=YesPlease\nNO_INSTALL_HARDLINKS=YesPlease\nNO_R_TO_GCC_LINKER=YesPlease\n' > config.mak \
+    && make all prefix=/usr/local \
+    && make install prefix=/usr/local \
+    && cp -R --parents \
+      /usr/local/bin/git* \
+      /usr/local/share/git-core/ \
+      /usr/local/libexec/git-core/ \
+      /assets
