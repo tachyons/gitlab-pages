@@ -1,0 +1,22 @@
+ARG CI_REGISTRY_IMAGE=
+
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE}
+
+ARG DOCKER_BUILDTAGS="include_oss include_gcs"
+ARG REGISTRY_VERSION=v2.7.6-gitlab
+ARG REGISTRY_NAMESPACE=gitlab-org
+ARG REGISTRY_PROJECT=container-registry
+ARG GOPATH=/go
+
+ADD git-base.tar.gz /
+ADD gitlab-go.tar.gz /
+
+RUN mkdir -p /assets/usr/local/bin \
+    && ln -sf /usr/local/go/bin/* /usr/local/bin \
+    && GOPATH=${GOPATH} go get gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT} \
+    && cd ${GOPATH}/src/gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT} \
+    && git checkout ${REGISTRY_VERSION} \
+    && CGO_ENABLED=0 BUILDTAGS=${DOCKER_BUILDTAGS} make clean binaries \
+    && cp bin/registry /assets/usr/local/bin/registry

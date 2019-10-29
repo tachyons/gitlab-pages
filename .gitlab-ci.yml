@@ -6,6 +6,7 @@ before_script:
 stages:
   - prepare
   - prepare:phase-one
+  - prepare:phase-two
   - phase-one
   - phase-two
   - phase-three
@@ -61,7 +62,7 @@ stages:
   only:
     # REMOVE: short circuit the pipeline for test purposes.
     variables:
-      - $CI_JOB_NAME == "git-base"
+      - $CI_JOB_NAME == "gitlab-container-registry"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -82,7 +83,9 @@ stages:
     variables:
     # REMOVE: short circuit the pipeline for test purposes.
     # - $UBI_PIPELINE == "true"
+      - $CI_JOB_NAME == "build:gitlab-go"
       - $CI_JOB_NAME == "build:git-base"
+      - $CI_JOB_NAME == "build:gitlab-container-registry"
 
 gitlab-ubi-builder:
   <<: *job-base
@@ -555,6 +558,22 @@ gitaly:
   dependencies:
     - gitlab-shell
 
+build:gitlab-container-registry:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+  script:
+    - cp artifacts/ubi/{git-base,gitlab-go}.tar.gz $(get_trimmed_job_name)/
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
+                      --build-arg "REGISTRY_NAMESPACE=gitlab-org"
+    - copy_assets
+
 gitlab-container-registry:
   <<: *job-base
   stage: phase-four
@@ -563,7 +582,9 @@ gitlab-container-registry:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
+    - if [ -z "$UBI_PIPELINE" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
+    - fi
     - build_if_needed --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
@@ -572,6 +593,7 @@ gitlab-container-registry:
   dependencies:
     - git-base
     - gitlab-go
+    - build:gitlab-container-registry
 
 gitlab-workhorse-ee:
   <<: *job-base
@@ -655,6 +677,7 @@ ubi-assets-release:
     - build:gitlab-go
     - build:gitlab-redis-ha
     - build:git-base
+    - build:gitlab-container-registry
   only:
     variables:
       - $UBI_PIPELINE == "true"
