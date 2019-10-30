@@ -15,8 +15,8 @@ type Cache struct {
 // NewCache creates a new instance of Cache and sets default expiration
 func NewCache() *Cache {
 	return &Cache{
-		shortCache: cache.New(5*time.Second, 10*time.Second),
-		longCache:  cache.New(5*time.Minute, 10*time.Minute),
+		shortCache: cache.New(5*time.Second, time.Minute),
+		longCache:  cache.New(5*time.Minute, time.Minute),
 	}
 }
 
@@ -31,5 +31,5 @@ func NewCache() *Cache {
 //   lookup from the domain source and client will need to wait
 //  TODO use sync.Once to synchronize retrieval
 func (c *Cache) GetLookup(domain string, retrieve func() *Lookup) *Lookup {
-	return nil
+	return retrieve()
 }
