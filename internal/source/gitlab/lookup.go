@@ -5,9 +5,8 @@ type Lookup struct {
 	Domain          string
 	CertificateCert string
 	CertificateKey  string
-	Serving         string
-	Prefix          string
 	LookupPaths     []struct {
+		Prefix        string
 		ProjectID     int
 		HTTPSOnly     bool
 		AccessControl bool
