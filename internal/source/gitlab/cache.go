@@ -6,11 +6,13 @@ import (
 	cache "github.com/patrickmn/go-cache"
 )
 
+// Cache is a short and long caching mechanism for GitLab source
 type Cache struct {
 	shortCache *cache.Cache
 	longCache  *cache.Cache
 }
 
+// NewCache creates a new instance of Cache and sets default expiration
 func NewCache() *Cache {
 	return &Cache{
 		shortCache: cache.New(5*time.Second, 10*time.Second),
