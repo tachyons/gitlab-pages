@@ -1,7 +1,11 @@
+#!/bin/sh
+
 if [ $# -eq 0 ] ; then
   echo 'No file specified'
   exit 0
 fi
+
+set -e
 
 component_file=$1
 
