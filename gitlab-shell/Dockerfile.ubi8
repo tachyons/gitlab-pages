@@ -1,40 +1,7 @@
 ARG CI_REGISTRY_IMAGE=
-ARG GO_TAG=
-ARG GIT_TAG=
 ARG RUBY_TAG=
 
-ARG GO_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG}
-ARG GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG}
 ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_TAG}
-ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
-
-FROM ${GIT_IMAGE} AS git
-FROM ${GO_IMAGE} AS golang
-FROM ${RUBY_IMAGE} AS ruby
-
-RUN mkdir -p /ruby/{bin,lib,include} \
-    && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
-    && cp -R /usr/lib/{ruby/,libruby.*} /ruby/lib \
-    && cp -R /usr/include/ruby-*/ /ruby/include/
-
-FROM ${BUILD_IMAGE} AS builder
-
-ARG GITLAB_SHELL_VERSION=master
-ARG GITLAB_SHELL_NAMESPACE=gitlab-org
-ARG GITLAB_SHELL_PROJECT=gitlab-shell
-
-COPY --from=ruby /ruby/ /usr/
-COPY --from=git /usr/local/bin/git* /usr/local/bin/
-COPY --from=git /usr/local/share/git-core/ /usr/local/share/git-core/
-COPY --from=git /usr/local/libexec/git-core/ /usr/local/libexec/git-core/
-COPY --from=golang /usr/local/go/ /usr/local/go/
-COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
-
-RUN curl -L https://gitlab.com/${GITLAB_SHELL_NAMESPACE}/${GITLAB_SHELL_PROJECT}/-/archive/${GITLAB_SHELL_VERSION}/${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION}.tar.gz | tar -xz \
-    && cd ${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION} \
-    && make build \
-    && rm -rf go/ go_build/ spec/ internal/testhelper/testdata/ \
-    && cd .. && mv gitlab-shell-${GITLAB_SHELL_VERSION} /srv/gitlab-shell
 
 FROM ${RUBY_IMAGE}
 
@@ -51,8 +18,8 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab-shell" \
       summary="SSH access and repository management app for GitLab." \
       description="SSH access and repository management app for GitLab."
 
-COPY --from=ruby /ruby/ /usr/
-COPY --from=builder /srv/gitlab-shell/ /srv/gitlab-shell/
+ADD assets.tar.gz /
+
 COPY scripts/ /scripts/
 COPY sshd_config /etc/ssh/
 

@@ -62,7 +62,8 @@ stages:
   only:
     # REMOVE: short circuit the pipeline for test purposes.
     variables:
-      - $CI_JOB_NAME == "gitlab-elasticsearch-indexer"
+      - $CI_JOB_NAME == "gitlab-ruby"
+      - $CI_JOB_NAME == "gitlab-shell"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -84,8 +85,9 @@ stages:
     # REMOVE: short circuit the pipeline for test purposes.
     # - $UBI_PIPELINE == "true"
       - $CI_JOB_NAME == "build:gitlab-go"
+      - $CI_JOB_NAME == "build:gitlab-ruby"
       - $CI_JOB_NAME == "build:git-base"
-      - $CI_JOB_NAME == "build:gitlab-elasticsearch-indexer"
+      - $CI_JOB_NAME == "build:gitlab-shell"
 
 gitlab-ubi-builder:
   <<: *job-base
@@ -463,6 +465,23 @@ gitlab-mailroom:
   dependencies:
       - gitlab-ruby
 
+build:gitlab-shell:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+    - build:gitlab-ruby
+  script:
+    - cp artifacts/ubi/{git-base,gitlab-go,gitlab-ruby}.tar.gz $(get_trimmed_job_name)/
+    - go_dir_version=$(get_version gitlab-go)
+    - git_container=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed --build-arg "GITLAB_SHELL_VERSION=${GITLAB_SHELL_VERSION}"
+                      --build-arg "GITLAB_SHELL_NAMESPACE=${GITLAB_NAMESPACE}"
+    - copy_assets
+
 gitlab-shell:
   <<: *job-base
   stage: phase-four
@@ -472,13 +491,16 @@ gitlab-shell:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - export git_container=$(cat artifacts/git_container.txt)
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_container${IMAGE_TAG_EXT}"
+    - if [ -z "$UBI_PIPELINE" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_container${IMAGE_TAG_EXT}"
+    - fi
     - build_if_needed --build-arg "TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GIT_TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_SHELL_VERSION=${GITLAB_SHELL_VERSION}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "GITLAB_SHELL_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "CACHE_BUSTER=$GITLAB_SHELL_VERSION$(date -uI)"
@@ -487,6 +509,7 @@ gitlab-shell:
   dependencies:
     - gitlab-go
     - git-base
+    - build:gitlab-shell
 
 build:git-base:
   <<: *build-job-base
