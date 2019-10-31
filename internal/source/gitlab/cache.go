@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"sync"
 	"time"
 
 	cache "github.com/patrickmn/go-cache"
@@ -12,11 +13,18 @@ type Cache struct {
 	longCache  *cache.Cache
 }
 
+type longEntry struct {
+	lookup  *Lookup
+	refresh *sync.Once
+}
+
+type retriever func() (*Lookup, error)
+
 // NewCache creates a new instance of Cache and sets default expiration
 func NewCache() *Cache {
 	return &Cache{
 		shortCache: cache.New(5*time.Second, time.Minute),
-		longCache:  cache.New(5*time.Minute, time.Minute),
+		longCache:  cache.New(10*time.Minute, time.Minute),
 	}
 }
 
@@ -29,7 +37,40 @@ func NewCache() *Cache {
 //   GitLab source and replace the short and long cache entries
 // - if a domain lookup is not present in the long cache we will fetch the
 //   lookup from the domain source and client will need to wait
-//  TODO use sync.Once to synchronize retrieval
-func (c *Cache) GetLookup(domain string, retrieve func() *Lookup) *Lookup {
-	return retrieve()
+//  TODO synchronize retrieval
+//  TODO retrieval might fail
+func (c *Cache) GetLookup(domain string, retrieve retriever) *Lookup {
+	// return lookup if it exists in the short cache
+	if lookup, exists := c.shortCache.Get(domain); exists {
+		return lookup.(*Lookup)
+	}
+
+	// return lookup it if exists in the long cache, schedule retrieval
+	if entry, exists := c.longCache.Get(domain); exists {
+		longEntry := entry.(*longEntry)
+
+		longEntry.refresh.Do(func() {
+			go c.retrieveLookup(domain, retrieve)
+		})
+
+		return longEntry.lookup
+	}
+
+	// TODO once
+	return c.retrieveLookup(domain, retrieve)
+}
+
+func (c *Cache) storeEntry(domain string, lookup *Lookup) *Lookup {
+	longCacheEntry := &longEntry{lookup: lookup, refresh: new(sync.Once)}
+
+	c.shortCache.SetDefault(domain, lookup)
+	c.longCache.SetDefault(domain, longCacheEntry)
+
+	return lookup
+}
+
+func (c *Cache) retrieveLookup(domain string, retrieve retriever) *Lookup {
+	lookup, _ := retrieve()
+
+	return c.storeEntry(domain, lookup)
 }

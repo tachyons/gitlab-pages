@@ -5,7 +5,8 @@ type Lookup struct {
 	Domain          string
 	CertificateCert string
 	CertificateKey  string
-	LookupPaths     []struct {
+	// TODO prefix hash map
+	LookupPaths []struct {
 		Prefix        string
 		ProjectID     int
 		HTTPSOnly     bool
