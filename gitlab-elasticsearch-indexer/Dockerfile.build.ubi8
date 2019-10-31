@@ -1,0 +1,20 @@
+ARG CI_REGISTRY_IMAGE=
+
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE}
+
+ARG GITLAB_ELASTICSEARCH_INDEXER_VERSION=v1.3.0
+ARG GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE=gitlab-org
+ARG GITLAB_ELASTICSEARCH_INDEXER_PROJECT=gitlab-elasticsearch-indexer
+
+ADD git-base.tar.gz /
+ADD gitlab-go.tar.gz /
+
+RUN mkdir -p /assets \
+    && ln -sf /usr/local/go/bin/* /usr/local/bin \
+    && curl -L https://gitlab.com/${GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE}/${GITLAB_ELASTICSEARCH_INDEXER_PROJECT}/-/archive/${GITLAB_ELASTICSEARCH_INDEXER_VERSION}/${GITLAB_ELASTICSEARCH_INDEXER_PROJECT}-${GITLAB_ELASTICSEARCH_INDEXER_VERSION}.tar.gz | tar -xz \
+    && cd ${GITLAB_ELASTICSEARCH_INDEXER_PROJECT}-${GITLAB_ELASTICSEARCH_INDEXER_VERSION} \
+    && make \
+    && make install \
+    && cp --parents /usr/local/bin/gitlab-elasticsearch-indexer /assets

@@ -13,10 +13,10 @@ ARG GOPATH=/go
 ADD git-base.tar.gz /
 ADD gitlab-go.tar.gz /
 
-RUN mkdir -p /assets/usr/local/bin \
+RUN mkdir -p /assets/usr/local \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
     && GOPATH=${GOPATH} go get gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT} \
     && cd ${GOPATH}/src/gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT} \
     && git checkout ${REGISTRY_VERSION} \
     && CGO_ENABLED=0 BUILDTAGS=${DOCKER_BUILDTAGS} make clean binaries \
-    && cp bin/registry /assets/usr/local/bin/registry
+    && cp -R bin/ /assets/usr/local/

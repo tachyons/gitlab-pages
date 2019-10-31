@@ -62,7 +62,7 @@ stages:
   only:
     # REMOVE: short circuit the pipeline for test purposes.
     variables:
-      - $CI_JOB_NAME == "gitlab-container-registry"
+      - $CI_JOB_NAME == "gitlab-elasticsearch-indexer"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -85,7 +85,7 @@ stages:
     # - $UBI_PIPELINE == "true"
       - $CI_JOB_NAME == "build:gitlab-go"
       - $CI_JOB_NAME == "build:git-base"
-      - $CI_JOB_NAME == "build:gitlab-container-registry"
+      - $CI_JOB_NAME == "build:gitlab-elasticsearch-indexer"
 
 gitlab-ubi-builder:
   <<: *job-base
@@ -515,9 +515,27 @@ git-base:
     - push_if_master_or_stable_or_tag
     - echo -n "${CONTAINER_VERSION}" > artifacts/git_container.txt
 
+build:gitlab-elasticsearch-indexer:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+  script:
+    - cp artifacts/ubi/{git-base,gitlab-go}.tar.gz $(get_trimmed_job_name)/
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "GITLAB_ELASTICSEARCH_INDEXER_VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
+                      --build-arg "GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE=${GITLAB_NAMESPACE}"
+    - copy_assets
+
 gitlab-elasticsearch-indexer:
   <<: *job-base
   stage: phase-four
+  dependencies:
+    - build:gitlab-elasticsearch-indexer
   script:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
@@ -527,6 +545,7 @@ gitlab-elasticsearch-indexer:
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_ELASTICSEARCH_INDEXER_VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
@@ -678,6 +697,7 @@ ubi-assets-release:
     - build:gitlab-redis-ha
     - build:git-base
     - build:gitlab-container-registry
+    - build:gitlab-elasticsearch-indexer
   only:
     variables:
       - $UBI_PIPELINE == "true"
