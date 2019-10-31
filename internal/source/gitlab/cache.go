@@ -18,7 +18,16 @@ type longEntry struct {
 	refresh *sync.Once
 }
 
-type retriever func() (*Lookup, error)
+type retrieval struct {
+	domain       string
+	retries      int
+	retrieveFunc func() (*Lookup, error)
+}
+
+var (
+	maxRetrievalRetries  = 3
+	maxRetrievalInterval = time.Minute
+)
 
 // NewCache creates a new instance of Cache and sets default expiration
 func NewCache() *Cache {
@@ -37,31 +46,36 @@ func NewCache() *Cache {
 //   GitLab source and replace the short and long cache entries
 // - if a domain lookup is not present in the long cache we will fetch the
 //   lookup from the domain source and client will need to wait
-//  TODO synchronize retrieval
-//  TODO retrieval might fail
-func (c *Cache) GetLookup(domain string, retrieve retriever) *Lookup {
+func (c *Cache) GetLookup(domain string, retriever func() (*Lookup, error)) *Lookup {
 	// return lookup if it exists in the short cache
 	if lookup, exists := c.shortCache.Get(domain); exists {
 		return lookup.(*Lookup)
 	}
 
 	// return lookup it if exists in the long cache, schedule retrieval
-	if entry, exists := c.longCache.Get(domain); exists {
-		longEntry := entry.(*longEntry)
+	if long, exists := c.longCache.Get(domain); exists {
+		entry := long.(*longEntry)
 
-		longEntry.refresh.Do(func() {
-			go c.retrieveLookup(domain, retrieve)
+		entry.refresh.Do(func() {
+			go c.retrieve(retrieval{
+				domain:       domain,
+				retrieveFunc: retriever,
+			})
 		})
 
-		return longEntry.lookup
+		return entry.lookup
 	}
 
-	// TODO once
-	return c.retrieveLookup(domain, retrieve)
+	// make all clients wait and retrieve lookup synchronously
+	// TODO once, wait for all clients
+	return c.retrieve(retrieval{
+		domain:       domain,
+		retrieveFunc: retriever,
+	})
 }
 
-func (c *Cache) storeEntry(domain string, lookup *Lookup) *Lookup {
-	longCacheEntry := &longEntry{lookup: lookup, refresh: new(sync.Once)}
+func (c *Cache) store(domain string, lookup *Lookup) *Lookup {
+	longCacheEntry := &longEntry{lookup: lookup, refresh: &sync.Once{}}
 
 	c.shortCache.SetDefault(domain, lookup)
 	c.longCache.SetDefault(domain, longCacheEntry)
@@ -69,8 +83,21 @@ func (c *Cache) storeEntry(domain string, lookup *Lookup) *Lookup {
 	return lookup
 }
 
-func (c *Cache) retrieveLookup(domain string, retrieve retriever) *Lookup {
-	lookup, _ := retrieve()
+func (c *Cache) retrieve(fetcher retrieval) *Lookup {
+	lookup, err := fetcher.retrieveFunc()
+	if err != nil {
+		if fetcher.retries >= maxRetrievalRetries {
+			return nil
+		}
 
-	return c.storeEntry(domain, lookup)
+		time.Sleep(maxRetrievalInterval)
+
+		return c.retrieve(retrieval{
+			domain:       fetcher.domain,
+			retries:      fetcher.retries + 1,
+			retrieveFunc: fetcher.retrieveFunc,
+		})
+	}
+
+	return c.store(fetcher.domain, lookup)
 }
