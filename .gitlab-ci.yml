@@ -64,6 +64,7 @@ stages:
     variables:
       - $CI_JOB_NAME == "gitlab-ruby"
       - $CI_JOB_NAME == "gitlab-shell"
+      - $CI_JOB_NAME == "gitaly"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -88,6 +89,7 @@ stages:
       - $CI_JOB_NAME == "build:gitlab-ruby"
       - $CI_JOB_NAME == "build:git-base"
       - $CI_JOB_NAME == "build:gitlab-shell"
+      - $CI_JOB_NAME == "build:gitaly"
 
 gitlab-ubi-builder:
   <<: *job-base
@@ -575,10 +577,29 @@ gitlab-elasticsearch-indexer:
     - push_if_master_or_stable_or_tag "$GITLAB_ELASTICSEARCH_INDEXER_VERSION${IMAGE_TAG_EXT}"
   <<: *except-ce
 
+build:gitaly:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+    - build:gitlab-ruby
+  script:
+    - cp artifacts/ubi/{git-base,gitlab-go,gitlab-ruby}.tar.gz $(get_trimmed_job_name)/
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - export shell_container=($(echo -n "$BASE_VERSION$go_version$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "GITALY_VERSION=${GITALY_VERSION}"
+                      --build-arg "GITALY_NAMESPACE=${GITLAB_NAMESPACE}"
+    - copy_assets
+
 gitaly:
   <<: *job-base
   stage: phase-five
   script:
+    - cp artifacts/ubi/gitlab-shell.tar.gz $(get_trimmed_job_name)/
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
@@ -586,12 +607,15 @@ gitaly:
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - export shell_container=$(cat artifacts/shell_container.txt)
     - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_VERSION$git_version$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-shell:$shell_container${IMAGE_TAG_EXT}"
+    - if [ -z "$UBI_PIPELINE" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-shell:$shell_container${IMAGE_TAG_EXT}"
+    - fi
     - build_if_needed --build-arg "GITALY_VERSION=${GITALY_VERSION}"
                       --build-arg "TAG=$GIT_VERSION${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "GITALY_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "SHELL_CONTAINER=$shell_container${IMAGE_TAG_EXT}"
@@ -599,6 +623,8 @@ gitaly:
     - push_if_master_or_stable_or_tag $GITALY_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-shell
+    - build:gitlab-shell
+    - build:gitaly
 
 build:gitlab-container-registry:
   <<: *build-job-base
