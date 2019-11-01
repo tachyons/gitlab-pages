@@ -1,26 +1,7 @@
-ARG CI_REGISTRY_IMAGE=
 ARG TAG=
 ARG FROM_IMAGE=
 
 ARG RUBY_IMAGE=${FROM_IMAGE}:${TAG}
-ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
-
-FROM ${RUBY_IMAGE} AS ruby
-
-RUN mkdir -p /ruby/{bin,lib,include} \
-    && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
-    && cp -R /usr/lib/{ruby/,libruby.*} /ruby/lib \
-    && cp -R /usr/include/ruby-*/ /ruby/include/
-
-FROM ${BUILD_IMAGE} AS builder
-
-ARG MAILROOM_VERSION=0.9.1
-
-COPY --from=ruby /ruby/ /usr/
-COPY shared/build-scripts/ /build-scripts
-
-RUN gem install mail_room:${MAILROOM_VERSION} charlock_holmes:0.7.6 redis:4.0.1 redis-namespace:1.6.0 \
-  && /build-scripts/cleanup-gems /usr/lib/ruby/gems
 
 FROM ${RUBY_IMAGE}
 
@@ -36,8 +17,6 @@ LABEL source="https://github.com/tpitale/mail_room/" \
       summary="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received." \
       description="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received."
 
-COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
-COPY --from=builder /usr/bin/mail_room /usr/bin/mail_room
 COPY scripts/ /scripts/
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps libicu tzdata \

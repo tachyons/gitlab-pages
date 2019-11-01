@@ -1,0 +1,22 @@
+ARG CI_REGISTRY_IMAGE=
+
+ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
+
+FROM ${BUILD_IMAGE}
+
+ARG MAILROOM_VERSION=0.9.1
+
+ADD gitlab-ruby.tar.gz /
+
+COPY shared/build-scripts/ /build-scripts
+
+RUN mkdir /assets \
+    && gem install \
+      mail_room:${MAILROOM_VERSION} \
+      charlock_holmes:0.7.6 \
+      redis:4.0.1 redis-namespace:1.6.0 \
+    && /build-scripts/cleanup-gems /usr/lib/ruby/gems \
+    && cp -R --parents \
+      /usr/lib/ruby/gems \
+      /usr/bin/mail_room \
+      /assets

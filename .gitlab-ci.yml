@@ -63,8 +63,7 @@ stages:
     # REMOVE: short circuit the pipeline for test purposes.
     variables:
       - $CI_JOB_NAME == "gitlab-ruby"
-      - $CI_JOB_NAME == "postgresql"
-      - $CI_JOB_NAME == "gitlab-exporter"
+      - $CI_JOB_NAME == "gitlab-mailroom"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -86,8 +85,7 @@ stages:
     # REMOVE: short circuit the pipeline for test purposes.
     # - $UBI_PIPELINE == "true"
       - $CI_JOB_NAME == "build:gitlab-ruby"
-      - $CI_JOB_NAME == "build:postgresql"
-      - $CI_JOB_NAME == "build:gitlab-exporter"
+      - $CI_JOB_NAME == "build:gitlab-mailroom"
 
 gitlab-ubi-builder:
   <<: *job-base
@@ -466,6 +464,17 @@ gitlab-exporter:
     - gitlab-ruby
     - build:gitlab-exporter
 
+build:gitlab-mailroom:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:gitlab-ruby
+  script:
+    - cp artifacts/ubi/gitlab-ruby.tar.gz $(get_trimmed_job_name)/
+    - export CONTAINER_VERSION=($(echo -n "$ruby_version$MAILROOM_VERSION" | sha1sum))
+    - build_if_needed --build-arg "MAILROOM_VERSION=$MAILROOM_VERSION"
+    - copy_assets
+
 gitlab-mailroom:
   <<: *job-base
   stage: phase-two
@@ -479,6 +488,7 @@ gitlab-mailroom:
     - push_if_master_or_stable_or_tag $MAILROOM_VERSION${IMAGE_TAG_EXT}
   dependencies:
       - gitlab-ruby
+      - build:gitlab-mailroom
 
 build:gitlab-shell:
   <<: *build-job-base
