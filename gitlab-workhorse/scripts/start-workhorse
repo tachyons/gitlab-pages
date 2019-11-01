@@ -4,6 +4,10 @@ set -e
 
 touch /var/log/gitlab/workhorse.log
 
+# pre-create known good tmpdir
+export TMPDIR=/tmp/gitlab
+mkdir -p -m 3770 $TMPDIR
+
 gitlab-workhorse \
   ${GITLAB_WORKHORSE_EXTRA_ARGS} \
   -listenAddr 0.0.0.0:${GITLAB_WORKHORSE_LISTEN_PORT:-8181} \
