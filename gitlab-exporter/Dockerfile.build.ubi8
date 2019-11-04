@@ -16,6 +16,6 @@ RUN mkdir /assets \
     && mv /usr/local/postgresql/share/* /usr/share/ \
     && gem install gitlab-exporter -v ${GITLAB_EXPORTER_VERSION} \
     && cp -R --parents \
-      /usr/lib/ruby/gems \
-      /usr/bin/gitlab-exporter \
-      /assets
+        /usr/lib/ruby/gems \
+        /usr/bin/gitlab-exporter \
+        /assets

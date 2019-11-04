@@ -164,6 +164,8 @@ copy_assets() {
 
 use_assets() {
   if [ "${UBI_PIPELINE}" = 'true' -a -f "artifacts/ubi/${CI_JOB_NAME#build:*}.tar.gz" ]; then
-    cp -R "artifacts/ubi/${CI_JOB_NAME#build:*}.tar.gz" "${CI_JOB_NAME#build:*}/assets.tar.gz"
+    target="${CI_JOB_NAME#build:*}"
+    target="${target%*-ee}/assets.tar.gz"
+    cp -R "artifacts/ubi/${CI_JOB_NAME#build:*}.tar.gz" "${target}"
   fi
 }

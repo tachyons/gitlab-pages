@@ -7,6 +7,7 @@ stages:
   - prepare
   - prepare:phase-one
   - prepare:phase-two
+  - prepare:phase-three
   - phase-one
   - phase-two
   - phase-three
@@ -63,7 +64,7 @@ stages:
     # REMOVE: short circuit the pipeline for test purposes.
     variables:
       - $CI_JOB_NAME == "gitlab-ruby"
-      - $CI_JOB_NAME == "gitlab-mailroom"
+      - $CI_JOB_NAME == "gitlab-rails-ee"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -85,7 +86,11 @@ stages:
     # REMOVE: short circuit the pipeline for test purposes.
     # - $UBI_PIPELINE == "true"
       - $CI_JOB_NAME == "build:gitlab-ruby"
-      - $CI_JOB_NAME == "build:gitlab-mailroom"
+      - $CI_JOB_NAME == "build:gitlab-go"
+      - $CI_JOB_NAME == "build:postgresql"
+      - $CI_JOB_NAME == "build:git-base"
+      - $CI_JOB_NAME == "build:gitlab-elasticsearch-indexer"
+      - $CI_JOB_NAME == "build:gitlab-rails-ee"
 
 gitlab-ubi-builder:
   <<: *job-base
@@ -244,9 +249,30 @@ gitlab-go:
       - gitlab-ruby
       - build:gitlab-go
 
+build:gitlab-rails-ee:
+  <<: *build-job-base
+  stage: prepare:phase-three
+  dependencies:
+    - build:gitlab-ruby
+    - build:postgresql
+    - build:gitlab-elasticsearch-indexer
+  script:
+    - cp artifacts/ubi/{gitlab-ruby,postgresql,gitlab-elasticsearch-indexer}.tar.gz $(get_trimmed_job_name)/
+    - ruby_version=$(get_version gitlab-ruby)
+    - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
+    - build_if_needed --build-arg "GITLAB_EDITION=gitlab-ee"
+                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "GITLAB_PROJECT=${EE_PROJECT}"
+                      --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
+    - copy_assets
+
 gitlab-rails-ee:
   <<: *job-base
   stage: phase-five
+  dependencies:
+    - build:gitlab-rails-ee
   variables:
     ee: "true"
   script:
@@ -256,7 +282,9 @@ gitlab-rails-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
+    - if [ -z "$UBI_PIPELINE" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
+    - fi
     - pg_image="$CI_REGISTRY_IMAGE/postgresql:$PG_VERSION${IMAGE_TAG_EXT}"
     - gei_dir_version=$(get_version gitlab-elasticsearch-indexer)
     - gei_version=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$gei_dir_version" | sha1sum))
