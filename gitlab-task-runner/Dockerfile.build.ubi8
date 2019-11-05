@@ -4,11 +4,12 @@ ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
 
 FROM ${BUILD_IMAGE}
 
-ARG DOCUTILS_VERSION=0.11
+ARG S3CMD_VERSION=2.0.1
+ARG GSUTIL_VERSION=4.42
 
 ADD gitlab-python.tar.gz /
 
 RUN mkdir /assets \
-    && pip3 install --compile docutils==${DOCUTILS_VERSION} \
+    && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
     && cp -R --parents \
         /usr/local/lib/python3.7/site-packages /assets

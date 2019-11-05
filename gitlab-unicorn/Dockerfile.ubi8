@@ -33,7 +33,7 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps \
     && cd /srv/gitlab \
     && mkdir -p public/uploads \
     && chmod 0700 public/uploads \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /srv/gitlab
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} public/uploads
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
