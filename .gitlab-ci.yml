@@ -8,6 +8,7 @@ stages:
   - prepare:phase-one
   - prepare:phase-two
   - prepare:phase-three
+  - prepare:phase-four
   - phase-one
   - phase-two
   - phase-three
@@ -65,6 +66,7 @@ stages:
     variables:
       - $CI_JOB_NAME == "gitlab-ruby"
       - $CI_JOB_NAME == "gitlab-rails-ee"
+      - $CI_JOB_NAME == "gitlab-workhorse-ee"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -91,6 +93,7 @@ stages:
       - $CI_JOB_NAME == "build:git-base"
       - $CI_JOB_NAME == "build:gitlab-elasticsearch-indexer"
       - $CI_JOB_NAME == "build:gitlab-rails-ee"
+      - $CI_JOB_NAME == "build:gitlab-workhorse-ee"
 
 gitlab-ubi-builder:
   <<: *job-base
@@ -714,6 +717,25 @@ gitlab-container-registry:
     - gitlab-go
     - build:gitlab-container-registry
 
+build:gitlab-workhorse-ee:
+  <<: *build-job-base
+  stage: prepare:phase-four
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+    - build:gitlab-rails-ee
+  script:
+    - cp artifacts/ubi/{git-base,gitlab-go,gitlab-rails-ee}.tar.gz $(get_trimmed_job_name)/
+    - rails_version=$(get_version gitlab-rails)
+    - ruby_version=$(get_version gitlab-ruby)
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_WORKHORSE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
+                      --build-arg "WORKHORSE_NAMESPACE=${GITLAB_NAMESPACE}"
+    - copy_assets
+
 gitlab-workhorse-ee:
   <<: *job-base
   stage: phase-six
@@ -725,13 +747,16 @@ gitlab-workhorse-ee:
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - rails_container=$(cat artifacts/rails_container_ee.txt)
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_WORKHORSE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
+    - if [ -z "$UBI_PIPELINE" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
+    - fi
     - build_if_needed --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
                       --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "WORKHORSE_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
@@ -739,6 +764,7 @@ gitlab-workhorse-ee:
   <<: *except-ce
   dependencies:
     - gitlab-rails-ee
+    - build:gitlab-workhorse-ee
 
 gitlab-workhorse-ce:
   <<: *job-base

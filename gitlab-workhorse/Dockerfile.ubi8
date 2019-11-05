@@ -1,44 +1,11 @@
 ARG CI_REGISTRY_IMAGE=
 ARG RUBY_VERSION=
-ARG RAILS_VERSION=
-ARG GIT_TAG=
-ARG GO_TAG=
 
-ARG GO_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG}
-ARG GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG}
 ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_VERSION}
-ARG RAILS_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-rails-ee:${RAILS_VERSION}
-ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
 
-FROM ${GIT_IMAGE} AS git
-FROM ${GO_IMAGE} AS golang
-FROM ${BUILD_IMAGE} AS builder
-
-ARG WORKHORSE_VERSION=v5.2.0
-ARG WORKHORSE_NAMESPACE=gitlab-org
-ARG WORKHORSE_PROJECT=gitlab-workhorse
-
-ARG EXIFTOOL_VERSION=11.69
-
-COPY --from=git /usr/local/bin/git* /usr/local/bin/
-COPY --from=git /usr/local/share/git-core/ /usr/local/share/git-core/
-COPY --from=git /usr/local/libexec/git-core/ /usr/local/libexec/git-core/
-COPY --from=golang /usr/local/go/ /usr/local/go/
-COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
-
-RUN curl https://sno.phy.queensu.ca/~phil/exiftool/Image-ExifTool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
-    && cd Image-ExifTool-${EXIFTOOL_VERSION} \
-    && perl Makefile.PL \
-    && make install \
-    && cd .. \
-    && curl -L https://gitlab.com/${WORKHORSE_NAMESPACE}/${WORKHORSE_PROJECT}/-/archive/${WORKHORSE_VERSION}/${WORKHORSE_PROJECT}-${WORKHORSE_VERSION}.tar.gz | tar -xz \
-    && cd ${WORKHORSE_PROJECT}-${WORKHORSE_VERSION} \
-    && make install
-
-FROM ${RAILS_IMAGE} AS rails
 FROM ${RUBY_IMAGE}
 
-ARG WORKHORSE_VERSION
+ARG WORKHORSE_VERSION=v5.2.0
 ARG GITLAB_USER=git
 ARG GITLAB_DATA=/var/opt/gitlab
 
@@ -53,17 +20,19 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab-workhorse" \
 
 ENV LANG=C.UTF-8
 
+ADD assets.tar.gz /
+
+COPY scripts/ /scripts/
+
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs perl \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA} \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA}
-
-COPY --from=builder /usr/local/bin/gitlab-* /usr/local/bin/
-COPY --from=builder /usr/local/bin/exiftool /usr/local/bin/
-COPY --from=builder /usr/local/share/perl5 /usr/local/share/perl5
-COPY --from=rails --chown=git /srv/gitlab/public /srv/gitlab/public
-COPY --from=rails --chown=git /srv/gitlab/doc /srv/gitlab/doc
-COPY scripts/ /scripts/
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} \
+        /srv/gitlab/public \
+        /srv/gitlab/doc \
+        /var/log/gitlab \
+        /srv/gitlab/config \
+        ${GITLAB_DATA}
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
