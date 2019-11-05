@@ -28,10 +28,8 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs perl \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} \
-        /srv/gitlab/public \
-        /srv/gitlab/doc \
+        /srv/gitlab \
         /var/log/gitlab \
-        /srv/gitlab/config \
         ${GITLAB_DATA}
 
 USER ${GITLAB_USER}:${GITLAB_USER}

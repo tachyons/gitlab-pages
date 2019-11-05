@@ -23,7 +23,7 @@ RUN mv /srv/gitlab/log /var/log/gitlab \
     && ln -s /var/log/gitlab /srv/gitlab/log \
     && cd /srv/gitlab \
     && mkdir -p public/uploads \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /srv/gitlab /scripts \
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts \
     && chmod o-rwx config/database.yml \
     && chmod 0600 config/secrets.yml \
     && chmod -R u+rwX builds/ shared/artifacts/ \

@@ -15,6 +15,7 @@ ADD gitlab-go.tar.gz /
 ADD gitlab-rails-ee.tar.gz /
 
 RUN mkdir /assets \
+    && ln -sf /usr/local/go/bin/* /usr/local/bin \
     && curl https://sno.phy.queensu.ca/~phil/exiftool/Image-ExifTool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
     && cd Image-ExifTool-${EXIFTOOL_VERSION} \
     && perl Makefile.PL \
