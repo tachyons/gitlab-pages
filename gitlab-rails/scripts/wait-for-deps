@@ -61,7 +61,7 @@ for i in $(seq 1 $WAIT_FOR_TIMEOUT); do
   sleep 1
 done
 
-# If If DB_SCHEMA_VERSION is 0, then the DB has not been initialized.
+# If DB_SCHEMA_VERSION is 0, then the DB has not been initialized.
 # Warn that we're restarting the container whilst we wait.
 if [ "${DB_SCHEMA_VERSION}" == "0" ]; then
   echo "WARNING: Database has not been initialized yet."
