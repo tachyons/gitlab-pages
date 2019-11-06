@@ -7,12 +7,9 @@ ARG MAILROOM_VERSION=0.9.1
 ARG GITLAB_USER=git
 
 RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
-    sed -i "s/${GITLAB_USER}:!/${GITLAB_USER}:*/" /etc/shadow && \
-    mkdir /var/log/gitlab && \
-    touch /var/log/gitlab/mail_room.log && \
-    chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab
+    sed -i "s/${GITLAB_USER}:!/${GITLAB_USER}:*/" /etc/shadow
 
 COPY scripts/  /scripts/
 
 RUN MAILROOM_VERSION=${MAILROOM_VERSION} /scripts/install-dependencies && rm /scripts/install-dependencies
-CMD /scripts/process-wrapper
+CMD /usr/bin/mail_room -c /var/opt/gitlab/mail_room.yml
