@@ -61,14 +61,6 @@ stages:
       - artifacts/
   except:
     - tags@gitlab-org/build/CNG
-  only:
-    # REMOVE: short circuit the pipeline for test purposes.
-    variables:
-      - $CI_JOB_NAME == "gitlab-ruby"
-      - $CI_JOB_NAME == "gitlab-rails-ee"
-      - $CI_JOB_NAME == "gitlab-workhorse-ee"
-      - $CI_JOB_NAME == "gitlab-unicorn-ee"
-      - $CI_JOB_NAME == "gitlab-task-runner-ee"
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -87,27 +79,14 @@ stages:
       - artifacts/
   only:
     variables:
-    # REMOVE: short circuit the pipeline for test purposes.
-    # - $UBI_PIPELINE == "true"
-      - $CI_JOB_NAME == "build:gitlab-ruby"
-      - $CI_JOB_NAME == "build:gitlab-python"
-      - $CI_JOB_NAME == "build:gitlab-go"
-      - $CI_JOB_NAME == "build:postgresql"
-      - $CI_JOB_NAME == "build:git-base"
-      - $CI_JOB_NAME == "build:gitlab-elasticsearch-indexer"
-      - $CI_JOB_NAME == "build:gitlab-rails-ee"
-      - $CI_JOB_NAME == "build:gitlab-workhorse-ee"
-      - $CI_JOB_NAME == "build:gitlab-unicorn-ee"
-      - $CI_JOB_NAME == "build:gitlab-task-runner-ee"
+      - $UBI_PIPELINE == "true"
 
 gitlab-ubi-builder:
   <<: *job-base
   stage: prepare
   only:
     variables:
-    # REMOVE: short circuit the pipeline for test purposes.
-    # - $UBI_PIPELINE == "true"
-      - $UBI_PIPELINE == ""
+      - $UBI_PIPELINE == "true"
   script:
     - build_if_needed
     - push_latest
