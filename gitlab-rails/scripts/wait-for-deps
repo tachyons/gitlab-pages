@@ -15,6 +15,9 @@ cd /srv/gitlab
 # fetch the schema desired version directly from the source code
 SCHEMA_VERSION=$(grep '(version: ' ${SCHEMA_FILE} | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)) do/\1/')
 
+# Stash DB_SCHEMA_VERSION, so we can check it at exit.
+DB_SCHEMA_VERSION="0"
+
 # Compare desired schema version to active schema version in the database
 # - set BYPASS_SCHEMA_VERSION to skip version check, and only test DB online
 function checkSchemaVersion() {
@@ -30,6 +33,11 @@ function checkSchemaVersion() {
 
     # Output the current schema version
     echo "Database Schema - current: ${DB_SCHEMA_VERSION}, codebase: ${SCHEMA_VERSION}"
+
+    # If DB_SCHEMA_VERSION is 0, then the DB has not been initialized. Output message as such.
+    if [ "${DB_SCHEMA_VERSION}" == "0" ]; then
+      echo "NOTICE: Database has not been initialized yet."
+    fi
 
     # Some uses (migrations) only care if the DB is up
     if [ -n "${BYPASS_SCHEMA_VERSION}" ]; then
@@ -52,4 +60,17 @@ for i in $(seq 1 $WAIT_FOR_TIMEOUT); do
   fi
   sleep 1
 done
+
+# If DB_SCHEMA_VERSION is 0, then the DB has not been initialized.
+# Warn that we're restarting the container whilst we wait.
+if [ "${DB_SCHEMA_VERSION}" == "0" ]; then
+  echo "WARNING: Database has not been initialized yet."
+else
+  echo "WARNING: Waiting for all services to be operational, and data migrations to complete."
+fi
+
+# Output a message as to how to resolve this container failing.
+echo "If this container continues to fail / restart, please see:"
+echo "  https://docs.gitlab.com/charts/troubleshooting/index.html#application-containers-constantly-initializing"
+
 exit 1
