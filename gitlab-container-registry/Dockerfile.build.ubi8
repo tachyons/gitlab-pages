@@ -19,4 +19,4 @@ RUN mkdir -p /assets/usr/local \
     && cd ${GOPATH}/src/gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT} \
     && git checkout ${REGISTRY_VERSION} \
     && CGO_ENABLED=0 BUILDTAGS=${DOCKER_BUILDTAGS} make clean binaries \
-    && cp -R bin/ /assets/usr/local/
+    && cp -R bin/ /assets/usr/local

@@ -23,7 +23,7 @@ ENV SIDEKIQ_TIMEOUT=4
 COPY scripts/ /scripts/
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps openssh-clients \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts /srv/gitlab
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 

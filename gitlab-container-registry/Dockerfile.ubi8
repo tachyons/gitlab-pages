@@ -18,7 +18,8 @@ ADD assets.tar.gz /
 
 COPY scripts/ /scripts/
 
-RUN adduser -m ${GITLAB_USER}
+RUN adduser -m ${GITLAB_USER} \
+    && ln -sf /usr/local/bin/registry /bin/registry
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
