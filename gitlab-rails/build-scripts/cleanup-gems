@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -e
+
+# exclude rubygems build cache
+rm -rf vendor/bundle/ruby/gems/*/cache
+
+# exclude test and some vendor folders
+rm -rf \
+  vendor/bundle/ruby/gems/*/gems/*/spec \
+  vendor/bundle/ruby/gems/*/gems/*/test \
+  vendor/bundle/ruby/gems/*/gems/*/tests
+
+# Some vendor folders (e.g. licensee) are needed by GitLab.
+# For now, exclude the most space-consuming gems until
+# there's a better way to whitelist directories.
+rm -rf \
+  vendor/bundle/ruby/gems/*/gems/rugged*/vendor \
+  vendor/bundle/ruby/gems/*/gems/ace-rails*/vendor \
+  vendor/bundle/ruby/gems/*/gems/libyajl2*/**/vendor
+
+# exclude gem build logs
+rm -rf \
+  vendor/bundle/ruby/gems/*/extensions/*/*/*/mkmf.log \
+  vendor/bundle/ruby/gems/*/extensions/*/*/*/gem_make.out
+
+# exclude C sources
+rm -rf \
+  vendor/bundle/ruby/gems/*/gems/*/ext/*.c \
+  vendor/bundle/ruby/gems/*/gems/*/ext/*/*.c \
+  vendor/bundle/ruby/gems/*/gems/*/ext/*.o \
+  vendor/bundle/ruby/gems/*/gems/*/ext/*/*.o
+
+# exclude other gem files
+rm -rf \
+  vendor/bundle/ruby/gems/*/gems/*/*.gemspec \
+  vendor/bundle/ruby/gems/*/gems/*/*.md \
+  vendor/bundle/ruby/gems/*/gems/*/*.rdoc \
+  vendor/bundle/ruby/gems/*/gems/*/*.sh \
+  vendor/bundle/ruby/gems/*/gems/*/*.txt \
+  vendor/bundle/ruby/gems/*/gems/*/*LICENSE* \
+  vendor/bundle/ruby/gems/*/gems/*/CHANGES* \
+  vendor/bundle/ruby/gems/*/gems/*/Gemfile \
+  vendor/bundle/ruby/gems/*/gems/*/Guardfile \
+  vendor/bundle/ruby/gems/*/gems/*/README* \
+  vendor/bundle/ruby/gems/*/gems/*/Rakefile \
+  vendor/bundle/ruby/gems/*/gems/*/run_tests.rb \
+  vendor/bundle/ruby/gems/*/gems/*/Documentation \
+  vendor/bundle/ruby/gems/*/gems/*/bench \
+  vendor/bundle/ruby/gems/*/gems/*/contrib \
+  vendor/bundle/ruby/gems/*/gems/*/doc \
+  vendor/bundle/ruby/gems/*/gems/*/doc-api \
+  vendor/bundle/ruby/gems/*/gems/*/examples \
+  vendor/bundle/ruby/gems/*/gems/*/fixtures \
+  vendor/bundle/ruby/gems/*/gems/*/gemfiles \
+  vendor/bundle/ruby/gems/*/gems/*/libtest \
+  vendor/bundle/ruby/gems/*/gems/*/man \
+  vendor/bundle/ruby/gems/*/gems/*/sample_documents \
+  vendor/bundle/ruby/gems/*/gems/*/samples \
+  vendor/bundle/ruby/gems/*/gems/*/script \
+  vendor/bundle/ruby/gems/*/gems/*/t

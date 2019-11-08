@@ -127,14 +127,14 @@ RUN cd /srv/gitlab && \
     sudo -u ${GITLAB_USER} -H $COMPILE_ASSETS_ENV bundle exec rake gitlab:assets:compile
 <% end %>
 
+COPY build-scripts/ /build-scripts
+
 # Clean up
-RUN rm -rf \
-        /srv/gitlab/node_modules \
-        /srv/gitlab/tmp \
-        /srv/gitlab/spec \
-        /srv/gitlab/vendor/bundle/ruby/*/cache && \
-    find /srv/gitlab -name '*.gem' -type f -print -delete && \
-    find /srv/gitlab/vendor/bundle/ruby/*/gems -name 'doc' -type d -print -exec rm -r {} +
+RUN cd /srv/gitlab && \
+    rm -rf node_modules/ tmp/ spec/ && \
+    /build-scripts/cleanup-gems && \
+    find . -name '*.gem' -type f -print -delete && \
+    find vendor/bundle/ruby/*/gems -name 'doc' -type d -print -exec rm -r {} +
 
 <% if !compile_assets %>
 # install assets from assets container (see ARG ASSETS_IMAGE at top)
