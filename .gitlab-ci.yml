@@ -835,6 +835,7 @@ sync-images:
     - tags@gitlab/charts/components/images
 
 ubi-assets-release:
+  image: registry.gitlab.com/gitlab-org/gitlab-build-images:ubi-release
   stage: release
   dependencies:
     - build:kubectl
@@ -842,19 +843,45 @@ ubi-assets-release:
     - build:gitlab-python
     - build:gitlab-ruby
     - build:gitlab-go
-    - build:gitlab-redis-ha
     - build:git-base
+    - build:gitlab-redis-ha
     - build:gitlab-container-registry
-    - build:gitlab-elasticsearch-indexer
+    - build:gitlab-mailroom
+    - build:gitlab-exporter
     - build:gitlab-shell
     - build:gitaly
+    - build:gitlab-elasticsearch-indexer
+    - build:gitlab-workhorse-ee
+    - build:gitlab-rails-ee
+    - build:gitlab-task-runner-ee
+    - build:gitlab-unicorn-ee
   only:
     variables:
-      - $UBI_PIPELINE == "true"
+      - $RELEASE_UBI_ASSETS == "true"
   script:
-    - cd artifacts/ubi
-    - tar -cvf ../gitlab-ubi-assets-${TARGET_VERSION}.tar --remove-files ./*
-    - cd .. && rm -rf ./ubi
+    - export AWS_ACCESS_KEY_ID="${UBI_ASSETS_AWS_ACCESS_KEY_ID}"
+    - export AWS_SECRET_ACCESS_KEY="${UBI_ASSETS_AWS_SECRET_ACCESS_KEY}"
+    - export AWS_DEFAULT_REGION="${UBI_ASSETS_AWS_DEFAULT_REGION}"
+    - aws s3 cp --quiet ${UBI_ASSETS_GPG_KEY_LOCATION} /tmp/private.pem
+    - gpg --batch --import /tmp/private.pem
+    - rm /tmp/private.pem
+    - cd artifacts/
+    - ASSETS_PACK="dependencies-${CI_COMMIT_REF_SLUG}.tar"
+    - gpg --batch --quiet --yes --armor --export --output gpg
+    - tar -cvf ${ASSETS_PACK} --remove-files -C ubi .
+    - gpg 
+        --passphrase "${UBI_ASSETS_GPG_KEY_PASSPHRASE}"
+        --batch --quiet --yes --armor --pinentry-mode loopback
+        --detach-sign ${ASSETS_PACK}
+    - aws s3 cp 
+        --quiet --acl public-read --content-type application/x-pem-file
+        gpg s3://gitlab-ubi/gpg
+    - aws s3 cp 
+        --quiet --acl public-read --content-type application/x-pem-file
+        ${ASSETS_PACK}.asc s3://gitlab-ubi/${ASSETS_PACK}.asc
+    - aws s3 cp 
+        --quiet --acl public-read --content-type application/x-tar
+        ${ASSETS_PACK} s3://gitlab-ubi/${ASSETS_PACK}
   artifacts:
     paths:
       - artifacts/
