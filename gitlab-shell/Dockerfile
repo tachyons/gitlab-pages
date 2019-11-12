@@ -19,8 +19,6 @@ RUN buildDeps=' \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p ${BUILD_DIR}
 
-COPY shared/build-scripts/ /build-scripts
-
 # Download and compile GitLab Shell
 ARG CACHE_BUSTER=false
 RUN mkdir /srv/gitlab-shell && \
@@ -30,11 +28,7 @@ RUN mkdir /srv/gitlab-shell && \
     tar -xjf gitlab-shell.tar.bz2 --strip-components=1 && \
     rm gitlab-shell.tar.bz2 && \
     make build && \
-    rm -rf go go_build && \
-    /build-scripts/cleanup-gems /usr/lib/ruby/gems && \
-    find /usr/lib/ruby -name '*.gem' -type f -print -delete && \
-    find /usr/lib/ruby/gems/*/gems -name 'doc' -type d -print -exec rm -r {} +
-
+    rm -rf go go_build
 
 FROM ${FROM_IMAGE}:${TAG}
 

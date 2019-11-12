@@ -30,15 +30,10 @@ COPY --from=git /usr/local/libexec/git-core/ /usr/local/libexec/git-core/
 COPY --from=golang /usr/local/go/ /usr/local/go/
 COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
 
-COPY shared/build-scripts/ /build-scripts
-
 RUN curl -L https://gitlab.com/${GITLAB_SHELL_NAMESPACE}/${GITLAB_SHELL_PROJECT}/-/archive/${GITLAB_SHELL_VERSION}/${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION}.tar.gz | tar -xz \
     && cd ${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION} \
     && make build \
     && rm -rf go/ go_build/ spec/ \
-    && /build-scripts/cleanup-gems /usr/lib/ruby/gems \
-    && find /usr/lib/ruby -name '*.gem' -type f -print -delete \
-    && find /usr/lib/ruby/gems/*/gems -name 'doc' -type d -print -exec rm -r {} + \
     && cd .. && mv gitlab-shell-${GITLAB_SHELL_VERSION} /srv/gitlab-shell
 
 FROM ${RUBY_IMAGE}
