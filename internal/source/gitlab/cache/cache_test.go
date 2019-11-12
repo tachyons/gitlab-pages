@@ -168,12 +168,23 @@ func TestResolve(t *testing.T) {
 		})
 	})
 
-	t.Run("when retrieval failed because of a timeout", func(t *testing.T) {
+	t.Run("when retrieval failed because of an external context timeout", func(t *testing.T) {
 		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Hour))
 		defer cancel()
 
-		withTestCache(resolverConfig{failure: errors.New("resolver 500")}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(ctx, "my.gitlab.com")
+
+			assert.Equal(t, uint64(0), resolver.resolutions)
+			assert.EqualError(t, lookup.Error, "context timeout")
+		})
+	})
+
+	t.Run("when retrieval failed because of an internal context timeout", func(t *testing.T) {
+		retrievalTimeout = 0
+
+		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			assert.Equal(t, uint64(0), resolver.resolutions)
 			assert.EqualError(t, lookup.Error, "context timeout")
