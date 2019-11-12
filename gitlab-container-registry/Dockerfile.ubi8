@@ -12,7 +12,7 @@ FROM ${GO_IMAGE} AS golang
 FROM ${BUILD_IMAGE} AS builder
 
 ARG DOCKER_BUILDTAGS="include_oss include_gcs"
-ARG REGISTRY_VERSION=v2.7.5-gitlab
+ARG REGISTRY_VERSION=v2.7.6-gitlab
 ARG REGISTRY_NAMESPACE=gitlab-org
 ARG REGISTRY_PROJECT=container-registry
 ARG GOPATH=/go
