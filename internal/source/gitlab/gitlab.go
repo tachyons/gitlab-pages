@@ -5,13 +5,14 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 )
 
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
 	client Client
-	cache  Cache
+	cache  cache.Cache
 }
 
 // GetDomain return a representation of a domain that we have fetched from
