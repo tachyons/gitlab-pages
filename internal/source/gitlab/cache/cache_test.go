@@ -26,10 +26,10 @@ func (c *client) Resolve(ctx context.Context, _ string) Lookup {
 	}
 
 	if c.failure != nil {
-		return Lookup{Domain: Domain{}, Status: c.status, Err: c.failure}
+		return Lookup{Domain: Domain{}, Status: c.status, Error: c.failure}
 	}
 
-	return Lookup{Domain: Domain{Name: <-c.domain}, Status: c.status, Err: nil}
+	return Lookup{Domain: Domain{Name: <-c.domain}, Status: c.status, Error: nil}
 }
 
 func withTestCache(config resolverConfig, block func(*Cache, *client)) {
@@ -79,14 +79,14 @@ type entryConfig struct {
 	retrieved bool
 }
 
-func TestGetLookup(t *testing.T) {
+func TestResolve(t *testing.T) {
 	t.Run("when item is not cached", func(t *testing.T) {
 		withTestCache(resolverConfig{buffered: true}, func(cache *Cache, resolver *client) {
 			resolver.domain <- "my.gitlab.com"
 
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			assert.NoError(t, lookup.Err)
+			assert.NoError(t, lookup.Error)
 			assert.Equal(t, 200, lookup.Status)
 			assert.Equal(t, "my.gitlab.com", lookup.Domain.Name)
 			assert.Equal(t, uint64(1), resolver.resolutions)
@@ -164,7 +164,19 @@ func TestGetLookup(t *testing.T) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			assert.Equal(t, uint64(3), resolver.resolutions)
-			assert.EqualError(t, lookup.Err, "500 err")
+			assert.EqualError(t, lookup.Error, "500 err")
+		})
+	})
+
+	t.Run("when retrieval failed because of a timeout", func(t *testing.T) {
+		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Hour))
+		defer cancel()
+
+		withTestCache(resolverConfig{failure: errors.New("resolver 500")}, func(cache *Cache, resolver *client) {
+			lookup := cache.Resolve(ctx, "my.gitlab.com")
+
+			assert.Equal(t, uint64(0), resolver.resolutions)
+			assert.EqualError(t, lookup.Error, "context timeout")
 		})
 	})
 }

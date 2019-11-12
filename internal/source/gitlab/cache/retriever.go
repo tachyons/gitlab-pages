@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -30,30 +31,39 @@ func (r *Retriever) retrieveWithTimeout(domain string, response chan<- Lookup) {
 	newctx, cancel := context.WithTimeout(r.ctx, r.timeout)
 	defer cancel()
 
+	var lookup Lookup
+
 	select {
 	case <-newctx.Done():
+		response <- Lookup{Status: 502, Error: errors.New("context timeout")}
 		fmt.Println("retrieval context done") // TODO logme
-	// TODO this waits for the response channel read instead of the resolution
-	case response <- r.resolveWithBackoff(newctx, domain):
+	case lookup = <-r.resolveWithBackoff(newctx, domain):
+		response <- lookup
 		fmt.Println("retrieval response sent") // TODO logme
 	}
 
 	close(response)
 }
 
-func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) (lookup Lookup) {
-	// TODO do we want to create yet another goroutine for this to make it
-	// possible to wait for a timeout in a more efficient way in the calling
-	// select?
-	for i := 1; i <= 3; i++ {
-		lookup = r.client.Resolve(ctx, domain)
+func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-chan Lookup {
+	response := make(chan Lookup)
 
-		if lookup.Err != nil {
-			time.Sleep(maxRetrievalInterval)
-		} else {
-			break
+	go func(response chan<- Lookup) {
+		var lookup Lookup
+
+		for i := 1; i <= 3; i++ {
+			lookup = r.client.Resolve(ctx, domain)
+
+			if lookup.Error != nil {
+				time.Sleep(maxRetrievalInterval)
+			} else {
+				break
+			}
 		}
-	}
 
-	return lookup
+		response <- lookup
+		close(response)
+	}(response)
+
+	return response
 }

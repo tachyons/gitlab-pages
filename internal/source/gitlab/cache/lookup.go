@@ -4,7 +4,7 @@ package cache
 type Lookup struct {
 	Domain Domain
 	Status int
-	Err    error
+	Error  error
 }
 
 // Domain is a domain entry we store in cache
