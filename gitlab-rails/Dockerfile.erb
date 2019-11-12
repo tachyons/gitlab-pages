@@ -127,7 +127,7 @@ RUN cd /srv/gitlab && \
     sudo -u ${GITLAB_USER} -H $COMPILE_ASSETS_ENV bundle exec rake gitlab:assets:compile
 <% end %>
 
-COPY build-scripts/ /build-scripts
+COPY shared/build-scripts/ /build-scripts
 
 # Clean up
 RUN cd /srv/gitlab && \

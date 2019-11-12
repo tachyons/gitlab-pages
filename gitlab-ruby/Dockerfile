@@ -31,6 +31,8 @@ RUN apt-get update \
 RUN mkdir -p /usr/etc && \
     { echo 'install: --no-document';  echo 'update: --no-document'; } >> /usr/etc/gemrc
 
+COPY shared/build-scripts/ /build-scripts
+
 # Install Ruby from source
 RUN buildDeps=' \
   autoconf \
@@ -63,7 +65,10 @@ RUN buildDeps=' \
   && gem install bundler --version "$BUNDLER_VERSION" --force --no-ri --no-rdoc \
   && curl -s https://codeload.github.com/ConnorAtherton/rb-readline/tar.gz/v0.5.5 | tar -xz \
   && ruby rb-readline-0.5.5/setup.rb && rm -rf rb-readline-0.5.5 \
-  && rm -rf /root/.gem/
+	&& rm -rf /root/.gem/ \
+	&& /build-scripts/cleanup-gems /usr/lib/ruby/gems \
+	&& find /usr/lib/ruby -name '*.gem' -type f -print -delete \
+	&& find /usr/lib/ruby/gems/*/gems -name 'doc' -type d -print -exec rm -r {} +
 
 # Add scripts
 COPY scripts/ /scripts

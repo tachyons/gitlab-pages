@@ -54,7 +54,7 @@ ENV NODE_ENV=production
 ENV USE_DB=false
 ENV SKIP_STORAGE_VALIDATION=true
 
-COPY build-scripts/ /build-scripts
+COPY shared/build-scripts/ /build-scripts
 
 RUN curl -L https://gitlab.com/${GITLAB_NAMESPACE}/${GITLAB_PROJECT}/-/archive/${GITLAB_VERSION}/${GITLAB_PROJECT}-${GITLAB_VERSION}.tar.gz | tar -xz \
     && cd ${GITLAB_PROJECT}-${GITLAB_VERSION} \

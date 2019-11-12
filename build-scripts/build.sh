@@ -50,6 +50,9 @@ function build_if_needed(){
 
     pushd $(get_trimmed_job_name)
 
+    # Bring in shared scripts
+    cp -r ../shared/ shared/
+
     if [ -x renderDockerfile ]; then
       ./renderDockerfile
     fi
