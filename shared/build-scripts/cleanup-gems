@@ -2,7 +2,7 @@
 
 set -e
 
-ruby_gems_dir="${$1:-vendor/bundle/ruby}"
+ruby_dir=${1:-"vendor/bundle/ruby"}
 
 # exclude rubygems build cache
 rm -rf ${ruby_dir}/*/cache
