@@ -19,7 +19,7 @@ func NewCache(client Resolver) *Cache {
 }
 
 // Resolve is going to return a Lookup based on a domain name
-func (c *Cache) Resolve(ctx context.Context, domain string) (*Lookup, int, error) {
+func (c *Cache) Resolve(ctx context.Context, domain string) *Lookup {
 	entry := c.store.LoadOrCreate(ctx, domain)
 
 	if entry.IsUpToDate() {

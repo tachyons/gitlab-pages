@@ -12,8 +12,8 @@ var (
 )
 
 // Entry represents a cache object that can be retrieved asynchronously and
-// holds a pointer to *Response when the domain lookup has been retrieved
-// succesfully
+// holds a pointer to *Lookup when the domain lookup has been retrieved
+// successfully
 type Entry struct {
 	domain    string
 	created   time.Time
@@ -23,7 +23,7 @@ type Entry struct {
 	refresh   *sync.Once
 	mux       *sync.RWMutex
 	retrieved chan struct{}
-	response  *Response
+	response  *Lookup
 }
 
 func newCacheEntry(ctx context.Context, domain string) *Entry {
@@ -59,12 +59,12 @@ func (e *Entry) NeedsRefresh() bool {
 	return e.isResolved() && e.isExpired()
 }
 
-// Lookup return a retrieval response. TODO consider returning *Response.
-func (e *Entry) Lookup() (*Lookup, int, error) {
+// Lookup returns a retriever Lookup response.
+func (e *Entry) Lookup() *Lookup {
 	e.mux.RLock()
 	defer e.mux.RUnlock()
 
-	return e.response.Lookup()
+	return e.response
 }
 
 // Retrieve schedules a retrieval of a response. It returns a channel that is
@@ -100,13 +100,13 @@ func (e *Entry) CancelContexts() {
 	e.cancel()
 }
 
-func (e *Entry) setResponse(response <-chan Response) {
-	newResponse := <-response
+func (e *Entry) setResponse(response <-chan Lookup) {
+	lookup := <-response
 
 	e.mux.Lock()
 	defer e.mux.Unlock()
 
-	e.response = &newResponse
+	e.response = &lookup
 
 	close(e.retrieved)
 }
