@@ -12,33 +12,44 @@ import (
 )
 
 type client struct {
+	started     uint64
 	resolutions uint64
+	bootup      chan uint64
 	domain      chan string
 	failure     error
 	status      int
 }
 
 func (c *client) Resolve(ctx context.Context, _ string) Lookup {
-	atomic.AddUint64(&c.resolutions, 1)
+	var domain Domain
+
+	c.bootup <- atomic.AddUint64(&c.started, 1)
+	defer atomic.AddUint64(&c.resolutions, 1)
 
 	if c.status == 0 {
 		c.status = 200
 	}
 
-	if c.failure != nil {
-		return Lookup{Domain: Domain{}, Status: c.status, Error: c.failure}
+	if c.failure == nil {
+		domain = Domain{Name: <-c.domain}
 	}
 
-	return Lookup{Domain: Domain{Name: <-c.domain}, Status: c.status, Error: nil}
+	return Lookup{Domain: domain, Status: c.status, Error: c.failure}
 }
 
 func withTestCache(config resolverConfig, block func(*Cache, *client)) {
-	var resolver *client
+	var chanSize int
 
 	if config.buffered {
-		resolver = &client{domain: make(chan string, 1), failure: config.failure}
+		chanSize = 1
 	} else {
-		resolver = &client{domain: make(chan string), failure: config.failure}
+		chanSize = 0
+	}
+
+	resolver := &client{
+		domain:  make(chan string, chanSize),
+		bootup:  make(chan uint64, 100),
+		failure: config.failure,
 	}
 
 	cache := NewCache(resolver)
@@ -46,7 +57,7 @@ func withTestCache(config resolverConfig, block func(*Cache, *client)) {
 	block(cache, resolver)
 }
 
-func (cache *Cache) withTestEntry(config entryConfig, block func()) {
+func (cache *Cache) withTestEntry(config entryConfig, block func(*Entry)) {
 	domain := "my.gitlab.com"
 
 	if len(config.domain) > 0 {
@@ -65,7 +76,7 @@ func (cache *Cache) withTestEntry(config entryConfig, block func()) {
 		entry.created = time.Now().Add(-time.Hour)
 	}
 
-	block()
+	block(entry)
 }
 
 type resolverConfig struct {
@@ -119,7 +130,7 @@ func TestResolve(t *testing.T) {
 
 	t.Run("when item is in short cache", func(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
-			cache.withTestEntry(entryConfig{expired: false, retrieved: true}, func() {
+			cache.withTestEntry(entryConfig{expired: false, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				assert.Equal(t, "my.gitlab.com", lookup.Domain.Name)
@@ -128,9 +139,32 @@ func TestResolve(t *testing.T) {
 		})
 	})
 
+	t.Run("when a non-retrieved new item is in short cache", func(t *testing.T) {
+		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(*Entry) {
+				lookup := make(chan *Lookup, 1)
+
+				go func() {
+					lookup <- cache.Resolve(context.Background(), "my.gitlab.com")
+				}()
+
+				<-resolver.bootup
+
+				assert.Equal(t, uint64(1), resolver.started)
+				assert.Equal(t, uint64(0), resolver.resolutions)
+
+				resolver.domain <- "my.gitlab.com"
+				<-lookup
+
+				assert.Equal(t, uint64(1), resolver.started)
+				assert.Equal(t, uint64(1), resolver.resolutions)
+			})
+		})
+	})
+
 	t.Run("when item is in long cache only", func(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
-			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func() {
+			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				assert.Equal(t, "my.gitlab.com", lookup.Domain.Name)
@@ -144,7 +178,7 @@ func TestResolve(t *testing.T) {
 
 	t.Run("when item in long cache is requested multiple times", func(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
-			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func() {
+			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
 				cache.Resolve(context.Background(), "my.gitlab.com")
 				cache.Resolve(context.Background(), "my.gitlab.com")
 				cache.Resolve(context.Background(), "my.gitlab.com")
@@ -182,12 +216,29 @@ func TestResolve(t *testing.T) {
 
 	t.Run("when retrieval failed because of an internal context timeout", func(t *testing.T) {
 		retrievalTimeout = 0
+		defer func() { retrievalTimeout = 5 * time.Second }()
 
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			assert.Equal(t, uint64(0), resolver.resolutions)
 			assert.EqualError(t, lookup.Error, "context timeout")
+		})
+	})
+
+	t.Run("when cache entry is evicted from cache", func(t *testing.T) {
+		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(entry *Entry) {
+				lookup := make(chan *Lookup, 1)
+				go func() { lookup <- cache.Resolve(context.Background(), "my.gitlab.com") }()
+
+				cache.store.ReplaceOrCreate(context.Background(), "my.gitlab.com")
+
+				resolver.domain <- "my.gitlab.com"
+				<-lookup
+
+				assert.EqualError(t, entry.ctx.Err(), "context canceled")
+			})
 		})
 	})
 }
