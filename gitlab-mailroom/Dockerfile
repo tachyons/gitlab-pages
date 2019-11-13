@@ -10,6 +10,7 @@ RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
     sed -i "s/${GITLAB_USER}:!/${GITLAB_USER}:*/" /etc/shadow
 
 COPY scripts/  /scripts/
+COPY shared/build-scripts/ /build-scripts
 
 RUN MAILROOM_VERSION=${MAILROOM_VERSION} /scripts/install-dependencies && rm /scripts/install-dependencies
 CMD /usr/bin/mail_room -c /var/opt/gitlab/mail_room.yml
