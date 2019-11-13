@@ -94,9 +94,9 @@ func (e *Entry) Refresh(ctx context.Context, client Resolver, store Store) {
 	})
 }
 
-// CancelContexts cancels all cancelable contexts. Typically used when the
+// CancelRetrieval cancels all cancelable contexts. Typically used when the
 // entry is evicted from cache.
-func (e *Entry) CancelContexts() {
+func (e *Entry) CancelRetrieval() {
 	e.cancel()
 }
 

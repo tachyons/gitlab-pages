@@ -55,5 +55,5 @@ func (m *memstore) ReplaceOrCreate(ctx context.Context, domain string) *Entry {
 }
 
 func (m *memstore) OnEvicted(key string, value interface{}) {
-	value.(*Entry).CancelContexts()
+	value.(*Entry).CancelRetrieval()
 }
