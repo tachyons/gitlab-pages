@@ -15,7 +15,5 @@ gem install mail_room:${MAILROOM_VERSION} \
         redis-namespace:1.6.0
 
 /build-scripts/cleanup-gems /usr/lib/ruby/gems
-find /usr/lib/ruby -name '*.gem' -type f -print -delete
-find /usr/lib/ruby/gems/*/gems -name 'doc' -type d -print -exec rm -r {} +
 
 DEBIAN_FRONTEND=noninteractive apt-get purge -yq make build-essential libicu-dev

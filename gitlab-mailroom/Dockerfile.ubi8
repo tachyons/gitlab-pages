@@ -20,9 +20,7 @@ COPY --from=ruby /ruby/ /usr/
 COPY shared/build-scripts/ /build-scripts
 
 RUN gem install mail_room:${MAILROOM_VERSION} charlock_holmes:0.7.6 redis:4.0.1 redis-namespace:1.6.0 \
-  && /build-scripts/cleanup-gems /usr/lib/ruby/gems \
-  && find /usr/lib/ruby -name '*.gem' -type f -print -delete \
-  && find /usr/lib/ruby/gems/*/gems -name 'doc' -type d -print -exec rm -r {} +
+  && /build-scripts/cleanup-gems /usr/lib/ruby/gems
 
 FROM ${RUBY_IMAGE}
 

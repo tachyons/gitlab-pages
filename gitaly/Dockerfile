@@ -48,9 +48,7 @@ RUN cd ${BUILD_DIR} && \
     make install && \
     mkdir -p /etc/gitaly && \
     rm -rf ${BUILD_DIR} /srv/gitaly-ruby/spec  /srv/gitaly-ruby/features && \
-    /build-scripts/cleanup-gems /usr/lib/ruby/gems && \
-    find /usr/lib/ruby -name '*.gem' -type f -print -delete && \
-    find /usr/lib/ruby/gems/*/gems -name 'doc' -type d -print -exec rm -r {} +
+    /build-scripts/cleanup-gems /usr/lib/ruby/gems
 
 # Include Shell
 COPY --from=shell --chown=git /srv/gitlab-shell /srv/gitlab-shell

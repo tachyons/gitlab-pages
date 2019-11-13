@@ -26,8 +26,6 @@ RUN curl -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RU
     && curl -sL https://github.com/connoratherton/rb-readline/archive/v${RBREADLINE_VERSION}.tar.gz | tar -xz \
     && ruby rb-readline-${RBREADLINE_VERSION}/setup.rb \
     && /build-scripts/cleanup-gems /usr/lib/ruby/gems \
-    && find /usr/lib/ruby -name '*.gem' -type f -print -delete \
-    && find /usr/lib/ruby/gems/*/gems -name 'doc' -type d -print -exec rm -r {} + \
     && mkdir -p /ruby/{bin,lib,include} \
     && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
     && cp -R /usr/lib/{ruby,libruby.*} /ruby/lib \

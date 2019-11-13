@@ -61,3 +61,6 @@ rm -rf \
   ${ruby_dir}/*/gems/*/samples \
   ${ruby_dir}/*/gems/*/script \
   ${ruby_dir}/*/gems/*/t
+
+find ${ruby_dir} -name '*.gem' -type f -print -delete \
+find ${ruby_dir}/*/gems -name 'doc' -type d -print -exec rm -r {} +

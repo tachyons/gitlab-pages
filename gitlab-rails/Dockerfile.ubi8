@@ -68,8 +68,6 @@ RUN curl -L https://gitlab.com/${GITLAB_NAMESPACE}/${GITLAB_PROJECT}/-/archive/$
     # && bundle exec rake gettext:compile \
     && rm -rf node_modules/ tmp/ spec/ \
     && /build-scripts/cleanup-gems \
-    && find . -name '*.gem' -type f -delete \
-    && find vendor/bundle/ruby/*/gems -name 'doc' -type d -exec rm -r {} + \
     && mv ${PWD} /srv/gitlab
 
 COPY --from=assets assets /srv/gitlab/public/assets/

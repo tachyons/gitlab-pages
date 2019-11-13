@@ -66,9 +66,7 @@ RUN buildDeps=' \
   && curl -s https://codeload.github.com/ConnorAtherton/rb-readline/tar.gz/v0.5.5 | tar -xz \
   && ruby rb-readline-0.5.5/setup.rb && rm -rf rb-readline-0.5.5 \
 	&& rm -rf /root/.gem/ \
-	&& /build-scripts/cleanup-gems /usr/lib/ruby/gems \
-	&& find /usr/lib/ruby -name '*.gem' -type f -print -delete \
-	&& find /usr/lib/ruby/gems/*/gems -name 'doc' -type d -print -exec rm -r {} +
+	&& /build-scripts/cleanup-gems /usr/lib/ruby/gems
 
 # Add scripts
 COPY scripts/ /scripts
