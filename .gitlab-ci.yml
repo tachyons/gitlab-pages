@@ -1,8 +1,5 @@
 include: ci_files/variables.yml
 
-before_script:
-  - source build-scripts/build.sh
-
 stages:
   - prepare
   - prepare:phase-one
@@ -82,12 +79,13 @@ stages:
       - $UBI_PIPELINE == "true"
 
 gitlab-ubi-builder:
-  <<: *job-base
+  <<: *build-job-base
   stage: prepare
   only:
     variables:
       - $UBI_PIPELINE == "true"
   script:
+    - export DOCKERFILE_EXT='.ubi8'
     - build_if_needed
     - push_latest
 
@@ -822,7 +820,8 @@ sync-images:
   services:
     - docker:dind
   stage: release
-  before_script: []
+  before_script:
+    - source build-scripts/build.sh
   when: manual
   script:
     - cat artifacts/images/* > image_versions.txt
@@ -856,32 +855,49 @@ ubi-assets-release:
     - build:gitlab-task-runner-ee
     - build:gitlab-unicorn-ee
   only:
-    variables:
-      - $RELEASE_UBI_ASSETS == "true"
-  script:
-    - export AWS_ACCESS_KEY_ID="${UBI_ASSETS_AWS_ACCESS_KEY_ID}"
-    - export AWS_SECRET_ACCESS_KEY="${UBI_ASSETS_AWS_SECRET_ACCESS_KEY}"
-    - export AWS_DEFAULT_REGION="${UBI_ASSETS_AWS_DEFAULT_REGION}"
-    - aws s3 cp --quiet ${UBI_ASSETS_GPG_KEY_LOCATION} /tmp/private.pem
+    refs:
+      - /^.+\-ubi8$/@gitlab-org/build/CNG
+  before_script:
+    - export UBI_RELEASE_TAG=${CI_TAG_NAME:-latest}
+    - export AWS_ACCESS_KEY_ID="${GPG_KEY_AWS_ACCESS_KEY_ID}"
+    - export AWS_SECRET_ACCESS_KEY="${GPG_KEY_AWS_SECRET_ACCESS_KEY}"
+    - aws s3 cp --quiet ${GPG_KEY_LOCATION} /tmp/private.pem
     - gpg --batch --import /tmp/private.pem
     - rm /tmp/private.pem
+  script:
     - cd artifacts/
-    - ASSETS_PACK="dependencies-${CI_COMMIT_REF_SLUG}.tar"
+    - export AWS_ACCESS_KEY_ID="${UBI_ASSETS_AWS_ACCESS_KEY_ID}"
+    - export AWS_SECRET_ACCESS_KEY="${UBI_ASSETS_AWS_SECRET_ACCESS_KEY}"
+    - ASSETS_PACK="dependencies-${UBI_RELEASE_TAG}.tar"
+    - ASSETS_URL="http://${UBI_ASSETS_AWS_BUCKET}.s3.amazonaws.com/${ASSETS_PACK}"
     - gpg --batch --quiet --yes --armor --export --output gpg
-    - tar -cvf ${ASSETS_PACK} --remove-files -C ubi .
+    - tar -cvf ${ASSETS_PACK} -C ubi .
+    - rm -r ubi
     - gpg 
-        --passphrase "${UBI_ASSETS_GPG_KEY_PASSPHRASE}"
+        --passphrase "${GPG_KEY_PASSPHRASE}"
         --batch --quiet --yes --armor --pinentry-mode loopback
         --detach-sign ${ASSETS_PACK}
     - aws s3 cp 
         --quiet --acl public-read --content-type application/x-pem-file
-        gpg s3://gitlab-ubi/gpg
+        gpg "s3://${UBI_ASSETS_AWS_BUCKET}/gpg"
     - aws s3 cp 
         --quiet --acl public-read --content-type application/x-pem-file
-        ${ASSETS_PACK}.asc s3://gitlab-ubi/${ASSETS_PACK}.asc
+        ${ASSETS_PACK}.asc "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}.asc"
     - aws s3 cp 
         --quiet --acl public-read --content-type application/x-tar
-        ${ASSETS_PACK} s3://gitlab-ubi/${ASSETS_PACK}
+        ${ASSETS_PACK} "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}"
+    - curl -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:application/json' --data 
+        "$(printf 
+          '{"tag_name":"%s","name":"%s","description":"%s","assets":{"links":[{"name":"%s","url":"%s"},{"name":"%s","url":"%s"}]}}'
+          "${UBI_RELEASE_TAG}"
+          "Release ${UBI_RELEASE_TAG}"
+          "Binary dependencies of UBI-based images for Cloud-Native GitLab."
+          "${ASSETS_PACK}"
+          "${ASSETS_URL}"
+          "${ASSETS_PACK}.asc"
+          "${ASSETS_URL}.asc"
+        )"
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
   artifacts:
     paths:
       - artifacts/
