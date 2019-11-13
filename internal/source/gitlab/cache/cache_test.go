@@ -64,7 +64,7 @@ func (cache *Cache) withTestEntry(config entryConfig, block func(*Entry)) {
 		domain = config.domain
 	}
 
-	entry := cache.store.ReplaceOrCreate(context.Background(), domain)
+	entry := cache.store.LoadOrCreate(context.Background(), domain)
 
 	if config.retrieved {
 		newResponse := make(chan Lookup, 1)
@@ -229,10 +229,11 @@ func TestResolve(t *testing.T) {
 	t.Run("when cache entry is evicted from cache", func(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(entry *Entry) {
+				ctx := context.Background()
 				lookup := make(chan *Lookup, 1)
-				go func() { lookup <- cache.Resolve(context.Background(), "my.gitlab.com") }()
+				go func() { lookup <- cache.Resolve(ctx, "my.gitlab.com") }()
 
-				cache.store.ReplaceOrCreate(context.Background(), "my.gitlab.com")
+				cache.store.ReplaceOrCreate(ctx, "my.gitlab.com", newCacheEntry(ctx, "my.gitlab.com"))
 
 				resolver.domain <- "my.gitlab.com"
 				<-lookup

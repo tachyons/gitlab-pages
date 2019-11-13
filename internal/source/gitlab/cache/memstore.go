@@ -39,11 +39,9 @@ func (m *memstore) LoadOrCreate(ctx context.Context, domain string) *Entry {
 	return entry
 }
 
-func (m *memstore) ReplaceOrCreate(ctx context.Context, domain string) *Entry {
+func (m *memstore) ReplaceOrCreate(ctx context.Context, domain string, entry *Entry) *Entry {
 	m.mux.Lock()
 	defer m.mux.Unlock()
-
-	entry := newCacheEntry(ctx, domain)
 
 	if _, exists := m.store.Get(domain); exists {
 		m.store.Delete(domain) // delete manually to trigger onEvicted

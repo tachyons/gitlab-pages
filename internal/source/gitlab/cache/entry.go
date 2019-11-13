@@ -85,11 +85,11 @@ func (e *Entry) Retrieve(client Resolver) <-chan struct{} {
 func (e *Entry) Refresh(ctx context.Context, client Resolver, store Store) {
 	e.refresh.Do(func() {
 		go func() {
-			newEntry := newCacheEntry(ctx, e.domain)
+			entry := newCacheEntry(ctx, e.domain)
 
-			<-newEntry.Retrieve(client)
+			<-entry.Retrieve(client)
 
-			store.ReplaceOrCreate(ctx, e.domain)
+			store.ReplaceOrCreate(ctx, e.domain, entry)
 		}()
 	})
 }
