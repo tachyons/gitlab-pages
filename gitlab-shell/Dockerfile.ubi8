@@ -33,7 +33,7 @@ COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
 RUN curl -L https://gitlab.com/${GITLAB_SHELL_NAMESPACE}/${GITLAB_SHELL_PROJECT}/-/archive/${GITLAB_SHELL_VERSION}/${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION}.tar.gz | tar -xz \
     && cd ${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION} \
     && make build \
-    && rm -rf go/ go_build/ spec/ \
+    && rm -rf go/ go_build/ spec/ internal/testhelper/testdata/ \
     && cd .. && mv gitlab-shell-${GITLAB_SHELL_VERSION} /srv/gitlab-shell
 
 FROM ${RUBY_IMAGE}
