@@ -63,7 +63,7 @@ func (e *Entry) Lookup() *Lookup {
 }
 
 // Retrieve perform a blocking retrieval of the cache entry response.
-func (e *Entry) Retrieve(ctx context.Context, client Resolver) *Lookup {
+func (e *Entry) Retrieve(ctx context.Context, client Resolver) (lookup *Lookup) {
 	newctx, cancelctx := context.WithTimeout(ctx, retrievalTimeout)
 	defer cancelctx()
 
@@ -71,13 +71,12 @@ func (e *Entry) Retrieve(ctx context.Context, client Resolver) *Lookup {
 
 	select {
 	case <-newctx.Done():
-		return &Lookup{Status: 502, Error: errors.New("context done")}
+		lookup = &Lookup{Status: 502, Error: errors.New("context done")}
 	case <-e.retrieved:
-		return e.Lookup()
+		lookup = e.Lookup()
 	}
 
-	// This should not happen
-	return &Lookup{Status: 500, Error: errors.New("retrieval error")}
+	return lookup
 }
 
 // Refresh will update the entry in the store only when it gets resolved.
