@@ -64,7 +64,7 @@ func (cache *Cache) withTestEntry(config entryConfig, block func(*Entry)) {
 		domain = config.domain
 	}
 
-	entry := cache.store.LoadOrCreate(context.Background(), domain)
+	entry := cache.store.LoadOrCreate(domain)
 
 	if config.retrieved {
 		newResponse := make(chan Lookup, 1)
@@ -210,7 +210,7 @@ func TestResolve(t *testing.T) {
 			lookup := cache.Resolve(ctx, "my.gitlab.com")
 
 			assert.Equal(t, uint64(0), resolver.resolutions)
-			assert.EqualError(t, lookup.Error, "context timeout")
+			assert.EqualError(t, lookup.Error, "context done")
 		})
 	})
 
@@ -222,23 +222,24 @@ func TestResolve(t *testing.T) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			assert.Equal(t, uint64(0), resolver.resolutions)
-			assert.EqualError(t, lookup.Error, "context timeout")
+			assert.EqualError(t, lookup.Error, "context done")
 		})
 	})
 
-	t.Run("when cache entry is evicted from cache", func(t *testing.T) {
+	t.Run("when retrieval failed because of resolution context being canceled", func(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(entry *Entry) {
-				ctx := context.Background()
-				lookup := make(chan *Lookup, 1)
-				go func() { lookup <- cache.Resolve(ctx, "my.gitlab.com") }()
+				ctx, cancel := context.WithCancel(context.Background())
 
-				cache.store.ReplaceOrCreate(ctx, "my.gitlab.com", newCacheEntry(ctx, "my.gitlab.com"))
+				response := make(chan *Lookup, 1)
+				go func() { response <- cache.Resolve(ctx, "my.gitlab.com") }()
+
+				cancel()
 
 				resolver.domain <- "my.gitlab.com"
-				<-lookup
+				lookup := <-response
 
-				assert.EqualError(t, entry.ctx.Err(), "context canceled")
+				assert.EqualError(t, lookup.Error, "context done")
 			})
 		})
 	})

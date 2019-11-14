@@ -35,7 +35,7 @@ func (r *Retriever) retrieveWithTimeout(domain string, response chan<- Lookup) {
 
 	select {
 	case <-newctx.Done():
-		response <- Lookup{Status: 502, Error: errors.New("context timeout")}
+		response <- Lookup{Status: 502, Error: errors.New("context done")}
 		fmt.Println("retrieval context done") // TODO logme
 	case lookup = <-r.resolveWithBackoff(newctx, domain):
 		response <- lookup

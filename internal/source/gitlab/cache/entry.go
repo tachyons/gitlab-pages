@@ -17,8 +17,6 @@ var (
 type Entry struct {
 	domain    string
 	created   time.Time
-	ctx       context.Context
-	cancel    context.CancelFunc
 	fetch     *sync.Once
 	refresh   *sync.Once
 	mux       *sync.RWMutex
@@ -26,13 +24,9 @@ type Entry struct {
 	response  *Lookup
 }
 
-func newCacheEntry(ctx context.Context, domain string) *Entry {
-	newctx, cancel := context.WithCancel(ctx)
-
+func newCacheEntry(domain string) *Entry {
 	return &Entry{
 		domain:    domain,
-		ctx:       newctx,
-		cancel:    cancel,
 		created:   time.Now(),
 		fetch:     &sync.Once{},
 		refresh:   &sync.Once{},
@@ -69,11 +63,10 @@ func (e *Entry) Lookup() *Lookup {
 
 // Retrieve schedules a retrieval of a response. It returns a channel that is
 // going to be closed when retrieval is done, either successfully or not.
-func (e *Entry) Retrieve(client Resolver) <-chan struct{} {
+func (e *Entry) Retrieve(ctx context.Context, client Resolver) <-chan struct{} {
+	// TODO create context with timeout
 	e.fetch.Do(func() {
-		retriever := Retriever{
-			client: client, ctx: e.ctx, timeout: retrievalTimeout,
-		}
+		retriever := Retriever{client: client, ctx: ctx, timeout: retrievalTimeout}
 
 		go e.setResponse(retriever.Retrieve(e.domain))
 	})
@@ -82,22 +75,16 @@ func (e *Entry) Retrieve(client Resolver) <-chan struct{} {
 }
 
 // Refresh will update the entry in the store only when it gets resolved.
-func (e *Entry) Refresh(ctx context.Context, client Resolver, store Store) {
+func (e *Entry) Refresh(client Resolver, store Store) {
 	e.refresh.Do(func() {
 		go func() {
-			entry := newCacheEntry(ctx, e.domain)
+			entry := newCacheEntry(e.domain)
 
-			<-entry.Retrieve(client)
+			<-entry.Retrieve(context.Background(), client)
 
-			store.ReplaceOrCreate(ctx, e.domain, entry)
+			store.ReplaceOrCreate(e.domain, entry)
 		}()
 	})
-}
-
-// CancelRetrieval cancels all cancelable contexts. Typically used when the
-// entry is evicted from cache.
-func (e *Entry) CancelRetrieval() {
-	e.cancel()
 }
 
 func (e *Entry) setResponse(response <-chan Lookup) {

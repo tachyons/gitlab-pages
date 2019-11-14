@@ -20,19 +20,19 @@ func NewCache(client Resolver) *Cache {
 
 // Resolve is going to return a Lookup based on a domain name
 func (c *Cache) Resolve(ctx context.Context, domain string) *Lookup {
-	entry := c.store.LoadOrCreate(ctx, domain)
+	entry := c.store.LoadOrCreate(domain)
 
 	if entry.IsUpToDate() {
 		return entry.Lookup()
 	}
 
 	if entry.NeedsRefresh() {
-		entry.Refresh(ctx, c.client, c.store)
+		entry.Refresh(c.client, c.store)
 
 		return entry.Lookup()
 	}
 
-	<-entry.Retrieve(c.client)
+	<-entry.Retrieve(ctx, c.client)
 
 	return entry.Lookup()
 }

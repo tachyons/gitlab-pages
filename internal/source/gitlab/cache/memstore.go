@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"context"
 	"sync"
 	"time"
 
@@ -16,17 +15,13 @@ type memstore struct {
 var expiration = 10 * time.Minute
 
 func newMemStore() Store {
-	memStore := &memstore{
+	return &memstore{
 		store: cache.New(expiration, time.Minute),
 		mux:   &sync.Mutex{},
 	}
-
-	memStore.store.OnEvicted(memStore.OnEvicted)
-
-	return memStore
 }
 
-func (m *memstore) LoadOrCreate(ctx context.Context, domain string) *Entry {
+func (m *memstore) LoadOrCreate(domain string) *Entry {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
@@ -34,25 +29,21 @@ func (m *memstore) LoadOrCreate(ctx context.Context, domain string) *Entry {
 		return entry.(*Entry)
 	}
 
-	entry := newCacheEntry(ctx, domain)
+	entry := newCacheEntry(domain)
 	m.store.SetDefault(domain, entry)
 
 	return entry
 }
 
-func (m *memstore) ReplaceOrCreate(ctx context.Context, domain string, entry *Entry) *Entry {
+func (m *memstore) ReplaceOrCreate(domain string, entry *Entry) *Entry {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
 	if _, exists := m.store.Get(domain); exists {
-		m.store.Delete(domain) // delete manually to trigger onEvicted
+		m.store.Delete(domain)
 	}
 
 	m.store.SetDefault(domain, entry)
 
 	return entry
-}
-
-func (m *memstore) OnEvicted(key string, value interface{}) {
-	value.(*Entry).CancelRetrieval()
 }
