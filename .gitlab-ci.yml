@@ -335,7 +335,9 @@ gitlab-task-runner-ee:
   <<: *job-base
   stage: phase-six
   script:
-    - cp artifacts/ubi/gitlab-python.tar.gz $(get_trimmed_job_name)/
+    - if [ "$UBI_PIPELINE" = "true" ]; then
+    -   cp artifacts/ubi/gitlab-python.tar.gz $(get_trimmed_job_name)/
+    - fi
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
@@ -410,7 +412,9 @@ gitlab-unicorn-ee:
   <<: *job-base
   stage: phase-six
   script:
-    - cp artifacts/ubi/gitlab-python.tar.gz $(get_trimmed_job_name)/
+    - if [ "$UBI_PIPELINE" = "true" ]; then
+    -   cp artifacts/ubi/gitlab-python.tar.gz $(get_trimmed_job_name)/
+    - fi
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
@@ -673,7 +677,9 @@ gitaly:
   <<: *job-base
   stage: phase-five
   script:
-    - cp artifacts/ubi/gitlab-shell.tar.gz $(get_trimmed_job_name)/
+    - if [ "$UBI_PIPELINE" = "true" ]; then
+    -   cp artifacts/ubi/gitlab-shell.tar.gz $(get_trimmed_job_name)/
+    - fi
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
