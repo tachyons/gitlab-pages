@@ -13,10 +13,11 @@ type memstore struct {
 	mux   *sync.Mutex
 }
 
+var expiration = 10 * time.Minute
+
 func newMemStore() Store {
 	memStore := &memstore{
-		// TODO onEvicted cancel context
-		store: cache.New(10*time.Minute, time.Minute),
+		store: cache.New(expiration, time.Minute),
 		mux:   &sync.Mutex{},
 	}
 

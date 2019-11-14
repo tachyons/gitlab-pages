@@ -34,5 +34,5 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *Lookup {
 
 	<-entry.Retrieve(c.client)
 
-	return c.Resolve(ctx, domain)
+	return entry.Lookup()
 }
