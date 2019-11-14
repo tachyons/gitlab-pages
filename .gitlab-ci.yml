@@ -364,7 +364,7 @@ gitlab-mailroom:
   stage: phase-two
   script:
     - ruby_version=$(get_version gitlab-ruby)
-    - export CONTAINER_VERSION=($(echo -n "$ruby_version$MAILROOM_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$MAILROOM_VERSION" | sha1sum))
     - build_if_needed --build-arg "MAILROOM_VERSION=$MAILROOM_VERSION"
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
