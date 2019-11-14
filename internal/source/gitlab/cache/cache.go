@@ -32,7 +32,5 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *Lookup {
 		return entry.Lookup()
 	}
 
-	<-entry.Retrieve(ctx, c.client)
-
-	return entry.Lookup()
+	return entry.Retrieve(ctx, c.client)
 }

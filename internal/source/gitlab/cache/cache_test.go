@@ -67,9 +67,7 @@ func (cache *Cache) withTestEntry(config entryConfig, block func(*Entry)) {
 	entry := cache.store.LoadOrCreate(domain)
 
 	if config.retrieved {
-		newResponse := make(chan Lookup, 1)
-		newResponse <- Lookup{Domain: Domain{Name: domain}, Status: 200}
-		entry.setResponse(newResponse)
+		entry.setResponse(Lookup{Domain: Domain{Name: domain}, Status: 200})
 	}
 
 	if config.expired {

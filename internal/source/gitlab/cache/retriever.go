@@ -13,42 +13,32 @@ var maxRetrievalInterval = time.Second
 // case of errors
 type Retriever struct {
 	client  Resolver
-	ctx     context.Context
 	timeout time.Duration
 }
 
-// Retrieve schedules a retrieval of a response and return a channel that the
-// response is going to be sent to
-func (r *Retriever) Retrieve(domain string) <-chan Lookup {
-	response := make(chan Lookup)
-
-	go r.retrieveWithTimeout(domain, response)
-
-	return response
-}
-
-func (r *Retriever) retrieveWithTimeout(domain string, response chan<- Lookup) {
-	newctx, cancel := context.WithTimeout(r.ctx, r.timeout)
+// Retrieve retrieves a lookup response from external source with timeout and
+// backoff. It has its own context with timeout.
+func (r *Retriever) Retrieve(domain string) Lookup {
+	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 
 	var lookup Lookup
 
 	select {
-	case <-newctx.Done():
-		response <- Lookup{Status: 502, Error: errors.New("context done")}
+	case <-ctx.Done():
 		fmt.Println("retrieval context done") // TODO logme
-	case lookup = <-r.resolveWithBackoff(newctx, domain):
-		response <- lookup
+		lookup = Lookup{Status: 502, Error: errors.New("retrieval context done")}
+	case lookup = <-r.resolveWithBackoff(ctx, domain):
 		fmt.Println("retrieval response sent") // TODO logme
 	}
 
-	close(response)
+	return lookup
 }
 
 func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-chan Lookup {
 	response := make(chan Lookup)
 
-	go func(response chan<- Lookup) {
+	go func() {
 		var lookup Lookup
 
 		for i := 1; i <= 3; i++ {
@@ -63,7 +53,7 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-cha
 
 		response <- lookup
 		close(response)
-	}(response)
+	}()
 
 	return response
 }
