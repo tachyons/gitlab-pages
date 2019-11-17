@@ -49,10 +49,12 @@ RUN curl -L https://github.com/google/re2/archive/${LIBRE2_VERSION}.tar.gz | tar
     && ln -sf /usr/local/yarn/bin/yarn /usr/local/bin \
     && printf 'install: --no-document\nupdate: --no-document\n' > ~/.gemrc
 
-ENV RAILS_ENV=production 
+ENV RAILS_ENV=production
 ENV NODE_ENV=production
 ENV USE_DB=false
 ENV SKIP_STORAGE_VALIDATION=true
+
+COPY shared/build-scripts/ /build-scripts
 
 RUN curl -L https://gitlab.com/${GITLAB_NAMESPACE}/${GITLAB_PROJECT}/-/archive/${GITLAB_VERSION}/${GITLAB_PROJECT}-${GITLAB_VERSION}.tar.gz | tar -xz \
     && cd ${GITLAB_PROJECT}-${GITLAB_VERSION} \
@@ -64,9 +66,8 @@ RUN curl -L https://gitlab.com/${GITLAB_NAMESPACE}/${GITLAB_PROJECT}/-/archive/$
     && bundle install --deployment --without development test mysql aws kerberos --jobs $(nproc) --retry 5 \
     && yarn install --production --pure-lockfile \
     # && bundle exec rake gettext:compile \
-    && rm -rf node_modules/ tmp/ spec/ vendor/bundle/ruby/*/cache/ \
-    && find . -name '*.gem' -type f -delete \
-    && find vendor/bundle/ruby/*/gems -name 'doc' -type d -exec rm -r {} + \
+    && rm -rf node_modules/ tmp/ spec/ \
+    && /build-scripts/cleanup-gems \
     && mv ${PWD} /srv/gitlab
 
 COPY --from=assets assets /srv/gitlab/public/assets/

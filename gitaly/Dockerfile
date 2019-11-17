@@ -28,6 +28,8 @@ RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
 # create default repository directory
 RUN sudo -u ${GITLAB_USER} -H mkdir -p /home/${GITLAB_USER}/repositories
 
+COPY shared/build-scripts/ /build-scripts
+
 # Download and compile Gitaly
 ARG CACHE_BUSTER=false
 RUN cd ${BUILD_DIR} && \
@@ -45,7 +47,8 @@ RUN cd ${BUILD_DIR} && \
     touch .ruby-bundle && \
     make install && \
     mkdir -p /etc/gitaly && \
-    rm -rf ${BUILD_DIR} /srv/gitaly-ruby/spec  /srv/gitaly-ruby/features
+    rm -rf ${BUILD_DIR} /srv/gitaly-ruby/spec  /srv/gitaly-ruby/features && \
+    /build-scripts/cleanup-gems /usr/lib/ruby/gems
 
 # Include Shell
 COPY --from=shell --chown=git /srv/gitlab-shell /srv/gitlab-shell

@@ -32,14 +32,17 @@ COPY --from=ruby /ruby/ /usr/
 COPY --from=golang /usr/local/go/ /usr/local/go/
 COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
 
+COPY shared/build-scripts/ /build-scripts
+
 RUN curl -L https://gitlab.com/${GITALY_NAMESPACE}/${GITALY_PROJECT}/-/archive/${GITALY_VERSION}/${GITALY_PROJECT}-${GITALY_VERSION}.tar.gz | tar -xz \
     && cd ${GITALY_PROJECT}-${GITALY_VERSION}/ruby \
     && bundle install ${BUNDLE_OPTIONS} \
     && cd .. \
     && cp -R ./ruby /srv/gitaly-ruby \
-    && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features /usr/lib/ruby/gems/*/cache/* \
+    && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features \
     && touch .ruby-bundle \
-    && make install
+    && make install \
+    && /build-scripts/cleanup-gems /usr/lib/ruby/gems
 
 FROM ${SHELL_IMAGE} AS shell
 FROM ${GIT_IMAGE}

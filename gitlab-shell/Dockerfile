@@ -28,7 +28,7 @@ RUN mkdir /srv/gitlab-shell && \
     tar -xjf gitlab-shell.tar.bz2 --strip-components=1 && \
     rm gitlab-shell.tar.bz2 && \
     make build && \
-    rm -rf go go_build
+    rm -rf go go_build internal/testhelper/testdata
 
 FROM ${FROM_IMAGE}:${TAG}
 
