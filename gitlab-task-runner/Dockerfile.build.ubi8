@@ -12,4 +12,6 @@ ADD gitlab-python.tar.gz /
 RUN mkdir /assets \
     && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
     && cp -R --parents \
-        /usr/local/lib/python3.7/site-packages /assets
+        /usr/local/lib/python3.7/site-packages \
+        /usr/local/bin/ \
+        /assets

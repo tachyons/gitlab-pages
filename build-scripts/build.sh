@@ -171,6 +171,12 @@ copy_assets() {
 use_assets() {
   if [ "${UBI_PIPELINE}" = 'true' -a -f "artifacts/ubi/${CI_JOB_NAME#build:*}.tar.gz" ]; then
     target="${CI_JOB_NAME#build:*}"
-    cp -R "artifacts/ubi/${CI_JOB_NAME#build:*}.tar.gz" "${target%*-ee}/${target}.tar.gz"
+    cp -R "artifacts/ubi/${target}.tar.gz" "${target%*-ee}/${target}.tar.gz"
+  fi
+}
+
+import_assets() {
+  if [ "${UBI_PIPELINE}" = 'true' ]; then
+    cp $@ $(get_trimmed_job_name)/
   fi
 }
