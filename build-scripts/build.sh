@@ -41,6 +41,12 @@ function needs_build(){
 
 function build_if_needed(){
   if needs_build; then
+
+    if [ ! -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
+      echo "Skipping $(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}: Dockerfile does not exist."
+      return 0
+    fi
+
     export BUILDING_IMAGE="true"
     if [ -n "$BASE_IMAGE" ]; then
       docker pull $BASE_IMAGE

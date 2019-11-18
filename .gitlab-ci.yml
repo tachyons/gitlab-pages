@@ -121,9 +121,6 @@ postgresql:
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PG_VERSION" | sha1sum))
     - build_if_needed --build-arg "PG_VERSION=$PG_VERSION"
-    - if [ -n "$BUILDING_IMAGE" ]; then
-    -  tag_and_push $PG_VERSION${IMAGE_TAG_EXT}
-    - fi
     - push_if_master_or_stable_or_tag
 
 cfssl-self-sign:
@@ -189,9 +186,6 @@ gitlab-python:
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
     - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
-    - if [ -n "$BUILDING_IMAGE" ]; then
-    -   tag_and_push $PYTHON_VERSION${IMAGE_TAG_EXT}
-    - fi
     - push_if_master_or_stable_or_tag
 
 build:gitlab-redis-ha:

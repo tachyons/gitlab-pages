@@ -1,5 +1,0 @@
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
-
-FROM ${UBI_IMAGE}
-
-ADD postgresql.tar.gz /
