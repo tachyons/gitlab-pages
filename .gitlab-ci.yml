@@ -200,8 +200,10 @@ gitlab-redis-ha:
   <<: *job-base
   stage: phase-two
   dependencies:
+    - build:kubectl
     - build:gitlab-redis-ha
   script:
+    - cp artifacts/ubi/kubectl.tar.gz $(get_trimmed_job_name)/
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$(date -u +%D)" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_TAG=${KUBECTL_VERSION}${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag
@@ -589,6 +591,8 @@ build:git-base:
   <<: *build-job-base
   stage: prepare:phase-one
   script:
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - build_if_needed --build-arg "GIT_VERSION=$GIT_VERSION"
     - copy_assets
@@ -710,7 +714,6 @@ build:gitlab-container-registry:
     - cp artifacts/ubi/{git-base,gitlab-go}.tar.gz $(get_trimmed_job_name)/
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$TARGET_VERSION" | sha1sum))
     - build_if_needed --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
                       --build-arg "REGISTRY_NAMESPACE=gitlab-org"
@@ -820,8 +823,6 @@ sync-images:
   services:
     - docker:dind
   stage: release
-  before_script:
-    - source build-scripts/build.sh
   when: manual
   script:
     - cat artifacts/images/* > image_versions.txt

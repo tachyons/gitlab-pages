@@ -27,6 +27,8 @@ variables:
   S3CMD_VERSION: "2.0.1"
   PYTHON_VERSION: "3.7.3"
 
+  UBI_PIPELINE: "true"
+
 ## Note
 # Variables ASSETS_IMAGE_REGISTRY_PREFIX, GITLAB_NAMESPACE and CE_PROJECT are
 # overridden in the mirror of this project in dev.gitlab.org to match their dev

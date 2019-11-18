@@ -158,13 +158,13 @@ function push_if_master_or_stable_or_tag(){
 
 copy_assets() {
   if [ "${UBI_BUILD_IMAGE}" = 'true' ]; then
-    mkdir -p "artifacts/ubi/${CI_JOB_NAME#build:*}"
-    docker create --name "assets-${CONTAINER_VERSION}${IMAGE_TAG_EXT}" ${CI_REGISTRY_IMAGE}/${CI_JOB_NAME#build:*}:${CONTAINER_VERSION}${IMAGE_TAG_EXT}
-    docker cp "assets-${CONTAINER_VERSION}${IMAGE_TAG_EXT}:/assets" "artifacts/ubi/${CI_JOB_NAME#build:*}"
-    docker rm "assets-${CONTAINER_VERSION}${IMAGE_TAG_EXT}"
-    cd artifacts/ubi/${CI_JOB_NAME#build:*}/assets
-    tar -czf ../../${CI_JOB_NAME#build:*}.tar.gz ./*
-    cd ../.. && rm -rf ./${CI_JOB_NAME#build:*}
+    ASSETS_DIR="artifacts/ubi/${CI_JOB_NAME#build:*}"
+    mkdir -p "${ASSETS_DIR}"
+    docker create --name assets "${CI_REGISTRY_IMAGE}/${CI_JOB_NAME#build:*}:${CONTAINER_VERSION}${IMAGE_TAG_EXT}"
+    docker cp assets:/assets "${ASSETS_DIR}"
+    docker rm assets
+    tar -czf "${ASSETS_DIR}.tar.gz" -C "${ASSETS_DIR}/assets" .
+    rm -rf "${ASSETS_DIR}"
   fi
 }
 
