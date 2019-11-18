@@ -5,4 +5,4 @@ ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_TAG}
 
 FROM ${RUBY_IMAGE}
 
-ADD assets.tar.gz /
+ADD git-base.tar.gz /

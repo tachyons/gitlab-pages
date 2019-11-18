@@ -4,7 +4,6 @@ ARG TAG=
 ARG PYTHON_TAG=
 
 ARG RAILS_IMAGE=${FROM_IMAGE}:${TAG}
-ARG PYTHON_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_TAG}
 
 FROM ${RAILS_IMAGE}
 
@@ -22,7 +21,7 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab" \
       description="GitLab Unicorn run the GitLab Rails application with Unicorn web server."
 
 ADD gitlab-python.tar.gz /
-ADD assets.tar.gz /
+ADD gitlab-unicorn-ee.tar.gz /
 
 COPY scripts/ /scripts
 COPY unicorn.rb ${GITLAB_CONFIG}/unicorn.rb

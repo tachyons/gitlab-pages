@@ -2,7 +2,7 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
 
 FROM ${UBI_IMAGE}
 
-ADD assets.tar.gz /
+ADD kubectl.tar.gz /
 
 RUN chmod +x /usr/local/bin/{kubectl,yq} \
     && dnf --disableplugin=subscription-manager install -by --nodocs openssh openssl

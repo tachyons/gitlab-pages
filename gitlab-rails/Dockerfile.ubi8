@@ -15,7 +15,7 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs libicu tzdata 
     && chmod -R ug+rwX,o-rwx ${GITLAB_DATA}/repo \
     && chmod -R ug-s ${GITLAB_DATA}/repo
 
-ADD assets.tar.gz /
+ADD gitlab-rails-ee.tar.gz /
 
 COPY scripts/ /scripts
 

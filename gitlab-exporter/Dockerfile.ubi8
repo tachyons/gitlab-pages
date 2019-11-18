@@ -21,7 +21,7 @@ ENV CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab-exporter/templates
 ENV CONFIG_DIRECTORY=/etc/gitlab-exporter
 ENV CONFIG_FILENAME=gitlab-exporter.yml
 
-ADD assets.tar.gz /
+ADD gitlab-exporter.tar.gz /
 
 COPY scripts/ /scripts/
 

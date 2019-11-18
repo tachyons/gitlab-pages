@@ -2,6 +2,6 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
 
 FROM ${UBI_IMAGE}
 
-ADD assets.tar.gz /
+ADD gitlab-go.tar.gz /
 
 RUN ln -sf /usr/local/go/bin/* /usr/local/bin

@@ -17,7 +17,7 @@ LABEL source="https://gitlab.com/gitlab-org/gitaly" \
       summary="Gitaly is a Git RPC service for handling all the git calls made by GitLab." \
       description="Gitaly is a Git RPC service for handling all the git calls made by GitLab."
 
-ADD assets.tar.gz /
+ADD gitaly.tar.gz /
 ADD gitlab-shell.tar.gz /
 
 COPY scripts/ /scripts/

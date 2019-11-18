@@ -17,6 +17,8 @@ LABEL source="https://github.com/tpitale/mail_room/" \
       summary="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received." \
       description="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received."
 
+ADD gitlab-mailroom.tar.gz /
+
 COPY scripts/ /scripts/
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps libicu tzdata \

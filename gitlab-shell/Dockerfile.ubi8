@@ -18,7 +18,7 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab-shell" \
       summary="SSH access and repository management app for GitLab." \
       description="SSH access and repository management app for GitLab."
 
-ADD assets.tar.gz /
+ADD gitlab-shell.tar.gz /
 
 COPY scripts/ /scripts/
 COPY sshd_config /etc/ssh/

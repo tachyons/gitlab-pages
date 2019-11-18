@@ -20,7 +20,7 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab-workhorse" \
 
 ENV LANG=C.UTF-8
 
-ADD assets.tar.gz /
+ADD gitlab-workhorse-ee.tar.gz /
 
 COPY scripts/ /scripts/
 
