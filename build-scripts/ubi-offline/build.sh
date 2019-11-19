@@ -17,12 +17,20 @@ imageName() {
 buildImage() {
   IMAGE="${1}"
   CONTEXT="${IMAGE%*-ee}"
-  docker build \
-    -f "${CONTEXT}/Dockerfile${DOCKERFILE_EXT}" \
-    -t "$(imageName ${IMAGE})" \
-    ${DOCKER_OPTS:-} \
-    "${CONTEXT}"
+  { 
+    docker build \
+      -f "${CONTEXT}/Dockerfile${DOCKERFILE_EXT}" \
+      -t "$(imageName ${IMAGE})" \
+      ${DOCKER_OPTS:-} \
+      "${CONTEXT}" | tee ${CONTEXT}.out 
+  } || {
+    echo "${CONTEXT}" >> failed.log
+  }
 }
+
+# Cleanup log outputs from previous build
+
+rm -f *.out failed.log
 
 # Stage one
 

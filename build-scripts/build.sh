@@ -42,8 +42,14 @@ function needs_build(){
 function build_if_needed(){
   if needs_build; then
 
-    if [ ! -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
-      echo "Skipping $(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}: Dockerfile does not exist."
+    pushd $(get_trimmed_job_name)
+
+    if [ -x renderDockerfile ]; then
+      ./renderDockerfile
+    fi
+
+    if [ ! -f "Dockerfile${DOCKERFILE_EXT}" ]; then
+      echo "Skipping $(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}: Dockerfile${DOCKERFILE_EXT} does not exist."
       return 0
     fi
 
@@ -54,14 +60,8 @@ function build_if_needed(){
 
     DOCKER_ARGS=( "$@" )
 
-    pushd $(get_trimmed_job_name)
-
     # Bring in shared scripts
     cp -r ../shared/ shared/
-
-    if [ -x renderDockerfile ]; then
-      ./renderDockerfile
-    fi
 
     # Skip the build cache if $DISABLE_DOCKER_BUILD_CACHE is set to any value
     if [ -z ${DISABLE_DOCKER_BUILD_CACHE+x} ]; then

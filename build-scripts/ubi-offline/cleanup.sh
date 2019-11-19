@@ -2,4 +2,4 @@
 
 set -euxo pipefail
 
-rm */*.tar.gz
+rm -f */*.tar.gz *.out failed.log
