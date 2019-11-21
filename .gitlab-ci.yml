@@ -16,22 +16,22 @@ stages:
 
 .except-ce: &except-ce
   except:
-    refs:
-      - tags@gitlab-org/build/CNG
     variables:
       - $CE_PIPELINE
       - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
       - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/
+    refs:
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
 
 .except-ee: &except-ee
   except:
-    refs:
-      - tags@gitlab-org/build/CNG
     variables:
       - $EE_PIPELINE
+      - $UBI_PIPELINE == "true"
       - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/
       - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ee$/
-      - $UBI_PIPELINE == "true"
+      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
+      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
 
 .job-base: &job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -42,6 +42,9 @@ stages:
   before_script:
     - mkdir -p artifacts/images/
     - source build-scripts/build.sh
+    - if [[ "${CI_COMMIT_TAG}" == *-ubi8 || "${CI_COMMIT_REF_NAME}" == *-ubi8 ]]; then
+    -   export UBI_PIPELINE="true"
+    - fi
     - if [ "${UBI_PIPELINE}" = "true" ]; then
     -   export DOCKERFILE_EXT='.ubi8'
     -   export IMAGE_TAG_EXT='-ubi8'
@@ -57,7 +60,9 @@ stages:
     paths:
       - artifacts/
   except:
-    - tags@gitlab-org/build/CNG
+    refs:
+      - /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -66,24 +71,27 @@ stages:
   retry: 1
   before_script:
     - source build-scripts/build.sh
+    - if [[ "${CI_COMMIT_TAG}" == *-ubi8 || "${CI_COMMIT_REF_NAME}" == *-ubi8 ]]; then
+    -   export UBI_PIPELINE="true"
+    - fi
     - export DOCKERFILE_EXT='.build.ubi8'
     - export IMAGE_TAG_EXT='-assets-ubi8'
     - export UBI_BUILD_IMAGE='true'
     - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
     - export TARGET_VERSION=$(get_target_version)
+    - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
   artifacts:
     paths:
       - artifacts/
   only:
     variables:
       - $UBI_PIPELINE == "true"
+      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
+      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
 
 gitlab-ubi-builder:
   <<: *build-job-base
   stage: prepare
-  only:
-    variables:
-      - $UBI_PIPELINE == "true"
   script:
     - export DOCKERFILE_EXT='.ubi8'
     - build_if_needed
@@ -833,6 +841,11 @@ sync-images:
       - artifacts/
   only:
     - tags@gitlab/charts/components/images
+  except:
+    variables:
+      - $UBI_PIPELINE == "true"
+      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
+      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
 
 ubi-assets-release:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:ubi-release
@@ -857,9 +870,9 @@ ubi-assets-release:
     - build:gitlab-unicorn-ee
   only:
     refs:
-      - /^.+\-ubi8$/@gitlab-org/build/CNG
+      - /^.+-ubi8$/@gitlab-org/build/CNG
   before_script:
-    - export UBI_RELEASE_TAG=${CI_TAG_NAME:-latest}
+    - export UBI_RELEASE_TAG=${CI_COMMIT_TAG:-latest}
     - export AWS_ACCESS_KEY_ID="${GPG_KEY_AWS_ACCESS_KEY_ID}"
     - export AWS_SECRET_ACCESS_KEY="${GPG_KEY_AWS_SECRET_ACCESS_KEY}"
     - aws s3 cp --quiet ${GPG_KEY_LOCATION} /tmp/private.pem
@@ -887,9 +900,10 @@ ubi-assets-release:
     - aws s3 cp 
         --quiet --acl public-read --content-type application/x-tar
         ${ASSETS_PACK} "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}"
-    - curl -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:application/json' --data 
+    - curl -f -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:application/json' --data 
         "$(printf 
-          '{"tag_name":"%s","name":"%s","description":"%s","assets":{"links":[{"name":"%s","url":"%s"},{"name":"%s","url":"%s"}]}}'
+          '{"tag_name":"%s","ref":"%s","name":"%s","description":"%s","assets":{"links":[{"name":"%s","url":"%s"},{"name":"%s","url":"%s"}]}}'
+          "${UBI_RELEASE_TAG}"
           "${UBI_RELEASE_TAG}"
           "Release ${UBI_RELEASE_TAG}"
           "Binary dependencies of UBI-based images for Cloud-Native GitLab."
