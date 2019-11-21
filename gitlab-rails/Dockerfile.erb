@@ -110,8 +110,9 @@ RUN cd /srv/gitlab && \
     sed --in-place "s:/home/git/repositories:${DATADIR}/repo:" config/gitlab.yml
 
 # Install gems
+COPY --chown=git vendor/bundle/ /srv/gitlab/vendor/bundle
 RUN cd /srv/gitlab && \
-    sudo -u git -H bundle install --deployment --without development test mysql aws kerberos --jobs 4 --retry 5
+    sudo -u git -H bundle install --clean --deployment --without development test mysql aws kerberos --jobs 4 --retry 5
 
 # Install node dependencies
 RUN cd /srv/gitlab && \
