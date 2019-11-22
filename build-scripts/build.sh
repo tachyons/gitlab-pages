@@ -74,9 +74,15 @@ function build_if_needed(){
       DOCKER_ARGS+=(--cache-from $CACHE_IMAGE)
     fi
 
+    # Add build image argument for UBI build stage
+    if [ "${UBI_BUILD_IMAGE}" = 'true' ]; then
+      [ -z "${BUILD_IMAGE}" ] && export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest-ubi8"
+      DOCKER_ARGS+=(--build-arg BUILD_IMAGE="${BUILD_IMAGE}")
+    fi
+
     docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.}
     # Push new image unless it is a UBI build image
-    if [ -z "${UBI_BUILD_IMAGE}" ]; then
+    if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
       docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}"
 
       # Create a tag based on Branch/Tag name for easy reference
@@ -85,14 +91,14 @@ function build_if_needed(){
     popd
   fi
   # Record image repository and tag unless it is a UBI build image
-  if [ -z "${UBI_BUILD_IMAGE}" ]; then
+  if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
     echo "${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" > "artifacts/images/$CI_JOB_NAME.txt"
   fi
 }
 
 function tag_and_push(){
   # Tag and push unless it is a UBI build image
-  if [ -z "${UBI_BUILD_IMAGE}" ]; then
+  if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
     docker tag "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$1"
     docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$1"
   fi

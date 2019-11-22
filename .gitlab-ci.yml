@@ -75,10 +75,11 @@ stages:
     -   export UBI_PIPELINE="true"
     - fi
     - export DOCKERFILE_EXT='.build.ubi8'
-    - export IMAGE_TAG_EXT='-assets-ubi8'
+    - export IMAGE_TAG_EXT='-build-ubi8'
     - export UBI_BUILD_IMAGE='true'
     - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
     - export TARGET_VERSION=$(get_target_version)
+    - export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest-ubi8"
     - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
   artifacts:
     paths:
@@ -94,6 +95,9 @@ gitlab-ubi-builder:
   stage: prepare
   script:
     - export DOCKERFILE_EXT='.ubi8'
+    - export IMAGE_TAG_EXT='-ubi8'
+    - export UBI_BUILD_IMAGE='false'
+    - mkdir -p artifacts/images
     - build_if_needed
     - push_latest
 
@@ -882,7 +886,7 @@ ubi-assets-release:
     - cd artifacts/
     - export AWS_ACCESS_KEY_ID="${UBI_ASSETS_AWS_ACCESS_KEY_ID}"
     - export AWS_SECRET_ACCESS_KEY="${UBI_ASSETS_AWS_SECRET_ACCESS_KEY}"
-    - ASSETS_PACK="dependencies-${UBI_RELEASE_TAG}.tar"
+    - ASSETS_PACK="ubi8-build-dependencies-${UBI_RELEASE_TAG}.tar"
     - ASSETS_URL="http://${UBI_ASSETS_AWS_BUCKET}.s3.amazonaws.com/${ASSETS_PACK}"
     - gpg --batch --quiet --yes --armor --export --output gpg
     - tar -cvf ${ASSETS_PACK} -C ubi .
@@ -906,7 +910,7 @@ ubi-assets-release:
           "${UBI_RELEASE_TAG}"
           "${UBI_RELEASE_TAG}"
           "Release ${UBI_RELEASE_TAG}"
-          "Binary dependencies of UBI-based images for Cloud-Native GitLab."
+          "Binary dependencies for building UBI-based images for Cloud-Native GitLab."
           "${ASSETS_PACK}"
           "${ASSETS_URL}"
           "${ASSETS_PACK}.asc"
