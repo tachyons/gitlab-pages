@@ -538,6 +538,7 @@ sync-images:
   stage: release
   before_script: []
   when: manual
+  allow_failure: false
   script:
     - cat artifacts/images/* > image_versions.txt
     - rm -rf artifacts/*
