@@ -140,7 +140,7 @@ func writeRandomTimestamp(t *testing.T) {
 	n, _ := rand.Read(b)
 	require.True(t, n > 0, "read some random bytes")
 
-	temp, err := ioutil.TempFile(".", "TestWatch")
+	temp, err := ioutil.TempFile(".", "TestIsWatch")
 	require.NoError(t, err)
 	_, err = temp.Write(b)
 	require.NoError(t, err, "write to tempfile")
@@ -156,7 +156,7 @@ func TestWatch(t *testing.T) {
 	require.NoError(t, os.RemoveAll(updateFile))
 
 	update := make(chan Map)
-	go watch("gitlab.io", func(dm Map) {
+	go Watch("gitlab.io", func(dm Map) {
 		update <- dm
 	}, time.Microsecond*50)
 

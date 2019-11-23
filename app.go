@@ -53,7 +53,7 @@ type theApp struct {
 }
 
 func (a *theApp) isReady() bool {
-	return a.domains.Ready()
+	return a.domains.IsReady()
 }
 
 func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -348,7 +348,7 @@ func (a *theApp) Run() {
 		a.listenMetricsFD(&wg, a.ListenMetrics)
 	}
 
-	a.domains.Watch(a.Domain)
+	a.domains.Start(a.Domain)
 
 	wg.Wait()
 }

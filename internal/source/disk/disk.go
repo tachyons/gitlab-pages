@@ -45,15 +45,17 @@ func (d *Disk) HasDomain(host string) bool {
 	return isPresent
 }
 
-// Ready checks if the domains source is ready for work
-func (d *Disk) Ready() bool {
+// IsReady checks if the domains source is ready for work. The disk source is
+// ready after traversing entire filesystem and reading all domains'
+// configuration files.
+func (d *Disk) IsReady() bool {
 	return d.dm != nil
 }
 
-// Watch starts the domain source, in this case it is reading domains from
-// groups on disk concurrently
-func (d *Disk) Watch(rootDomain string) {
-	go watch(rootDomain, d.updateDomains, time.Second)
+// Start starts the domain source, in this case it is reading domains from
+// groups on disk concurrently.
+func (d *Disk) Start(rootDomain string) {
+	go Watch(rootDomain, d.updateDomains, time.Second)
 }
 
 func (d *Disk) updateDomains(dm Map) {

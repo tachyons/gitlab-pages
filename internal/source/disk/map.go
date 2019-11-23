@@ -226,8 +226,8 @@ const (
 	updateFile = ".update"
 )
 
-// watch polls the filesystem and kicks off a new domain directory scan when needed.
-func watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
+// Watch polls the filesystem and kicks off a new domain directory scan when needed.
+func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
 	lastUpdate := []byte("no-update")
 
 	for {
