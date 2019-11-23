@@ -52,9 +52,9 @@ func (d *Disk) IsReady() bool {
 	return d.dm != nil
 }
 
-// Start starts the domain source, in this case it is reading domains from
+// Read starts the domain source, in this case it is reading domains from
 // groups on disk concurrently.
-func (d *Disk) Start(rootDomain string) {
+func (d *Disk) Read(rootDomain string) {
 	go Watch(rootDomain, d.updateDomains, time.Second)
 }
 

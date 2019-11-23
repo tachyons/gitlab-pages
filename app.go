@@ -348,7 +348,7 @@ func (a *theApp) Run() {
 		a.listenMetricsFD(&wg, a.ListenMetrics)
 	}
 
-	a.domains.Start(a.Domain)
+	a.domains.Read(a.Domain)
 
 	wg.Wait()
 }

@@ -14,13 +14,20 @@ type Gitlab struct {
 	cache  Cache
 }
 
+// New returns a new instance of gitlab domain source.
+func New() *Gitlab {
+	return &Gitlab{}
+}
+
 // GetDomain return a representation of a domain that we have fetched from
 // GitLab
+// It should return source.Lookup TODO
 func (g *Gitlab) GetDomain(name string) *domain.Domain {
 	return nil
 }
 
 // HasDomain checks if a domain is known to GitLab
+// TODO lookup status code etc.
 func (g *Gitlab) HasDomain(name string) bool {
 	return g.GetDomain(name) != nil
 }
@@ -29,13 +36,4 @@ func (g *Gitlab) HasDomain(name string) bool {
 // the GitLab source
 func (g *Gitlab) Resolve(*http.Request) (*serving.LookupPath, string, error) {
 	return nil, "", nil
-}
-
-// Watch starts Gitlab domains source TODO remove
-func (g *Gitlab) Watch(rootDomain string) {
-}
-
-// Ready checks if Gitlab domains source can be used TODO remove
-func (g *Gitlab) Ready() bool {
-	return false
 }
