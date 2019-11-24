@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"errors"
 	"net/http"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
@@ -21,15 +22,8 @@ func New() *Gitlab {
 
 // GetDomain return a representation of a domain that we have fetched from
 // GitLab
-// It should return source.Lookup TODO
-func (g *Gitlab) GetDomain(name string) *domain.Domain {
-	return nil
-}
-
-// HasDomain checks if a domain is known to GitLab
-// TODO lookup status code etc.
-func (g *Gitlab) HasDomain(name string) bool {
-	return g.GetDomain(name) != nil
+func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
+	return nil, errors.New("not implemented")
 }
 
 // Resolve is supposed to get the serving lookup path based on the request from

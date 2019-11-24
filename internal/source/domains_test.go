@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
@@ -14,27 +15,20 @@ type mockSource struct {
 	mock.Mock
 }
 
-func (m mockSource) GetDomain(name string) *domain.Domain {
+func (m mockSource) GetDomain(name string) (*domain.Domain, error) {
 	args := m.Called(name)
 
-	return args.Get(0).(*domain.Domain)
+	return args.Get(0).(*domain.Domain), args.Error(1)
 }
 
-func (m mockSource) HasDomain(name string) bool {
-	args := m.Called(name)
-
-	return args.Bool(0)
-}
-
-func TestSourceTransition(t *testing.T) {
+func TestHasDomain(t *testing.T) {
 	testDomain := newSourceDomains[0]
 
 	t.Run("when requesting a test domain", func(t *testing.T) {
 		newSource := new(mockSource)
 		newSource.On("GetDomain", testDomain).
-			Return(&domain.Domain{Name: testDomain}).
+			Return(&domain.Domain{Name: testDomain}, nil).
 			Once()
-		newSource.On("HasDomain", testDomain).Return(true).Once()
 		defer newSource.AssertExpectations(t)
 
 		domains := &Domains{
@@ -43,7 +37,6 @@ func TestSourceTransition(t *testing.T) {
 		}
 
 		domains.GetDomain(testDomain)
-		domains.HasDomain(testDomain)
 	})
 
 	t.Run("when requesting a non-test domain", func(t *testing.T) {
@@ -55,7 +48,9 @@ func TestSourceTransition(t *testing.T) {
 			gitlab: newSource,
 		}
 
-		assert.Nil(t, domains.GetDomain("some.test.io"))
-		assert.False(t, domains.HasDomain("some.test.io"))
+		domain, err := domains.GetDomain("domain.test.io")
+
+		require.NoError(t, err)
+		assert.Nil(t, domain)
 	})
 }

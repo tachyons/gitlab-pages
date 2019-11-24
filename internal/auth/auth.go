@@ -198,14 +198,17 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, redirectURI, 302)
 }
 
-func (a *Auth) domainAllowed(domain string, domains *source.Domains) bool {
-	domainConfigured := (domain == a.pagesDomain) || strings.HasSuffix("."+domain, a.pagesDomain)
+func (a *Auth) domainAllowed(name string, domains *source.Domains) bool {
+	isConfigured := (name == a.pagesDomain) || strings.HasSuffix("."+name, a.pagesDomain)
 
-	if domainConfigured {
+	if isConfigured {
 		return true
 	}
 
-	return domains.HasDomain(domain)
+	domain, err := domains.GetDomain(name)
+
+	// domain exists and there is no error
+	return (domain != nil && err == nil)
 }
 
 func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domains *source.Domains) bool {

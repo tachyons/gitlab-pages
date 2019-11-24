@@ -34,14 +34,8 @@ func NewDomains() *Domains {
 // sources here because it allows us to switch behavior and the domain source
 // for some subset of domains, to test / PoC the new GitLab Domains Source that
 // we plan to use to replace the disk source.
-func (d *Domains) GetDomain(name string) *domain.Domain {
+func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
 	return d.source(name).GetDomain(name)
-}
-
-// HasDomain checks if domain exists. It is using new and the legacy domains
-// source.
-func (d *Domains) HasDomain(name string) bool {
-	return d.source(name).HasDomain(name)
 }
 
 // Start starts the disk domain source. It is DEPRECATED, because we want to
