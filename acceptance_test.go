@@ -432,6 +432,18 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
 }
 
+func TestPageNotAvailableInDomainSource(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-root=shared/invalid-pages")
+	defer teardown()
+	waitForRoundtrips(t, listeners, 5*time.Second)
+
+	rsp, err := GetPageFromListener(t, httpListener, "pages-broken-poc.gitlab.io", "index.html")
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+	require.Equal(t, http.StatusBadGateway, rsp.StatusCode)
+}
+
 func TestObscureMIMEType(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "")

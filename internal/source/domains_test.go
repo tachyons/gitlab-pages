@@ -53,4 +53,19 @@ func TestHasDomain(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, domain)
 	})
+
+	t.Run("when requesting a broken test domain", func(t *testing.T) {
+		newSource := new(mockSource)
+		defer newSource.AssertExpectations(t)
+
+		domains := &Domains{
+			disk:   disk.New(),
+			gitlab: newSource,
+		}
+
+		domain, err := domains.GetDomain("pages-broken-poc.gitlab.io")
+
+		assert.Nil(t, domain)
+		assert.EqualError(t, err, "broken test domain used")
+	})
 }

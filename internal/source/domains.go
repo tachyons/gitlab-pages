@@ -1,6 +1,8 @@
 package source
 
 import (
+	"errors"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
@@ -11,6 +13,8 @@ var newSourceDomains = []string{
 	"pages-namespace-poc.gitlab.io",
 	"pages-custom-poc.grzegorz.co",
 }
+
+var brokenSourceDomain = "pages-broken-poc.gitlab.io"
 
 // Domains struct represents a map of all domains supported by pages. It is
 // currently using two sources during the transition to the new GitLab domains
@@ -35,6 +39,10 @@ func NewDomains() *Domains {
 // for some subset of domains, to test / PoC the new GitLab Domains Source that
 // we plan to use to replace the disk source.
 func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
+	if name == brokenSourceDomain {
+		return nil, errors.New("broken test domain used")
+	}
+
 	return d.source(name).GetDomain(name)
 }
 
