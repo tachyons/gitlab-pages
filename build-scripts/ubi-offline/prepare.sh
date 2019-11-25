@@ -5,7 +5,7 @@
 set -euxo pipefail
 
 TAG=${1:-latest}
-PACKAGE_NAME="dependencies-${TAG}.tar"
+PACKAGE_NAME="ubi8-build-dependencies-${TAG}.tar"
 PACKAGE_HOST="https://gitlab-ubi.s3.us-east-2.amazonaws.com"
 PACKAGE_URL="${PACKAGE_HOST}/${PACKAGE_NAME}"
 WORKSPACE="prepare"
