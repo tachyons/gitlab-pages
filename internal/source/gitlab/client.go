@@ -10,6 +10,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/domain"
 )
 
 // Client is a HTTP client to access Pages internal API
@@ -44,7 +45,7 @@ func NewClient(baseURL string, secretKey []byte) (*Client, error) {
 }
 
 // GetVirtualDomain returns VirtualDomain configuration for the given host
-func (gc *Client) GetVirtualDomain(host string) (*VirtualDomain, error) {
+func (gc *Client) GetVirtualDomain(host string) (*domain.VirtualDomain, error) {
 	params := map[string]string{"host": host}
 
 	resp, err := gc.get("/api/v4/internal/pages", params)
@@ -53,7 +54,7 @@ func (gc *Client) GetVirtualDomain(host string) (*VirtualDomain, error) {
 	}
 	defer resp.Body.Close()
 
-	var domain VirtualDomain
+	var domain domain.VirtualDomain
 	err = json.NewDecoder(resp.Body).Decode(&domain)
 	if err != nil {
 		return nil, err
