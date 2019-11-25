@@ -9,9 +9,10 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 
+	"gitlab.com/gitlab-org/labkit/log"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/domain"
-	"gitlab.com/gitlab-org/labkit/log"
 )
 
 // Client is a HTTP client to access Pages internal API
