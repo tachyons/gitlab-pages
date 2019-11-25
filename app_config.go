@@ -34,3 +34,13 @@ type appConfig struct {
 	SentryEnvironment string
 	CustomHeaders     []string
 }
+
+// GitlabServerURL returns URL to a GitLab instance.
+func (config appConfig) GitlabServerURL() string {
+	return config.GitLabServer
+}
+
+// GitlabClientSecret returns GitLab server access token.
+func (config appConfig) GitlabClientSecret() []byte {
+	return []byte(config.ClientSecret)
+}

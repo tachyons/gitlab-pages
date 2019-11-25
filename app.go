@@ -413,7 +413,7 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 }
 
 func runApp(config appConfig) {
-	a := theApp{appConfig: config, domains: source.NewDomains()}
+	a := theApp{appConfig: config, domains: source.NewDomains(config)}
 
 	err := logging.ConfigureLogging(a.LogFormat, a.LogVerbose)
 	if err != nil {

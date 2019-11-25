@@ -27,10 +27,10 @@ type Domains struct {
 // NewDomains is a factory method for domains initializing a mutex. It should
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
-func NewDomains() *Domains {
+func NewDomains(config Config) *Domains {
 	return &Domains{
 		disk:   disk.New(),
-		gitlab: gitlab.New(),
+		gitlab: gitlab.New(config),
 	}
 }
 

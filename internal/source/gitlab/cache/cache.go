@@ -4,7 +4,7 @@ package cache
 type Cache struct {
 }
 
-// NewCache creates a new instance of Cache and sets default expiration
-func NewCache() *Cache {
+// New creates a new instance of Cache and sets default expiration
+func New() *Cache {
 	return &Cache{}
 }

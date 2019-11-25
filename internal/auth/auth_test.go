@@ -10,10 +10,11 @@ import (
 	"testing"
 
 	"github.com/gorilla/sessions"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
 func createAuth(t *testing.T) *Auth {
@@ -27,6 +28,16 @@ func createAuth(t *testing.T) *Auth {
 
 func defaultCookieStore() sessions.Store {
 	return createCookieStore("something-very-secret")
+}
+
+type mockSource struct {
+	mock.Mock
+}
+
+func (m *mockSource) GetDomain(name string) (*domain.Domain, error) {
+	args := m.Called(name)
+
+	return args.Get(0).(*domain.Domain), args.Error(1)
 }
 
 // Gorilla's sessions use request context to save session
@@ -56,7 +67,7 @@ func TestTryAuthenticate(t *testing.T) {
 	require.NoError(t, err)
 	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
 
-	require.Equal(t, false, auth.TryAuthenticate(result, r, source.NewDomains()))
+	require.Equal(t, false, auth.TryAuthenticate(result, r, new(mockSource)))
 }
 
 func TestTryAuthenticateWithError(t *testing.T) {
@@ -67,7 +78,7 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	require.NoError(t, err)
 	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewDomains()))
+	require.Equal(t, true, auth.TryAuthenticate(result, r, new(mockSource)))
 	require.Equal(t, 401, result.Code)
 }
 
@@ -84,7 +95,7 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	session.Values["state"] = "state"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewDomains()))
+	require.Equal(t, true, auth.TryAuthenticate(result, r, new(mockSource)))
 	require.Equal(t, 401, result.Code)
 }
 
@@ -124,7 +135,7 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	})
 
 	result := httptest.NewRecorder()
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewDomains()))
+	require.Equal(t, true, auth.TryAuthenticate(result, r, new(mockSource)))
 	require.Equal(t, 302, result.Code)
 	require.Equal(t, "https://pages.gitlab-example.com/project/", result.Header().Get("Location"))
 	require.Equal(t, 600, result.Result().Cookies()[0].MaxAge)

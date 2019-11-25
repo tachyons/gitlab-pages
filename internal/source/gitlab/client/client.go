@@ -11,6 +11,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/domain"
+	"gitlab.com/gitlab-org/labkit/log"
 )
 
 // Client is a HTTP client to access Pages internal API
@@ -28,10 +29,10 @@ var (
 )
 
 // NewClient initializes and returns new Client
-func NewClient(baseURL string, secretKey []byte) (*Client, error) {
+func NewClient(baseURL string, secretKey []byte) *Client {
 	url, err := url.Parse(baseURL)
 	if err != nil {
-		return nil, err
+		log.WithError(err).Fatal("could not parse GitLab server URL")
 	}
 
 	return &Client{
@@ -41,7 +42,12 @@ func NewClient(baseURL string, secretKey []byte) (*Client, error) {
 			Timeout:   5 * time.Second,
 			Transport: httptransport.Transport,
 		},
-	}, nil
+	}
+}
+
+// NewFromConfig creates a new client from Config struct
+func NewFromConfig(config Config) *Client {
+	return NewClient(config.GitlabServerURL(), config.GitlabClientSecret())
 }
 
 // GetVirtualDomain returns VirtualDomain configuration for the given host

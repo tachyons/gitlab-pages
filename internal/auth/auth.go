@@ -107,7 +107,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 }
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
-func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains *source.Domains) bool {
+func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains source.Source) bool {
 	if a == nil {
 		return false
 	}
@@ -198,7 +198,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, redirectURI, 302)
 }
 
-func (a *Auth) domainAllowed(name string, domains *source.Domains) bool {
+func (a *Auth) domainAllowed(name string, domains source.Source) bool {
 	isConfigured := (name == a.pagesDomain) || strings.HasSuffix("."+name, a.pagesDomain)
 
 	if isConfigured {
@@ -211,7 +211,7 @@ func (a *Auth) domainAllowed(name string, domains *source.Domains) bool {
 	return (domain != nil && err == nil)
 }
 
-func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domains *source.Domains) bool {
+func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domains source.Source) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
 		domain := r.URL.Query().Get("domain")
