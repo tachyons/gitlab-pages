@@ -1,0 +1,31 @@
+ARG BUILD_IMAGE=
+
+FROM ${BUILD_IMAGE}
+
+ARG WORKHORSE_VERSION=v5.2.0
+ARG WORKHORSE_NAMESPACE=gitlab-org
+ARG WORKHORSE_PROJECT=gitlab-workhorse
+
+ARG EXIFTOOL_VERSION=11.69
+
+ADD git-base.tar.gz /
+ADD gitlab-go.tar.gz /
+ADD gitlab-rails-ee.tar.gz /
+
+RUN mkdir /assets \
+    && ln -sf /usr/local/go/bin/* /usr/local/bin \
+    && curl https://sno.phy.queensu.ca/~phil/exiftool/Image-ExifTool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
+    && cd Image-ExifTool-${EXIFTOOL_VERSION} \
+    && perl Makefile.PL \
+    && make install \
+    && cd .. \
+    && curl -L https://gitlab.com/${WORKHORSE_NAMESPACE}/${WORKHORSE_PROJECT}/-/archive/${WORKHORSE_VERSION}/${WORKHORSE_PROJECT}-${WORKHORSE_VERSION}.tar.gz | tar -xz \
+    && cd ${WORKHORSE_PROJECT}-${WORKHORSE_VERSION} \
+    && make install \
+    && cp -R --parents \
+        /usr/local/bin/gitlab-* \
+        /usr/local/bin/exiftool \
+        /usr/local/share/perl5 \
+        /srv/gitlab/public \
+        /srv/gitlab/doc \
+        /assets

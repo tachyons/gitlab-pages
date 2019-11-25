@@ -1,0 +1,33 @@
+ARG BUILD_IMAGE=
+
+FROM ${BUILD_IMAGE}
+
+ARG GITALY_VERSION=master
+ARG GITALY_NAMESPACE=gitlab-org
+ARG GITALY_PROJECT=gitaly
+ARG BUNDLE_OPTIONS="--jobs 4 --without development test"
+
+ADD git-base.tar.gz /
+ADD gitlab-ruby.tar.gz /
+ADD gitlab-go.tar.gz /
+
+ENV LANG=C.UTF-8
+
+COPY shared/build-scripts/ /build-scripts
+
+RUN mkdir /assets \
+    && ln -sf /usr/local/go/bin/* /usr/local/bin \
+    && curl -L https://gitlab.com/${GITALY_NAMESPACE}/${GITALY_PROJECT}/-/archive/${GITALY_VERSION}/${GITALY_PROJECT}-${GITALY_VERSION}.tar.gz | tar -xz \
+    && cd ${GITALY_PROJECT}-${GITALY_VERSION}/ruby \
+    && bundle install ${BUNDLE_OPTIONS} \
+    && cd .. \
+    && cp -R ./ruby /srv/gitaly-ruby \
+    && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features \
+    && touch .ruby-bundle \
+    && make install \
+    && /build-scripts/cleanup-gems /usr/lib/ruby/gems \
+    && cp -R --parents \
+      /usr/local/bin/gitaly* \
+      /usr/lib/ruby/gems/ \
+      /srv/gitaly-ruby \
+      /assets

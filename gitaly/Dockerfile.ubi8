@@ -1,50 +1,8 @@
 ARG CI_REGISTRY_IMAGE=
-ARG FROM_IMAGE=
 ARG TAG=
-ARG GO_TAG=
-ARG RUBY_TAG=
-ARG SHELL_CONTAINER=
 
-ARG GO_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG}
-ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_TAG}
 ARG GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${TAG}
-ARG SHELL_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-shell:${SHELL_CONTAINER}
-ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
 
-FROM ${GO_IMAGE} AS golang
-FROM ${RUBY_IMAGE} AS ruby
-
-RUN mkdir -p /ruby/{bin,lib,include} \
-    && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
-    && cp -R /usr/lib/{ruby/,libruby.*} /ruby/lib \
-    && cp -R /usr/include/ruby-*/ /ruby/include/
-
-FROM ${BUILD_IMAGE} AS builder
-
-ARG GITALY_VERSION=master
-ARG GITALY_NAMESPACE=gitlab-org
-ARG GITALY_PROJECT=gitaly
-ARG BUNDLE_OPTIONS="--jobs 4 --without development test"
-
-ENV LANG=C.UTF-8
-
-COPY --from=ruby /ruby/ /usr/
-COPY --from=golang /usr/local/go/ /usr/local/go/
-COPY --from=golang /usr/local/go/bin/go* /usr/local/bin/
-
-COPY shared/build-scripts/ /build-scripts
-
-RUN curl -L https://gitlab.com/${GITALY_NAMESPACE}/${GITALY_PROJECT}/-/archive/${GITALY_VERSION}/${GITALY_PROJECT}-${GITALY_VERSION}.tar.gz | tar -xz \
-    && cd ${GITALY_PROJECT}-${GITALY_VERSION}/ruby \
-    && bundle install ${BUNDLE_OPTIONS} \
-    && cd .. \
-    && cp -R ./ruby /srv/gitaly-ruby \
-    && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features \
-    && touch .ruby-bundle \
-    && make install \
-    && /build-scripts/cleanup-gems /usr/lib/ruby/gems
-
-FROM ${SHELL_IMAGE} AS shell
 FROM ${GIT_IMAGE}
 
 ARG GITALY_VERSION
@@ -59,6 +17,9 @@ LABEL source="https://gitlab.com/gitlab-org/gitaly" \
       summary="Gitaly is a Git RPC service for handling all the git calls made by GitLab." \
       description="Gitaly is a Git RPC service for handling all the git calls made by GitLab."
 
+ADD gitaly.tar.gz /
+ADD gitlab-shell.tar.gz /
+
 COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
 COPY gitconfig /usr/local/etc/gitconfig
@@ -68,16 +29,16 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps net-too
     && mkdir -p /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories \
     && touch /var/log/gitaly/gitaly.log \
     && touch /var/log/gitaly/gitlab-shell.log \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories
-
-COPY --from=builder /usr/local/bin/gitaly* /usr/local/bin/
-COPY --from=builder /usr/lib/ruby/gems/ /usr/lib/ruby/gems/
-COPY --from=builder --chown=git /srv/gitaly-ruby /srv/gitaly-ruby
-COPY --from=shell --chown=git /srv/gitlab-shell /srv/gitlab-shell
-
-RUN cp /srv/gitlab-shell/config.yml.example /etc/gitaly/shell-config.yml \
+    && cp /srv/gitlab-shell/config.yml.example /etc/gitaly/shell-config.yml \
     && ln -s /etc/gitaly/shell-config.yml /srv/gitlab-shell/config.yml \
-    && chown ${GITLAB_USER}:${GITLAB_USER} /etc/gitaly/shell-config.yml /srv/gitlab-shell/config.yml
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} \
+      /scripts \
+      /etc/gitaly \
+      /var/log/gitaly \
+      /home/${GITLAB_USER}/repositories \
+      /srv/gitaly-ruby \
+      /srv/gitlab-shell \
+      /etc/gitaly/shell-config.yml
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 

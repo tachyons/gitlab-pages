@@ -1,0 +1,19 @@
+ARG BUILD_IMAGE=
+
+FROM ${BUILD_IMAGE}
+
+ARG GITLAB_EXPORTER_VERSION=5.0.1
+
+ADD gitlab-ruby.tar.gz /
+ADD postgresql.tar.gz /
+
+RUN mkdir /assets \
+    && mv /usr/local/postgresql/bin/* /usr/bin/ \
+    && mv /usr/local/postgresql/lib/* /usr/lib/ \
+    && mv /usr/local/postgresql/include/* /usr/include/ \
+    && mv /usr/local/postgresql/share/* /usr/share/ \
+    && gem install gitlab-exporter -v ${GITLAB_EXPORTER_VERSION} \
+    && cp -R --parents \
+        /usr/lib/ruby/gems \
+        /usr/bin/gitlab-exporter \
+        /assets

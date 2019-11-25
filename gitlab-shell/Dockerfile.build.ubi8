@@ -1,0 +1,19 @@
+ARG BUILD_IMAGE=
+
+FROM ${BUILD_IMAGE}
+
+ARG GITLAB_SHELL_VERSION=master
+ARG GITLAB_SHELL_NAMESPACE=gitlab-org
+ARG GITLAB_SHELL_PROJECT=gitlab-shell
+
+ADD git-base.tar.gz /
+ADD gitlab-ruby.tar.gz /
+ADD gitlab-go.tar.gz /
+
+RUN mkdir -p /assets/srv/gitlab-shell \
+    && ln -sf /usr/local/go/bin/* /usr/local/bin \
+    && curl -L https://gitlab.com/${GITLAB_SHELL_NAMESPACE}/${GITLAB_SHELL_PROJECT}/-/archive/${GITLAB_SHELL_VERSION}/${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION}.tar.gz | tar -xz \
+    && cd ${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION} \
+    && make build \
+    && rm -rf go/ go_build/ spec/ internal/testhelper/testdata/ \
+    && mv ./* /assets/srv/gitlab-shell

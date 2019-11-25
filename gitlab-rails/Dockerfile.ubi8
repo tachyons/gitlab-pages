@@ -1,87 +1,12 @@
 ARG CI_REGISTRY_IMAGE=
 ARG TAG=
-ARG PG_IMAGE=
-ARG GEI_IMAGE=
-ARG ASSETS_IMAGE=
 
-ARG GITLAB_VERSION=v12.0.2-ee
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
-ARG BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest
 ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${TAG}
-ARG POSTGRESQL_IMAGE=${PG_IMAGE}
-ARG GESI_IMAGE=${GEI_IMAGE}
 
-FROM ${RUBY_IMAGE} AS ruby
-
-RUN mkdir -p /ruby/{bin,lib,include} \
-    && cp -R /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} /ruby/bin \
-    && cp -R /usr/lib/{ruby/,libruby.*} /ruby/lib \
-    && cp -R /usr/include/ruby-*/ /ruby/include/
-
-FROM ${POSTGRESQL_IMAGE} AS postgresql
-FROM ${ASSETS_IMAGE} AS assets
-FROM ${BUILD_IMAGE} AS builder
-
-ARG GITLAB_NAMESPACE=gitlab-org
-ARG GITLAB_PROJECT=gitlab
-ARG GITLAB_EDITION=gitlab-ee
-ARG NODE_VERSION=12.9.1
-ARG YARN_VERSION=1.17.3
-ARG LIBRE2_VERSION=2019-09-01
-ARG GITLAB_VERSION
-
-COPY --from=ruby /ruby/ /usr/
-COPY --from=postgresql /usr/local/postgresql/bin/ /usr/bin/
-COPY --from=postgresql /usr/local/postgresql/lib/ /usr/lib/
-COPY --from=postgresql /usr/local/postgresql/include/ /usr/include/
-COPY --from=postgresql /usr/local/postgresql/share/ /usr/share/
-
-RUN curl -L https://github.com/google/re2/archive/${LIBRE2_VERSION}.tar.gz | tar -xz \
-    && cd re2-${LIBRE2_VERSION} \
-    && make \
-    && make install \
-    && mkdir -p /libre2/{lib,include} \
-    && cp -R /usr/local/lib/{libre2.*,pkgconfig/} /libre2/lib \
-    && cp -R /usr/local/include/re2 /libre2/include/ \
-    && curl -L https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz | tar --strip-components 1 -xzC /usr/local/ \
-    && mkdir /usr/local/yarn \
-    && curl -L https://yarnpkg.com/downloads/${YARN_VERSION}/yarn-v${YARN_VERSION}.tar.gz | tar -xzC /usr/local/yarn --strip 1 \
-    && ln -sf /usr/local/yarn/bin/yarn /usr/local/bin \
-    && printf 'install: --no-document\nupdate: --no-document\n' > ~/.gemrc
-
-ENV RAILS_ENV=production
-ENV NODE_ENV=production
-ENV USE_DB=false
-ENV SKIP_STORAGE_VALIDATION=true
-
-COPY shared/build-scripts/ /build-scripts
-
-RUN curl -L https://gitlab.com/${GITLAB_NAMESPACE}/${GITLAB_PROJECT}/-/archive/${GITLAB_VERSION}/${GITLAB_PROJECT}-${GITLAB_VERSION}.tar.gz | tar -xz \
-    && cd ${GITLAB_PROJECT}-${GITLAB_VERSION} \
-    && printf ${GITLAB_EDITION} | cut -d '-' -f 2 > REVISION \
-    && printf 'gitlab-cloud-native-image' > INSTALLATION_TYPE \
-    && for cfg in config/{gitlab,resque,secrets,database}.yml config/initializers/rack_attack.rb; do cp ${cfg}.example ${cfg} ; done \
-    && cp config/database.yml.postgresql config/database.yml \
-    && ln -s ./initializers/rack_attack.rb config/rack_attack.rb  \
-    && bundle install --deployment --without development test mysql aws kerberos --jobs $(nproc) --retry 5 \
-    && yarn install --production --pure-lockfile \
-    # && bundle exec rake gettext:compile \
-    && rm -rf node_modules/ tmp/ spec/ \
-    && /build-scripts/cleanup-gems \
-    && mv ${PWD} /srv/gitlab
-
-COPY --from=assets assets /srv/gitlab/public/assets/
-
-FROM ${GESI_IMAGE} AS gesi
 FROM ${RUBY_IMAGE}
 
 ARG GITLAB_USER=git
 ARG GITLAB_DATA=/var/opt/gitlab
-
-COPY --from=gesi /usr/local/bin/gitlab-elasticsearch-indexer /usr/bin/
-COPY --from=postgresql /usr/local/postgresql/bin/ /usr/bin/
-COPY --from=postgresql /usr/local/postgresql/lib/ /usr/lib/
-COPY --from=builder /usr/local/lib/libre2.* /usr/local/lib/
 
 RUN dnf --disableplugin=subscription-manager install -yb --nodocs libicu tzdata uuid \
     && adduser -m ${GITLAB_USER} \
@@ -90,19 +15,18 @@ RUN dnf --disableplugin=subscription-manager install -yb --nodocs libicu tzdata 
     && chmod -R ug+rwX,o-rwx ${GITLAB_DATA}/repo \
     && chmod -R ug-s ${GITLAB_DATA}/repo
 
-COPY --from=builder --chown=git /srv/gitlab /srv/gitlab
+ADD gitlab-rails-ee.tar.gz /
+
 COPY scripts/ /scripts
 
-RUN mv /srv/gitlab/log /var/log/gitlab \
+RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts /srv/gitlab \
+    && mv /srv/gitlab/log /var/log/gitlab \
     && ln -s /var/log/gitlab /srv/gitlab/log \
     && cd /srv/gitlab \
     && mkdir -p public/uploads \
-    && chown ${GITLAB_USER}:${GITLAB_USER} public/uploads \
-    && chown -R ${GITLAB_USER} /scripts \
     && chmod o-rwx config/database.yml \
     && chmod 0600 config/secrets.yml \
-    && chmod -R u+rwX builds/ \
-    && chmod -R u+rwX shared/artifacts/ \
+    && chmod -R u+rwX builds/ shared/artifacts/ \
     && chmod -R ug+rwX shared/pages/ \
     && chmod 0700 public/uploads \
     && sed -e '/host: localhost/d' -e '/port: 80/d' -i config/gitlab.yml \

@@ -1,10 +1,11 @@
 include: ci_files/variables.yml
 
-before_script:
-  - source build-scripts/build.sh
-
 stages:
   - prepare
+  - prepare:phase-one
+  - prepare:phase-two
+  - prepare:phase-three
+  - prepare:phase-four
   - phase-one
   - phase-two
   - phase-three
@@ -15,22 +16,23 @@ stages:
 
 .except-ce: &except-ce
   except:
-    refs:
-      - tags@gitlab-org/build/CNG
     variables:
       - $CE_PIPELINE
       - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
       - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/
+    refs:
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
+      - /^v\d+\.\d+\.\d+(-rc\d+)-ubi8?$/@gitlab/charts/components/images
 
 .except-ee: &except-ee
   except:
-    refs:
-      - tags@gitlab-org/build/CNG
     variables:
       - $EE_PIPELINE
+      - $UBI_PIPELINE == "true"
       - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/
       - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ee$/
-      - $UBI_PIPELINE == "true"
+      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
+      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
 
 .job-base: &job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -41,9 +43,13 @@ stages:
   before_script:
     - mkdir -p artifacts/images/
     - source build-scripts/build.sh
+    - if [[ "${CI_COMMIT_TAG}" == *-ubi8 || "${CI_COMMIT_REF_NAME}" == *-ubi8 ]]; then
+    -   export UBI_PIPELINE="true"
+    - fi
     - if [ "${UBI_PIPELINE}" = "true" ]; then
     -   export DOCKERFILE_EXT='.ubi8'
     -   export IMAGE_TAG_EXT='-ubi8'
+    -   use_assets
     - fi
     - if [ -n "$GITALY_SERVER_VERSION" ]; then
     -   export GITALY_VERSION=$GITALY_SERVER_VERSION;
@@ -55,33 +61,85 @@ stages:
     paths:
       - artifacts/
   except:
-    - tags@gitlab-org/build/CNG
+    refs:
+      - /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
+      - /^v\d+\.\d+\.\d+(-rc\d+)-ubi8?$/@gitlab/charts/components/images
 
-gitlab-ubi-builder:
-  <<: *job-base
-  stage: prepare
+.build-job-base: &build-job-base
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
+  services:
+  - docker:19.03.0-dind
+  retry: 1
+  before_script:
+    - source build-scripts/build.sh
+    - if [[ "${CI_COMMIT_TAG}" == *-ubi8 || "${CI_COMMIT_REF_NAME}" == *-ubi8 ]]; then
+    -   export UBI_PIPELINE="true"
+    - fi
+    - export DOCKERFILE_EXT='.build.ubi8'
+    - export IMAGE_TAG_EXT='-build-ubi8'
+    - export UBI_BUILD_IMAGE='true'
+    - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
+    - export TARGET_VERSION=$(get_target_version)
+    - export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest-ubi8"
+    - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
+  artifacts:
+    paths:
+      - artifacts/
   only:
     variables:
       - $UBI_PIPELINE == "true"
+      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
+      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
+  except:
+    refs:
+      - /^v\d+\.\d+\.\d+(-rc\d+)-ubi8?$/@gitlab/charts/components/images
+
+gitlab-ubi-builder:
+  <<: *build-job-base
+  stage: prepare
   script:
+    - export DOCKERFILE_EXT='.ubi8'
+    - export IMAGE_TAG_EXT='-ubi8'
+    - export UBI_BUILD_IMAGE='false'
+    - mkdir -p artifacts/images
     - build_if_needed
     - push_latest
+
+build:gitlab-ruby:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - build_if_needed
+    - copy_assets
 
 gitlab-ruby:
   <<: *job-base
   stage: phase-one
+  dependencies:
+    - build:gitlab-ruby
   script:
     - build_if_needed
     - push_if_master_or_stable_or_tag
 
+build:postgresql:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${PG_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "PG_VERSION=$PG_VERSION"
+    - copy_assets
+
 postgresql:
   <<: *job-base
   stage: phase-one
+  dependencies:
+    - build:postgresql
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PG_VERSION" | sha1sum))
     - build_if_needed --build-arg "PG_VERSION=$PG_VERSION"
-    - if [ -n "$BUILDING_IMAGE" ]; then
-    -  tag_and_push $PG_VERSION${IMAGE_TAG_EXT}
+    - if [ -n "$BUILDING_IMAGE" -a ! "$UBI_PIPELINE" = "true" ]; then
+    -   tag_and_push $PG_VERSION${IMAGE_TAG_EXT}
     - fi
     - push_if_master_or_stable_or_tag
 
@@ -96,13 +154,23 @@ cfssl-self-sign:
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag "$CFSSL_VERSION"
 
-kubectl:
-  <<: *job-base
-  stage: phase-one
+build:kubectl:
+  <<: *build-job-base
+  stage: prepare:phase-one
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"
-    - if [[ -n "${BUILDING_IMAGE}" && "${UBI_PIPELINE}" = "true" ]]; then
+    - copy_assets
+
+kubectl:
+  <<: *job-base
+  stage: phase-one
+  dependencies:
+    - build:kubectl
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"
+    - if [ -n "${BUILDING_IMAGE}" -a "$UBI_PIPELINE" = "true" ]; then
     -   tag_and_push $KUBECTL_VERSION${IMAGE_TAG_EXT}
     - else
     -   push_if_master_or_stable_or_tag $KUBECTL_VERSION
@@ -122,24 +190,54 @@ alpine-certificates:
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag ${CA_PKG_VERSION}
 
-gitlab-python:
-  <<: *job-base
-  stage: phase-one
+build:gitlab-python:
+  <<: *build-job-base
+  stage: prepare:phase-one
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
     - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
-    - if [ -n "$BUILDING_IMAGE" ]; then
-    -   tag_and_push $PYTHON_VERSION${IMAGE_TAG_EXT}
+    - copy_assets
+
+gitlab-python:
+  <<: *job-base
+  stage: phase-one
+  dependencies:
+    - build:gitlab-python
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
+    - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
+    - if [ -n "$BUILDING_IMAGE" -a ! "$UBI_PIPELINE" = "true" ]; then
+    -   tag_and_push $PYTHON_VERSION
     - fi
     - push_if_master_or_stable_or_tag
+
+build:gitlab-redis-ha:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed
+    - copy_assets
 
 gitlab-redis-ha:
   <<: *job-base
   stage: phase-two
+  dependencies:
+    - build:kubectl
+    - build:gitlab-redis-ha
   script:
+    - import_assets artifacts/ubi/kubectl.tar.gz
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$(date -u +%D)" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_TAG=${KUBECTL_VERSION}${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag
+
+build:gitlab-go:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$TARGET_VERSION$GO_VERSION" | sha1sum))
+    - build_if_needed --build-arg "GO_VERSION=$GO_VERSION"
+    - copy_assets
 
 gitlab-go:
   <<: *job-base
@@ -153,10 +251,32 @@ gitlab-go:
     - push_if_master_or_stable_or_tag
   dependencies:
       - gitlab-ruby
+      - build:gitlab-go
+
+build:gitlab-rails-ee:
+  <<: *build-job-base
+  stage: prepare:phase-three
+  dependencies:
+    - build:gitlab-ruby
+    - build:postgresql
+    - build:gitlab-elasticsearch-indexer
+  script:
+    - import_assets artifacts/ubi/{gitlab-ruby,postgresql,gitlab-elasticsearch-indexer}.tar.gz
+    - ruby_version=$(get_version gitlab-ruby)
+    - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
+    - build_if_needed --build-arg "GITLAB_EDITION=gitlab-ee"
+                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "GITLAB_PROJECT=${EE_PROJECT}"
+                      --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
+    - copy_assets
 
 gitlab-rails-ee:
   <<: *job-base
   stage: phase-five
+  dependencies:
+    - build:gitlab-rails-ee
   variables:
     ee: "true"
   script:
@@ -166,7 +286,9 @@ gitlab-rails-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
+    - fi
     - pg_image="$CI_REGISTRY_IMAGE/postgresql:$PG_VERSION${IMAGE_TAG_EXT}"
     - gei_dir_version=$(get_version gitlab-elasticsearch-indexer)
     - gei_version=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$gei_dir_version" | sha1sum))
@@ -215,16 +337,32 @@ gitlab-rails-ce:
     - echo -n "${CONTAINER_VERSION}" > artifacts/rails_container_ce.txt
   <<: *except-ee
 
+build:gitlab-task-runner-ee:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:gitlab-python
+  script:
+    - import_assets artifacts/ubi/gitlab-python.tar.gz
+    - ruby_version=$(get_version gitlab-ruby)
+    - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
+    - copy_assets
+
 gitlab-task-runner-ee:
   <<: *job-base
   stage: phase-six
   script:
+    - import_assets artifacts/ubi/gitlab-python.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+    - fi
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "PYTHON_TAG=${PYTHON_VERSION}${IMAGE_TAG_EXT}"
@@ -233,6 +371,8 @@ gitlab-task-runner-ee:
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
+    - build:gitlab-task-runner-ee
+    - build:gitlab-python
   <<: *except-ce
 
 gitlab-task-runner-ce:
@@ -272,16 +412,32 @@ gitlab-geo-logcursor:
     - gitlab-rails-ee
   <<: *except-ce
 
+build:gitlab-unicorn-ee:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:gitlab-python
+  script:
+    - import_assets artifacts/ubi/gitlab-python.tar.gz
+    - ruby_version=$(get_version gitlab-ruby)
+    - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
+    - build_if_needed
+    - copy_assets
+
 gitlab-unicorn-ee:
   <<: *job-base
   stage: phase-six
   script:
+    - import_assets artifacts/ubi/gitlab-python.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+    - fi
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "PYTHON_TAG=${PYTHON_VERSION}${IMAGE_TAG_EXT}"
@@ -289,6 +445,8 @@ gitlab-unicorn-ee:
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
+    - build:gitlab-unicorn-ee
+    - build:gitlab-python
   <<: *except-ce
 
 gitlab-unicorn-ce:
@@ -317,7 +475,9 @@ gitlab-sidekiq-ee:
     - rails_container=$(cat artifacts/rails_container_ee.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+    - fi
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
@@ -343,6 +503,20 @@ gitlab-sidekiq-ce:
     - gitlab-rails-ce
   <<: *except-ee
 
+build:gitlab-exporter:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:gitlab-ruby
+    - build:postgresql
+  script:
+    - import_assets artifacts/ubi/{gitlab-ruby,postgresql}.tar.gz
+    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_container=($(echo -n "$ruby_version$GITLAB_EXPORTER_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$ruby_container$TARGET_VERSION" | sha1sum))
+    - build_if_needed
+    - copy_assets
+
 gitlab-exporter:
   <<: *job-base
   stage: phase-two
@@ -357,7 +531,19 @@ gitlab-exporter:
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag $GITLAB_EXPORTER_VERSION${IMAGE_TAG_EXT}
   dependencies:
-      - gitlab-ruby
+    - gitlab-ruby
+    - build:gitlab-exporter
+
+build:gitlab-mailroom:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:gitlab-ruby
+  script:
+    - import_assets artifacts/ubi/gitlab-ruby.tar.gz
+    - export CONTAINER_VERSION=($(echo -n "$ruby_version$MAILROOM_VERSION" | sha1sum))
+    - build_if_needed --build-arg "MAILROOM_VERSION=$MAILROOM_VERSION"
+    - copy_assets
 
 gitlab-mailroom:
   <<: *job-base
@@ -372,6 +558,24 @@ gitlab-mailroom:
     - push_if_master_or_stable_or_tag $MAILROOM_VERSION${IMAGE_TAG_EXT}
   dependencies:
       - gitlab-ruby
+      - build:gitlab-mailroom
+
+build:gitlab-shell:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+    - build:gitlab-ruby
+  script:
+    - import_assets artifacts/ubi/{git-base,gitlab-go,gitlab-ruby}.tar.gz
+    - go_dir_version=$(get_version gitlab-go)
+    - git_container=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed --build-arg "GITLAB_SHELL_VERSION=${GITLAB_SHELL_VERSION}"
+                      --build-arg "GITLAB_SHELL_NAMESPACE=${GITLAB_NAMESPACE}"
+    - copy_assets
 
 gitlab-shell:
   <<: *job-base
@@ -382,13 +586,16 @@ gitlab-shell:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - export git_container=$(cat artifacts/git_container.txt)
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_container${IMAGE_TAG_EXT}"
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_container${IMAGE_TAG_EXT}"
+    - fi
     - build_if_needed --build-arg "TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GIT_TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_SHELL_VERSION=${GITLAB_SHELL_VERSION}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "GITLAB_SHELL_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "CACHE_BUSTER=$GITLAB_SHELL_VERSION$(date -uI)"
@@ -397,10 +604,23 @@ gitlab-shell:
   dependencies:
     - gitlab-go
     - git-base
+    - build:gitlab-shell
+
+build:git-base:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - build_if_needed --build-arg "GIT_VERSION=$GIT_VERSION"
+    - copy_assets
 
 git-base:
   <<: *job-base
   stage: phase-three
+  dependencies:
+    - build:git-base
   script:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
@@ -415,9 +635,27 @@ git-base:
     - push_if_master_or_stable_or_tag
     - echo -n "${CONTAINER_VERSION}" > artifacts/git_container.txt
 
+build:gitlab-elasticsearch-indexer:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+  script:
+    - import_assets artifacts/ubi/{git-base,gitlab-go}.tar.gz
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "GITLAB_ELASTICSEARCH_INDEXER_VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
+                      --build-arg "GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE=${GITLAB_NAMESPACE}"
+    - copy_assets
+
 gitlab-elasticsearch-indexer:
   <<: *job-base
   stage: phase-four
+  dependencies:
+    - build:gitlab-elasticsearch-indexer
   script:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
@@ -427,16 +665,36 @@ gitlab-elasticsearch-indexer:
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_ELASTICSEARCH_INDEXER_VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
     - push_if_master_or_stable_or_tag "$GITLAB_ELASTICSEARCH_INDEXER_VERSION${IMAGE_TAG_EXT}"
   <<: *except-ce
 
+build:gitaly:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+    - build:gitlab-ruby
+  script:
+    - import_assets artifacts/ubi/{git-base,gitlab-go,gitlab-ruby}.tar.gz
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - export shell_container=($(echo -n "$BASE_VERSION$go_version$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "GITALY_VERSION=${GITALY_VERSION}"
+                      --build-arg "GITALY_NAMESPACE=${GITLAB_NAMESPACE}"
+    - copy_assets
+
 gitaly:
   <<: *job-base
   stage: phase-five
   script:
+    - import_assets artifacts/ubi/gitlab-shell.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
@@ -444,12 +702,15 @@ gitaly:
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - export shell_container=$(cat artifacts/shell_container.txt)
     - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_VERSION$git_version$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-shell:$shell_container${IMAGE_TAG_EXT}"
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-shell:$shell_container${IMAGE_TAG_EXT}"
+    - fi
     - build_if_needed --build-arg "GITALY_VERSION=${GITALY_VERSION}"
                       --build-arg "TAG=$GIT_VERSION${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "GITALY_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "SHELL_CONTAINER=$shell_container${IMAGE_TAG_EXT}"
@@ -457,6 +718,23 @@ gitaly:
     - push_if_master_or_stable_or_tag $GITALY_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-shell
+    - build:gitlab-shell
+    - build:gitaly
+
+build:gitlab-container-registry:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+  script:
+    - import_assets artifacts/ubi/{git-base,gitlab-go}.tar.gz
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
+                      --build-arg "REGISTRY_NAMESPACE=gitlab-org"
+    - copy_assets
 
 gitlab-container-registry:
   <<: *job-base
@@ -466,7 +744,9 @@ gitlab-container-registry:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
+    - fi
     - build_if_needed --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
@@ -475,6 +755,26 @@ gitlab-container-registry:
   dependencies:
     - git-base
     - gitlab-go
+    - build:gitlab-container-registry
+
+build:gitlab-workhorse-ee:
+  <<: *build-job-base
+  stage: prepare:phase-four
+  dependencies:
+    - build:git-base
+    - build:gitlab-go
+    - build:gitlab-rails-ee
+  script:
+    - import_assets artifacts/ubi/{git-base,gitlab-go,gitlab-rails-ee}.tar.gz
+    - rails_version=$(get_version gitlab-rails)
+    - ruby_version=$(get_version gitlab-ruby)
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_WORKHORSE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
+                      --build-arg "WORKHORSE_NAMESPACE=${GITLAB_NAMESPACE}"
+    - copy_assets
 
 gitlab-workhorse-ee:
   <<: *job-base
@@ -487,13 +787,16 @@ gitlab-workhorse-ee:
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - rails_container=$(cat artifacts/rails_container_ee.txt)
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_WORKHORSE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
+    - fi
     - build_if_needed --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
                       --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "WORKHORSE_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
@@ -501,6 +804,7 @@ gitlab-workhorse-ee:
   <<: *except-ce
   dependencies:
     - gitlab-rails-ee
+    - build:gitlab-workhorse-ee
 
 gitlab-workhorse-ce:
   <<: *job-base
@@ -536,7 +840,6 @@ sync-images:
   services:
     - docker:dind
   stage: release
-  before_script: []
   when: manual
   script:
     - cat artifacts/images/* > image_versions.txt
@@ -547,3 +850,78 @@ sync-images:
       - artifacts/
   only:
     - tags@gitlab/charts/components/images
+  except:
+    variables:
+      - $UBI_PIPELINE == "true"
+      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
+      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
+
+ubi-assets-release:
+  image: registry.gitlab.com/gitlab-org/gitlab-build-images:ubi-release
+  stage: release
+  dependencies:
+    - build:kubectl
+    - build:postgresql
+    - build:gitlab-python
+    - build:gitlab-ruby
+    - build:gitlab-go
+    - build:git-base
+    - build:gitlab-redis-ha
+    - build:gitlab-container-registry
+    - build:gitlab-mailroom
+    - build:gitlab-exporter
+    - build:gitlab-shell
+    - build:gitaly
+    - build:gitlab-elasticsearch-indexer
+    - build:gitlab-workhorse-ee
+    - build:gitlab-rails-ee
+    - build:gitlab-task-runner-ee
+    - build:gitlab-unicorn-ee
+  only:
+    refs:
+      - /^.+-ubi8$/@gitlab-org/build/CNG
+  before_script:
+    - export UBI_RELEASE_TAG=${CI_COMMIT_TAG:-latest}
+    - export AWS_ACCESS_KEY_ID="${GPG_KEY_AWS_ACCESS_KEY_ID}"
+    - export AWS_SECRET_ACCESS_KEY="${GPG_KEY_AWS_SECRET_ACCESS_KEY}"
+    - aws s3 cp --quiet ${GPG_KEY_LOCATION} /tmp/private.pem
+    - gpg --batch --import /tmp/private.pem
+    - rm /tmp/private.pem
+  script:
+    - cd artifacts/
+    - export AWS_ACCESS_KEY_ID="${UBI_ASSETS_AWS_ACCESS_KEY_ID}"
+    - export AWS_SECRET_ACCESS_KEY="${UBI_ASSETS_AWS_SECRET_ACCESS_KEY}"
+    - ASSETS_PACK="ubi8-build-dependencies-${UBI_RELEASE_TAG}.tar"
+    - ASSETS_URL="http://${UBI_ASSETS_AWS_BUCKET}.s3.amazonaws.com/${ASSETS_PACK}"
+    - gpg --batch --quiet --yes --armor --export --output gpg
+    - tar -cvf ${ASSETS_PACK} -C ubi .
+    - rm -r ubi
+    - gpg 
+        --passphrase "${GPG_KEY_PASSPHRASE}"
+        --batch --quiet --yes --armor --pinentry-mode loopback
+        --detach-sign ${ASSETS_PACK}
+    - aws s3 cp 
+        --quiet --acl public-read --content-type application/x-pem-file
+        gpg "s3://${UBI_ASSETS_AWS_BUCKET}/gpg"
+    - aws s3 cp 
+        --quiet --acl public-read --content-type application/x-pem-file
+        ${ASSETS_PACK}.asc "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}.asc"
+    - aws s3 cp 
+        --quiet --acl public-read --content-type application/x-tar
+        ${ASSETS_PACK} "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}"
+    - curl -f -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:application/json' --data 
+        "$(printf 
+          '{"tag_name":"%s","ref":"%s","name":"%s","description":"%s","assets":{"links":[{"name":"%s","url":"%s"},{"name":"%s","url":"%s"}]}}'
+          "${UBI_RELEASE_TAG}"
+          "${UBI_RELEASE_TAG}"
+          "Release ${UBI_RELEASE_TAG}"
+          "Binary dependencies for building UBI-based images for Cloud-Native GitLab."
+          "${ASSETS_PACK}"
+          "${ASSETS_URL}"
+          "${ASSETS_PACK}.asc"
+          "${ASSETS_URL}.asc"
+        )"
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+  artifacts:
+    paths:
+      - artifacts/
