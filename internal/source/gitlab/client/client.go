@@ -1,4 +1,4 @@
-package gitlab
+package client
 
 import (
 	"encoding/json"
