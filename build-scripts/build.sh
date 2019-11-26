@@ -98,7 +98,7 @@ function build_if_needed(){
 
 function tag_and_push(){
   # Tag and push unless it is a UBI build image
-  if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
+  if [ ! "${UBI_BUILD_IMAGE}" = 'true' -a -f "Dockerfile${DOCKERFILE_EXT}" ]; then
     docker tag "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$1"
     docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$1"
   fi
@@ -141,11 +141,6 @@ function push_if_master_or_stable_or_tag(){
   # we may not be syncing build images, but only the user facing images.
   if [ "$CI_REGISTRY" == "registry.gitlab.com" ] && [ -n "$CI_COMMIT_TAG" ]; then
     return
-  fi
-
-  # UBI-based images are not part of release.
-  if [ "$UBI_IMAGES" == "true" ]; then
-    return 0
   fi
 
   if is_master || is_stable || is_tag; then
