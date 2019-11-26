@@ -27,6 +27,8 @@ var (
 )
 
 // NewClient initializes and returns new Client
+// baseUrl is appConfig.GitLabServer
+// secretKey is appConfig.GitLabAPISecretKey (not yet implemented)
 func NewClient(baseURL string, secretKey []byte) (*Client, error) {
 	url, err := url.Parse(baseURL)
 	if err != nil {
