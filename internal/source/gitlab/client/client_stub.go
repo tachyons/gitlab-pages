@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
 // StubClient is a stubbed client used for testing
@@ -13,7 +13,7 @@ type StubClient struct {
 }
 
 // GetVirtualDomain reads a test fixture and unmarshalls it
-func (m *StubClient) GetVirtualDomain(host string) (domain *domain.VirtualDomain, err error) {
+func (m *StubClient) GetVirtualDomain(host string) (domain *api.VirtualDomain, err error) {
 	f, err := os.Open(m.file)
 	defer f.Close()
 	if err != nil {

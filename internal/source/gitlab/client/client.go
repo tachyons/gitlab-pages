@@ -12,7 +12,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
 // Client is a HTTP client to access Pages internal API
@@ -52,7 +52,7 @@ func NewFromConfig(config Config) *Client {
 }
 
 // GetVirtualDomain returns VirtualDomain configuration for the given host
-func (gc *Client) GetVirtualDomain(host string) (*domain.VirtualDomain, error) {
+func (gc *Client) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
 	params := map[string]string{"host": host}
 
 	resp, err := gc.get("/api/v4/internal/pages", params)
@@ -61,7 +61,7 @@ func (gc *Client) GetVirtualDomain(host string) (*domain.VirtualDomain, error) {
 	}
 	defer resp.Body.Close()
 
-	var domain domain.VirtualDomain
+	var domain api.VirtualDomain
 	err = json.NewDecoder(resp.Body).Decode(&domain)
 	if err != nil {
 		return nil, err

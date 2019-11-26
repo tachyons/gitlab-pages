@@ -1,4 +1,4 @@
-package domain
+package api
 
 // LookupPath represents a lookup path for a virtual domain
 type LookupPath struct {
