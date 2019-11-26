@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -61,15 +60,33 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/v4/internal/pages", func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "GET", r.Method)
-		assert.Equal(t, "group.gitlab.io", r.FormValue("host"))
+		require.Equal(t, "GET", r.Method)
+		require.Equal(t, "group.gitlab.io", r.FormValue("host"))
 
-		if checkRequest(r.Header.Get("Gitlab-Pages-Api-Request")) {
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"certificate":"foo","key":"bar","lookup_paths":[{"project_id":123,"access_control":false,"source":{"type":"file","path":"mygroup/myproject/public/"},"https_only":true,"prefix":"/myproject/"}]}`)
-		} else {
+		if !checkRequest(r.Header.Get("Gitlab-Pages-Api-Request")) {
 			w.WriteHeader(http.StatusUnauthorized)
+			return
 		}
+
+		response := `{
+			"certificate": "foo",
+			"key": "bar",
+			"lookup_paths": [
+			  {
+			    "project_id": 123,
+				  "access_control": false,
+				  "source": {
+					  "type": "file",
+						"path": "mygroup/myproject/public/"
+					},
+				  "https_only": true,
+				  "prefix": "/myproject/"
+			  }
+		  ]
+		}`
+
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, response)
 	})
 
 	server := httptest.NewServer(mux)
