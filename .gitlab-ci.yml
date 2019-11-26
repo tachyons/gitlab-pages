@@ -22,7 +22,7 @@ stages:
       - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/
     refs:
       - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
-      - /^v\d+\.\d+\.\d+(-rc\d+)-ubi8?$/@gitlab/charts/components/images
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
 
 .except-ee: &except-ee
   except:
@@ -64,7 +64,7 @@ stages:
     refs:
       - /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
       - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
-      - /^v\d+\.\d+\.\d+(-rc\d+)-ubi8?$/@gitlab/charts/components/images
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -93,7 +93,7 @@ stages:
       - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
   except:
     refs:
-      - /^v\d+\.\d+\.\d+(-rc\d+)-ubi8?$/@gitlab/charts/components/images
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
 
 gitlab-ubi-builder:
   <<: *build-job-base
@@ -896,21 +896,21 @@ ubi-assets-release:
     - gpg --batch --quiet --yes --armor --export --output gpg
     - tar -cvf ${ASSETS_PACK} -C ubi .
     - rm -r ubi
-    - gpg 
+    - gpg
         --passphrase "${GPG_KEY_PASSPHRASE}"
         --batch --quiet --yes --armor --pinentry-mode loopback
         --detach-sign ${ASSETS_PACK}
-    - aws s3 cp 
+    - aws s3 cp
         --quiet --acl public-read --content-type application/x-pem-file
         gpg "s3://${UBI_ASSETS_AWS_BUCKET}/gpg"
-    - aws s3 cp 
+    - aws s3 cp
         --quiet --acl public-read --content-type application/x-pem-file
         ${ASSETS_PACK}.asc "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}.asc"
-    - aws s3 cp 
+    - aws s3 cp
         --quiet --acl public-read --content-type application/x-tar
         ${ASSETS_PACK} "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}"
-    - curl -f -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:application/json' --data 
-        "$(printf 
+    - curl -f -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:application/json' --data
+        "$(printf
           '{"tag_name":"%s","ref":"%s","name":"%s","description":"%s","assets":{"links":[{"name":"%s","url":"%s"},{"name":"%s","url":"%s"}]}}'
           "${UBI_RELEASE_TAG}"
           "${UBI_RELEASE_TAG}"
