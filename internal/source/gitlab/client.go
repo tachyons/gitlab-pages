@@ -50,10 +50,13 @@ func (gc *Client) GetVirtualDomain(host string) (*VirtualDomain, error) {
 	params := map[string]string{"host": host}
 
 	resp, err := gc.get("/api/v4/internal/pages", params)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	var domain VirtualDomain
 	err = json.NewDecoder(resp.Body).Decode(&domain)
