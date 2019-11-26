@@ -2,7 +2,9 @@ package gitlab
 
 import (
 	"errors"
+	"net"
 	"net/http"
+	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -13,8 +15,8 @@ import (
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
-	client *client.Client
-	cache  *cache.Cache
+	client Client
+	cache  *cache.Cache // WIP
 }
 
 // New returns a new instance of gitlab domain source.
@@ -25,11 +27,50 @@ func New(config client.Config) *Gitlab {
 // GetDomain return a representation of a domain that we have fetched from
 // GitLab
 func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
-	return nil, errors.New("not implemented")
+	response, err := g.client.GetVirtualDomain(name)
+	if err != nil {
+		return nil, err
+	}
+
+	domain := domain.Domain{
+		Name:            name,
+		CertificateCert: response.Certificate,
+		CertificateKey:  response.Key,
+		Resolver:        g,
+	}
+
+	return &domain, nil
 }
 
 // Resolve is supposed to get the serving lookup path based on the request from
 // the GitLab source
-func (g *Gitlab) Resolve(*http.Request) (*serving.LookupPath, string, error) {
-	return nil, "", nil
+func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
+	domain, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		return nil, "", err
+	}
+
+	response, err := g.client.GetVirtualDomain(domain)
+	if err != nil {
+		return nil, "", err
+	}
+
+	for _, lookup := range response.LookupPaths {
+		if strings.Contains(r.URL.Path, lookup.Prefix) {
+			lookupPath := &serving.LookupPath{
+				Location:           lookup.Prefix,
+				Path:               lookup.Source.Path,
+				IsNamespaceProject: false, // TODO is this still relevant? it is not served in the API
+				IsHTTPSOnly:        lookup.HTTPSOnly,
+				HasAccessControl:   lookup.AccessControl,
+				ProjectID:          uint64(lookup.ProjectID),
+			}
+
+			requestPath := strings.Replace(r.URL.Path, lookup.Prefix, "", 1)
+
+			return lookupPath, requestPath, nil
+		}
+	}
+
+	return nil, "", errors.New("could not match lookup path")
 }
