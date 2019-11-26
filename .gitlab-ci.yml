@@ -841,6 +841,7 @@ sync-images:
     - docker:dind
   stage: release
   when: manual
+  allow_failure: false
   script:
     - cat artifacts/images/* > image_versions.txt
     - rm -rf artifacts/*
