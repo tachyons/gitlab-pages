@@ -1,0 +1,1 @@
+{"certificate":"some--cert","key":"some--key","lookup_paths":[{"project_id":123,"access_control":false,"https_only":true,"prefix":"/my/pages/project","source":{"type":"file","path":"/some/path/to/project/"}}]}
