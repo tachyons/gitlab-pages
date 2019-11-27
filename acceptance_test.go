@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/namsral/flag"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1530,4 +1531,27 @@ func TestApiSecretKeyFlagIsSupported(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-api-secret-key", "/path/to/secret.key")
 	defer teardown()
+}
+
+func TestGitlabDomainsSource(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	source := NewGitlabDomainsSourceStub(t)
+	defer source.Close()
+
+	sourceArgs := []string{
+		"-gitlab-server", source.URL,
+		// 	"-api-secret-key", "/path/to/secret.key",
+	}
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", sourceArgs...)
+	defer teardown()
+
+	response, err := GetPageFromListener(t, httpListener, "new-source.test.io", "/my/pages/project/")
+	require.NoError(t, err)
+
+	defer response.Body.Close()
+	body, _ := ioutil.ReadAll(response.Body)
+
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "New Pages GitLab Source PoC OK\n", string(body))
 }

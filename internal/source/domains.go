@@ -12,6 +12,7 @@ var newSourceDomains = []string{
 	"pages-project-poc.gitlab.io",
 	"pages-namespace-poc.gitlab.io",
 	"pages-custom-poc.grzegorz.co",
+	"new-source.test.io", // used in acceptance tests
 }
 
 var brokenSourceDomain = "pages-broken-poc.gitlab.io"

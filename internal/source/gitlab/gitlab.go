@@ -2,7 +2,6 @@ package gitlab
 
 import (
 	"errors"
-	"net"
 	"net/http"
 	"strings"
 
@@ -45,12 +44,7 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 // Resolve is supposed to get the serving lookup path based on the request from
 // the GitLab source
 func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
-	domain, _, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		return nil, "", err
-	}
-
-	response, err := g.client.GetVirtualDomain(domain)
+	response, err := g.client.GetVirtualDomain(r.Host)
 	if err != nil {
 		return nil, "", err
 	}
@@ -59,14 +53,14 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 		if strings.Contains(r.URL.Path, lookup.Prefix) {
 			lookupPath := &serving.LookupPath{
 				Location:           lookup.Prefix,
-				Path:               lookup.Source.Path,
-				IsNamespaceProject: false, // TODO is this still relevant? it is not served in the API
+				Path:               strings.TrimPrefix(lookup.Source.Path, "/"), // TODO test
+				IsNamespaceProject: false,                                       // TODO is this still relevant? it is not served in the API
 				IsHTTPSOnly:        lookup.HTTPSOnly,
 				HasAccessControl:   lookup.AccessControl,
 				ProjectID:          uint64(lookup.ProjectID),
 			}
 
-			requestPath := strings.Replace(r.URL.Path, lookup.Prefix, "", 1)
+			requestPath := strings.TrimPrefix(r.URL.Path, lookup.Prefix)
 
 			return lookupPath, requestPath, nil
 		}

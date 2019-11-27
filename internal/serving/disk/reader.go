@@ -27,7 +27,7 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(urlPath) {
 			fullPath, err = reader.resolvePath(h.LookupPath.Path, h.SubPath, "index.html")
-		} else {
+		} else { // TODO why are we doing that? In tests it redirects to HTTPS.
 			// Concat Host with URL.Path
 			redirectPath := "//" + host + "/"
 			redirectPath += strings.TrimPrefix(urlPath, "/")
