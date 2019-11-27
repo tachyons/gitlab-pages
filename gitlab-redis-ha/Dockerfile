@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG CI_REGISTRY_IMAGE=registry.gitlab.com/gitlab-org/build/cng
-ARG KUBECTL_VERSION=v1.12.10
+ARG KUBECTL_VERSION=v1.13.12
 
 FROM ${CI_REGISTRY_IMAGE}/kubectl:${KUBECTL_VERSION} AS kubectl
 
