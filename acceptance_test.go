@@ -1513,9 +1513,3 @@ func TestTLSVersions(t *testing.T) {
 		})
 	}
 }
-
-func TestApiSecretKeyFlagIsSupported(t *testing.T) {
-	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-api-secret-key", "/path/to/secret.key")
-	defer teardown()
-}

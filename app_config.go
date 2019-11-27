@@ -25,12 +25,13 @@ type appConfig struct {
 	LogFormat  string
 	LogVerbose bool
 
-	StoreSecret       string
-	GitLabServer      string
-	ClientID          string
-	ClientSecret      string
-	RedirectURI       string
-	SentryDSN         string
-	SentryEnvironment string
-	CustomHeaders     []string
+	StoreSecret        string
+	GitLabServer       string
+	GitLabAPISecretKey []byte
+	ClientID           string
+	ClientSecret       string
+	RedirectURI        string
+	SentryDSN          string
+	SentryEnvironment  string
+	CustomHeaders      []string
 }
