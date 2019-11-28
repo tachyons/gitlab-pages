@@ -53,8 +53,8 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 		if strings.Contains(r.URL.Path, lookup.Prefix) {
 			lookupPath := &serving.LookupPath{
 				Location:           lookup.Prefix,
-				Path:               strings.TrimPrefix(lookup.Source.Path, "/"), // TODO test
-				IsNamespaceProject: false,                                       // TODO is this still relevant? it is not served in the API
+				Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
+				IsNamespaceProject: (lookup.Prefix == "/" && len(response.LookupPaths) > 1),
 				IsHTTPSOnly:        lookup.HTTPSOnly,
 				HasAccessControl:   lookup.AccessControl,
 				ProjectID:          uint64(lookup.ProjectID),
