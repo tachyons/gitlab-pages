@@ -4,5 +4,5 @@ package client
 // capable of comunicating with GitLab
 type Config interface {
 	GitlabServerURL() string
-	GitlabClientSecret() []byte
+	GitlabAPISecret() []byte
 }

@@ -144,6 +144,7 @@ func configFromFlags() appConfig {
 	}{
 		{&config.RootCertificate, *pagesRootCert},
 		{&config.RootKey, *pagesRootKey},
+		{&config.GitLabAPISecretKey, *gitLabAPISecretKey},
 	} {
 		if file.path != "" {
 			*file.contents = readFile(file.path)

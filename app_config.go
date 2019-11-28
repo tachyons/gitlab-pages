@@ -25,14 +25,15 @@ type appConfig struct {
 	LogFormat  string
 	LogVerbose bool
 
-	StoreSecret       string
-	GitLabServer      string
-	ClientID          string
-	ClientSecret      string
-	RedirectURI       string
-	SentryDSN         string
-	SentryEnvironment string
-	CustomHeaders     []string
+	StoreSecret        string
+	GitLabServer       string
+	GitLabAPISecretKey []byte
+	ClientID           string
+	ClientSecret       string
+	RedirectURI        string
+	SentryDSN          string
+	SentryEnvironment  string
+	CustomHeaders      []string
 }
 
 // GitlabServerURL returns URL to a GitLab instance.
@@ -41,6 +42,6 @@ func (config appConfig) GitlabServerURL() string {
 }
 
 // GitlabClientSecret returns GitLab server access token.
-func (config appConfig) GitlabClientSecret() []byte {
-	return []byte(config.ClientSecret)
+func (config appConfig) GitlabAPISecret() []byte {
+	return config.GitLabAPISecretKey
 }

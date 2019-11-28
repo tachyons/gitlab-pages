@@ -29,7 +29,8 @@ var (
 	errNotFound     = errors.New("Not Found")
 )
 
-// NewClient initializes and returns new Client
+// NewClient initializes and returns new Client baseUrl is
+// appConfig.GitLabServer secretKey is appConfig.GitLabAPISecretKey
 func NewClient(baseURL string, secretKey []byte) *Client {
 	url, err := url.Parse(baseURL)
 	if err != nil {
@@ -48,7 +49,7 @@ func NewClient(baseURL string, secretKey []byte) *Client {
 
 // NewFromConfig creates a new client from Config struct
 func NewFromConfig(config Config) *Client {
-	return NewClient(config.GitlabServerURL(), config.GitlabClientSecret())
+	return NewClient(config.GitlabServerURL(), config.GitlabAPISecret())
 }
 
 // GetVirtualDomain returns VirtualDomain configuration for the given host
@@ -56,10 +57,13 @@ func (gc *Client) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
 	params := map[string]string{"host": host}
 
 	resp, err := gc.get("/api/v4/internal/pages", params)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	var domain api.VirtualDomain
 	err = json.NewDecoder(resp.Body).Decode(&domain)
@@ -133,7 +137,7 @@ func (gc *Client) request(method string, endpoint *url.URL) (*http.Request, erro
 func (gc *Client) token() (string, error) {
 	claims := jwt.StandardClaims{
 		Issuer:    "gitlab-pages",
-		ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
+		ExpiresAt: time.Now().Add(5 * time.Second).Unix(),
 	}
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(gc.secretKey)
