@@ -147,6 +147,10 @@ func RunPagesProcessWithSSLCertFile(t *testing.T, pagesPath string, listeners []
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
 }
 
+func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
+	return runPagesProcess(t, wait, pagesPath, listeners, promPort, envs, extraArgs...)
+}
+
 func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) (teardown func()) {
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, "-auth-client-id=1",
 		"-auth-client-secret=1",

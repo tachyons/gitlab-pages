@@ -2,20 +2,28 @@ package source
 
 import (
 	"errors"
+	"os"
+	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 )
 
-var newSourceDomains = []string{
-	"pages-project-poc.gitlab.io",
-	"pages-namespace-poc.gitlab.io",
-	"new-source-test.gitlab.io", // used also in acceptance tests
-	"pages-custom-poc.grzegorz.co",
-}
+var newSourceDomains []string
+var brokenSourceDomain string
 
-var brokenSourceDomain = "pages-broken-poc.gitlab.io"
+func init() {
+	testDomains := os.Getenv("GITLAB_NEW_SOURCE_DOMAINS")
+	if testDomains != "" {
+		newSourceDomains = strings.Split(testDomains, ",")
+	}
+
+	brokenDomain := os.Getenv("GITLAB_NEW_SOURCE_BROKEN_DOMAIN")
+	if brokenDomain != "" {
+		brokenSourceDomain = brokenDomain
+	}
+}
 
 // Domains struct represents a map of all domains supported by pages. It is
 // currently using two sources during the transition to the new GitLab domains

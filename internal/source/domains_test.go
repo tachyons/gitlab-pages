@@ -11,9 +11,12 @@ import (
 )
 
 func TestHasDomain(t *testing.T) {
-	testDomain := newSourceDomains[0]
+	newSourceDomains = []string{"new-source-test.gitlab.io"}
+	brokenSourceDomain = "pages-broken-poc.gitlab.io"
 
 	t.Run("when requesting a test domain", func(t *testing.T) {
+		testDomain := newSourceDomains[0]
+
 		newSource := NewMockSource()
 		newSource.On("GetDomain", testDomain).
 			Return(&domain.Domain{Name: testDomain}, nil).

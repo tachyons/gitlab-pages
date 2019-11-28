@@ -435,7 +435,9 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 
 func TestPageNotAvailableInDomainSource(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-root=shared/invalid-pages")
+
+	brokenDomain := "GITLAB_NEW_SOURCE_BROKEN_DOMAIN=pages-broken-poc.gitlab.io"
+	teardown := RunPagesProcessWithEnvs(t, false, *pagesBinary, listeners, "", []string{brokenDomain}, "-pages-root=shared/invalid-pages")
 	defer teardown()
 	waitForRoundtrips(t, listeners, 5*time.Second)
 
@@ -1533,7 +1535,8 @@ func TestGitlabDomainsSource(t *testing.T) {
 	source := NewGitlabDomainsSourceStub(t)
 	defer source.Close()
 
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-gitlab-server", source.URL)
+	newSourceDomains := "GITLAB_NEW_SOURCE_DOMAINS=new-source-test.gitlab.io,other-test.gitlab.io"
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{newSourceDomains}, "-gitlab-server", source.URL)
 	defer teardown()
 
 	response, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
