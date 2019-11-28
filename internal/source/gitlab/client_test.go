@@ -63,26 +63,23 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 		require.Equal(t, "GET", r.Method)
 		require.Equal(t, "group.gitlab.io", r.FormValue("host"))
 
-		if !checkRequest(r.Header.Get("Gitlab-Pages-Api-Request")) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
+		validateToken(t, r.Header.Get("Gitlab-Pages-Api-Request"))
 
 		response := `{
 			"certificate": "foo",
 			"key": "bar",
 			"lookup_paths": [
-			  {
-			    "project_id": 123,
-				  "access_control": false,
-				  "source": {
-					  "type": "file",
-						"path": "mygroup/myproject/public/"
-					},
-				  "https_only": true,
-				  "prefix": "/myproject/"
-			  }
-		  ]
+				{
+					"project_id": 123,
+					"access_control": false,
+					"source": {
+						"type": "file",
+							"path": "mygroup/myproject/public/"
+						},
+					"https_only": true,
+					"prefix": "/myproject/"
+				}
+			]
 		}`
 
 		w.WriteHeader(http.StatusOK)
@@ -110,25 +107,21 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 	require.Equal(t, "mygroup/myproject/public/", lookupPath.Source.Path)
 }
 
-func checkRequest(tokenString string) bool {
-	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+func validateToken(t *testing.T, tokenString string) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
 		return secretKey(), nil
 	})
+	require.NoError(t, err)
 
 	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		return false
-	}
-
-	if _, ok := claims["exp"]; !ok {
-		return false
-	}
-
-	return claims["iss"] == "gitlab-pages"
+	require.True(t, ok)
+	require.True(t, token.Valid)
+	require.NotNil(t, claims["exp"])
+	require.Equal(t, "gitlab-pages", claims["iss"])
 }
 
 func secretKey() []byte {
