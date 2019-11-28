@@ -1,0 +1,39 @@
+version: 3
+dependencies:
+- type: git
+  manifest_updates:
+    filters:
+    - name: .* # everything gets it's own MR
+      enabled: true
+  settings:
+    # Assign to WarheadsSE (jplum) and twk3 (dmountney) by default
+    gitlab_assignee_ids:
+      - 597578
+      - 42196
+    gitlab_labels:
+      - maintenance
+      - dependencies.io
+    gitlab_remove_source_branch: true
+    remotes:
+      # S3cmd
+      https://github.com/s3tools/s3cmd.git:
+        replace_in_files:
+        - filename: ci_files/variables.yml
+          pattern: 'S3CMD_VERSION: "(\S+)"'
+          range: '>= 2.x.x'
+        - filename: gitlab-task-runner/Dockerfile
+          pattern: 'ARG S3CMD_VERSION="(\S+)"'
+          range: '>= 2.x.x'
+      # YQ
+      https://github.com/mikefarah/yq.git:
+        replace_in_files:
+        - filename: kubectl/Dockerfile
+          pattern: 'ARG YQ_VERSION="(\S+)"'
+          range: '>= 2.x.x'
+      # GitLab Exporter
+      https://gitlab.com/gitlab-org/gitlab-exporter.git:
+        replace_in_files:
+        - filename: ci_files/variables.yml
+          pattern: 'GITLAB_EXPORTER_VERSION: "(\S+)"'
+        - filename: gitlab-exporter/Dockerfile
+          pattern: 'ARG GITLAB_EXPORTER_VERSION=(\S+)'
