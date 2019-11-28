@@ -3,6 +3,7 @@ package gitlab
 import (
 	"errors"
 	"net/http"
+	"path"
 	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
@@ -54,7 +55,9 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 	}
 
 	for _, lookup := range response.LookupPaths {
-		if strings.Contains(r.URL.Path, lookup.Prefix) {
+		urlPath := path.Clean(r.URL.Path)
+
+		if strings.HasPrefix(urlPath, lookup.Prefix) {
 			lookupPath := &serving.LookupPath{
 				Prefix:             lookup.Prefix,
 				Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
@@ -64,9 +67,9 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 				ProjectID:          uint64(lookup.ProjectID),
 			}
 
-			requestPath := strings.TrimPrefix(r.URL.Path, lookup.Prefix)
+			requestPath := strings.TrimPrefix(urlPath, lookup.Prefix)
 
-			return lookupPath, requestPath, nil
+			return lookupPath, strings.TrimPrefix(requestPath, "/"), nil
 		}
 	}
 

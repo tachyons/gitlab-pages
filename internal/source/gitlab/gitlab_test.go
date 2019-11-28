@@ -45,7 +45,7 @@ func TestResolve(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "/my/pages/project", lookup.Prefix)
-		assert.Equal(t, "/path/index.html", subpath)
+		assert.Equal(t, "path/index.html", subpath)
 		assert.False(t, lookup.IsNamespaceProject)
 	})
 
@@ -60,5 +60,16 @@ func TestResolve(t *testing.T) {
 		assert.Equal(t, "path/to/index.html", subpath)
 		assert.Equal(t, "some/path/to/project-3/", lookup.Path)
 		assert.True(t, lookup.IsNamespaceProject)
+	})
+
+	t.Run("when request path has not been sanitized", func(t *testing.T) {
+		target := "https://test.gitlab.io:443/something/../something/../my/pages/project/index.html"
+		request := httptest.NewRequest("GET", target, nil)
+
+		lookup, subpath, err := source.Resolve(request)
+		require.NoError(t, err)
+
+		assert.Equal(t, "/my/pages/project", lookup.Prefix)
+		assert.Equal(t, "index.html", subpath)
 	})
 }
