@@ -104,7 +104,7 @@ stages:
       - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
 
 dependency_update:
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
+  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:0.0.41
   stage: prepare
   script:
     - curl https://deps.app/install.sh | bash -s -- -b $HOME/bin
