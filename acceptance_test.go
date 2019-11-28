@@ -1533,11 +1533,7 @@ func TestGitlabDomainsSource(t *testing.T) {
 	source := NewGitlabDomainsSourceStub(t)
 	defer source.Close()
 
-	sourceArgs := []string{
-		"-gitlab-server", source.URL,
-		// 	"-api-secret-key", "/path/to/secret.key",
-	}
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", sourceArgs...)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-gitlab-server", source.URL)
 	defer teardown()
 
 	response, err := GetPageFromListener(t, httpListener, "new-source.test.io", "/my/pages/project/")
