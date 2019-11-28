@@ -12,13 +12,25 @@ import (
 )
 
 func TestGetDomain(t *testing.T) {
-	client := client.NewStubClient("client/testdata/test.gitlab.io.json")
-	source := Gitlab{client: client, cache: cache.New()}
+	t.Run("when the response if correct", func(t *testing.T) {
+		client := client.NewStubClient("client/testdata/test.gitlab.io.json")
+		source := Gitlab{client: client, cache: cache.New()}
 
-	domain, err := source.GetDomain("test.gitlab.io")
-	require.NoError(t, err)
+		domain, err := source.GetDomain("test.gitlab.io")
+		require.NoError(t, err)
 
-	assert.Equal(t, "test.gitlab.io", domain.Name)
+		assert.Equal(t, "test.gitlab.io", domain.Name)
+	})
+
+	t.Run("when the response is not valid", func(t *testing.T) {
+		client := client.NewStubClient("/dev/null")
+		source := Gitlab{client: client, cache: cache.New()}
+
+		domain, err := source.GetDomain("test.gitlab.io")
+
+		assert.NotNil(t, err)
+		assert.Nil(t, domain)
+	})
 }
 
 func TestResolve(t *testing.T) {

@@ -29,6 +29,8 @@ var (
 	errNotFound     = errors.New("Not Found")
 )
 
+var tokenTimeout = 30 * time.Second
+
 // NewClient initializes and returns new Client baseUrl is
 // appConfig.GitLabServer secretKey is appConfig.GitLabAPISecretKey
 func NewClient(baseURL string, secretKey []byte) *Client {
@@ -137,7 +139,7 @@ func (gc *Client) request(method string, endpoint *url.URL) (*http.Request, erro
 func (gc *Client) token() (string, error) {
 	claims := jwt.StandardClaims{
 		Issuer:    "gitlab-pages",
-		ExpiresAt: time.Now().Add(5 * time.Second).Unix(),
+		ExpiresAt: time.Now().Add(tokenTimeout).Unix(),
 	}
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(gc.secretKey)

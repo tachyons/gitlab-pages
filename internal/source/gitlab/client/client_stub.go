@@ -13,16 +13,17 @@ type StubClient struct {
 }
 
 // GetVirtualDomain reads a test fixture and unmarshalls it
-func (m *StubClient) GetVirtualDomain(host string) (domain *api.VirtualDomain, err error) {
+func (m *StubClient) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
 	f, err := os.Open(m.file)
 	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
 
+	var domain api.VirtualDomain
 	err = json.NewDecoder(f).Decode(&domain)
 
-	return domain, err
+	return &domain, err
 }
 
 // NewStubClient return a stubbed client

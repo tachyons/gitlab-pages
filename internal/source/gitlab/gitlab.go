@@ -31,6 +31,10 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 		return nil, err
 	}
 
+	if response == nil {
+		return nil, errors.New("could not fetch a domain information")
+	}
+
 	domain := domain.Domain{
 		Name:            name,
 		CertificateCert: response.Certificate,
