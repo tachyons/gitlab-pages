@@ -130,7 +130,7 @@ func (gc *Client) request(method string, endpoint *url.URL) (*http.Request, erro
 func (gc *Client) token() (string, error) {
 	claims := jwt.StandardClaims{
 		Issuer:    "gitlab-pages",
-		ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
+		ExpiresAt: time.Now().Add(5 * time.Second).Unix(),
 	}
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(gc.secretKey)
