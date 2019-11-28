@@ -1536,12 +1536,12 @@ func TestGitlabDomainsSource(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-gitlab-server", source.URL)
 	defer teardown()
 
-	response, err := GetPageFromListener(t, httpListener, "new-source.test.io", "/my/pages/project/")
+	response, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
 	require.NoError(t, err)
 
 	defer response.Body.Close()
 	body, _ := ioutil.ReadAll(response.Body)
 
 	assert.Equal(t, http.StatusOK, response.StatusCode)
-	assert.Equal(t, "New Pages GitLab Source PoC OK\n", string(body))
+	assert.Equal(t, "New Pages GitLab Source TEST OK\n", string(body))
 }
