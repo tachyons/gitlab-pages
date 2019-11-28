@@ -52,7 +52,7 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 	for _, lookup := range response.LookupPaths {
 		if strings.Contains(r.URL.Path, lookup.Prefix) {
 			lookupPath := &serving.LookupPath{
-				Location:           lookup.Prefix,
+				Prefix:             lookup.Prefix,
 				Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
 				IsNamespaceProject: (lookup.Prefix == "/" && len(response.LookupPaths) > 1),
 				IsHTTPSOnly:        lookup.HTTPSOnly,

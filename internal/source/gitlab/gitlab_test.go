@@ -32,8 +32,8 @@ func TestResolve(t *testing.T) {
 		lookup, subpath, err := source.Resolve(request)
 		require.NoError(t, err)
 
+		assert.Equal(t, "/my/pages/project", lookup.Prefix)
 		assert.Equal(t, "/path/index.html", subpath)
-		assert.Equal(t, "/my/pages/project", lookup.Location)
 		assert.False(t, lookup.IsNamespaceProject)
 	})
 
@@ -44,9 +44,9 @@ func TestResolve(t *testing.T) {
 		lookup, subpath, err := source.Resolve(request)
 		require.NoError(t, err)
 
+		assert.Equal(t, "/", lookup.Prefix)
 		assert.Equal(t, "path/to/index.html", subpath)
 		assert.Equal(t, "some/path/to/project-3/", lookup.Path)
-		assert.Equal(t, "/", lookup.Location)
 		assert.True(t, lookup.IsNamespaceProject)
 	})
 }
