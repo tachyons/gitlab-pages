@@ -55,7 +55,8 @@ func NewFromConfig(config Config) *Client {
 	return NewClient(config.GitlabServerURL(), config.GitlabAPISecret())
 }
 
-// GetVirtualDomain returns VirtualDomain configuration for the given host
+// GetVirtualDomain returns VirtualDomain configuration for the given host. It
+// returns an error if non-nil `*api.VirtualDomain` can not be retuned.
 func (gc *Client) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
 	params := url.Values{}
 	params.Set("host", host)
@@ -63,6 +64,8 @@ func (gc *Client) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
 	resp, err := gc.get("/api/v4/internal/pages", params)
 	if resp != nil {
 		defer resp.Body.Close()
+	} else {
+		return nil, errors.New("empty response returned")
 	}
 
 	if err != nil {
