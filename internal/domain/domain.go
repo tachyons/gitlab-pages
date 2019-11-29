@@ -162,10 +162,8 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 // ServeFileHTTP returns true if something was served, false if not.
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	if d.isUnconfigured() || !d.HasLookupPath(r) {
-		// TODO: this seems to be wrong:
-		// as we should rather return false,
-		// and fallback to `ServeNotFoundHTTP`
-		// to handle this case
+		// TODO: this seems to be wrong: as we should rather return false, and
+		// fallback to `ServeNotFoundHTTP` to handle this case
 		httperrors.Serve404(w)
 		return true
 	}

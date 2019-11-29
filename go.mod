@@ -23,9 +23,9 @@ require (
 	gitlab.com/gitlab-org/labkit v0.0.0-20190902063225-3253d7975ca7
 	gitlab.com/lupine/go-mimedb v0.0.0-20180307000149-e8af1d659877
 	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
-	golang.org/x/lint v0.0.0-20190909230951-414d861bb4ac
+	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
 	golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
 	golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b
-	golang.org/x/tools v0.0.0-20190917032747-2dc213d980bc
+	golang.org/x/tools v0.0.0-20191010201905-e5ffc44a6fee
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

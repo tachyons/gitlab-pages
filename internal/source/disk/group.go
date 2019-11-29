@@ -68,7 +68,6 @@ func (g *Group) getProjectConfigWithSubpath(r *http.Request) (*projectConfig, st
 	// return the group project if it exists.
 	if host := host.FromRequest(r); host != "" {
 		if groupProject := g.projects[host]; groupProject != nil {
-			// TODOHERE: the location here should be "/", so we return ""
 			return groupProject, "/", host, strings.Join(split[1:], "/")
 		}
 	}
@@ -79,14 +78,14 @@ func (g *Group) getProjectConfigWithSubpath(r *http.Request) (*projectConfig, st
 // Resolve tries to find project and its config recursively for a given request
 // to a group domain
 func (g *Group) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
-	projectConfig, location, projectPath, subPath := g.getProjectConfigWithSubpath(r)
+	projectConfig, prefix, projectPath, subPath := g.getProjectConfigWithSubpath(r)
 
 	if projectConfig == nil {
 		return nil, "", nil // it is not an error when project does not exist
 	}
 
 	lookupPath := &serving.LookupPath{
-		Location:           location,
+		Prefix:             prefix,
 		Path:               filepath.Join(g.name, projectPath, "public"),
 		IsNamespaceProject: projectConfig.NamespaceProject,
 		IsHTTPSOnly:        projectConfig.HTTPSOnly,

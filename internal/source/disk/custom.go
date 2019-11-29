@@ -12,10 +12,9 @@ type customProjectResolver struct {
 	path string
 }
 
-// TODO tests
 func (p *customProjectResolver) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 	lookupPath := &serving.LookupPath{
-		Location:           "/",
+		Prefix:             "/",
 		Path:               p.path,
 		IsNamespaceProject: false,
 		IsHTTPSOnly:        p.config.HTTPSOnly,

@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"strings"
@@ -143,6 +145,10 @@ func RunPagesProcessWithoutWait(t *testing.T, pagesPath string, listeners []List
 
 func RunPagesProcessWithSSLCertFile(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, extraArgs ...string) (teardown func()) {
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
+}
+
+func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
+	return runPagesProcess(t, wait, pagesPath, listeners, promPort, envs, extraArgs...)
 }
 
 func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) (teardown func()) {
@@ -374,4 +380,21 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 	}
 
 	require.Equal(t, len(listeners), nListening, "all listeners must be accepting TCP connections")
+}
+
+func NewGitlabDomainsSourceStub(t *testing.T) *httptest.Server {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		domain := r.URL.Query().Get("host")
+
+		fixture, err := os.Open("shared/lookups/" + domain + ".json")
+		defer fixture.Close()
+		require.NoError(t, err)
+
+		_, err = io.Copy(w, fixture)
+		require.NoError(t, err)
+
+		t.Logf("GitLab domain %s source stub served lookup", domain)
+	})
+
+	return httptest.NewServer(handler)
 }

@@ -1,4 +1,4 @@
-package gitlab
+package client
 
 import (
 	"encoding/base64"
@@ -15,17 +15,6 @@ import (
 var (
 	encodedSecret = "e41rcFh7XBA7sNABWVCe2AZvxMsy6QDtJ8S9Ql1UiN8=" // 32 bytes, base64 encoded
 )
-
-func TestNewValidBaseURL(t *testing.T) {
-	_, err := NewClient("https://gitlab.com", secretKey())
-	require.NoError(t, err)
-}
-
-func TestNewInvalidBaseURL(t *testing.T) {
-	client, err := NewClient("%", secretKey())
-	require.Error(t, err)
-	require.Nil(t, client)
-}
 
 func TestGetVirtualDomainForErrorResponses(t *testing.T) {
 	tests := map[int]string{
@@ -46,7 +35,7 @@ func TestGetVirtualDomainForErrorResponses(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client, _ := NewClient(server.URL, secretKey())
+			client := NewClient(server.URL, secretKey())
 
 			actual, err := client.GetVirtualDomain("group.gitlab.io")
 
@@ -89,7 +78,7 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	client, _ := NewClient(server.URL, secretKey())
+	client := NewClient(server.URL, secretKey())
 
 	actual, err := client.GetVirtualDomain("group.gitlab.io")
 	require.NoError(t, err)
