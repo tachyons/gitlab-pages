@@ -57,7 +57,8 @@ func NewFromConfig(config Config) *Client {
 
 // GetVirtualDomain returns VirtualDomain configuration for the given host
 func (gc *Client) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
-	params := map[string]string{"host": host}
+	params := url.Values{}
+	params.Set("host", host)
 
 	resp, err := gc.get("/api/v4/internal/pages", params)
 	if resp != nil {
@@ -77,7 +78,7 @@ func (gc *Client) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
 	return &domain, nil
 }
 
-func (gc *Client) get(path string, params map[string]string) (*http.Response, error) {
+func (gc *Client) get(path string, params url.Values) (*http.Response, error) {
 	endpoint, err := gc.endpoint(path, params)
 	if err != nil {
 		return nil, err
@@ -107,17 +108,13 @@ func (gc *Client) get(path string, params map[string]string) (*http.Response, er
 	}
 }
 
-func (gc *Client) endpoint(path string, params map[string]string) (*url.URL, error) {
+func (gc *Client) endpoint(path string, params url.Values) (*url.URL, error) {
 	endpoint, err := gc.baseURL.Parse(path)
 	if err != nil {
 		return nil, err
 	}
 
-	values := url.Values{}
-	for key, value := range params {
-		values.Add(key, value)
-	}
-	endpoint.RawQuery = values.Encode()
+	endpoint.RawQuery = params.Encode()
 
 	return endpoint, nil
 }
