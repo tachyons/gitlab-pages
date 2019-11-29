@@ -1,3 +1,9 @@
+v 1.12.0
+
+- Add minimal support for the api-secret-key config flag (not yet used)
+- Add warnings about secrets given through command-line flags
+- Remove Admin gRPC api (was never used)
+
 v 1.11.0
 
 - Refactor domain package and extract disk serving !189
