@@ -1,1 +1,36 @@
-{"certificate":"some--cert","key":"some--key","lookup_paths":[{"project_id":123,"access_control":false,"https_only":true,"prefix":"/my/pages/project","source":{"type":"file","path":"/some/path/to/project/"}},{"project_id":124,"access_control":false,"https_only":true,"prefix":"/my/second-project","source":{"type":"file","path":"/some/path/to/project-2/"}},{"project_id":125,"access_control":false,"https_only":true,"prefix":"/","source":{"type":"file","path":"/some/path/to/project-3/"}}]}
+{
+    "certificate": "some--cert",
+    "key": "some--key",
+    "lookup_paths": [
+        {
+            "access_control": false,
+            "https_only": true,
+            "prefix": "/my/pages/project",
+            "project_id": 123,
+            "source": {
+                "path": "/some/path/to/project/",
+                "type": "file"
+            }
+        },
+        {
+            "access_control": false,
+            "https_only": true,
+            "prefix": "/my/second-project",
+            "project_id": 124,
+            "source": {
+                "path": "/some/path/to/project-2/",
+                "type": "file"
+            }
+        },
+        {
+            "access_control": false,
+            "https_only": true,
+            "prefix": "/",
+            "project_id": 125,
+            "source": {
+                "path": "/some/path/to/project-3/",
+                "type": "file"
+            }
+        }
+    ]
+}
