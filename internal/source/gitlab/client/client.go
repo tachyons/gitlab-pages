@@ -29,6 +29,7 @@ var (
 	errNotFound     = errors.New("Not Found")
 )
 
+// TODO make these values configurable https://gitlab.com/gitlab-org/gitlab-pages/issues/274
 var tokenTimeout = 30 * time.Second
 var connectionTimeout = 10 * time.Second
 
