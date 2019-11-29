@@ -14,8 +14,8 @@ ADD gitlab-rails-ee.tar.gz /
 
 RUN mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
-    && curl https://sno.phy.queensu.ca/~phil/exiftool/Image-ExifTool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
-    && cd Image-ExifTool-${EXIFTOOL_VERSION} \
+    && curl https://gitlab.com/gitlab-org/build/omnibus-mirror/exiftool/-/archive/${EXIFTOOL_VERSION}/exiftool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
+    && cd exiftool-${EXIFTOOL_VERSION} \
     && perl Makefile.PL \
     && make install \
     && cd .. \
