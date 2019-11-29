@@ -27,4 +27,6 @@ RUN dnf --disableplugin=subscription-manager install -by --nodocs \
     && cp src/histedit.h ${INCLUDEDIR}/ \
     && cp -R src/editline/ ${INCLUDEDIR}/
 
+ADD scripts/ /
+
 WORKDIR ${BUILD_DIR}

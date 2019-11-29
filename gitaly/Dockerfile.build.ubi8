@@ -2,9 +2,12 @@ ARG BUILD_IMAGE=
 
 FROM ${BUILD_IMAGE}
 
-ARG GITALY_VERSION=master
-ARG GITALY_NAMESPACE=gitlab-org
-ARG GITALY_PROJECT=gitaly
+ARG VERSION=master
+ARG NAMESPACE=gitlab-org
+ARG PROJECT=gitaly
+ARG API_URL=
+ARG API_TOKEN=
+
 ARG BUNDLE_OPTIONS="--jobs 4 --without development test"
 
 ADD git-base.tar.gz /
@@ -12,13 +15,18 @@ ADD gitlab-ruby.tar.gz /
 ADD gitlab-go.tar.gz /
 
 ENV LANG=C.UTF-8
+ENV PRIVATE_TOKEN=${API_TOKEN}
 
 COPY shared/build-scripts/ /build-scripts
 
 RUN mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
-    && curl -L https://gitlab.com/${GITALY_NAMESPACE}/${GITALY_PROJECT}/-/archive/${GITALY_VERSION}/${GITALY_PROJECT}-${GITALY_VERSION}.tar.gz | tar -xz \
-    && cd ${GITALY_PROJECT}-${GITALY_VERSION}/ruby \
+    && /gitlab-fetch \
+        "${API_URL}" \
+        "${NAMESPACE}" \
+        "${PROJECT}" \
+        "${VERSION}" \
+    && cd ${PROJECT}-${VERSION}/ruby \
     && bundle install ${BUNDLE_OPTIONS} \
     && cd .. \
     && cp -R ./ruby /srv/gitaly-ruby \
