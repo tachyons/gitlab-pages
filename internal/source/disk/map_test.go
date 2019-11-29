@@ -140,7 +140,7 @@ func writeRandomTimestamp(t *testing.T) {
 	n, _ := rand.Read(b)
 	require.True(t, n > 0, "read some random bytes")
 
-	temp, err := ioutil.TempFile(".", "TestIsWatch")
+	temp, err := ioutil.TempFile(".", "TestWatch")
 	require.NoError(t, err)
 	_, err = temp.Write(b)
 	require.NoError(t, err, "write to tempfile")
