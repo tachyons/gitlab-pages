@@ -55,7 +55,7 @@ func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
 	return d.source(name).GetDomain(name)
 }
 
-// Start starts the disk domain source. It is DEPRECATED, because we want to
+// Read starts the disk domain source. It is DEPRECATED, because we want to
 // remove it entirely when disk source gets removed.
 func (d *Domains) Read(rootDomain string) {
 	d.disk.Read(rootDomain)
