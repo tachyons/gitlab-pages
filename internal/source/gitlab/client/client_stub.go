@@ -9,12 +9,12 @@ import (
 
 // StubClient is a stubbed client used for testing
 type StubClient struct {
-	file string
+	File string
 }
 
 // GetVirtualDomain reads a test fixture and unmarshalls it
-func (m *StubClient) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
-	f, err := os.Open(m.file)
+func (c StubClient) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
+	f, err := os.Open(c.File)
 	defer f.Close()
 	if err != nil {
 		return nil, err
@@ -24,9 +24,4 @@ func (m *StubClient) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
 	err = json.NewDecoder(f).Decode(&domain)
 
 	return &domain, err
-}
-
-// NewStubClient return a stubbed client
-func NewStubClient(fixture string) *StubClient {
-	return &StubClient{file: fixture}
 }

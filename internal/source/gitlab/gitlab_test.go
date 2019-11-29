@@ -13,7 +13,7 @@ import (
 
 func TestGetDomain(t *testing.T) {
 	t.Run("when the response if correct", func(t *testing.T) {
-		client := client.NewStubClient("client/testdata/test.gitlab.io.json")
+		client := client.StubClient{File: "client/testdata/test.gitlab.io.json"}
 		source := Gitlab{client: client, cache: cache.New()}
 
 		domain, err := source.GetDomain("test.gitlab.io")
@@ -23,7 +23,7 @@ func TestGetDomain(t *testing.T) {
 	})
 
 	t.Run("when the response is not valid", func(t *testing.T) {
-		client := client.NewStubClient("/dev/null")
+		client := client.StubClient{File: "/dev/null"}
 		source := Gitlab{client: client, cache: cache.New()}
 
 		domain, err := source.GetDomain("test.gitlab.io")
@@ -34,7 +34,7 @@ func TestGetDomain(t *testing.T) {
 }
 
 func TestResolve(t *testing.T) {
-	client := client.NewStubClient("client/testdata/test.gitlab.io.json")
+	client := client.StubClient{File: "client/testdata/test.gitlab.io.json"}
 	source := Gitlab{client: client, cache: cache.New()}
 
 	t.Run("when requesting a nested group project", func(t *testing.T) {
