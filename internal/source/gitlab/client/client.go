@@ -30,6 +30,7 @@ var (
 )
 
 var tokenTimeout = 30 * time.Second
+var connectionTimeout = 10 * time.Second
 
 // NewClient initializes and returns new Client baseUrl is
 // appConfig.GitLabServer secretKey is appConfig.GitLabAPISecretKey
@@ -43,7 +44,7 @@ func NewClient(baseURL string, secretKey []byte) *Client {
 		secretKey: secretKey,
 		baseURL:   url,
 		httpClient: &http.Client{
-			Timeout:   5 * time.Second,
+			Timeout:   connectionTimeout,
 			Transport: httptransport.Transport,
 		},
 	}
