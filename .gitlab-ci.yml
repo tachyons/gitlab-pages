@@ -64,7 +64,6 @@ stages:
     refs:
       - /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
       - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -91,9 +90,6 @@ stages:
       - $UBI_PIPELINE == "true"
       - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
       - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
-  except:
-    refs:
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
 
 gitlab-ubi-builder:
   <<: *build-job-base
