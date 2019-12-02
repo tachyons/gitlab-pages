@@ -109,7 +109,7 @@ func (e *Entry) setResponse(lookup api.Lookup) {
 }
 
 func (e *Entry) isExpired() bool {
-	return e.created.Add(shortCacheExpiry).Before(time.Now())
+	return time.Since(e.created) > shortCacheExpiry
 }
 
 func (e *Entry) isResolved() bool {

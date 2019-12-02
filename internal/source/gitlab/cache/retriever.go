@@ -10,6 +10,7 @@ import (
 )
 
 var maxRetrievalInterval = time.Second
+var maxRetrievalRetries = 3
 
 // Retriever is an utility type that performs an HTTP request with backoff in
 // case of errors
@@ -43,7 +44,7 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-cha
 	go func() {
 		var lookup api.Lookup
 
-		for i := 1; i <= 3; i++ {
+		for i := 1; i <= maxRetrievalRetries; i++ {
 			lookup = r.client.GetLookup(ctx, domain)
 
 			if lookup.Error != nil {
