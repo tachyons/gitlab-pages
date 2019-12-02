@@ -53,7 +53,7 @@ type theApp struct {
 }
 
 func (a *theApp) isReady() bool {
-	return a.domains.Ready()
+	return a.domains.IsReady()
 }
 
 func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -61,7 +61,7 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		return nil, nil
 	}
 
-	if domain := a.domain(ch.ServerName); domain != nil {
+	if domain, _ := a.domain(ch.ServerName); domain != nil {
 		tls, _ := domain.EnsureCertificate()
 		return tls, nil
 	}
@@ -86,16 +86,18 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 	http.Redirect(w, r, u.String(), statusCode)
 }
 
-func (a *theApp) getHostAndDomain(r *http.Request) (host string, domain *domain.Domain) {
+func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, error) {
 	host, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		host = r.Host
 	}
 
-	return host, a.domain(host)
+	domain, err := a.domain(host)
+
+	return host, domain, err
 }
 
-func (a *theApp) domain(host string) *domain.Domain {
+func (a *theApp) domain(host string) (*domain.Domain, error) {
 	return a.domains.GetDomain(host)
 }
 
@@ -163,7 +165,15 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 // downstream middlewares to use
 func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host, domain := a.getHostAndDomain(r)
+		// if we could not retrieve a domain from domains source we break the
+		// middleware chain and simply respond with 502 after logging this
+		host, domain, err := a.getHostAndDomain(r)
+		if err != nil {
+			log.WithError(err).Error("could not fetch domain information from a source")
+
+			httperrors.Serve502(w)
+			return
+		}
 
 		r = request.WithHostAndDomain(r, host, domain)
 
@@ -289,7 +299,7 @@ func (a *theApp) proxyInitialMiddleware(handler http.Handler) http.Handler {
 }
 
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
-	// Handlers should be applied in reverse order
+	// Handlers should be applied in a reverse order
 	handler := a.serveFileOrNotFoundHandler()
 	if !a.DisableCrossOriginRequests {
 		handler = corsHandler.Handler(handler)
@@ -348,7 +358,7 @@ func (a *theApp) Run() {
 		a.listenMetricsFD(&wg, a.ListenMetrics)
 	}
 
-	a.domains.Watch(a.Domain)
+	a.domains.Read(a.Domain)
 
 	wg.Wait()
 }
@@ -403,7 +413,7 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 }
 
 func runApp(config appConfig) {
-	a := theApp{appConfig: config, domains: source.NewDomains()}
+	a := theApp{appConfig: config, domains: source.NewDomains(config)}
 
 	err := logging.ConfigureLogging(a.LogFormat, a.LogVerbose)
 	if err != nil {

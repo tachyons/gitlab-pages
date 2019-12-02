@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/namsral/flag"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -430,6 +431,20 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	require.NoError(t, err)
 	defer rsp.Body.Close()
 	require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
+}
+
+func TestPageNotAvailableInDomainSource(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	brokenDomain := "GITLAB_NEW_SOURCE_BROKEN_DOMAIN=pages-broken-poc.gitlab.io"
+	teardown := RunPagesProcessWithEnvs(t, false, *pagesBinary, listeners, "", []string{brokenDomain}, "-pages-root=shared/invalid-pages")
+	defer teardown()
+	waitForRoundtrips(t, listeners, 5*time.Second)
+
+	rsp, err := GetPageFromListener(t, httpListener, "pages-broken-poc.gitlab.io", "index.html")
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+	require.Equal(t, http.StatusBadGateway, rsp.StatusCode)
 }
 
 func TestObscureMIMEType(t *testing.T) {
@@ -1512,4 +1527,24 @@ func TestTLSVersions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGitlabDomainsSource(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	source := NewGitlabDomainsSourceStub(t)
+	defer source.Close()
+
+	newSourceDomains := "GITLAB_NEW_SOURCE_DOMAINS=new-source-test.gitlab.io,other-test.gitlab.io"
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{newSourceDomains}, "-gitlab-server", source.URL)
+	defer teardown()
+
+	response, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
+	require.NoError(t, err)
+
+	defer response.Body.Close()
+	body, _ := ioutil.ReadAll(response.Body)
+
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "New Pages GitLab Source TEST OK\n", string(body))
 }

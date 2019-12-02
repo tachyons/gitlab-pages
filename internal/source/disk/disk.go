@@ -24,36 +24,29 @@ func New() *Disk {
 	}
 }
 
-// GetDomain returns a domain from the domains map
-func (d *Disk) GetDomain(host string) *domain.Domain {
+// GetDomain returns a domain from the domains map if it exists
+func (d *Disk) GetDomain(host string) (*domain.Domain, error) {
 	host = strings.ToLower(host)
+
 	d.lock.RLock()
 	defer d.lock.RUnlock()
+
 	domain, _ := d.dm[host]
 
-	return domain
+	return domain, nil
 }
 
-// HasDomain checks for presence of a domain in the domains map
-func (d *Disk) HasDomain(host string) bool {
-	d.lock.RLock()
-	defer d.lock.RUnlock()
-
-	host = strings.ToLower(host)
-	_, isPresent := d.dm[host]
-
-	return isPresent
-}
-
-// Ready checks if the domains source is ready for work
-func (d *Disk) Ready() bool {
+// IsReady checks if the domains source is ready for work. The disk source is
+// ready after traversing entire filesystem and reading all domains'
+// configuration files.
+func (d *Disk) IsReady() bool {
 	return d.dm != nil
 }
 
-// Watch starts the domain source, in this case it is reading domains from
-// groups on disk concurrently
-func (d *Disk) Watch(rootDomain string) {
-	go watch(rootDomain, d.updateDomains, time.Second)
+// Read starts the domain source, in this case it is reading domains from
+// groups on disk concurrently.
+func (d *Disk) Read(rootDomain string) {
+	go Watch(rootDomain, d.updateDomains, time.Second)
 }
 
 func (d *Disk) updateDomains(dm Map) {

@@ -34,3 +34,8 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *Lookup {
 
 	return entry.Retrieve(ctx, c.client)
 }
+
+// New creates a new instance of Cache and sets default expiration
+func New() *Cache {
+	return &Cache{}
+}
