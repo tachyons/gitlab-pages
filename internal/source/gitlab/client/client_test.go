@@ -1,22 +1,24 @@
 package client
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
 var (
 	encodedSecret = "e41rcFh7XBA7sNABWVCe2AZvxMsy6QDtJ8S9Ql1UiN8=" // 32 bytes, base64 encoded
 )
 
-func TestGetVirtualDomainForErrorResponses(t *testing.T) {
+func TestGetLookupForErrorResponses(t *testing.T) {
 	tests := map[int]string{
 		http.StatusNoContent:    "No Content",
 		http.StatusUnauthorized: "Unauthorized",
@@ -37,10 +39,10 @@ func TestGetVirtualDomainForErrorResponses(t *testing.T) {
 
 			client := NewClient(server.URL, secretKey())
 
-			actual, err := client.GetVirtualDomain("group.gitlab.io")
+			lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
-			require.EqualError(t, err, expectedError)
-			require.Nil(t, actual)
+			require.EqualError(t, lookup.Error, expectedError)
+			require.Equal(t, lookup.Domain, api.VirtualDomain{})
 		})
 	}
 }
@@ -80,13 +82,13 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 
 	client := NewClient(server.URL, secretKey())
 
-	actual, err := client.GetVirtualDomain("group.gitlab.io")
-	require.NoError(t, err)
+	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
+	require.NoError(t, lookup.Error)
 
-	require.Equal(t, "foo", actual.Certificate)
-	require.Equal(t, "bar", actual.Key)
+	require.Equal(t, "foo", lookup.Domain.Certificate)
+	require.Equal(t, "bar", lookup.Domain.Key)
 
-	lookupPath := actual.LookupPaths[0]
+	lookupPath := lookup.Domain.LookupPaths[0]
 	require.Equal(t, 123, lookupPath.ProjectID)
 	require.Equal(t, false, lookupPath.AccessControl)
 	require.Equal(t, true, lookupPath.HTTPSOnly)

@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"path"
@@ -8,6 +9,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
@@ -15,7 +17,7 @@ import (
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
-	client Client
+	client api.Client
 	cache  *cache.Cache // WIP
 }
 
@@ -27,15 +29,15 @@ func New(config client.Config) *Gitlab {
 // GetDomain return a representation of a domain that we have fetched from
 // GitLab
 func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
-	response, err := g.client.GetVirtualDomain(name)
-	if err != nil {
-		return nil, err
+	lookup := g.client.GetLookup(context.Background(), name)
+	if lookup.Error != nil {
+		return nil, lookup.Error
 	}
 
 	domain := domain.Domain{
 		Name:            name,
-		CertificateCert: response.Certificate,
-		CertificateKey:  response.Key,
+		CertificateCert: lookup.Domain.Certificate,
+		CertificateKey:  lookup.Domain.Key,
 		Resolver:        g,
 	}
 
@@ -45,19 +47,19 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 // Resolve is supposed to get the serving lookup path based on the request from
 // the GitLab source
 func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
-	response, err := g.client.GetVirtualDomain(r.Host)
-	if err != nil {
-		return nil, "", err
+	response := g.client.GetLookup(r.Context(), r.Host)
+	if response.Error != nil {
+		return nil, "", response.Error
 	}
 
-	for _, lookup := range response.LookupPaths {
+	for _, lookup := range response.Domain.LookupPaths {
 		urlPath := path.Clean(r.URL.Path)
 
 		if strings.HasPrefix(urlPath, lookup.Prefix) {
 			lookupPath := &serving.LookupPath{
 				Prefix:             lookup.Prefix,
 				Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
-				IsNamespaceProject: (lookup.Prefix == "/" && len(response.LookupPaths) > 1),
+				IsNamespaceProject: (lookup.Prefix == "/" && len(response.Domain.LookupPaths) > 1),
 				IsHTTPSOnly:        lookup.HTTPSOnly,
 				HasAccessControl:   lookup.AccessControl,
 				ProjectID:          uint64(lookup.ProjectID),

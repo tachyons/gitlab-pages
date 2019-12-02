@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
 type client struct {
@@ -20,21 +22,23 @@ type client struct {
 	status      int
 }
 
-func (c *client) Resolve(ctx context.Context, _ string) Lookup {
-	var domain Domain
+func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
+	var lookup api.Lookup
 
 	c.bootup <- atomic.AddUint64(&c.started, 1)
 	defer atomic.AddUint64(&c.resolutions, 1)
 
 	if c.status == 0 {
-		c.status = 200
+		lookup.Status = 200
 	}
 
 	if c.failure == nil {
-		domain = Domain{Name: <-c.domain}
+		lookup.Name = <-c.domain
+	} else {
+		lookup.Error = c.failure
 	}
 
-	return Lookup{Domain: domain, Status: c.status, Error: c.failure}
+	return lookup
 }
 
 func withTestCache(config resolverConfig, block func(*Cache, *client)) {
@@ -67,7 +71,7 @@ func (cache *Cache) withTestEntry(config entryConfig, block func(*Entry)) {
 	entry := cache.store.LoadOrCreate(domain)
 
 	if config.retrieved {
-		entry.setResponse(Lookup{Domain: Domain{Name: domain}, Status: 200})
+		entry.setResponse(api.Lookup{Name: domain, Status: 200})
 	}
 
 	if config.expired {
@@ -97,7 +101,7 @@ func TestResolve(t *testing.T) {
 
 			assert.NoError(t, lookup.Error)
 			assert.Equal(t, 200, lookup.Status)
-			assert.Equal(t, "my.gitlab.com", lookup.Domain.Name)
+			assert.Equal(t, "my.gitlab.com", lookup.Name)
 			assert.Equal(t, uint64(1), resolver.resolutions)
 		})
 	})
@@ -131,7 +135,7 @@ func TestResolve(t *testing.T) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-				assert.Equal(t, "my.gitlab.com", lookup.Domain.Name)
+				assert.Equal(t, "my.gitlab.com", lookup.Name)
 				assert.Equal(t, uint64(0), resolver.resolutions)
 			})
 		})
@@ -140,7 +144,7 @@ func TestResolve(t *testing.T) {
 	t.Run("when a non-retrieved new item is in short cache", func(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(*Entry) {
-				lookup := make(chan *Lookup, 1)
+				lookup := make(chan *api.Lookup, 1)
 
 				go func() {
 					lookup <- cache.Resolve(context.Background(), "my.gitlab.com")
@@ -165,7 +169,7 @@ func TestResolve(t *testing.T) {
 			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-				assert.Equal(t, "my.gitlab.com", lookup.Domain.Name)
+				assert.Equal(t, "my.gitlab.com", lookup.Name)
 				assert.Equal(t, uint64(0), resolver.resolutions)
 
 				resolver.domain <- "my.gitlab.com"
@@ -229,7 +233,7 @@ func TestResolve(t *testing.T) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(entry *Entry) {
 				ctx, cancel := context.WithCancel(context.Background())
 
-				response := make(chan *Lookup, 1)
+				response := make(chan *api.Lookup, 1)
 				go func() { response <- cache.Resolve(ctx, "my.gitlab.com") }()
 
 				cancel()

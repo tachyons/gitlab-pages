@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -56,59 +57,64 @@ func NewFromConfig(config Config) *Client {
 	return NewClient(config.GitlabServerURL(), config.GitlabAPISecret())
 }
 
-// GetVirtualDomain returns VirtualDomain configuration for the given host. It
-// returns an error if non-nil `*api.VirtualDomain` can not be retuned.
-func (gc *Client) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
+// GetLookup returns a VirtualDomain configuration wrap into a Lookup for a
+// given host
+func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
+	lookup := api.Lookup{Name: host}
+
 	params := url.Values{}
 	params.Set("host", host)
 
-	resp, err := gc.get("/api/v4/internal/pages", params)
+	resp, status, err := gc.get(ctx, "/api/v4/internal/pages", params)
 	if resp != nil {
 		defer resp.Body.Close()
 	} else {
-		return nil, errors.New("empty response returned")
+		err = errors.New("empty response returned")
 	}
+
+	lookup.Status = status
+	lookup.Error = err
 
 	if err != nil {
-		return nil, err
+		return lookup
 	}
 
-	var domain api.VirtualDomain
-	err = json.NewDecoder(resp.Body).Decode(&domain)
+	err = json.NewDecoder(resp.Body).Decode(&lookup.Domain)
 	if err != nil {
-		return nil, err
+		lookup.Error = err
+		return lookup
 	}
 
-	return &domain, nil
+	return lookup
 }
 
-func (gc *Client) get(path string, params url.Values) (*http.Response, error) {
+func (gc *Client) get(ctx context.Context, path string, params url.Values) (*http.Response, int, error) {
 	endpoint, err := gc.endpoint(path, params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	req, err := gc.request("GET", endpoint)
+	req, err := gc.request(ctx, "GET", endpoint)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	resp, err := gc.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	switch {
 	case resp.StatusCode == http.StatusOK:
-		return resp, nil
+		return resp, resp.StatusCode, nil
 	case resp.StatusCode == http.StatusNoContent:
-		return resp, errNoContent
+		return resp, resp.StatusCode, errNoContent
 	case resp.StatusCode == http.StatusUnauthorized:
-		return resp, errUnauthorized
+		return resp, resp.StatusCode, errUnauthorized
 	case resp.StatusCode == http.StatusNotFound:
-		return resp, errNotFound
+		return resp, resp.StatusCode, errNotFound
 	default:
-		return resp, errUnknown
+		return resp, resp.StatusCode, errUnknown
 	}
 }
 
@@ -123,11 +129,13 @@ func (gc *Client) endpoint(path string, params url.Values) (*url.URL, error) {
 	return endpoint, nil
 }
 
-func (gc *Client) request(method string, endpoint *url.URL) (*http.Request, error) {
+func (gc *Client) request(ctx context.Context, method string, endpoint *url.URL) (*http.Request, error) {
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
 	if err != nil {
 		return nil, err
 	}
+
+	req = req.WithContext(ctx)
 
 	token, err := gc.token()
 	if err != nil {

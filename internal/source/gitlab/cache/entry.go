@@ -5,6 +5,8 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
 var (
@@ -13,7 +15,7 @@ var (
 )
 
 // Entry represents a cache object that can be retrieved asynchronously and
-// holds a pointer to *Lookup when the domain lookup has been retrieved
+// holds a pointer to *api.Lookup when the domain lookup has been retrieved
 // successfully
 type Entry struct {
 	domain    string
@@ -22,7 +24,7 @@ type Entry struct {
 	refresh   *sync.Once
 	mux       *sync.RWMutex
 	retrieved chan struct{}
-	response  *Lookup
+	response  *api.Lookup
 }
 
 func newCacheEntry(domain string) *Entry {
@@ -55,7 +57,7 @@ func (e *Entry) NeedsRefresh() bool {
 }
 
 // Lookup returns a retriever Lookup response.
-func (e *Entry) Lookup() *Lookup {
+func (e *Entry) Lookup() *api.Lookup {
 	e.mux.RLock()
 	defer e.mux.RUnlock()
 
@@ -63,7 +65,7 @@ func (e *Entry) Lookup() *Lookup {
 }
 
 // Retrieve perform a blocking retrieval of the cache entry response.
-func (e *Entry) Retrieve(ctx context.Context, client Resolver) (lookup *Lookup) {
+func (e *Entry) Retrieve(ctx context.Context, client api.Client) (lookup *api.Lookup) {
 	newctx, cancelctx := context.WithTimeout(ctx, retrievalTimeout)
 	defer cancelctx()
 
@@ -71,7 +73,7 @@ func (e *Entry) Retrieve(ctx context.Context, client Resolver) (lookup *Lookup) 
 
 	select {
 	case <-newctx.Done():
-		lookup = &Lookup{Status: 502, Error: errors.New("context done")}
+		lookup = &api.Lookup{Name: e.domain, Status: 502, Error: errors.New("context done")}
 	case <-e.retrieved:
 		lookup = e.Lookup()
 	}
@@ -80,7 +82,7 @@ func (e *Entry) Retrieve(ctx context.Context, client Resolver) (lookup *Lookup) 
 }
 
 // Refresh will update the entry in the store only when it gets resolved.
-func (e *Entry) Refresh(client Resolver, store Store) {
+func (e *Entry) Refresh(client api.Client, store Store) {
 	e.refresh.Do(func() {
 		go func() {
 			entry := newCacheEntry(e.domain)
@@ -92,13 +94,13 @@ func (e *Entry) Refresh(client Resolver, store Store) {
 	})
 }
 
-func (e *Entry) retrieveWithClient(client Resolver) {
+func (e *Entry) retrieveWithClient(client api.Client) {
 	retriever := Retriever{client: client, timeout: retrievalTimeout}
 
 	e.setResponse(retriever.Retrieve(e.domain))
 }
 
-func (e *Entry) setResponse(lookup Lookup) {
+func (e *Entry) setResponse(lookup api.Lookup) {
 	e.mux.Lock()
 	defer e.mux.Unlock()
 
