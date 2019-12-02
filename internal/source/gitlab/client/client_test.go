@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -15,6 +16,27 @@ import (
 var (
 	encodedSecret = "e41rcFh7XBA7sNABWVCe2AZvxMsy6QDtJ8S9Ql1UiN8=" // 32 bytes, base64 encoded
 )
+
+func TestNewValidBaseURL(t *testing.T) {
+	_, err := NewClient("https://gitlab.com", secretKey())
+	require.NoError(t, err)
+}
+
+func TestNewInvalidBaseURL(t *testing.T) {
+	t.Run("when API URL is not valid", func(t *testing.T) {
+		client, err := NewClient("%", secretKey())
+
+		assert.Error(t, err)
+		assert.Nil(t, client)
+	})
+
+	t.Run("when API URL empty", func(t *testing.T) {
+		client, err := NewClient("", secretKey())
+
+		assert.Nil(t, client)
+		assert.EqualError(t, err, "GitLab API URL has not been provided")
+	})
+}
 
 func TestGetVirtualDomainForErrorResponses(t *testing.T) {
 	tests := map[int]string{
@@ -35,7 +57,7 @@ func TestGetVirtualDomainForErrorResponses(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := NewClient(server.URL, secretKey())
+			client, _ := NewClient(server.URL, secretKey())
 
 			actual, err := client.GetVirtualDomain("group.gitlab.io")
 
@@ -78,7 +100,7 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	client := NewClient(server.URL, secretKey())
+	client, _ := NewClient(server.URL, secretKey())
 
 	actual, err := client.GetVirtualDomain("group.gitlab.io")
 	require.NoError(t, err)
