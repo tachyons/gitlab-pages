@@ -63,8 +63,8 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 					"access_control": false,
 					"source": {
 						"type": "file",
-							"path": "mygroup/myproject/public/"
-						},
+						"path": "mygroup/myproject/public/"
+					},
 					"https_only": true,
 					"prefix": "/myproject/"
 				}
