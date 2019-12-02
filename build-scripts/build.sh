@@ -81,6 +81,9 @@ function build_if_needed(){
     fi
 
     docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.}
+
+    popd
+
     # Push new image unless it is a UBI build image
     if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
       docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}"
@@ -88,7 +91,6 @@ function build_if_needed(){
       # Create a tag based on Branch/Tag name for easy reference
       tag_and_push $CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}
     fi
-    popd
   fi
   # Record image repository and tag unless it is a UBI build image
   if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
@@ -98,7 +100,7 @@ function build_if_needed(){
 
 function tag_and_push(){
   # Tag and push unless it is a UBI build image
-  if [ ! "${UBI_BUILD_IMAGE}" = 'true' -a -f "Dockerfile${DOCKERFILE_EXT}" ]; then
+  if [ ! "${UBI_BUILD_IMAGE}" = 'true' -a -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
     docker tag "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$1"
     docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$1"
   fi
