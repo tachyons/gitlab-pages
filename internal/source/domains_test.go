@@ -3,7 +3,6 @@ package source
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
@@ -26,18 +25,18 @@ func (c sourceConfig) GitlabAPISecret() []byte {
 func TestDomainSources(t *testing.T) {
 	t.Run("when GitLab API URL has been provided", func(t *testing.T) {
 		domains, err := NewDomains(sourceConfig{api: "https://gitlab.com"})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		assert.NotNil(t, domains.gitlab)
-		assert.NotNil(t, domains.disk)
+		require.NotNil(t, domains.gitlab)
+		require.NotNil(t, domains.disk)
 	})
 
 	t.Run("when GitLab API has not been provided", func(t *testing.T) {
 		domains, err := NewDomains(sourceConfig{})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		assert.Nil(t, domains.gitlab)
-		assert.NotNil(t, domains.disk)
+		require.Nil(t, domains.gitlab)
+		require.NotNil(t, domains.disk)
 	})
 }
 
@@ -74,7 +73,7 @@ func TestGetDomain(t *testing.T) {
 		domain, err := domains.GetDomain("domain.test.io")
 
 		require.NoError(t, err)
-		assert.Nil(t, domain)
+		require.Nil(t, domain)
 	})
 
 	t.Run("when requesting a broken test domain", func(t *testing.T) {
@@ -88,8 +87,8 @@ func TestGetDomain(t *testing.T) {
 
 		domain, err := domains.GetDomain("pages-broken-poc.gitlab.io")
 
-		assert.Nil(t, domain)
-		assert.EqualError(t, err, "broken test domain used")
+		require.Nil(t, domain)
+		require.EqualError(t, err, "broken test domain used")
 	})
 
 	t.Run("when requesting a test domain in case of the source not being fully configured", func(t *testing.T) {
@@ -98,7 +97,7 @@ func TestGetDomain(t *testing.T) {
 
 		domain, err := domains.GetDomain("new-source-test.gitlab.io")
 
-		assert.Nil(t, domain)
-		assert.NoError(t, err)
+		require.Nil(t, domain)
+		require.NoError(t, err)
 	})
 }
