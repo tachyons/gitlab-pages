@@ -78,9 +78,10 @@ stages:
     - export DOCKERFILE_EXT='.build.ubi8'
     - export IMAGE_TAG_EXT='-build-ubi8'
     - export UBI_BUILD_IMAGE='true'
-    - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
     - export TARGET_VERSION=$(get_target_version)
-    - export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest-ubi8"
+    - export CONTAINER_VERSION="${TARGET_VERSION}"
+    - BUILD_IMAGE_VERSION="$(get_version gitlab-ubi-builder)"
+    - export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:${BUILD_IMAGE_VERSION}-ubi8"
     - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
   artifacts:
     paths:
@@ -100,7 +101,6 @@ gitlab-ubi-builder:
     - export UBI_BUILD_IMAGE='false'
     - mkdir -p artifacts/images
     - build_if_needed
-    - push_latest
 
 build:gitlab-ruby:
   <<: *build-job-base
