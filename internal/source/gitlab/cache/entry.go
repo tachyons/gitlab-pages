@@ -11,7 +11,7 @@ import (
 
 var (
 	retrievalTimeout = 5 * time.Second
-	shortCacheExpiry = 10 * time.Second
+	shortCacheExpiry = 30 * time.Second
 )
 
 // Entry represents a cache object that can be retrieved asynchronously and
