@@ -24,7 +24,7 @@ func (c sourceConfig) GitlabAPISecret() []byte {
 
 func TestDomainSources(t *testing.T) {
 	t.Run("when GitLab API URL has been provided", func(t *testing.T) {
-		domains, err := NewDomains(sourceConfig{api: "https://gitlab.com"})
+		domains, err := NewDomains(sourceConfig{api: "https://gitlab.com", secret: "abc"})
 		require.NoError(t, err)
 
 		require.NotNil(t, domains.gitlab)

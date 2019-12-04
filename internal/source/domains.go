@@ -37,7 +37,7 @@ type Domains struct {
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
 func NewDomains(config Config) (*Domains, error) {
-	if len(config.GitlabServerURL()) == 0 {
+	if len(config.GitlabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
 		return &Domains{disk: disk.New()}, nil
 	}
 
