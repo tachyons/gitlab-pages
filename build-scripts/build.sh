@@ -94,7 +94,7 @@ function build_if_needed(){
   fi
   # Record image repository and tag unless it is a UBI build image
   if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
-    echo "${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" > "artifacts/images/$CI_JOB_NAME.txt"
+    echo "${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" > "artifacts/images/${CI_JOB_NAME#build:*}.txt"
   fi
 }
 

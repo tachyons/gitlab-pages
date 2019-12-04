@@ -2,18 +2,26 @@ ARG BUILD_IMAGE=
 
 FROM ${BUILD_IMAGE}
 
-ARG GITLAB_SHELL_VERSION=master
-ARG GITLAB_SHELL_NAMESPACE=gitlab-org
-ARG GITLAB_SHELL_PROJECT=gitlab-shell
+ARG NAMESPACE=gitlab-org
+ARG PROJECT=gitlab-shell
+ARG VERSION=master
+ARG API_URL=
+ARG API_TOKEN=
 
 ADD git-base.tar.gz /
 ADD gitlab-ruby.tar.gz /
 ADD gitlab-go.tar.gz /
 
+ENV PRIVATE_TOKEN=${API_TOKEN}
+
 RUN mkdir -p /assets/srv/gitlab-shell \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
-    && curl -L https://gitlab.com/${GITLAB_SHELL_NAMESPACE}/${GITLAB_SHELL_PROJECT}/-/archive/${GITLAB_SHELL_VERSION}/${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION}.tar.gz | tar -xz \
-    && cd ${GITLAB_SHELL_PROJECT}-${GITLAB_SHELL_VERSION} \
+    && /gitlab-fetch \
+        "${API_URL}" \
+        "${NAMESPACE}" \
+        "${PROJECT}" \
+        "${VERSION}" \
+    && cd ${PROJECT}-${VERSION} \
     && make build \
     && rm -rf go/ go_build/ spec/ internal/testhelper/testdata/ \
     && mv ./* /assets/srv/gitlab-shell

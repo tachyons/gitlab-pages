@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -euo pipefail
+
+API_URL="${1}"
+NAMESPACE="${2}"
+PROJECT="${3}"
+VERSION="${4}"
+
+if [ -z "${API_URL}" -o -z "${NAMESPACE}" -o -z "${PROJECT}" -o -z "${VERSION}" ]; then
+  echo "Usage: gitlab-fetch API_URL NAMESPACE PROJECT VERSION"
+fi
+
+URL="${API_URL}/projects/${NAMESPACE}%2F${PROJECT}/repository/archive.tar.gz?sha=${VERSION}"
+TOKEN="PRIVATE-TOKEN: ${PRIVATE_TOKEN}"
+
+mkdir -p "${PROJECT}-${VERSION}"
+curl -L -H "${TOKEN}" "${URL}" | tar -xz --strip-components=1 -C "${PROJECT}-${VERSION}"

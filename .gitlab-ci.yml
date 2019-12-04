@@ -64,7 +64,6 @@ stages:
     refs:
       - /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
       - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -79,9 +78,10 @@ stages:
     - export DOCKERFILE_EXT='.build.ubi8'
     - export IMAGE_TAG_EXT='-build-ubi8'
     - export UBI_BUILD_IMAGE='true'
-    - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
     - export TARGET_VERSION=$(get_target_version)
-    - export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest-ubi8"
+    - export CONTAINER_VERSION="${TARGET_VERSION}"
+    - BUILD_IMAGE_VERSION="$(get_version gitlab-ubi-builder)"
+    - export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:${BUILD_IMAGE_VERSION}-ubi8"
     - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
   artifacts:
     paths:
@@ -91,9 +91,6 @@ stages:
       - $UBI_PIPELINE == "true"
       - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
       - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
-  except:
-    refs:
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
 
 gitlab-ubi-builder:
   <<: *build-job-base
@@ -104,7 +101,6 @@ gitlab-ubi-builder:
     - export UBI_BUILD_IMAGE='false'
     - mkdir -p artifacts/images
     - build_if_needed
-    - push_latest
 
 build:gitlab-ruby:
   <<: *build-job-base
@@ -266,9 +262,11 @@ build:gitlab-rails-ee:
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
     - build_if_needed --build-arg "GITLAB_EDITION=gitlab-ee"
-                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
-                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "GITLAB_PROJECT=${EE_PROJECT}"
+                      --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "PROJECT=${EE_PROJECT}"
+                      --build-arg "VERSION=${GITLAB_VERSION}"
+                      --build-arg "API_URL=${CI_API_V4_URL}"
+                      --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
     - copy_assets
 
@@ -573,8 +571,10 @@ build:gitlab-shell:
     - git_container=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
-    - build_if_needed --build-arg "GITLAB_SHELL_VERSION=${GITLAB_SHELL_VERSION}"
-                      --build-arg "GITLAB_SHELL_NAMESPACE=${GITLAB_NAMESPACE}"
+    - build_if_needed --build-arg "VERSION=${GITLAB_SHELL_VERSION}"
+                      --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "API_URL=${CI_API_V4_URL}"
+                      --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
     - copy_assets
 
 gitlab-shell:
@@ -595,7 +595,6 @@ gitlab-shell:
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_SHELL_VERSION=${GITLAB_SHELL_VERSION}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "GITLAB_SHELL_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "CACHE_BUSTER=$GITLAB_SHELL_VERSION$(date -uI)"
@@ -647,8 +646,10 @@ build:gitlab-elasticsearch-indexer:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$TARGET_VERSION" | sha1sum))
-    - build_if_needed --build-arg "GITLAB_ELASTICSEARCH_INDEXER_VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
-                      --build-arg "GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE=${GITLAB_NAMESPACE}"
+    - build_if_needed --build-arg "VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
+                      --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "API_URL=${CI_API_V4_URL}"
+                      --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
     - copy_assets
 
 gitlab-elasticsearch-indexer:
@@ -665,7 +666,6 @@ gitlab-elasticsearch-indexer:
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GIT_TAG=${GIT_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_ELASTICSEARCH_INDEXER_VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
@@ -686,8 +686,10 @@ build:gitaly:
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - export shell_container=($(echo -n "$BASE_VERSION$go_version$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_VERSION$git_version$TARGET_VERSION" | sha1sum))
-    - build_if_needed --build-arg "GITALY_VERSION=${GITALY_VERSION}"
-                      --build-arg "GITALY_NAMESPACE=${GITLAB_NAMESPACE}"
+    - build_if_needed --build-arg "VERSION=${GITALY_VERSION}"
+                      --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "API_URL=${CI_API_V4_URL}"
+                      --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
     - copy_assets
 
 gitaly:
@@ -710,7 +712,6 @@ gitaly:
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "GITALY_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "SHELL_CONTAINER=$shell_container${IMAGE_TAG_EXT}"
@@ -772,8 +773,10 @@ build:gitlab-workhorse-ee:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_WORKHORSE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
-    - build_if_needed --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
-                      --build-arg "WORKHORSE_NAMESPACE=${GITLAB_NAMESPACE}"
+    - build_if_needed --build-arg "VERSION=$GITLAB_WORKHORSE_VERSION"
+                      --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "API_URL=${CI_API_V4_URL}"
+                      --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
     - copy_assets
 
 gitlab-workhorse-ee:
@@ -796,7 +799,6 @@ gitlab-workhorse-ee:
                       --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "WORKHORSE_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"

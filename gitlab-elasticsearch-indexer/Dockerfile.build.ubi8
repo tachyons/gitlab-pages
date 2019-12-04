@@ -2,17 +2,25 @@ ARG BUILD_IMAGE=
 
 FROM ${BUILD_IMAGE}
 
-ARG GITLAB_ELASTICSEARCH_INDEXER_VERSION=v1.3.0
-ARG GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE=gitlab-org
-ARG GITLAB_ELASTICSEARCH_INDEXER_PROJECT=gitlab-elasticsearch-indexer
+ARG NAMESPACE=gitlab-org
+ARG PROJECT=gitlab-elasticsearch-indexer
+ARG VERSION=v1.3.0
+ARG API_URL=
+ARG API_TOKEN=
 
 ADD git-base.tar.gz /
 ADD gitlab-go.tar.gz /
 
+ENV PRIVATE_TOKEN=${API_TOKEN}
+
 RUN mkdir -p /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
-    && curl -L https://gitlab.com/${GITLAB_ELASTICSEARCH_INDEXER_NAMESPACE}/${GITLAB_ELASTICSEARCH_INDEXER_PROJECT}/-/archive/${GITLAB_ELASTICSEARCH_INDEXER_VERSION}/${GITLAB_ELASTICSEARCH_INDEXER_PROJECT}-${GITLAB_ELASTICSEARCH_INDEXER_VERSION}.tar.gz | tar -xz \
-    && cd ${GITLAB_ELASTICSEARCH_INDEXER_PROJECT}-${GITLAB_ELASTICSEARCH_INDEXER_VERSION} \
+    && /gitlab-fetch \
+        "${API_URL}" \
+        "${NAMESPACE}" \
+        "${PROJECT}" \
+        "${VERSION}" \
+    && cd ${PROJECT}-${VERSION} \
     && make \
     && make install \
     && cp --parents /usr/local/bin/gitlab-elasticsearch-indexer /assets
