@@ -34,8 +34,8 @@ var connectionTimeout = 10 * time.Second
 // NewClient initializes and returns new Client baseUrl is
 // appConfig.GitLabServer secretKey is appConfig.GitLabAPISecretKey
 func NewClient(baseURL string, secretKey []byte) (*Client, error) {
-	if len(baseURL) == 0 {
-		return nil, errors.New("GitLab API URL has not been provided")
+	if len(baseURL) == 0 || len(secretKey) == 0 {
+		return nil, errors.New("GitLab API URL or API secret has not been provided")
 	}
 
 	url, err := url.Parse(baseURL)

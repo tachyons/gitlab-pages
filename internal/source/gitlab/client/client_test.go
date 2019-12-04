@@ -29,11 +29,18 @@ func TestNewInvalidBaseURL(t *testing.T) {
 		require.Nil(t, client)
 	})
 
-	t.Run("when API URL empty", func(t *testing.T) {
+	t.Run("when API URL is empty", func(t *testing.T) {
 		client, err := NewClient("", secretKey())
 
 		require.Nil(t, client)
-		require.EqualError(t, err, "GitLab API URL has not been provided")
+		require.EqualError(t, err, "GitLab API URL or API secret has not been provided")
+	})
+
+	t.Run("when API secret is empty", func(t *testing.T) {
+		client, err := NewClient("https://gitlab.com", []byte{})
+
+		require.Nil(t, client)
+		require.EqualError(t, err, "GitLab API URL or API secret has not been provided")
 	})
 }
 
