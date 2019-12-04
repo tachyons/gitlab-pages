@@ -57,7 +57,7 @@ var (
 	secret                 = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long.")
 	gitLabAuthServer       = flag.String("auth-server", "", "DEPRECATED, use gitlab-server instead. GitLab server, for example https://www.gitlab.com")
 	gitLabServer           = flag.String("gitlab-server", "", "GitLab server, for example https://www.gitlab.com")
-	gitLabAPISecretKey     = flag.String("api-secret-key", "", "File with secret key used to authenticate with the GitLab API (NOT YET IMPLEMENTED)")
+	gitLabAPISecretKey     = flag.String("api-secret-key", "", "File with secret key used to authenticate with the GitLab API")
 	clientID               = flag.String("auth-client-id", "", "GitLab application Client ID")
 	clientSecret           = flag.String("auth-client-secret", "", "GitLab application Client Secret")
 	redirectURI            = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
@@ -243,10 +243,6 @@ func loadConfig() appConfig {
 		"auth-redirect-uri":             config.RedirectURI,
 	}).Debug("Start daemon with configuration")
 
-	if *gitLabAPISecretKey != "" {
-		log.Warn("api-secret-key parameter is a placeholder for future developments, this option will be ignored.")
-	}
-
 	return config
 }
 
@@ -256,7 +252,7 @@ func appMain() {
 	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
 	flag.Parse()
 	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
-		fatal(err)
+		fatal(err, "invalid TLS version")
 	}
 
 	printVersion(*showVersion, VERSION)
@@ -273,7 +269,7 @@ func appMain() {
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
 	if err := os.Chdir(*pagesRoot); err != nil {
-		fatal(err)
+		fatal(err, "could not change directory into pagesRoot")
 	}
 
 	config := loadConfig()
@@ -288,7 +284,7 @@ func appMain() {
 	if *daemonUID != 0 || *daemonGID != 0 {
 		if err := daemonize(config, *daemonUID, *daemonGID, *daemonInplaceChroot); err != nil {
 			errortracking.Capture(err)
-			fatal(err)
+			fatal(err, "could not create pages daemon")
 		}
 
 		return

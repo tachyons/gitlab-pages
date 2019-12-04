@@ -9,8 +9,6 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 
-	"gitlab.com/gitlab-org/labkit/log"
-
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -35,10 +33,14 @@ var connectionTimeout = 10 * time.Second
 
 // NewClient initializes and returns new Client baseUrl is
 // appConfig.GitLabServer secretKey is appConfig.GitLabAPISecretKey
-func NewClient(baseURL string, secretKey []byte) *Client {
+func NewClient(baseURL string, secretKey []byte) (*Client, error) {
+	if len(baseURL) == 0 || len(secretKey) == 0 {
+		return nil, errors.New("GitLab API URL or API secret has not been provided")
+	}
+
 	url, err := url.Parse(baseURL)
 	if err != nil {
-		log.WithError(err).Fatal("could not parse GitLab server URL")
+		return nil, err
 	}
 
 	return &Client{
@@ -48,11 +50,11 @@ func NewClient(baseURL string, secretKey []byte) *Client {
 			Timeout:   connectionTimeout,
 			Transport: httptransport.Transport,
 		},
-	}
+	}, nil
 }
 
 // NewFromConfig creates a new client from Config struct
-func NewFromConfig(config Config) *Client {
+func NewFromConfig(config Config) (*Client, error) {
 	return NewClient(config.GitlabServerURL(), config.GitlabAPISecret())
 }
 

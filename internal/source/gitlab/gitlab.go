@@ -20,8 +20,13 @@ type Gitlab struct {
 }
 
 // New returns a new instance of gitlab domain source.
-func New(config client.Config) *Gitlab {
-	return &Gitlab{client: client.NewFromConfig(config), cache: cache.New()}
+func New(config client.Config) (*Gitlab, error) {
+	client, err := client.NewFromConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Gitlab{client: client, cache: cache.New()}, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from
