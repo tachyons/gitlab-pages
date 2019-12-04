@@ -256,7 +256,7 @@ func appMain() {
 	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
 	flag.Parse()
 	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
-		fatal(err)
+		fatal(err, "invalid TLS version")
 	}
 
 	printVersion(*showVersion, VERSION)
@@ -273,7 +273,7 @@ func appMain() {
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
 	if err := os.Chdir(*pagesRoot); err != nil {
-		fatal(err)
+		fatal(err, "could not change directory into pagesRoot")
 	}
 
 	config := loadConfig()
@@ -288,7 +288,7 @@ func appMain() {
 	if *daemonUID != 0 || *daemonGID != 0 {
 		if err := daemonize(config, *daemonUID, *daemonGID, *daemonInplaceChroot); err != nil {
 			errortracking.Capture(err)
-			fatal(err)
+			fatal(err, "could not create pages daemon")
 		}
 
 		return

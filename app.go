@@ -456,6 +456,6 @@ func runApp(config appConfig) {
 }
 
 // fatal will log a fatal error and exit.
-func fatal(err error) {
-	log.WithError(err).Fatal()
+func fatal(err error, message string) {
+	log.WithError(err).Fatal(message)
 }
