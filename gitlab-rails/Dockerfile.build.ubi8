@@ -4,18 +4,23 @@ ARG ASSETS_IMAGE=
 FROM ${ASSETS_IMAGE} AS assets
 FROM ${BUILD_IMAGE}
 
-ARG GITLAB_NAMESPACE=gitlab-org
-ARG GITLAB_PROJECT=gitlab
-ARG GITLAB_EDITION=gitlab-ee
+ARG NAMESPACE=gitlab-org
+ARG PROJECT=gitlab
+ARG VERSION=v12.0.2-ee
+ARG API_URL=
+ARG API_TOKEN=
+
 ARG NODE_VERSION=12.9.1
 ARG YARN_VERSION=1.17.3
 ARG LIBRE2_VERSION=2019-09-01
-ARG GITLAB_VERSION=v12.0.2-ee
+ARG GITLAB_EDITION=gitlab-ee
 ARG GITLAB_USER=git
 
 ADD gitlab-ruby.tar.gz /
 ADD postgresql.tar.gz /
 ADD gitlab-elasticsearch-indexer.tar.gz /
+
+ENV PRIVATE_TOKEN=${API_TOKEN}
 
 RUN mkdir /assets \
     && cp /usr/local/postgresql/bin/* /usr/bin/ \
@@ -42,8 +47,12 @@ ENV SKIP_STORAGE_VALIDATION=true
 
 COPY shared/build-scripts/ /build-scripts
 
-RUN curl -L https://gitlab.com/${GITLAB_NAMESPACE}/${GITLAB_PROJECT}/-/archive/${GITLAB_VERSION}/${GITLAB_PROJECT}-${GITLAB_VERSION}.tar.gz | tar -xz \
-    && cd ${GITLAB_PROJECT}-${GITLAB_VERSION} \
+RUN /gitlab-fetch \
+        "${API_URL}" \
+        "${NAMESPACE}" \
+        "${PROJECT}" \
+        "${VERSION}" \
+    && cd ${PROJECT}-${VERSION} \
     && printf ${GITLAB_EDITION} | cut -d '-' -f 2 > REVISION \
     && printf 'gitlab-cloud-native-image' > INSTALLATION_TYPE \
     && for cfg in config/{gitlab,resque,secrets,database}.yml config/initializers/rack_attack.rb; do cp ${cfg}.example ${cfg} ; done \
