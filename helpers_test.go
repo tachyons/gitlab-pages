@@ -75,6 +75,16 @@ func CreateHTTPSFixtureFiles(t *testing.T) (key string, cert string) {
 	return keyfile.Name(), certfile.Name()
 }
 
+func CreateGitLabAPISecretKeyFixtureFile(t *testing.T) (filepath string) {
+	secretfile, err := ioutil.TempFile("", "gitlab-api-secret")
+	require.NoError(t, err)
+	secretfile.Close()
+
+	require.NoError(t, ioutil.WriteFile(secretfile.Name(), []byte(fixture.GitLabAPISecretKey), 0644))
+
+	return secretfile.Name()
+}
+
 // ListenSpec is used to point at a gitlab-pages http server, preserving the
 // type of port it is (http, https, proxy)
 type ListenSpec struct {
