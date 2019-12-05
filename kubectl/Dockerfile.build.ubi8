@@ -2,7 +2,7 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
 
 FROM ${UBI_IMAGE}
 
-ARG KUBECTL_VERSION=1.12.10
+ARG KUBECTL_VERSION=1.13.12
 ARG YQ_VERSION=2.3.0
 
 ADD https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl /assets/usr/local/bin/kubectl
