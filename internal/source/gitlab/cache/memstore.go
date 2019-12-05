@@ -12,11 +12,9 @@ type memstore struct {
 	mux   *sync.Mutex
 }
 
-var expiration = 10 * time.Minute
-
 func newMemStore() Store {
 	return &memstore{
-		store: cache.New(expiration, time.Minute),
+		store: cache.New(longCacheExpiry, time.Minute),
 		mux:   &sync.Mutex{},
 	}
 }

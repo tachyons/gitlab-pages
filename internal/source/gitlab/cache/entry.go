@@ -9,11 +9,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
-var (
-	retrievalTimeout = 5 * time.Second
-	shortCacheExpiry = 30 * time.Second
-)
-
 // Entry represents a cache object that can be retrieved asynchronously and
 // holds a pointer to *api.Lookup when the domain lookup has been retrieved
 // successfully

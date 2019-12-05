@@ -9,9 +9,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
-var maxRetrievalInterval = time.Second
-var maxRetrievalRetries = 3
-
 // Retriever is an utility type that performs an HTTP request with backoff in
 // case of errors
 type Retriever struct {
