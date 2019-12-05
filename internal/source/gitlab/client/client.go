@@ -23,7 +23,6 @@ type Client struct {
 
 var (
 	errUnknown      = errors.New("Unknown")
-	errNoContent    = errors.New("No Content")
 	errUnauthorized = errors.New("Unauthorized")
 	errNotFound     = errors.New("Not Found")
 )
@@ -77,7 +76,7 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	lookup.Status = status
 	lookup.Error = err
 
-	if err != nil {
+	if err != nil || status == http.StatusNoContent {
 		return lookup
 	}
 
@@ -107,10 +106,12 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 	}
 
 	switch {
+	// StatusOK means we should return the API response
 	case resp.StatusCode == http.StatusOK:
 		return resp, resp.StatusCode, nil
+	// StatusNoContent means that a domain does not exist, it is not an error
 	case resp.StatusCode == http.StatusNoContent:
-		return resp, resp.StatusCode, errNoContent
+		return resp, resp.StatusCode, nil
 	case resp.StatusCode == http.StatusUnauthorized:
 		return resp, resp.StatusCode, errUnauthorized
 	case resp.StatusCode == http.StatusNotFound:

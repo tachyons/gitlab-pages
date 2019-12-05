@@ -48,7 +48,6 @@ func TestNewInvalidBaseURL(t *testing.T) {
 
 func TestLookupForErrorResponses(t *testing.T) {
 	tests := map[int]string{
-		http.StatusNoContent:    "No Content",
 		http.StatusUnauthorized: "Unauthorized",
 		http.StatusNotFound:     "Not Found",
 	}
@@ -74,6 +73,25 @@ func TestLookupForErrorResponses(t *testing.T) {
 			require.Equal(t, lookup.Domain, api.VirtualDomain{})
 		})
 	}
+}
+
+func TestMissingDomain(t *testing.T) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/api/v4/internal/pages", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client, err := NewClient(server.URL, secretKey())
+	require.NoError(t, err)
+
+	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
+
+	require.NoError(t, lookup.Error)
+	require.Equal(t, lookup.Domain, api.VirtualDomain{})
 }
 
 func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
