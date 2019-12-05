@@ -90,7 +90,7 @@ func (e *Entry) Refresh(client api.Client, store Store) {
 }
 
 func (e *Entry) retrieveWithClient(client api.Client) {
-	retriever := Retriever{client: client, timeout: retrievalTimeout}
+	retriever := Retriever{client: client}
 
 	e.setResponse(retriever.Retrieve(e.domain))
 }

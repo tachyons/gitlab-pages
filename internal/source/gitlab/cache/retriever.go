@@ -12,14 +12,13 @@ import (
 // Retriever is an utility type that performs an HTTP request with backoff in
 // case of errors
 type Retriever struct {
-	client  api.Client
-	timeout time.Duration
+	client api.Client
 }
 
 // Retrieve retrieves a lookup response from external source with timeout and
 // backoff. It has its own context with timeout.
 func (r *Retriever) Retrieve(domain string) api.Lookup {
-	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), retrievalTimeout)
 	defer cancel()
 
 	var lookup api.Lookup

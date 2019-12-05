@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -103,9 +103,9 @@ func TestResolve(t *testing.T) {
 
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			assert.NoError(t, lookup.Error)
-			assert.Equal(t, "my.gitlab.com", lookup.Name)
-			assert.Equal(t, uint64(1), resolver.lookups)
+			require.NoError(t, lookup.Error)
+			require.Equal(t, "my.gitlab.com", lookup.Name)
+			require.Equal(t, uint64(1), resolver.lookups)
 		})
 	})
 
@@ -124,12 +124,12 @@ func TestResolve(t *testing.T) {
 			go receiver()
 			go receiver()
 
-			assert.Equal(t, uint64(0), resolver.lookups)
+			require.Equal(t, uint64(0), resolver.lookups)
 
 			resolver.domain <- "my.gitlab.com"
 			wg.Wait()
 
-			assert.Equal(t, uint64(1), resolver.lookups)
+			require.Equal(t, uint64(1), resolver.lookups)
 		})
 	})
 
@@ -138,8 +138,8 @@ func TestResolve(t *testing.T) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-				assert.Equal(t, "my.gitlab.com", lookup.Name)
-				assert.Equal(t, uint64(0), resolver.lookups)
+				require.Equal(t, "my.gitlab.com", lookup.Name)
+				require.Equal(t, uint64(0), resolver.lookups)
 			})
 		})
 	})
@@ -155,14 +155,14 @@ func TestResolve(t *testing.T) {
 
 				<-resolver.bootup
 
-				assert.Equal(t, uint64(1), resolver.started)
-				assert.Equal(t, uint64(0), resolver.lookups)
+				require.Equal(t, uint64(1), resolver.started)
+				require.Equal(t, uint64(0), resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
 				<-lookup
 
-				assert.Equal(t, uint64(1), resolver.started)
-				assert.Equal(t, uint64(1), resolver.lookups)
+				require.Equal(t, uint64(1), resolver.started)
+				require.Equal(t, uint64(1), resolver.lookups)
 			})
 		})
 	})
@@ -172,11 +172,11 @@ func TestResolve(t *testing.T) {
 			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-				assert.Equal(t, "my.gitlab.com", lookup.Name)
-				assert.Equal(t, uint64(0), resolver.lookups)
+				require.Equal(t, "my.gitlab.com", lookup.Name)
+				require.Equal(t, uint64(0), resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
-				assert.Equal(t, uint64(1), resolver.lookups)
+				require.Equal(t, uint64(1), resolver.lookups)
 			})
 		})
 	})
@@ -188,10 +188,10 @@ func TestResolve(t *testing.T) {
 				cache.Resolve(context.Background(), "my.gitlab.com")
 				cache.Resolve(context.Background(), "my.gitlab.com")
 
-				assert.Equal(t, uint64(0), resolver.lookups)
+				require.Equal(t, uint64(0), resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
-				assert.Equal(t, uint64(1), resolver.lookups)
+				require.Equal(t, uint64(1), resolver.lookups)
 			})
 		})
 	})
@@ -202,8 +202,8 @@ func TestResolve(t *testing.T) {
 
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			assert.Equal(t, uint64(3), resolver.lookups)
-			assert.EqualError(t, lookup.Error, "500 err")
+			require.Equal(t, uint64(3), resolver.lookups)
+			require.EqualError(t, lookup.Error, "500 err")
 		})
 	})
 
@@ -214,8 +214,8 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(ctx, "my.gitlab.com")
 
-			assert.Equal(t, uint64(0), resolver.lookups)
-			assert.EqualError(t, lookup.Error, "context done")
+			require.Equal(t, uint64(0), resolver.lookups)
+			require.EqualError(t, lookup.Error, "context done")
 		})
 	})
 
@@ -226,8 +226,8 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			assert.Equal(t, uint64(0), resolver.lookups)
-			assert.EqualError(t, lookup.Error, "context done")
+			require.Equal(t, uint64(0), resolver.lookups)
+			require.EqualError(t, lookup.Error, "context done")
 		})
 	})
 
@@ -244,7 +244,7 @@ func TestResolve(t *testing.T) {
 				resolver.domain <- "my.gitlab.com"
 				lookup := <-response
 
-				assert.EqualError(t, lookup.Error, "context done")
+				require.EqualError(t, lookup.Error, "context done")
 			})
 		})
 	})
