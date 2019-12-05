@@ -39,10 +39,7 @@ func (m *memstore) ReplaceOrCreate(domain string, entry *Entry) *Entry {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
-	if _, exists := m.store.Get(domain); exists {
-		m.store.Delete(domain)
-	}
-
+	m.store.Delete(domain)
 	m.store.SetDefault(domain, entry)
 
 	return entry

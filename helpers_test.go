@@ -387,14 +387,14 @@ func NewGitlabDomainsSourceStub(t *testing.T) *httptest.Server {
 		domain := r.URL.Query().Get("host")
 		path := "shared/lookups/" + domain + ".json"
 
-		if _, err := os.Stat(path); os.IsNotExist(err) {
+		fixture, err := os.Open(path)
+		if os.IsNotExist(err) {
 			w.WriteHeader(http.StatusNoContent)
 
 			t.Logf("GitLab domain %s source stub served 204", domain)
 			return
 		}
 
-		fixture, err := os.Open(path)
 		defer fixture.Close()
 		require.NoError(t, err)
 

@@ -14,18 +14,27 @@ import (
 )
 
 type client struct {
-	started     uint64
-	resolutions uint64
-	bootup      chan uint64
-	domain      chan string
-	failure     error
+	started uint64
+	lookups uint64
+	bootup  chan uint64
+	domain  chan string
+	failure error
 }
 
 func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
 	var lookup api.Lookup
 
+	// TODO This might not work on some architectures
+	//
+	// https://golang.org/pkg/sync/atomic/#pkg-note-BUG
+	//
+	// On ARM, x86-32, and 32-bit MIPS, it is the caller's responsibility to
+	// arrange for 64-bit alignment of 64-bit words accessed atomically. The first
+	// word in a variable or in an allocated struct, array, or slice can be relied
+	// upon to be 64-bit aligned.
+
 	c.bootup <- atomic.AddUint64(&c.started, 1)
-	defer atomic.AddUint64(&c.resolutions, 1)
+	defer atomic.AddUint64(&c.lookups, 1)
 
 	if c.failure == nil {
 		lookup.Name = <-c.domain
@@ -96,7 +105,7 @@ func TestResolve(t *testing.T) {
 
 			assert.NoError(t, lookup.Error)
 			assert.Equal(t, "my.gitlab.com", lookup.Name)
-			assert.Equal(t, uint64(1), resolver.resolutions)
+			assert.Equal(t, uint64(1), resolver.lookups)
 		})
 	})
 
@@ -115,12 +124,12 @@ func TestResolve(t *testing.T) {
 			go receiver()
 			go receiver()
 
-			assert.Equal(t, uint64(0), resolver.resolutions)
+			assert.Equal(t, uint64(0), resolver.lookups)
 
 			resolver.domain <- "my.gitlab.com"
 			wg.Wait()
 
-			assert.Equal(t, uint64(1), resolver.resolutions)
+			assert.Equal(t, uint64(1), resolver.lookups)
 		})
 	})
 
@@ -130,7 +139,7 @@ func TestResolve(t *testing.T) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				assert.Equal(t, "my.gitlab.com", lookup.Name)
-				assert.Equal(t, uint64(0), resolver.resolutions)
+				assert.Equal(t, uint64(0), resolver.lookups)
 			})
 		})
 	})
@@ -147,13 +156,13 @@ func TestResolve(t *testing.T) {
 				<-resolver.bootup
 
 				assert.Equal(t, uint64(1), resolver.started)
-				assert.Equal(t, uint64(0), resolver.resolutions)
+				assert.Equal(t, uint64(0), resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
 				<-lookup
 
 				assert.Equal(t, uint64(1), resolver.started)
-				assert.Equal(t, uint64(1), resolver.resolutions)
+				assert.Equal(t, uint64(1), resolver.lookups)
 			})
 		})
 	})
@@ -164,10 +173,10 @@ func TestResolve(t *testing.T) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				assert.Equal(t, "my.gitlab.com", lookup.Name)
-				assert.Equal(t, uint64(0), resolver.resolutions)
+				assert.Equal(t, uint64(0), resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
-				assert.Equal(t, uint64(1), resolver.resolutions)
+				assert.Equal(t, uint64(1), resolver.lookups)
 			})
 		})
 	})
@@ -179,10 +188,10 @@ func TestResolve(t *testing.T) {
 				cache.Resolve(context.Background(), "my.gitlab.com")
 				cache.Resolve(context.Background(), "my.gitlab.com")
 
-				assert.Equal(t, uint64(0), resolver.resolutions)
+				assert.Equal(t, uint64(0), resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
-				assert.Equal(t, uint64(1), resolver.resolutions)
+				assert.Equal(t, uint64(1), resolver.lookups)
 			})
 		})
 	})
@@ -193,7 +202,7 @@ func TestResolve(t *testing.T) {
 
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			assert.Equal(t, uint64(3), resolver.resolutions)
+			assert.Equal(t, uint64(3), resolver.lookups)
 			assert.EqualError(t, lookup.Error, "500 err")
 		})
 	})
@@ -205,7 +214,7 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(ctx, "my.gitlab.com")
 
-			assert.Equal(t, uint64(0), resolver.resolutions)
+			assert.Equal(t, uint64(0), resolver.lookups)
 			assert.EqualError(t, lookup.Error, "context done")
 		})
 	})
@@ -217,7 +226,7 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			assert.Equal(t, uint64(0), resolver.resolutions)
+			assert.Equal(t, uint64(0), resolver.lookups)
 			assert.EqualError(t, lookup.Error, "context done")
 		})
 	})
