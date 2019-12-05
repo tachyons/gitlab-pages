@@ -73,7 +73,7 @@ func (e *Entry) Retrieve(ctx context.Context, client api.Client) (lookup *api.Lo
 
 	select {
 	case <-newctx.Done():
-		lookup = &api.Lookup{Name: e.domain, Status: 502, Error: errors.New("context done")}
+		lookup = &api.Lookup{Name: e.domain, Error: errors.New("context done")}
 	case <-e.retrieved:
 		lookup = e.Lookup()
 	}

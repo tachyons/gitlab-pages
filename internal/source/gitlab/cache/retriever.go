@@ -30,7 +30,7 @@ func (r *Retriever) Retrieve(domain string) api.Lookup {
 	select {
 	case <-ctx.Done():
 		fmt.Println("retrieval context done") // TODO logme
-		lookup = api.Lookup{Status: 502, Error: errors.New("retrieval context done")}
+		lookup = api.Lookup{Error: errors.New("retrieval context done")}
 	case lookup = <-r.resolveWithBackoff(ctx, domain):
 		fmt.Println("retrieval response sent") // TODO logme
 	}

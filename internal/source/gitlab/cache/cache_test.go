@@ -19,7 +19,6 @@ type client struct {
 	bootup      chan uint64
 	domain      chan string
 	failure     error
-	status      int
 }
 
 func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
@@ -27,10 +26,6 @@ func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
 
 	c.bootup <- atomic.AddUint64(&c.started, 1)
 	defer atomic.AddUint64(&c.resolutions, 1)
-
-	if c.status == 0 {
-		lookup.Status = 200
-	}
 
 	if c.failure == nil {
 		lookup.Name = <-c.domain
@@ -71,7 +66,7 @@ func (cache *Cache) withTestEntry(config entryConfig, block func(*Entry)) {
 	entry := cache.store.LoadOrCreate(domain)
 
 	if config.retrieved {
-		entry.setResponse(api.Lookup{Name: domain, Status: 200})
+		entry.setResponse(api.Lookup{Name: domain})
 	}
 
 	if config.expired {
@@ -100,7 +95,6 @@ func TestResolve(t *testing.T) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			assert.NoError(t, lookup.Error)
-			assert.Equal(t, 200, lookup.Status)
 			assert.Equal(t, "my.gitlab.com", lookup.Name)
 			assert.Equal(t, uint64(1), resolver.resolutions)
 		})

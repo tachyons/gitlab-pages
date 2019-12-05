@@ -15,7 +15,7 @@ type StubClient struct {
 
 // GetLookup reads a test fixture and unmarshalls it
 func (c StubClient) GetLookup(ctx context.Context, host string) api.Lookup {
-	lookup := api.Lookup{Name: host, Status: 200}
+	lookup := api.Lookup{Name: host}
 
 	f, err := os.Open(c.File)
 	defer f.Close()

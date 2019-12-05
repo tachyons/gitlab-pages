@@ -36,13 +36,13 @@ func New(config client.Config) (*Gitlab, error) {
 func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 	lookup := g.client.GetLookup(context.Background(), name)
 
-	// NoContent response means that a domain does not exist
-	if lookup.Status == http.StatusNoContent {
-		return nil, nil
-	}
-
 	if lookup.Error != nil {
 		return nil, lookup.Error
+	}
+
+	// Domain does not exist
+	if lookup.Domain == nil {
+		return nil, nil
 	}
 
 	domain := domain.Domain{

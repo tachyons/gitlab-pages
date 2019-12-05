@@ -10,8 +10,6 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
 var (
@@ -48,8 +46,8 @@ func TestNewInvalidBaseURL(t *testing.T) {
 
 func TestLookupForErrorResponses(t *testing.T) {
 	tests := map[int]string{
-		http.StatusUnauthorized: "Unauthorized",
-		http.StatusNotFound:     "Not Found",
+		http.StatusUnauthorized: "HTTP status: 401",
+		http.StatusNotFound:     "HTTP status: 404",
 	}
 
 	for statusCode, expectedError := range tests {
@@ -70,7 +68,7 @@ func TestLookupForErrorResponses(t *testing.T) {
 			lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
 			require.EqualError(t, lookup.Error, expectedError)
-			require.Equal(t, lookup.Domain, api.VirtualDomain{})
+			require.Nil(t, lookup.Domain)
 		})
 	}
 }
@@ -91,7 +89,7 @@ func TestMissingDomain(t *testing.T) {
 	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
 	require.NoError(t, lookup.Error)
-	require.Equal(t, lookup.Domain, api.VirtualDomain{})
+	require.Nil(t, lookup.Domain)
 }
 
 func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
