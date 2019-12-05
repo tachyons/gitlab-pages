@@ -11,7 +11,7 @@ import (
 func readFile(file string) (result []byte) {
 	result, err := ioutil.ReadFile(file)
 	if err != nil {
-		fatal(err)
+		fatal(err, "could not read file")
 	}
 	return
 }
@@ -21,7 +21,7 @@ func readFile(file string) (result []byte) {
 func createSocket(addr string) (net.Listener, *os.File) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		fatal(err)
+		fatal(err, "could not create socket")
 	}
 
 	return l, fileForListener(l)
@@ -34,7 +34,7 @@ func fileForListener(l net.Listener) *os.File {
 
 	f, err := l.(filer).File()
 	if err != nil {
-		fatal(err)
+		fatal(err, "could not find file for listener")
 	}
 
 	return f
@@ -42,5 +42,5 @@ func fileForListener(l net.Listener) *os.File {
 
 func capturingFatal(err error, fields ...errortracking.CaptureOption) {
 	errortracking.Capture(err, fields...)
-	fatal(err)
+	fatal(err, "capturing fatal")
 }

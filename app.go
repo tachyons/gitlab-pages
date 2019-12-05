@@ -413,9 +413,14 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 }
 
 func runApp(config appConfig) {
-	a := theApp{appConfig: config, domains: source.NewDomains(config)}
+	domains, err := source.NewDomains(config)
+	if err != nil {
+		log.WithError(err).Fatal("could not create domains config source")
+	}
 
-	err := logging.ConfigureLogging(a.LogFormat, a.LogVerbose)
+	a := theApp{appConfig: config, domains: domains}
+
+	err = logging.ConfigureLogging(a.LogFormat, a.LogVerbose)
 	if err != nil {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}
@@ -451,6 +456,6 @@ func runApp(config appConfig) {
 }
 
 // fatal will log a fatal error and exit.
-func fatal(err error) {
-	log.WithError(err).Fatal()
+func fatal(err error, message string) {
+	log.WithError(err).Fatal(message)
 }

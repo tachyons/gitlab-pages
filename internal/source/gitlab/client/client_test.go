@@ -18,7 +18,35 @@ var (
 	encodedSecret = "e41rcFh7XBA7sNABWVCe2AZvxMsy6QDtJ8S9Ql1UiN8=" // 32 bytes, base64 encoded
 )
 
-func TestGetLookupForErrorResponses(t *testing.T) {
+func TestNewValidBaseURL(t *testing.T) {
+	_, err := NewClient("https://gitlab.com", secretKey())
+	require.NoError(t, err)
+}
+
+func TestNewInvalidBaseURL(t *testing.T) {
+	t.Run("when API URL is not valid", func(t *testing.T) {
+		client, err := NewClient("%", secretKey())
+
+		require.Error(t, err)
+		require.Nil(t, client)
+	})
+
+	t.Run("when API URL is empty", func(t *testing.T) {
+		client, err := NewClient("", secretKey())
+
+		require.Nil(t, client)
+		require.EqualError(t, err, "GitLab API URL or API secret has not been provided")
+	})
+
+	t.Run("when API secret is empty", func(t *testing.T) {
+		client, err := NewClient("https://gitlab.com", []byte{})
+
+		require.Nil(t, client)
+		require.EqualError(t, err, "GitLab API URL or API secret has not been provided")
+	})
+}
+
+func TestLookupForErrorResponses(t *testing.T) {
 	tests := map[int]string{
 		http.StatusNoContent:    "No Content",
 		http.StatusUnauthorized: "Unauthorized",
@@ -37,7 +65,8 @@ func TestGetLookupForErrorResponses(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := NewClient(server.URL, secretKey())
+			client, err := NewClient(server.URL, secretKey())
+			require.NoError(t, err)
 
 			lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
@@ -65,8 +94,8 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 					"access_control": false,
 					"source": {
 						"type": "file",
-							"path": "mygroup/myproject/public/"
-						},
+						"path": "mygroup/myproject/public/"
+					},
 					"https_only": true,
 					"prefix": "/myproject/"
 				}
@@ -80,7 +109,8 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	client := NewClient(server.URL, secretKey())
+	client, err := NewClient(server.URL, secretKey())
+	require.NoError(t, err)
 
 	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 	require.NoError(t, lookup.Error)

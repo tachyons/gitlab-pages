@@ -36,11 +36,20 @@ type Domains struct {
 // NewDomains is a factory method for domains initializing a mutex. It should
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
-func NewDomains(config Config) *Domains {
-	return &Domains{
-		disk:   disk.New(),
-		gitlab: gitlab.New(config),
+func NewDomains(config Config) (*Domains, error) {
+	if len(config.GitlabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
+		return &Domains{disk: disk.New()}, nil
 	}
+
+	gitlab, err := gitlab.New(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Domains{
+		gitlab: gitlab,
+		disk:   disk.New(),
+	}, nil
 }
 
 // GetDomain retrieves a domain information from a source. We are using two
@@ -69,6 +78,10 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
+	if d.gitlab == nil {
+		return d.disk
+	}
+
 	for _, name := range newSourceDomains {
 		if domain == name {
 			return d.gitlab

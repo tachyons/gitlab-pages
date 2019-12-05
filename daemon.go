@@ -34,7 +34,7 @@ func daemonMain() {
 	// read the configuration from the pipe "ExtraFiles"
 	var config appConfig
 	if err := json.NewDecoder(os.NewFile(3, "options")).Decode(&config); err != nil {
-		fatal(err)
+		fatal(err, "could not decode app config")
 	}
 	runApp(config)
 	os.Exit(0)
