@@ -1536,7 +1536,8 @@ func TestGitlabDomainsSource(t *testing.T) {
 	defer source.Close()
 
 	newSourceDomains := "GITLAB_NEW_SOURCE_DOMAINS=new-source-test.gitlab.io,other-test.gitlab.io"
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", "README.md"}
+	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{newSourceDomains}, pagesArgs...)
 	defer teardown()
 
