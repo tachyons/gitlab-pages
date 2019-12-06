@@ -4,33 +4,13 @@ set -e
 
 echo "Checking Geo database migrations are up-to-date"
 
-UPGRADE_STATUS_DIR="${UPGRADE_STATUS_DIR:-/tmp/gitlab-upgrade}"
-GITLAB_REVISION=$(cat /srv/gitlab/REVISION)
-CONNECTION_DIGEST=$(md5sum /srv/gitlab/config/database_geo.yml | awk '{ print $1 }' )
-MIGRATE_STATUS_FILE="${UPGRADE_STATUS_DIR}/geo-db-migrate-${CONNECTION_DIGEST}-${GITLAB_REVISION}"
-
-# Exit if the database has already been updated
-if [ -f "${MIGRATE_STATUS_FILE}" ] && ( grep -qFx 0 "${MIGRATE_STATUS_FILE}" ); then
-  echo "Geo Database migrations have already been run"
-  exit 0
-fi
-
-# Seed or migrate the database
-echo "Checking for database status"
-mkdir -p "${UPGRADE_STATUS_DIR}"
-umask 077
 cd /srv/gitlab
 
 # Ask for the current DB schema version, via Rake
 DB_SCHEMA_VERSION=$(/srv/gitlab/bin/bundle exec rake geo:db:version)
-
-# If rake failed, we're not connected to the DB, and DB_SCHEMA_VERSION is empty.
-if [ $? -ne 0 ]; then
-  return 1
-fi
-
 DB_SCHEMA_VERSION=$(echo ${DB_SCHEMA_VERSION} | grep 'Current version: ' | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)/\1/')
 
+# If DB_SCHEMA_VERSION is 0, then the database needs initialized
 RAKE_TASK="geo:db:migrate"
 if [ "${DB_SCHEMA_VERSION}" == "0" ]; then
   echo "Geo Database appears need initialized."
@@ -40,14 +20,6 @@ fi
 echo "Performing '${RAKE_TASK}'"
 /srv/gitlab/bin/rake ${RAKE_TASK} && STATUS=$? || STATUS=$?
 
-# Update the status
-echo "Storing Geo Migration Status"
-echo $STATUS > "${MIGRATE_STATUS_FILE}"
-
-# If that went well, attempt to update the FDW
-if [ "$STATUS" == "0" ]; then
-  echo "Performing refresh of foreign tables 'geo:db:refresh_foreign_tables'"
-  /srv/gitlab/bin/rake geo:db:refresh_foreign_tables
-fi
-
-exit $STATUS
+# Attempt to update the FDW
+echo "Performing refresh of foreign tables 'geo:db:refresh_foreign_tables'"
+/srv/gitlab/bin/rake geo:db:refresh_foreign_tables

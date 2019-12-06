@@ -2,38 +2,18 @@
 
 set -e
 
-echo "Checking database migrations are up-to-date"
-
-UPGRADE_STATUS_DIR="${UPGRADE_STATUS_DIR:-/tmp/gitlab-upgrade}"
-GITLAB_REVISION=$(cat /srv/gitlab/REVISION)
-CONNECTION_DIGEST=$(md5sum /srv/gitlab/config/database.yml | awk '{ print $1 }' )
-MIGRATE_STATUS_FILE="${UPGRADE_STATUS_DIR}/db-migrate-${CONNECTION_DIGEST}-${GITLAB_REVISION}"
 ROOT_PASSWORD_FILE="${ROOT_PASSWORD_FILE:-/srv/gitlab/config/initial_root_password}"
 
-# Exit if the database has already been updated
-if [ -f "${MIGRATE_STATUS_FILE}" ] && ( grep -qFx 0 "${MIGRATE_STATUS_FILE}" ); then
-  echo "Database migrations have already been run"
-  exit 0
-fi
-
 if [ -f "${ROOT_PASSWORD_FILE}" ]; then
-  INITIAL_PASSWORD=$(cat "${ROOT_PASSWORD_FILE}")
+  export GITLAB_ROOT_PASSWORD=$(cat "${ROOT_PASSWORD_FILE}")
 fi
 
-# Seed or migrate the database
-echo "Checking for new migrations"
-mkdir -p "${UPGRADE_STATUS_DIR}"
-umask 077
+echo "Checking database migrations are up-to-date"
+
+# Seed or migrate the database via gitlab:db:configure
+echo "Performing migrations (this will initialized if needed)"
 cd /srv/gitlab
+/srv/gitlab/bin/rake gitlab:db:configure
 
-GITLAB_ROOT_PASSWORD=${INITIAL_PASSWORD} /srv/gitlab/bin/rake gitlab:db:configure && STATUS=$? || STATUS=$?
-
-if [ "$STATUS" = "0" ]; then
-  echo "Perform custom instance setup"
-  /scripts/custom-instance-setup && STATUS=$? || STATUS=$?
-fi
-
-# Update the status
-echo "Storing Migration Status"
-echo $STATUS > "${MIGRATE_STATUS_FILE}"
-exit $STATUS
+echo "Performing custom instance setup"
+/scripts/custom-instance-setup
