@@ -13,7 +13,7 @@ DB_SCHEMA_VERSION=$(echo ${DB_SCHEMA_VERSION} | grep 'Current version: ' | sed -
 # If DB_SCHEMA_VERSION is 0, then the database needs initialized
 RAKE_TASK="geo:db:migrate"
 if [ "${DB_SCHEMA_VERSION}" == "0" ]; then
-  echo "Geo Database appears need initialized."
+  echo "Geo Database appears to need initializing."
   RAKE_TASK="geo:db:setup"
 fi
 
