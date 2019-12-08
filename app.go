@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"errors"
-	"net"
 	"net/http"
 	"sync"
 
@@ -87,11 +86,7 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 }
 
 func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, error) {
-	host, _, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		host = r.Host
-	}
-
+	host := request.GetHostWithoutPort(r)
 	domain, err := a.domain(host)
 
 	return host, domain, err

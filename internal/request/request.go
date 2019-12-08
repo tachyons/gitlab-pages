@@ -2,6 +2,7 @@ package request
 
 import (
 	"context"
+	"net"
 	"net/http"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
@@ -44,4 +45,15 @@ func GetHost(r *http.Request) string {
 // GetDomain extracts the domain from request's context
 func GetDomain(r *http.Request) *domain.Domain {
 	return r.Context().Value(ctxDomainKey).(*domain.Domain)
+}
+
+// GetHostWithoutPort returns a host without the port. The host(:port) comes
+// from a Host: header if it is provided, otherwise it is a server name.
+func GetHostWithoutPort(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		return r.Host
+	}
+
+	return host
 }
