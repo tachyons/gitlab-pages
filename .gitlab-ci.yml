@@ -27,7 +27,7 @@ stages:
       - $DEPS_PIPELINE
     refs:
       - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
 
 .except-ee: &except-ee
   except:
@@ -71,6 +71,7 @@ stages:
     refs:
       - /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
       - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -100,6 +101,8 @@ stages:
       - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
   except:
     <<: *deps_pipeline
+    refs:
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
 
 dependency_update:
   image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:0.0.41
@@ -893,11 +896,6 @@ sync-images:
       - artifacts/
   only:
     - tags@gitlab/charts/components/images
-  except:
-    variables:
-      - $UBI_PIPELINE == "true"
-      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
-      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
 
 ubi-assets-release:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:ubi-release
@@ -920,9 +918,10 @@ ubi-assets-release:
     - build:gitlab-rails-ee
     - build:gitlab-task-runner-ee
     - build:gitlab-unicorn-ee
+  when: manual
   only:
     refs:
-      - /^.+-ubi8$/@gitlab-org/build/CNG
+      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
   before_script:
     - export UBI_RELEASE_TAG=${CI_COMMIT_TAG:-latest}
     - export AWS_ACCESS_KEY_ID="${GPG_KEY_AWS_ACCESS_KEY_ID}"
@@ -964,7 +963,7 @@ ubi-assets-release:
           "${ASSETS_PACK}.asc"
           "${ASSETS_URL}.asc"
         )"
-        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+        "${RELEASE_API}"
   artifacts:
     paths:
       - artifacts/

@@ -49,7 +49,7 @@ function build_if_needed(){
     fi
 
     if [ ! -f "Dockerfile${DOCKERFILE_EXT}" ]; then
-      echo "Skipping $(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}: Dockerfile${DOCKERFILE_EXT} does not exist."
+      echo "Skipping $(get_trimmed_job_name): Dockerfile${DOCKERFILE_EXT} does not exist."
       popd
       return 0
     fi
@@ -144,6 +144,11 @@ function push_if_master_or_stable_or_tag(){
   # we may not be syncing build images, but only the user facing images.
   if [ "$CI_REGISTRY" == "registry.gitlab.com" ] && [ -n "$CI_COMMIT_TAG" ]; then
     return
+  fi
+
+  if [ ! -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
+    echo "Skipping $(get_trimmed_job_name): Dockerfile${DOCKERFILE_EXT} does not exist."
+    return 0
   fi
 
   if is_master || is_stable || is_tag; then
