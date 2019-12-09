@@ -15,10 +15,10 @@ type StubClient struct {
 // GetVirtualDomain reads a test fixture and unmarshalls it
 func (c StubClient) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
 	f, err := os.Open(c.File)
-	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	var domain api.VirtualDomain
 	err = json.NewDecoder(f).Decode(&domain)
