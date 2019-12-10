@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -121,6 +122,22 @@ func setArtifactsServer(artifactsServer string, artifactsServerTimeout int, conf
 	config.ArtifactsServer = artifactsServer
 }
 
+func setGitLabAPISecretKey(secretFile string, config *appConfig) {
+	encoded := readFile(secretFile)
+
+	decoded := make([]byte, base64.StdEncoding.DecodedLen(len(encoded)))
+	secretLength, err := base64.StdEncoding.Decode(decoded, encoded)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to decode GitLab API secret")
+	}
+
+	if secretLength != 32 {
+		log.WithError(fmt.Errorf("Expected 32 bytes GitLab API secret but got %d bytes", secretLength)).Fatal("Failed to decode GitLab API secret")
+	}
+
+	config.GitLabAPISecretKey = decoded
+}
+
 func configFromFlags() appConfig {
 	var config appConfig
 
@@ -144,11 +161,14 @@ func configFromFlags() appConfig {
 	}{
 		{&config.RootCertificate, *pagesRootCert},
 		{&config.RootKey, *pagesRootKey},
-		{&config.GitLabAPISecretKey, *gitLabAPISecretKey},
 	} {
 		if file.path != "" {
 			*file.contents = readFile(file.path)
 		}
+	}
+
+	if *gitLabAPISecretKey != "" {
+		setGitLabAPISecretKey(*gitLabAPISecretKey, &config)
 	}
 
 	if *artifactsServer != "" {

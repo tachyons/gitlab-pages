@@ -10,10 +10,8 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
-)
 
-var (
-	encodedSecret = "e41rcFh7XBA7sNABWVCe2AZvxMsy6QDtJ8S9Ql1UiN8=" // 32 bytes, base64 encoded
+	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
 
 func TestNewValidBaseURL(t *testing.T) {
@@ -162,6 +160,6 @@ func validateToken(t *testing.T, tokenString string) {
 }
 
 func secretKey() []byte {
-	secretKey, _ := base64.StdEncoding.DecodeString(encodedSecret)
+	secretKey, _ := base64.StdEncoding.DecodeString(fixture.GitLabAPISecretKey)
 	return secretKey
 }

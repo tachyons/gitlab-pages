@@ -53,4 +53,8 @@ yhGSbQKBgD3VEnPiSUmXBo39kPcnPg93E3JfdAOiOwIB2qwfYzg9kpmuTWws+DFz
 lKpMI27YkmnPqROQ2NTUfdxYmw3EHHMAsvnmHeMNGn3ijSUZVKmPfV436Qc8iVci
 s4wKoCRhBUZ52sHki/ieb+5hycT3JnVXMDtbJxgXFW5a86usXEpO
 -----END RSA PRIVATE KEY-----`
+
+	// GitLabAPISecretKey used in tests
+	// 32 bytes, base64 encoded
+	GitLabAPISecretKey = "e41rcFh7XBA7sNABWVCe2AZvxMsy6QDtJ8S9Ql1UiN8="
 )

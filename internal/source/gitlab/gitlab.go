@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
@@ -58,7 +59,8 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 // Resolve is supposed to get the serving lookup path based on the request from
 // the GitLab source
 func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
-	response := g.client.GetLookup(r.Context(), r.Host)
+	host := request.GetHostWithoutPort(r)
+	response := g.client.GetLookup(r.Context(), host)
 	if response.Error != nil {
 		return nil, "", response.Error
 	}

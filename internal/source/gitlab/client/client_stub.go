@@ -18,11 +18,11 @@ func (c StubClient) GetLookup(ctx context.Context, host string) api.Lookup {
 	lookup := api.Lookup{Name: host}
 
 	f, err := os.Open(c.File)
-	defer f.Close()
 	if err != nil {
 		lookup.Error = err
 		return lookup
 	}
+	defer f.Close()
 
 	lookup.Error = json.NewDecoder(f).Decode(&lookup.Domain)
 
