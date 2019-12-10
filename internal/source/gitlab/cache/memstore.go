@@ -9,28 +9,38 @@ import (
 
 type memstore struct {
 	store *cache.Cache
-	mux   *sync.Mutex
+	mux   *sync.RWMutex
 }
 
 func newMemStore() Store {
 	return &memstore{
 		store: cache.New(longCacheExpiry, time.Minute),
-		mux:   &sync.Mutex{},
+		mux:   &sync.RWMutex{},
 	}
 }
 
+// LoadOrCreate writes or retrieves a domain entry from the cache in a
+// thread-safe way, trying to make this read-preferring RW locking.
 func (m *memstore) LoadOrCreate(domain string) *Entry {
-	m.mux.Lock()
-	defer m.mux.Unlock()
+	m.mux.RLock()
+	entry, exists := m.store.Get(domain)
+	m.mux.RUnlock()
 
-	if entry, exists := m.store.Get(domain); exists {
+	if exists {
 		return entry.(*Entry)
 	}
 
-	entry := newCacheEntry(domain)
-	m.store.SetDefault(domain, entry)
+	m.mux.Lock()
+	defer m.mux.Unlock()
 
-	return entry
+	if entry, exists = m.store.Get(domain); exists {
+		return entry.(*Entry)
+	}
+
+	newEntry := newCacheEntry(domain)
+	m.store.SetDefault(domain, newEntry)
+
+	return newEntry
 }
 
 func (m *memstore) ReplaceOrCreate(domain string, entry *Entry) *Entry {
