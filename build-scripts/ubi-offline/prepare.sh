@@ -6,19 +6,25 @@ set -euxo pipefail
 
 TAG=${1:-latest}
 PACKAGE_NAME="ubi8-build-dependencies-${TAG}.tar"
-PACKAGE_HOST="https://gitlab-ubi.s3.us-east-2.amazonaws.com"
+PACKAGE_HOST='https://gitlab-ubi.s3.us-east-2.amazonaws.com'
 PACKAGE_URL="${PACKAGE_HOST}/${PACKAGE_NAME}"
-WORKSPACE="prepare"
+WORKSPACE='prepare'
+CACHE_LOCATION='/tmp'
 
 mkdir ${WORKSPACE}
+mkdir -p ${CACHE_LOCATION}
 trap "rm -rf ${WORKSPACE}" EXIT
 
 # Download and import GitLab's public key
 curl -Lf "${PACKAGE_HOST}/gpg" | gpg --import
 
-# Download UBI dependencies package and it signature
+# Download UBI dependencies package and its signature.
+# Cache the package but always download the signature.
 curl -Lf "${PACKAGE_URL}.asc" -o "${WORKSPACE}/${PACKAGE_NAME}.asc"
-curl -Lf "${PACKAGE_URL}" -o "${WORKSPACE}/${PACKAGE_NAME}"
+if [ ! -f "${CACHE_LOCATION}/${PACKAGE_NAME}" ]; then 
+  curl -Lf "${PACKAGE_URL}" -o "${CACHE_LOCATION}/${PACKAGE_NAME}"
+fi
+cp "${CACHE_LOCATION}/${PACKAGE_NAME}" "${WORKSPACE}/${PACKAGE_NAME}"
 
 # Verify the package integrity
 gpg --verify "${WORKSPACE}/${PACKAGE_NAME}.asc" "${WORKSPACE}/${PACKAGE_NAME}"
