@@ -57,23 +57,23 @@ func NewFromConfig(config Config) (*Client, error) {
 
 // GetLookup returns a VirtualDomain configuration wrap into a Lookup for a
 // given host
-func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
+func (gc *Client) GetLookup(ctx context.Context, host string) *api.Lookup {
 	params := url.Values{}
 	params.Set("host", host)
 
 	resp, err := gc.get(ctx, "/api/v4/internal/pages", params)
 	if err != nil {
-		return api.Lookup{Name: host, Error: err}
+		return &api.Lookup{Name: host, Error: err}
 	}
 
 	if resp == nil {
-		return api.Lookup{Name: host}
+		return &api.Lookup{Name: host}
 	}
 
 	lookup := api.Lookup{Name: host}
 	lookup.Error = json.NewDecoder(resp.Body).Decode(&lookup.Domain)
 
-	return lookup
+	return &lookup
 }
 
 func (gc *Client) get(ctx context.Context, path string, params url.Values) (*http.Response, error) {

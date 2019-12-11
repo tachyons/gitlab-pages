@@ -92,11 +92,11 @@ func (e *Entry) retrieveWithClient(client api.Client) {
 	e.setResponse(retriever.Retrieve(e.domain))
 }
 
-func (e *Entry) setResponse(lookup api.Lookup) {
+func (e *Entry) setResponse(lookup *api.Lookup) {
 	e.mux.Lock()
 	defer e.mux.Unlock()
 
-	e.response = &lookup
+	e.response = lookup
 	close(e.retrieved)
 }
 

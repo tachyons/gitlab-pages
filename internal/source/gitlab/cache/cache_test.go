@@ -21,7 +21,7 @@ type client struct {
 	failure error
 }
 
-func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
+func (c *client) GetLookup(ctx context.Context, _ string) *api.Lookup {
 	var lookup api.Lookup
 
 	// TODO This might not work on some architectures
@@ -42,7 +42,7 @@ func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
 		lookup.Error = c.failure
 	}
 
-	return lookup
+	return &lookup
 }
 
 func withTestCache(config resolverConfig, block func(*Cache, *client)) {
@@ -75,7 +75,7 @@ func (cache *Cache) withTestEntry(config entryConfig, block func(*Entry)) {
 	entry := cache.store.LoadOrCreate(domain)
 
 	if config.retrieved {
-		entry.setResponse(api.Lookup{Name: domain})
+		entry.setResponse(&api.Lookup{Name: domain})
 	}
 
 	if config.expired {
@@ -96,12 +96,12 @@ type entryConfig struct {
 	retrieved bool
 }
 
-func TestResolve(t *testing.T) {
+func TestGetLookup(t *testing.T) {
 	t.Run("when item is not cached", func(t *testing.T) {
 		withTestCache(resolverConfig{buffered: true}, func(cache *Cache, resolver *client) {
 			resolver.domain <- "my.gitlab.com"
 
-			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
+			lookup := cache.GetLookup(context.Background(), "my.gitlab.com")
 
 			require.NoError(t, lookup.Error)
 			require.Equal(t, "my.gitlab.com", lookup.Name)
@@ -116,7 +116,7 @@ func TestResolve(t *testing.T) {
 
 			receiver := func() {
 				defer wg.Done()
-				cache.Resolve(ctx, "my.gitlab.com")
+				cache.GetLookup(ctx, "my.gitlab.com")
 			}
 
 			wg.Add(3)
@@ -136,7 +136,7 @@ func TestResolve(t *testing.T) {
 	t.Run("when item is in short cache", func(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: true}, func(*Entry) {
-				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
+				lookup := cache.GetLookup(context.Background(), "my.gitlab.com")
 
 				require.Equal(t, "my.gitlab.com", lookup.Name)
 				require.Equal(t, uint64(0), resolver.lookups)
@@ -150,7 +150,7 @@ func TestResolve(t *testing.T) {
 				lookup := make(chan *api.Lookup, 1)
 
 				go func() {
-					lookup <- cache.Resolve(context.Background(), "my.gitlab.com")
+					lookup <- cache.GetLookup(context.Background(), "my.gitlab.com")
 				}()
 
 				<-resolver.bootup
@@ -170,7 +170,7 @@ func TestResolve(t *testing.T) {
 	t.Run("when item is in long cache only", func(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
-				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
+				lookup := cache.GetLookup(context.Background(), "my.gitlab.com")
 
 				require.Equal(t, "my.gitlab.com", lookup.Name)
 				require.Equal(t, uint64(0), resolver.lookups)
@@ -184,9 +184,9 @@ func TestResolve(t *testing.T) {
 	t.Run("when item in long cache is requested multiple times", func(t *testing.T) {
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
-				cache.Resolve(context.Background(), "my.gitlab.com")
-				cache.Resolve(context.Background(), "my.gitlab.com")
-				cache.Resolve(context.Background(), "my.gitlab.com")
+				cache.GetLookup(context.Background(), "my.gitlab.com")
+				cache.GetLookup(context.Background(), "my.gitlab.com")
+				cache.GetLookup(context.Background(), "my.gitlab.com")
 
 				require.Equal(t, uint64(0), resolver.lookups)
 
@@ -200,7 +200,7 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{failure: errors.New("500 err")}, func(cache *Cache, resolver *client) {
 			maxRetrievalInterval = 0
 
-			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
+			lookup := cache.GetLookup(context.Background(), "my.gitlab.com")
 
 			require.Equal(t, uint64(3), resolver.lookups)
 			require.EqualError(t, lookup.Error, "500 err")
@@ -212,7 +212,7 @@ func TestResolve(t *testing.T) {
 		cancel()
 
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
-			lookup := cache.Resolve(ctx, "my.gitlab.com")
+			lookup := cache.GetLookup(ctx, "my.gitlab.com")
 
 			require.Equal(t, uint64(0), resolver.lookups)
 			require.EqualError(t, lookup.Error, "context done")
@@ -224,7 +224,7 @@ func TestResolve(t *testing.T) {
 		defer func() { retrievalTimeout = 5 * time.Second }()
 
 		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
-			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
+			lookup := cache.GetLookup(context.Background(), "my.gitlab.com")
 
 			require.Equal(t, uint64(0), resolver.lookups)
 			require.EqualError(t, lookup.Error, "retrieval context done")
@@ -237,7 +237,7 @@ func TestResolve(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 
 				response := make(chan *api.Lookup, 1)
-				go func() { response <- cache.Resolve(ctx, "my.gitlab.com") }()
+				go func() { response <- cache.GetLookup(ctx, "my.gitlab.com") }()
 
 				cancel()
 

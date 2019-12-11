@@ -6,14 +6,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
 func TestGetDomain(t *testing.T) {
 	t.Run("when the response if correct", func(t *testing.T) {
 		client := client.StubClient{File: "client/testdata/test.gitlab.io.json"}
-		source := Gitlab{client: client, cache: cache.New()}
+		source := Gitlab{client: client}
 
 		domain, err := source.GetDomain("test.gitlab.io")
 		require.NoError(t, err)
@@ -23,7 +22,7 @@ func TestGetDomain(t *testing.T) {
 
 	t.Run("when the response is not valid", func(t *testing.T) {
 		client := client.StubClient{File: "/dev/null"}
-		source := Gitlab{client: client, cache: cache.New()}
+		source := Gitlab{client: client}
 
 		domain, err := source.GetDomain("test.gitlab.io")
 
@@ -34,7 +33,7 @@ func TestGetDomain(t *testing.T) {
 
 func TestResolve(t *testing.T) {
 	client := client.StubClient{File: "client/testdata/test.gitlab.io.json"}
-	source := Gitlab{client: client, cache: cache.New()}
+	source := Gitlab{client: client}
 
 	t.Run("when requesting a nested group project", func(t *testing.T) {
 		target := "https://test.gitlab.io:443/my/pages/project/path/index.html"

@@ -19,7 +19,6 @@ import (
 // information about domains from GitLab instance.
 type Gitlab struct {
 	client api.Client
-	cache  *cache.Cache // WIP
 }
 
 // New returns a new instance of gitlab domain source.
@@ -29,7 +28,7 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
-	return &Gitlab{client: client, cache: cache.New()}, nil
+	return &Gitlab{client: cache.NewCache(client)}, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from
