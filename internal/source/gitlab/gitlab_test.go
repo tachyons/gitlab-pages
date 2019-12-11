@@ -4,7 +4,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
@@ -19,7 +18,7 @@ func TestGetDomain(t *testing.T) {
 		domain, err := source.GetDomain("test.gitlab.io")
 		require.NoError(t, err)
 
-		assert.Equal(t, "test.gitlab.io", domain.Name)
+		require.Equal(t, "test.gitlab.io", domain.Name)
 	})
 
 	t.Run("when the response is not valid", func(t *testing.T) {
@@ -28,8 +27,8 @@ func TestGetDomain(t *testing.T) {
 
 		domain, err := source.GetDomain("test.gitlab.io")
 
-		assert.NotNil(t, err)
-		assert.Nil(t, domain)
+		require.NotNil(t, err)
+		require.Nil(t, domain)
 	})
 }
 
@@ -44,9 +43,9 @@ func TestResolve(t *testing.T) {
 		lookup, subpath, err := source.Resolve(request)
 		require.NoError(t, err)
 
-		assert.Equal(t, "/my/pages/project", lookup.Prefix)
-		assert.Equal(t, "path/index.html", subpath)
-		assert.False(t, lookup.IsNamespaceProject)
+		require.Equal(t, "/my/pages/project", lookup.Prefix)
+		require.Equal(t, "path/index.html", subpath)
+		require.False(t, lookup.IsNamespaceProject)
 	})
 
 	t.Run("when request a nested group project", func(t *testing.T) {
@@ -56,10 +55,10 @@ func TestResolve(t *testing.T) {
 		lookup, subpath, err := source.Resolve(request)
 		require.NoError(t, err)
 
-		assert.Equal(t, "/", lookup.Prefix)
-		assert.Equal(t, "path/to/index.html", subpath)
-		assert.Equal(t, "some/path/to/project-3/", lookup.Path)
-		assert.True(t, lookup.IsNamespaceProject)
+		require.Equal(t, "/", lookup.Prefix)
+		require.Equal(t, "path/to/index.html", subpath)
+		require.Equal(t, "some/path/to/project-3/", lookup.Path)
+		require.True(t, lookup.IsNamespaceProject)
 	})
 
 	t.Run("when request path has not been sanitized", func(t *testing.T) {
@@ -69,7 +68,7 @@ func TestResolve(t *testing.T) {
 		lookup, subpath, err := source.Resolve(request)
 		require.NoError(t, err)
 
-		assert.Equal(t, "/my/pages/project", lookup.Prefix)
-		assert.Equal(t, "index.html", subpath)
+		require.Equal(t, "/my/pages/project", lookup.Prefix)
+		require.Equal(t, "index.html", subpath)
 	})
 }

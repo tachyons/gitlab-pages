@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/namsral/flag"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1535,18 +1534,28 @@ func TestGitlabDomainsSource(t *testing.T) {
 	source := NewGitlabDomainsSourceStub(t)
 	defer source.Close()
 
-	newSourceDomains := "GITLAB_NEW_SOURCE_DOMAINS=new-source-test.gitlab.io,other-test.gitlab.io"
+	newSourceDomains := "GITLAB_NEW_SOURCE_DOMAINS=new-source-test.gitlab.io,non-existent-domain.gitlab.io"
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{newSourceDomains}, pagesArgs...)
 	defer teardown()
 
-	response, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
-	require.NoError(t, err)
+	t.Run("when a domain exists", func(t *testing.T) {
+		response, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
+		require.NoError(t, err)
 
-	defer response.Body.Close()
-	body, _ := ioutil.ReadAll(response.Body)
+		defer response.Body.Close()
+		body, _ := ioutil.ReadAll(response.Body)
 
-	assert.Equal(t, http.StatusOK, response.StatusCode)
-	assert.Equal(t, "New Pages GitLab Source TEST OK\n", string(body))
+		require.Equal(t, http.StatusOK, response.StatusCode)
+		require.Equal(t, "New Pages GitLab Source TEST OK\n", string(body))
+	})
+
+	t.Run("when a domain does not exists", func(t *testing.T) {
+		response, err := GetPageFromListener(t, httpListener, "non-existent-domain.gitlab.io", "/path")
+		defer response.Body.Close()
+		require.NoError(t, err)
+
+		require.Equal(t, http.StatusNotFound, response.StatusCode)
+	})
 }

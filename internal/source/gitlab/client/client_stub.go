@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 
@@ -12,16 +13,18 @@ type StubClient struct {
 	File string
 }
 
-// GetVirtualDomain reads a test fixture and unmarshalls it
-func (c StubClient) GetVirtualDomain(host string) (*api.VirtualDomain, error) {
+// GetLookup reads a test fixture and unmarshalls it
+func (c StubClient) GetLookup(ctx context.Context, host string) api.Lookup {
+	lookup := api.Lookup{Name: host}
+
 	f, err := os.Open(c.File)
 	if err != nil {
-		return nil, err
+		lookup.Error = err
+		return lookup
 	}
 	defer f.Close()
 
-	var domain api.VirtualDomain
-	err = json.NewDecoder(f).Decode(&domain)
+	lookup.Error = json.NewDecoder(f).Decode(&lookup.Domain)
 
-	return &domain, err
+	return lookup
 }

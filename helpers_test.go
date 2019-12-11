@@ -395,8 +395,16 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 func NewGitlabDomainsSourceStub(t *testing.T) *httptest.Server {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		domain := r.URL.Query().Get("host")
+		path := "shared/lookups/" + domain + ".json"
 
-		fixture, err := os.Open("shared/lookups/" + domain + ".json")
+		fixture, err := os.Open(path)
+		if os.IsNotExist(err) {
+			w.WriteHeader(http.StatusNoContent)
+
+			t.Logf("GitLab domain %s source stub served 204", domain)
+			return
+		}
+
 		defer fixture.Close()
 		require.NoError(t, err)
 
