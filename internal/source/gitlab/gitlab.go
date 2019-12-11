@@ -65,10 +65,13 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 		return nil, "", response.Error
 	}
 
-	for _, lookup := range response.Domain.LookupPaths {
-		urlPath := path.Clean(r.URL.Path)
+	urlPath := path.Clean(r.URL.Path)
 
-		if strings.HasPrefix(urlPath, lookup.Prefix) {
+	for _, lookup := range response.Domain.LookupPaths {
+		isSubPath := strings.HasPrefix(urlPath, lookup.Prefix)
+		isRootPath := urlPath == path.Clean(lookup.Prefix)
+
+		if isSubPath || isRootPath {
 			lookupPath := &serving.LookupPath{
 				Prefix:             lookup.Prefix,
 				Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
@@ -78,9 +81,12 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 				ProjectID:          uint64(lookup.ProjectID),
 			}
 
-			requestPath := strings.TrimPrefix(urlPath, lookup.Prefix)
+			subPath := ""
+			if isSubPath {
+				subPath = strings.TrimPrefix(urlPath, lookup.Prefix)
+			}
 
-			return lookupPath, strings.TrimPrefix(requestPath, "/"), nil
+			return lookupPath, subPath, nil
 		}
 	}
 

@@ -86,7 +86,7 @@ func (g *Group) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 
 	lookupPath := &serving.LookupPath{
 		Prefix:             prefix,
-		Path:               filepath.Join(g.name, projectPath, "public"),
+		Path:               filepath.Join(g.name, projectPath, "public") + "/",
 		IsNamespaceProject: projectConfig.NamespaceProject,
 		IsHTTPSOnly:        projectConfig.HTTPSOnly,
 		HasAccessControl:   projectConfig.AccessControl,

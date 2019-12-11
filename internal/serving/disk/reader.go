@@ -72,8 +72,9 @@ func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string,
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
 	// (including ..)
-	testPath := publicPath + "/" + strings.Join(subPath, "/")
+	testPath := publicPath + strings.Join(subPath, "/")
 	fullPath, err := filepath.EvalSymlinks(testPath)
+
 	if err != nil {
 		if endsWithoutHTMLExtension(testPath) {
 			return "", &locationFileNoExtensionError{
@@ -85,7 +86,7 @@ func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string,
 	}
 
 	// The requested path resolved to somewhere outside of the public/ directory
-	if !strings.HasPrefix(fullPath, publicPath+"/") && fullPath != publicPath {
+	if !strings.HasPrefix(fullPath, publicPath) && fullPath != filepath.Clean(publicPath) {
 		return "", fmt.Errorf("%q should be in %q", fullPath, publicPath)
 	}
 

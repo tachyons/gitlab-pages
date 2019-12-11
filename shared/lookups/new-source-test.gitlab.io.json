@@ -5,10 +5,10 @@
         {
             "access_control": false,
             "https_only": false,
-            "prefix": "/my/pages/project",
+            "prefix": "/my/pages/project/",
             "project_id": 123,
             "source": {
-                "path": "/group/new-source-test.gitlab.io/public",
+                "path": "group/new-source-test.gitlab.io/public/",
                 "type": "file"
             }
         }
