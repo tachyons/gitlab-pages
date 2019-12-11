@@ -61,13 +61,10 @@ func (e *Entry) Lookup() *api.Lookup {
 
 // Retrieve perform a blocking retrieval of the cache entry response.
 func (e *Entry) Retrieve(ctx context.Context, client api.Client) (lookup *api.Lookup) {
-	newctx, cancelctx := context.WithTimeout(ctx, retrievalTimeout)
-	defer cancelctx()
-
 	e.retrieve.Do(func() { go e.retrieveWithClient(client) })
 
 	select {
-	case <-newctx.Done():
+	case <-ctx.Done():
 		lookup = &api.Lookup{Name: e.domain, Error: errors.New("context done")}
 	case <-e.retrieved:
 		lookup = e.Lookup()
