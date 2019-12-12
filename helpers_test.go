@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -83,6 +84,28 @@ func CreateGitLabAPISecretKeyFixtureFile(t *testing.T) (filepath string) {
 	require.NoError(t, ioutil.WriteFile(secretfile.Name(), []byte(fixture.GitLabAPISecretKey), 0644))
 
 	return secretfile.Name()
+}
+
+func CreateGitlabSourceConfigFixtureFile(t *testing.T, domains string) (filename string, cleanup func()) {
+	daemonized := os.Getenv("TEST_DAEMONIZE") != ""
+
+	dir := ""
+	if daemonized {
+		dir = "shared/pages"
+	}
+	domainsfile, err := ioutil.TempFile(dir, "gitlab-source-config-*")
+	require.NoError(t, err)
+	cleanup = func() { domainsfile.Close() }
+	cleanup()
+
+	require.NoError(t, ioutil.WriteFile(domainsfile.Name(), []byte(domains), 0644))
+
+	filename = domainsfile.Name()
+	if daemonized {
+		filename = filepath.Base(filename)
+	}
+
+	return filename, cleanup
 }
 
 // ListenSpec is used to point at a gitlab-pages http server, preserving the

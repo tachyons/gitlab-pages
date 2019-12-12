@@ -1,27 +1,80 @@
 package source
 
 import (
+	"bytes"
 	"errors"
+	"io/ioutil"
 	"os"
-	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 )
 
-var newSourceDomains []string
+type gitlabSourceConfig struct {
+	Domains struct {
+		Enabled []string
+		Broken  string
+	}
+}
+
+var gitlabSourceDomains []string
 var brokenSourceDomain string
 
 func init() {
-	testDomains := os.Getenv("GITLAB_NEW_SOURCE_DOMAINS")
-	if testDomains != "" {
-		newSourceDomains = strings.Split(testDomains, ",")
+	go watchForGitlabSourceConfigChange(&gitlabSourceDomains, &brokenSourceDomain, 5*time.Second)
+}
+
+// watchForGitlabSourceConfigChange polls the filesystem and updates test domains if needed.
+func watchForGitlabSourceConfigChange(gitlabSourceEnabledDomains *[]string, gitlabSourceBrokenDomain *string, interval time.Duration) {
+	var lastContent []byte
+
+	gitlabSourceConfigFile := os.Getenv("GITLAB_SOURCE_CONFIG_FILE")
+	if gitlabSourceConfigFile == "" {
+		gitlabSourceConfigFile = ".gitlab-source-config.yml"
 	}
 
-	brokenDomain := os.Getenv("GITLAB_NEW_SOURCE_BROKEN_DOMAIN")
-	if brokenDomain != "" {
-		brokenSourceDomain = brokenDomain
+	for {
+		content, err := ioutil.ReadFile(gitlabSourceConfigFile)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				log.WithError(err).Warn("Failed to read gitlab source config file")
+			} else if len(*gitlabSourceEnabledDomains) > 1 || len(*gitlabSourceBrokenDomain) > 1 {
+				*gitlabSourceEnabledDomains = []string{}
+				*gitlabSourceBrokenDomain = ""
+				lastContent = []byte{}
+				log.Info("Config file removed, disabling gitlab source")
+			}
+
+			time.Sleep(interval)
+			continue
+		}
+
+		if bytes.Equal(lastContent, content) {
+			time.Sleep(interval)
+			continue
+		}
+
+		lastContent = content
+
+		config := gitlabSourceConfig{}
+		err = yaml.Unmarshal(content, &config)
+		if err != nil {
+			log.WithError(err).Warn("Failed to decode gitlab source config file")
+
+			time.Sleep(interval)
+			continue
+		}
+
+		*gitlabSourceEnabledDomains = config.Domains.Enabled
+		*gitlabSourceBrokenDomain = config.Domains.Broken
+		log.Info("gitlab source config updated")
+
+		time.Sleep(interval)
 	}
 }
 
@@ -82,7 +135,7 @@ func (d *Domains) source(domain string) Source {
 		return d.disk
 	}
 
-	for _, name := range newSourceDomains {
+	for _, name := range gitlabSourceDomains {
 		if domain == name {
 			return d.gitlab
 		}

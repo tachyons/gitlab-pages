@@ -432,20 +432,6 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
 }
 
-func TestPageNotAvailableInDomainSource(t *testing.T) {
-	skipUnlessEnabled(t)
-
-	brokenDomain := "GITLAB_NEW_SOURCE_BROKEN_DOMAIN=pages-broken-poc.gitlab.io"
-	teardown := RunPagesProcessWithEnvs(t, false, *pagesBinary, listeners, "", []string{brokenDomain}, "-pages-root=shared/invalid-pages")
-	defer teardown()
-	waitForRoundtrips(t, listeners, 5*time.Second)
-
-	rsp, err := GetPageFromListener(t, httpListener, "pages-broken-poc.gitlab.io", "index.html")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	require.Equal(t, http.StatusBadGateway, rsp.StatusCode)
-}
-
 func TestObscureMIMEType(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "")
@@ -1534,10 +1520,21 @@ func TestGitlabDomainsSource(t *testing.T) {
 	source := NewGitlabDomainsSourceStub(t)
 	defer source.Close()
 
-	newSourceDomains := "GITLAB_NEW_SOURCE_DOMAINS=new-source-test.gitlab.io,non-existent-domain.gitlab.io"
+	gitlabSourceConfig := `
+domains:
+  enabled:
+    - new-source-test.gitlab.io
+  broken: pages-broken-poc.gitlab.io
+`
+	gitlabSourceConfigFile, cleanupGitlabSourceConfigFile := CreateGitlabSourceConfigFixtureFile(t, gitlabSourceConfig)
+	gitlabSourceConfigFile = "GITLAB_SOURCE_CONFIG_FILE=" + gitlabSourceConfigFile
+	defer cleanupGitlabSourceConfigFile()
+
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
 	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{newSourceDomains}, pagesArgs...)
+
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{gitlabSourceConfigFile}, pagesArgs...)
 	defer teardown()
 
 	t.Run("when a domain exists", func(t *testing.T) {
@@ -1557,5 +1554,14 @@ func TestGitlabDomainsSource(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, http.StatusNotFound, response.StatusCode)
+	})
+
+	t.Run("broken domain is requested", func(t *testing.T) {
+		response, err := GetPageFromListener(t, httpListener, "pages-broken-poc.gitlab.io", "index.html")
+		require.NoError(t, err)
+
+		defer response.Body.Close()
+
+		require.Equal(t, http.StatusBadGateway, response.StatusCode)
 	})
 }
