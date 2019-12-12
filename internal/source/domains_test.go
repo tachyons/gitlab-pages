@@ -41,11 +41,11 @@ func TestDomainSources(t *testing.T) {
 }
 
 func TestGetDomain(t *testing.T) {
-	newSourceDomains = []string{"new-source-test.gitlab.io"}
-	brokenSourceDomain = "pages-broken-poc.gitlab.io"
+	gitlabSourceConfig.Domains.Enabled = []string{"new-source-test.gitlab.io"}
+	gitlabSourceConfig.Domains.Broken = "pages-broken-poc.gitlab.io"
 
 	t.Run("when requesting a test domain", func(t *testing.T) {
-		testDomain := newSourceDomains[0]
+		testDomain := gitlabSourceConfig.Domains.Enabled[0]
 
 		newSource := NewMockSource()
 		newSource.On("GetDomain", testDomain).
