@@ -4,7 +4,7 @@ ARG KUBECTL_VERSION="1.13.12"
 FROM debian:stretch-slim
 # ARG must be redeclared after each FROM
 ARG KUBECTL_VERSION
-ARG YQ_VERSION="2.3.0"
+ARG YQ_VERSION="2.4.1"
 
 # Providing to environment, for easy information gathering.
 ENV KUBECTL_VERSION ${KUBECTL_VERSION}
