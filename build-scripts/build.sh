@@ -50,6 +50,7 @@ function build_if_needed(){
 
     if [ ! -f "Dockerfile${DOCKERFILE_EXT}" ]; then
       echo "Skipping $(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}: Dockerfile${DOCKERFILE_EXT} does not exist."
+      popd
       return 0
     fi
 
