@@ -1,9 +1,12 @@
 package source
 
 import (
+	"bufio"
 	"errors"
 	"os"
-	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
@@ -14,14 +17,63 @@ var newSourceDomains []string
 var brokenSourceDomain string
 
 func init() {
-	testDomains := os.Getenv("GITLAB_NEW_SOURCE_DOMAINS")
-	if testDomains != "" {
-		newSourceDomains = strings.Split(testDomains, ",")
-	}
-
 	brokenDomain := os.Getenv("GITLAB_NEW_SOURCE_BROKEN_DOMAIN")
 	if brokenDomain != "" {
 		brokenSourceDomain = brokenDomain
+	}
+
+	go watchForNewSourceDomains(&newSourceDomains, 5*time.Second)
+}
+
+// watchForNewSourceDomains polls the filesystem and updates test domains if needed.
+func watchForNewSourceDomains(newSourceDomains *[]string, interval time.Duration) {
+	var lastUpdate time.Time
+
+	testDomainsFile := os.Getenv("GITLAB_NEW_SOURCE_DOMAINS_FILE")
+	if testDomainsFile == "" {
+		testDomainsFile = ".new-source-domains"
+	}
+
+	for {
+		fileinfo, err := os.Stat(testDomainsFile)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				log.WithError(err).Warn("Failed to get stats for new source domains file")
+			}
+
+			time.Sleep(interval)
+			continue
+		}
+
+		if lastUpdate == fileinfo.ModTime() {
+			time.Sleep(interval)
+			continue
+		}
+
+		lastUpdate = fileinfo.ModTime()
+
+		file, err := os.Open(testDomainsFile)
+		if err != nil {
+			log.WithError(err).Warn("Failed to read new source domains file")
+		}
+
+		defer file.Close()
+
+		reader := bufio.NewReader(file)
+		scanner := bufio.NewScanner(reader)
+		scanner.Split(bufio.ScanLines)
+
+		domains := make([]string, 0)
+		for scanner.Scan() {
+			if len(scanner.Text()) > 0 {
+				domains = append(domains, scanner.Text())
+			}
+		}
+
+		*newSourceDomains = domains
+		log.Info("New source domains updated")
+
+		time.Sleep(interval)
 	}
 }
 

@@ -57,6 +57,11 @@ func skipUnlessEnabled(t *testing.T, conditions ...string) {
 				t.Log("Not supported with -daemon-inplace-chroot")
 				t.SkipNow()
 			}
+		case "not-daemonized":
+			if os.Getenv("TEST_DAEMONIZE") != "" {
+				t.Log("Not supported when daemonized")
+				t.SkipNow()
+			}
 		default:
 			t.Error("Unknown condition:", condition)
 			t.FailNow()
@@ -1529,15 +1534,16 @@ func TestTLSVersions(t *testing.T) {
 }
 
 func TestGitlabDomainsSource(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, "not-daemonized")
 
 	source := NewGitlabDomainsSourceStub(t)
 	defer source.Close()
 
-	newSourceDomains := "GITLAB_NEW_SOURCE_DOMAINS=new-source-test.gitlab.io,non-existent-domain.gitlab.io"
+	newSourceDomainsFile := CreateNewSourceDomainsFixtureFile(t, "new-source-test.gitlab.io\nnon-existent-domain.gitlab.io")
+	newSourceDomainsFile = "GITLAB_NEW_SOURCE_DOMAINS_FILE=" + newSourceDomainsFile
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{newSourceDomains}, pagesArgs...)
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{newSourceDomainsFile}, pagesArgs...)
 	defer teardown()
 
 	t.Run("when a domain exists", func(t *testing.T) {
