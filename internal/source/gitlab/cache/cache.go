@@ -20,7 +20,7 @@ func NewCache(client api.Client) *Cache {
 	}
 }
 
-// GetLookup is going to return a lookup based on a domain name. The caching
+// Resolve is going to return a lookup based on a domain name. The caching
 // algorithm works as follows:
 // - We first check if the cache entry exists, and if it is up-to-date. If it
 //   is fresh we return the lookup entry from cache and it is a cache hit.
@@ -69,7 +69,7 @@ func NewCache(client api.Client) *Cache {
 //  - we create a lookup that contains information about an error
 //  - we cache this response
 //  - we pass this lookup upstream to all the clients
-func (c *Cache) GetLookup(ctx context.Context, domain string) *api.Lookup {
+func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 	entry := c.store.LoadOrCreate(domain)
 
 	if entry.IsUpToDate() {
