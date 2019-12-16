@@ -18,8 +18,7 @@ import (
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
-	client api.Client
-	cache  *cache.Cache // WIP
+	client api.Resolver
 }
 
 // New returns a new instance of gitlab domain source.
@@ -29,13 +28,13 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
-	return &Gitlab{client: client, cache: cache.New()}, nil
+	return &Gitlab{client: cache.NewCache(client)}, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from
 // GitLab
 func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
-	lookup := g.client.GetLookup(context.Background(), name)
+	lookup := g.client.Resolve(context.Background(), name)
 
 	if lookup.Error != nil {
 		return nil, lookup.Error
@@ -60,7 +59,8 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 // the GitLab source
 func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 	host := request.GetHostWithoutPort(r)
-	response := g.client.GetLookup(r.Context(), host)
+
+	response := g.client.Resolve(r.Context(), host)
 	if response.Error != nil {
 		return nil, "", response.Error
 	}

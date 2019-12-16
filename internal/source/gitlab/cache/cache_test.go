@@ -21,9 +21,7 @@ type client struct {
 	failure error
 }
 
-func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
-	var lookup api.Lookup
-
+func (c *client) GetLookup(ctx context.Context, _ string) (lookup api.Lookup) {
 	// TODO This might not work on some architectures
 	//
 	// https://golang.org/pkg/sync/atomic/#pkg-note-BUG

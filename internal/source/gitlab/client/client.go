@@ -55,7 +55,15 @@ func NewFromConfig(config Config) (*Client, error) {
 	return NewClient(config.GitlabServerURL(), config.GitlabAPISecret())
 }
 
-// GetLookup returns a VirtualDomain configuration wrap into a Lookup for a
+// Resolve returns a VirtualDomain configuration wrapped into a Lookup for a
+// given host. It implements api.Resolve type.
+func (gc *Client) Resolve(ctx context.Context, host string) *api.Lookup {
+	lookup := gc.GetLookup(ctx, host)
+
+	return &lookup
+}
+
+// GetLookup returns a VirtualDomain configuration wrapped into a Lookup for a
 // given host
 func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	params := url.Values{}

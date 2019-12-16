@@ -13,6 +13,13 @@ type StubClient struct {
 	File string
 }
 
+// Resolve implements api.Resolver
+func (c StubClient) Resolve(ctx context.Context, host string) *api.Lookup {
+	lookup := c.GetLookup(ctx, host)
+
+	return &lookup
+}
+
 // GetLookup reads a test fixture and unmarshalls it
 func (c StubClient) GetLookup(ctx context.Context, host string) api.Lookup {
 	lookup := api.Lookup{Name: host}

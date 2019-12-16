@@ -20,7 +20,7 @@ func NewCache(client api.Client) *Cache {
 	}
 }
 
-// Resolve is going to return a Lookup based on a domain name. The caching
+// Resolve is going to return a lookup based on a domain name. The caching
 // algorithm works as follows:
 // - We first check if the cache entry exists, and if it is up-to-date. If it
 //   is fresh we return the lookup entry from cache and it is a cache hit.
@@ -83,9 +83,4 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 	}
 
 	return entry.Retrieve(ctx, c.client)
-}
-
-// New creates a new instance of Cache and sets default expiration
-func New() *Cache {
-	return &Cache{}
 }
