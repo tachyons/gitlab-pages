@@ -1534,15 +1534,19 @@ func TestTLSVersions(t *testing.T) {
 }
 
 func TestGitlabDomainsSource(t *testing.T) {
-	skipUnlessEnabled(t, "not-daemonized")
+	skipUnlessEnabled(t)
 
 	source := NewGitlabDomainsSourceStub(t)
 	defer source.Close()
 
-	newSourceDomainsFile := CreateNewSourceDomainsFixtureFile(t, "new-source-test.gitlab.io\nnon-existent-domain.gitlab.io")
+	newSourceDomainsFile, cleanupNewSourceDomainsFile := CreateNewSourceDomainsFixtureFile(t, "new-source-test.gitlab.io\nnon-existent-domain.gitlab.io")
 	newSourceDomainsFile = "GITLAB_NEW_SOURCE_DOMAINS_FILE=" + newSourceDomainsFile
+	defer cleanupNewSourceDomainsFile()
+
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
 	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
+
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{newSourceDomainsFile}, pagesArgs...)
 	defer teardown()
 
