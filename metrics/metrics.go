@@ -28,10 +28,24 @@ var (
 		Name: "gitlab_pages_last_domain_update_seconds",
 		Help: "UNIX timestamp of the last update",
 	})
+
+	// DomainsSourceCacheHit is the number of GitLab API call cache hits
+	DomainsSourceCacheHit = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_domains_source_cache_hit",
+		Help: "The number of GitLab domains API cache hits",
+	})
+
+	// DomainsSourceCacheMiss is the number of GitLab API call cache misses
+	DomainsSourceCacheMiss = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_domains_source_cache_miss",
+		Help: "The number of GitLab domains API cache misses",
+	})
 )
 
 func init() {
 	prometheus.MustRegister(DomainsServed)
 	prometheus.MustRegister(DomainUpdates)
 	prometheus.MustRegister(DomainLastUpdateTime)
+	prometheus.MustRegister(DomainsSourceCacheHit)
+	prometheus.MustRegister(DomainsSourceCacheMiss)
 }
