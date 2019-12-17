@@ -2,10 +2,9 @@
 
 set -euxo pipefail
 
-rm -f */*.tar.gz *.out failed.log
+SCRIPT_HOME="$( cd "${BASH_SOURCE[0]%/*}" > /dev/null 2>&1 && pwd )"
 
-# Cleanup cached dependencies
+WORKSPACE="${SCRIPT_HOME}/build"
+CACHE_LOCATION='/tmp'
 
-CACHE_LOCATION=/tmp
-
-rm ${CACHE_LOCATION}/ubi8-build-dependencies-*.tar
+rm -rf "${SCRIPT_HOME}/../.."/*/*.tar.gz "${WORKSPACE}" "${CACHE_LOCATION}"/ubi8-build-dependencies-*.tar

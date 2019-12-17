@@ -1,6 +1,20 @@
 #!/bin/bash
 
-# NOTICE: This script requires `curl`, `gpg`, and `tar`.
+#
+# Downloads, verifies, and extracts the binary dependencies into the right places.
+#
+# USAGE: 
+#
+#   prepare.sh TAG
+#
+#     GitLab release tag, e.g. v12.5.0-ubi8
+#
+# NOTE: 
+#
+#   This script requires `curl`, `gpg`, and `tar`.
+#
+
+SCRIPT_HOME="$( cd "${BASH_SOURCE[0]%/*}" > /dev/null 2>&1 && pwd )"
 
 set -euxo pipefail
 
@@ -8,12 +22,11 @@ TAG=${1:-latest}
 PACKAGE_NAME="ubi8-build-dependencies-${TAG}.tar"
 PACKAGE_HOST='https://gitlab-ubi.s3.us-east-2.amazonaws.com'
 PACKAGE_URL="${PACKAGE_HOST}/${PACKAGE_NAME}"
-WORKSPACE='prepare'
+WORKSPACE="${SCRIPT_HOME}/build"
 CACHE_LOCATION='/tmp'
 
-mkdir ${WORKSPACE}
-mkdir -p ${CACHE_LOCATION}
-trap "rm -rf ${WORKSPACE}" EXIT
+mkdir -p "${WORKSPACE}"
+mkdir -p "${CACHE_LOCATION}"
 
 # Download and import GitLab's public key
 curl -Lf "${PACKAGE_HOST}/gpg" | gpg --import
@@ -34,11 +47,11 @@ tar -xvf "${WORKSPACE}/${PACKAGE_NAME}" -C "${WORKSPACE}"
 rm "${WORKSPACE}/${PACKAGE_NAME}" "${WORKSPACE}/${PACKAGE_NAME}.asc"
 for ARCHIVE in $(ls ${WORKSPACE}); do
   TARGET=${ARCHIVE%*.tar.gz}
-  cp "${WORKSPACE}/${ARCHIVE}" "${TARGET%*-ee}"
+  cp "${WORKSPACE}/${ARCHIVE}" "${SCRIPT_HOME}/../../${TARGET%*-ee}"
 done
 
 # Apply special cases
-cp "${WORKSPACE}/gitlab-shell.tar.gz" gitaly
-cp "${WORKSPACE}/gitlab-python.tar.gz" gitlab-task-runner
-cp "${WORKSPACE}/gitlab-python.tar.gz" gitlab-unicorn
-cp "${WORKSPACE}/kubectl.tar.gz" gitlab-redis-ha
+cp "${WORKSPACE}/gitlab-shell.tar.gz" "${SCRIPT_HOME}/../../gitaly"
+cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-task-runner"
+cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-unicorn"
+cp "${WORKSPACE}/kubectl.tar.gz" "${SCRIPT_HOME}/../../gitlab-redis-ha"
