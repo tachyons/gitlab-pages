@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 // Cache is a short and long caching mechanism for GitLab source
@@ -73,14 +74,17 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 	entry := c.store.LoadOrCreate(domain)
 
 	if entry.IsUpToDate() {
+		metrics.DomainsSourceCacheHit.Inc()
 		return entry.Lookup()
 	}
 
 	if entry.NeedsRefresh() {
 		entry.Refresh(c.client, c.store)
 
+		metrics.DomainsSourceCacheHit.Inc()
 		return entry.Lookup()
 	}
 
+	metrics.DomainsSourceCacheMiss.Inc()
 	return entry.Retrieve(ctx, c.client)
 }
