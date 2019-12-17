@@ -37,3 +37,5 @@ dependencies:
           pattern: 'GITLAB_EXPORTER_VERSION: "(\S+)"'
         - filename: gitlab-exporter/Dockerfile
           pattern: 'ARG GITLAB_EXPORTER_VERSION=(\S+)'
+        - filename: gitlab-exporter/Dockerfile.build.ubi8
+          pattern: 'ARG GITLAB_EXPORTER_VERSION=(\S+)'
