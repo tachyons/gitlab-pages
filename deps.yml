@@ -30,6 +30,9 @@ dependencies:
         - filename: kubectl/Dockerfile
           pattern: 'ARG YQ_VERSION="(\S+)"'
           range: '>= 2.x.x'
+        - filename: kubectl/Dockerfile.build.ubi8
+          pattern: 'ARG YQ_VERSION=(\S+)'
+          range: '>= 2.x.x'
       # GitLab Exporter
       https://gitlab.com/gitlab-org/gitlab-exporter.git:
         replace_in_files:
