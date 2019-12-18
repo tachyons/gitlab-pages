@@ -69,6 +69,9 @@ func (reader *Reader) tryNotFound(h serving.Handler) error {
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
 func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string, error) {
+	// Ensure that publicPath always ends with "/"
+	publicPath = strings.TrimSuffix(publicPath, "/") + "/"
+
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
 	// (including ..)
