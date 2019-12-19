@@ -15,7 +15,7 @@ COM_CNG_PROJECT=${COM_CNG_PROJECT:-"gitlab-org/build/cng"}
 docker login -u "gitlab-ci-token" -p "${CI_JOB_TOKEN}" "${CI_REGISTRY}"
 echo "Pulling images from dev registry"
 while IFS=: read -r component tag; do
-  docker pull "${CI_REGISTRY_IMAGE}/${component}:${tag}"
+  docker pull -q "${CI_REGISTRY_IMAGE}/${component}:${tag}"
   docker tag "${CI_REGISTRY_IMAGE}/${component}:${tag}" "${COM_REGISTRY}/${COM_CNG_PROJECT}/${component}:${tag}"
 done < "${component_file}"
 
