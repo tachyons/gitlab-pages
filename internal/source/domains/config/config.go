@@ -18,6 +18,37 @@ type GitlabSourceConfig struct {
 	}
 }
 
+// Empty checks if the config is empty
+func (config *GitlabSourceConfig) Empty() bool {
+	enabledDomainsEmpty := len(config.Domains.Enabled) == 0
+	brokenDomainEmpty := len(config.Domains.Broken) == 0
+
+	return enabledDomainsEmpty && brokenDomainEmpty
+}
+
+// Reset wipes out any configuration already set
+func (config *GitlabSourceConfig) Reset() {
+	config.Domains.Enabled = []string{}
+	config.Domains.Broken = ""
+}
+
+// UpdateFromYaml updates the config
+// We use new variable here (instead of using `config` directly)
+// because if `content` is empty `yaml.Unmarshal` does not update
+// the fields already set.
+func (config *GitlabSourceConfig) UpdateFromYaml(content []byte) error {
+	updated := GitlabSourceConfig{}
+
+	err := yaml.Unmarshal(content, &updated)
+	if err != nil {
+		return err
+	}
+
+	*config = updated
+
+	return nil
+}
+
 // WatchForGitlabSourceConfigChange polls the filesystem and updates test domains if needed.
 func WatchForGitlabSourceConfigChange(config *GitlabSourceConfig, interval time.Duration) {
 	var lastContent []byte
@@ -29,39 +60,32 @@ func WatchForGitlabSourceConfigChange(config *GitlabSourceConfig, interval time.
 
 	for {
 		content, err := ioutil.ReadFile(gitlabSourceConfigFile)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				log.WithError(err).Warn("Failed to read gitlab source config file")
-			} else if len(config.Domains.Enabled) > 1 || len(config.Domains.Broken) > 1 {
-				config.Domains.Enabled = []string{}
-				config.Domains.Broken = ""
-				lastContent = []byte{}
-				log.Info("Config file removed, disabling gitlab source")
+
+		if err == nil {
+			if !bytes.Equal(lastContent, content) {
+				lastContent = content
+
+				err = config.UpdateFromYaml(content)
+				if err != nil {
+					log.WithError(err).Warn("Failed to decode gitlab source config file")
+				} else {
+					log.WithFields(log.Fields{
+						"Enabled domains": config.Domains.Enabled,
+						"Broken domain":   config.Domains.Broken,
+					}).Info("gitlab source config updated")
+				}
 			}
-
-			time.Sleep(interval)
-			continue
+		} else {
+			if os.IsNotExist(err) {
+				if !config.Empty() {
+					config.Reset()
+					lastContent = []byte{}
+					log.Info("Config file removed, disabling gitlab source")
+				}
+			} else {
+				log.WithError(err).Warn("Failed to read gitlab source config file")
+			}
 		}
-
-		if bytes.Equal(lastContent, content) {
-			time.Sleep(interval)
-			continue
-		}
-
-		lastContent = content
-
-		err = yaml.Unmarshal(content, config)
-		if err != nil {
-			log.WithError(err).Warn("Failed to decode gitlab source config file")
-
-			time.Sleep(interval)
-			continue
-		}
-
-		log.WithFields(log.Fields{
-			"Enabled domains": config.Domains.Enabled,
-			"Broken domain":   config.Domains.Broken,
-		}).Info("👉 gitlab source config updated")
 
 		time.Sleep(interval)
 	}
