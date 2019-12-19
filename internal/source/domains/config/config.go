@@ -10,7 +10,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type gitlabSourceConfig struct {
+// GitlabSourceConfig holds the configuration for the gitlab source
+type GitlabSourceConfig struct {
 	Domains struct {
 		Enabled []string
 		Broken  string
@@ -18,7 +19,7 @@ type gitlabSourceConfig struct {
 }
 
 // WatchForGitlabSourceConfigChange polls the filesystem and updates test domains if needed.
-func WatchForGitlabSourceConfigChange(gitlabSourceEnabledDomains *[]string, gitlabSourceBrokenDomain *string, interval time.Duration) {
+func WatchForGitlabSourceConfigChange(config *GitlabSourceConfig, interval time.Duration) {
 	var lastContent []byte
 
 	gitlabSourceConfigFile := os.Getenv("GITLAB_SOURCE_CONFIG_FILE")
@@ -31,9 +32,9 @@ func WatchForGitlabSourceConfigChange(gitlabSourceEnabledDomains *[]string, gitl
 		if err != nil {
 			if !os.IsNotExist(err) {
 				log.WithError(err).Warn("Failed to read gitlab source config file")
-			} else if len(*gitlabSourceEnabledDomains) > 1 || len(*gitlabSourceBrokenDomain) > 1 {
-				*gitlabSourceEnabledDomains = []string{}
-				*gitlabSourceBrokenDomain = ""
+			} else if len(config.Domains.Enabled) > 1 || len(config.Domains.Broken) > 1 {
+				config.Domains.Enabled = []string{}
+				config.Domains.Broken = ""
 				lastContent = []byte{}
 				log.Info("Config file removed, disabling gitlab source")
 			}
@@ -49,8 +50,7 @@ func WatchForGitlabSourceConfigChange(gitlabSourceEnabledDomains *[]string, gitl
 
 		lastContent = content
 
-		config := gitlabSourceConfig{}
-		err = yaml.Unmarshal(content, &config)
+		err = yaml.Unmarshal(content, config)
 		if err != nil {
 			log.WithError(err).Warn("Failed to decode gitlab source config file")
 
@@ -58,12 +58,10 @@ func WatchForGitlabSourceConfigChange(gitlabSourceEnabledDomains *[]string, gitl
 			continue
 		}
 
-		*gitlabSourceEnabledDomains = config.Domains.Enabled
-		*gitlabSourceBrokenDomain = config.Domains.Broken
-		// log.Info("gitlab source config updated")
 		log.WithFields(log.Fields{
-			"domains": *gitlabSourceEnabledDomains,
-		}).Info("gitlab source config updated")
+			"Enabled domains": config.Domains.Enabled,
+			"Broken domain":   config.Domains.Broken,
+		}).Info("👉 gitlab source config updated")
 
 		time.Sleep(interval)
 	}
