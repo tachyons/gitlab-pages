@@ -24,6 +24,9 @@ dependencies:
         - filename: gitlab-task-runner/Dockerfile
           pattern: 'ARG S3CMD_VERSION="(\S+)"'
           range: '>= 2.x.x'
+        - filename: gitlab-task-runner/Dockerfile.build.ubi8
+          pattern: 'ARG S3CMD_VERSION=(\S+)'
+          range: '>= 2.x.x'
       # YQ
       https://github.com/mikefarah/yq.git:
         replace_in_files:
