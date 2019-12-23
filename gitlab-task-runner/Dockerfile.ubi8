@@ -1,7 +1,4 @@
-ARG FROM_IMAGE=
-ARG TAG=
-
-ARG RAILS_IMAGE=${FROM_IMAGE}:${TAG}
+ARG RAILS_IMAGE=
 
 FROM ${RAILS_IMAGE}
 
@@ -17,13 +14,15 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab" \
       summary="Task Runner is an entry point for interaction with other containers in the cluster." \
       description="Task Runner is an entry point for interaction with other containers in the cluster. It contains scripts for running Rake tasks, backup, restore, and tools to intract with object storage."
 
-ADD gitlab-python.tar.gz /
 ADD gitlab-task-runner-ee.tar.gz /
+ADD gitlab-python.tar.gz /
 
 COPY scripts/bin/* /usr/local/bin/
 COPY scripts/lib/* /usr/lib/ruby/vendor_ruby
 
-RUN dnf --disableplugin=subscription-manager install -yb --nodocs ca-certificates openssl
+RUN dnf clean all \
+    && rm -r /var/cache/dnf \
+    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs ca-certificates openssl
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 

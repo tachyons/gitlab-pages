@@ -8,7 +8,9 @@ COPY scripts/ /scripts
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc
 
-RUN dnf --disableplugin=subscription-manager install -by --nodocs ncurses libedit
+RUN dnf clean all \
+    && rm -rf /var/cache/dnf \
+    && dnf --disableplugin=subscription-manager --nogpgcheck install -by --nodocs ncurses libedit
 
 ENTRYPOINT ["/scripts/entrypoint.sh"]
 

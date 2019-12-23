@@ -1,7 +1,4 @@
-ARG CI_REGISTRY_IMAGE=
-ARG RUBY_TAG=
-
-ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_TAG}
+ARG RUBY_IMAGE=
 
 FROM ${RUBY_IMAGE}
 
@@ -23,9 +20,11 @@ ADD gitlab-shell.tar.gz /
 COPY scripts/ /scripts/
 COPY sshd_config /etc/ssh/
 
-RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps \
+RUN dnf clean all \
+    && rm -r /var/cache/dnf \
+    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps \
     && dnf --disableplugin=subscription-manager config-manager --add-repo ${RHEL_REPOSITORY} \
-    && dnf --disableplugin=subscription-manager --enablerepo=rhel-8-for-x86_64-* --disablerepo=ubi-8-* install -yb --nodocs openssh-server \
+    && dnf --disableplugin=subscription-manager --enablerepo=rhel-8-for-x86_64-* --disablerepo=ubi-8-* --nogpgcheck install -yb --nodocs openssh-server \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /srv/sshd /var/log/gitlab-shell \
     && touch /var/log/gitlab-shell/gitlab-shell.log \

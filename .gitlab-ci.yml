@@ -324,6 +324,7 @@ gitlab-rails-ee:
                       --build-arg "PG_IMAGE=$pg_image"
                       --build-arg "GEI_IMAGE=${gei_image}"
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
+                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
@@ -406,6 +407,7 @@ gitlab-task-runner-ee:
                       --build-arg "PYTHON_TAG=${PYTHON_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+                      --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
@@ -445,6 +447,7 @@ gitlab-geo-logcursor:
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+                      --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
@@ -480,6 +483,7 @@ gitlab-unicorn-ee:
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "PYTHON_TAG=${PYTHON_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+                      --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
@@ -519,6 +523,7 @@ gitlab-sidekiq-ee:
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+                      --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
@@ -566,6 +571,7 @@ gitlab-exporter:
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "PG_TAG=${PG_VERSION}${IMAGE_TAG_EXT}"
+                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag $GITLAB_EXPORTER_VERSION${IMAGE_TAG_EXT}
   dependencies:
@@ -592,6 +598,7 @@ gitlab-mailroom:
     - build_if_needed --build-arg "MAILROOM_VERSION=$MAILROOM_VERSION"
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
+                      --build-arg "RUBY_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag $MAILROOM_VERSION${IMAGE_TAG_EXT}
   dependencies:
@@ -632,12 +639,12 @@ gitlab-shell:
     - build_if_needed --build-arg "TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GIT_TAG=$git_container${IMAGE_TAG_EXT}"
-                      --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_SHELL_VERSION=${GITLAB_SHELL_VERSION}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "CACHE_BUSTER=$GITLAB_SHELL_VERSION$(date -uI)"
+                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/shell_container.txt
   dependencies:
@@ -667,7 +674,7 @@ git-base:
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - build_if_needed --build-arg "TAG=$go_version"
                       --build-arg "GIT_VERSION=$GIT_VERSION"
-                      --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
+                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - if [ -n "$BUILDING_IMAGE" ]; then
     -  tag_and_push $GIT_VERSION${IMAGE_TAG_EXT}
     - fi
@@ -756,6 +763,7 @@ gitaly:
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "SHELL_CONTAINER=$shell_container${IMAGE_TAG_EXT}"
                       --build-arg "CACHE_BUSTER=$GITALY_VERSION$(date -uI)"
+                      --build-arg "GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${GIT_VERSION}${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITALY_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-shell
@@ -842,6 +850,7 @@ gitlab-workhorse-ee:
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
+                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   <<: *except-ce
   dependencies:

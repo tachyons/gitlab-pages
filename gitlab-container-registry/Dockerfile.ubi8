@@ -2,7 +2,7 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
 
 FROM ${UBI_IMAGE}
 
-ARG REGISTRY_VERSION=v2.7.6-gitlab
+ARG REGISTRY_VERSION
 ARG GITLAB_USER=git
 
 LABEL source="https://gitlab.com/gitlab-org/container-registry" \

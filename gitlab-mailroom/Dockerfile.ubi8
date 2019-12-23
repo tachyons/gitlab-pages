@@ -1,7 +1,4 @@
-ARG TAG=
-ARG FROM_IMAGE=
-
-ARG RUBY_IMAGE=${FROM_IMAGE}:${TAG}
+ARG RUBY_IMAGE=
 
 FROM ${RUBY_IMAGE}
 
@@ -21,7 +18,9 @@ ADD gitlab-mailroom.tar.gz /
 
 COPY scripts/ /scripts/
 
-RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps libicu tzdata \
+RUN dnf clean all \
+    && rm -r /var/cache/dnf \
+    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps libicu tzdata \
     && adduser -m ${GITLAB_USER}
 
 USER ${GITLAB_USER}:${GITLAB_USER}
