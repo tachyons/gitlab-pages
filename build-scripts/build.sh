@@ -24,8 +24,13 @@ function force_build(){
   [ "${FORCE_IMAGE_BUILDS}" == "true" ]
 }
 
+function should_compile_assets() {
+  [ "${COMPILE_ASSETS}" == "true" ]
+}
+
 function fetch_assets(){
   [ -z "${ASSETS_IMAGE}" ] && return 1
+  should_compile_assets && return 0
 
   if needs_build; then
     while ! docker pull "${ASSETS_IMAGE}"; do
