@@ -17,7 +17,6 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
@@ -106,7 +105,7 @@ func CreateGitlabSourceConfigFixtureFile(t *testing.T, domains string) (filename
 		filename = filepath.Base(filename)
 	}
 
-	log.Debug("👉 Config:" + filename)
+	t.Log("👉 Config: " + filename)
 
 	return filename
 }
