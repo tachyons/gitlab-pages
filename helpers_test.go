@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
@@ -89,11 +90,12 @@ func CreateGitLabAPISecretKeyFixtureFile(t *testing.T) (filepath string) {
 func CreateGitlabSourceConfigFixtureFile(t *testing.T, domains string) (filename string) {
 	daemonized := os.Getenv("TEST_DAEMONIZE") != ""
 
-	dir := ""
-	if daemonized {
-		dir = "shared/pages"
-	}
-	configfile, err := ioutil.TempFile(dir, "gitlab-source-config-*")
+	// dir := ""
+	// if daemonized {
+	// 	dir = "shared/pages"
+	// }
+	// configfile, err := ioutil.TempFile(dir, "gitlab-source-config-*")
+	configfile, err := ioutil.TempFile("shared/pages", "gitlab-source-config-*")
 	require.NoError(t, err)
 	configfile.Close()
 
@@ -103,6 +105,8 @@ func CreateGitlabSourceConfigFixtureFile(t *testing.T, domains string) (filename
 	if daemonized {
 		filename = filepath.Base(filename)
 	}
+
+	log.Debug("👉 Config:" + filename)
 
 	return filename
 }
