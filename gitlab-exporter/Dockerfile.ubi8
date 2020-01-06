@@ -1,7 +1,4 @@
-ARG CI_REGISTRY_IMAGE=
-ARG TAG=
-
-ARG RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:${TAG}
+ARG RUBY_IMAGE=
 
 FROM ${RUBY_IMAGE}
 
@@ -25,7 +22,9 @@ ADD gitlab-exporter.tar.gz /
 
 COPY scripts/ /scripts/
 
-RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps uuid \
+RUN dnf clean all \
+    && rm -r /var/cache/dnf \
+    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps uuid \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab ${CONFIG_DIRECTORY} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab ${CONFIG_DIRECTORY}

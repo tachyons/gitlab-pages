@@ -1,7 +1,4 @@
-ARG FROM_IMAGE=
-ARG TAG=
-
-ARG RAILS_IMAGE=${FROM_IMAGE}:${TAG}
+ARG RAILS_IMAGE=
 
 FROM ${RAILS_IMAGE}
 
@@ -22,7 +19,9 @@ ENV DB_SCHEMA_TARGET=geo
 
 COPY scripts/  /scripts/
 
-RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps \
+RUN dnf clean all \
+    && rm -r /var/cache/dnf \
+    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
 
 USER ${GITLAB_USER}:${GITLAB_USER}

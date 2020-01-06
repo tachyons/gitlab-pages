@@ -1,7 +1,4 @@
-ARG CI_REGISTRY_IMAGE=
-ARG TAG=
-
-ARG GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${TAG}
+ARG GIT_IMAGE=
 
 FROM ${GIT_IMAGE}
 
@@ -24,7 +21,9 @@ COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
 COPY gitconfig /usr/local/etc/gitconfig
 
-RUN dnf --disableplugin=subscription-manager install -yb --nodocs procps net-tools libicu openssh-clients \
+RUN dnf clean all \
+    && rm -r /var/cache/dnf \
+    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps net-tools libicu openssh-clients \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories \
     && touch /var/log/gitaly/gitaly.log \
