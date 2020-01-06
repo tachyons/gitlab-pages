@@ -1526,7 +1526,9 @@ domains:
     - new-source-test.gitlab.io
   broken: pages-broken-poc.gitlab.io
 `
-	gitlabSourceConfigFile := CreateGitlabSourceConfigFixtureFile(t, gitlabSourceConfig)
+	gitlabSourceConfigFile, cleanupGitlabSourceConfigFile := CreateGitlabSourceConfigFixtureFile(t, gitlabSourceConfig)
+	defer cleanupGitlabSourceConfigFile()
+
 	gitlabSourceConfigFile = "GITLAB_SOURCE_CONFIG_FILE=" + gitlabSourceConfigFile
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
