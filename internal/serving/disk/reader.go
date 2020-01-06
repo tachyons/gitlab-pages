@@ -69,11 +69,15 @@ func (reader *Reader) tryNotFound(h serving.Handler) error {
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
 func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string, error) {
+	// Ensure that publicPath always ends with "/"
+	publicPath = strings.TrimSuffix(publicPath, "/") + "/"
+
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
 	// (including ..)
-	testPath := publicPath + "/" + strings.Join(subPath, "/")
+	testPath := publicPath + strings.Join(subPath, "/")
 	fullPath, err := filepath.EvalSymlinks(testPath)
+
 	if err != nil {
 		if endsWithoutHTMLExtension(testPath) {
 			return "", &locationFileNoExtensionError{
@@ -85,7 +89,7 @@ func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string,
 	}
 
 	// The requested path resolved to somewhere outside of the public/ directory
-	if !strings.HasPrefix(fullPath, publicPath+"/") && fullPath != publicPath {
+	if !strings.HasPrefix(fullPath, publicPath) && fullPath != filepath.Clean(publicPath) {
 		return "", fmt.Errorf("%q should be in %q", fullPath, publicPath)
 	}
 

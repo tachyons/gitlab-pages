@@ -303,7 +303,7 @@ func TestDomain404ServeHTTP(t *testing.T) {
 
 	testDomain := &domain.Domain{
 		Resolver: &customProjectResolver{
-			path:   "group.404/domain.404/public",
+			path:   "group.404/domain.404/public/",
 			config: &domainConfig{Domain: "domain.404.com"},
 		},
 	}

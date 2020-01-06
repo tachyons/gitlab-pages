@@ -5,20 +5,20 @@
         {
             "access_control": false,
             "https_only": true,
-            "prefix": "/my/pages/project",
+            "prefix": "/my/pages/project/",
             "project_id": 123,
             "source": {
-                "path": "/some/path/to/project/",
+                "path": "some/path/to/project/",
                 "type": "file"
             }
         },
         {
             "access_control": false,
             "https_only": true,
-            "prefix": "/my/second-project",
+            "prefix": "/my/second-project/",
             "project_id": 124,
             "source": {
-                "path": "/some/path/to/project-2/",
+                "path": "some/path/to/project-2/",
                 "type": "file"
             }
         },
@@ -28,7 +28,7 @@
             "prefix": "/",
             "project_id": 125,
             "source": {
-                "path": "/some/path/to/project-3/",
+                "path": "some/path/to/project-3/",
                 "type": "file"
             }
         }
