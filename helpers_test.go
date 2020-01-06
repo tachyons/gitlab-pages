@@ -100,7 +100,7 @@ func CreateGitlabSourceConfigFixtureFile(t *testing.T, domains string) (filename
 
 	require.NoError(t, ioutil.WriteFile(configfile.Name(), []byte(domains), 0644))
 
-	filename = configfile.Name()
+	filename, _ = filepath.Abs(configfile.Name())
 	if daemonized {
 		filename = filepath.Base(filename)
 	}
