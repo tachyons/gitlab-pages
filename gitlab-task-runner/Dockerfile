@@ -7,7 +7,7 @@ FROM ${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_TAG} AS python
 
 FROM ${FROM_IMAGE}:${TAG}
 
-ARG S3CMD_VERSION="2.0.1"
+ARG S3CMD_VERSION="2.0.2"
 ARG GSUTIL_VERSION="4.43"
 
 COPY --from=python /usr/local/bin /usr/local/bin/

@@ -40,3 +40,61 @@ The following variable should be present for a EE build:
 - `EE_PIPELINE` - set to `true`
 
 ![ee-cng-release.png](ee-cng-release.png)
+
+## UBI offline build
+
+UBI-based images can be built in an isolated environment with limited access to the internet.
+In such an environment, the build scripts must download the binary dependencies from
+[GitLab CNG Releases](https://gitlab.com/gitlab-org/build/CNG/-/releases). They also need
+access the official UBI software repositories.
+
+The CNG images can be built in three stages. This is because some images use the images
+from prior stages as their base. Not all the CNG images are final images. Some are
+intermediates that are only used as base images. The following list shows the stages and
+the purpose of the image (intermediate vs. final or both). Please note that all images
+in one stage can be built concurrently. They do not depend on each other.
+
+**Stage I**
+  * kubectl (intermediate, final)
+  * gitlab-ruby (intermediate)
+  * gitlab-container-registry (final)
+  * gitlab-redis-ha (final)
+
+**Stage II**
+  * git-base (intermediate)
+  * gitlab-exporter (final)
+  * gitlab-mailroom (final)
+  * gitlab-shell (final)
+  * gitlab-rails (intermediate, final)
+  * gitlab-workhorse (final)
+
+**Stage III**
+  * gitlab-geo-logcursor (final)
+  * gitlab-sidekiq (final)
+  * gitlab-task-runner (final)
+  * gitlab-unicorn (final)
+
+The rule of thumb is that majority of final images have `LABEL` and `USER` Docker build
+instructions.
+
+To build the UBI-based images in an isolated/controlled environment you need to download,
+verify, and extract binary dependencies into Docker build contexts. Docker build instructions
+for UBI-based images assume that these dependencies are placed in the right locations in the
+Docker build context. Failing to do so breaks the build process.
+
+The helper scripts in `build-scripts/ubi-offline/` directory help you with offline build.
+
+`prepare.sh` downloads, verifies, and extracts the binary dependencies into the right places.
+It ensures that all required dependencies for building UBI-based images are available in
+the Docker build context. You can run this script from any location. To use it, you need to
+pass the release tag, e.g. `prepare.sh v12.5.0-ubi8`. This script uses `curl`, `gpg`, and `tar`
+commands.
+
+`build.sh` builds all UBI-based images in the order that is described above. It logs the Docker
+build output in `.out` files and keeps track of the failed images in `failed.log` . You can run
+this script from any location however it always logs the outputs in `build-scripts/ubi-offline/build`.
+Please note that you need to run `prepare.sh` before running this script.
+
+`cleanup.sh` removes all the cached binary dependencies and log files that were generated or
+downloaded by `prepare.sh` and `build.sh`. Same as the other two scripts you you can run this
+script from any location.

@@ -24,11 +24,17 @@ dependencies:
         - filename: gitlab-task-runner/Dockerfile
           pattern: 'ARG S3CMD_VERSION="(\S+)"'
           range: '>= 2.x.x'
+        - filename: gitlab-task-runner/Dockerfile.build.ubi8
+          pattern: 'ARG S3CMD_VERSION=(\S+)'
+          range: '>= 2.x.x'
       # YQ
       https://github.com/mikefarah/yq.git:
         replace_in_files:
         - filename: kubectl/Dockerfile
           pattern: 'ARG YQ_VERSION="(\S+)"'
+          range: '>= 2.x.x'
+        - filename: kubectl/Dockerfile.build.ubi8
+          pattern: 'ARG YQ_VERSION=(\S+)'
           range: '>= 2.x.x'
       # GitLab Exporter
       https://gitlab.com/gitlab-org/gitlab-exporter.git:
@@ -36,4 +42,6 @@ dependencies:
         - filename: ci_files/variables.yml
           pattern: 'GITLAB_EXPORTER_VERSION: "(\S+)"'
         - filename: gitlab-exporter/Dockerfile
+          pattern: 'ARG GITLAB_EXPORTER_VERSION=(\S+)'
+        - filename: gitlab-exporter/Dockerfile.build.ubi8
           pattern: 'ARG GITLAB_EXPORTER_VERSION=(\S+)'
