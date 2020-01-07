@@ -48,7 +48,7 @@ func NewCache(client api.Client) *Cache {
 //  - we create a new cache entry
 //  - cache entry needs a warm up
 //  - a client waits until we retrieve a lookup
-//  - we successfuly retrieve a lookup
+//  - we successfully retrieve a lookup
 //  - we cache this response
 //  - and we pass it upstream to all clients
 // 2. A domain does not exist
