@@ -12,7 +12,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
-	github.com/karrick/godirwalk v1.10.12
+	github.com/karrick/godirwalk v1.14.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/namsral/flag v1.7.4-pre
 	github.com/patrickmn/go-cache v2.1.0+incompatible

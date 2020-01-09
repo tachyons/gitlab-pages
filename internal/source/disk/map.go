@@ -124,8 +124,7 @@ func readProject(group, parent, projectName string, level int, fanIn chan<- jobR
 	if _, err := os.Lstat(filepath.Join(group, projectPath, "public")); err != nil {
 		// maybe it's a subgroup
 		if level <= subgroupScanLimit {
-			buf := make([]byte, 2*os.Getpagesize())
-			readProjects(group, projectPath, level+1, buf, fanIn)
+			readProjects(group, projectPath, level+1, fanIn)
 		}
 
 		return
@@ -141,9 +140,9 @@ func readProject(group, parent, projectName string, level int, fanIn chan<- jobR
 	fanIn <- jobResult{group: group, project: projectPath, config: config}
 }
 
-func readProjects(group, parent string, level int, buf []byte, fanIn chan<- jobResult) {
+func readProjects(group, parent string, level int, fanIn chan<- jobResult) {
 	subgroup := filepath.Join(group, parent)
-	fis, err := godirwalk.ReadDirents(subgroup, buf)
+	fis, err := godirwalk.ReadDirents(subgroup, nil)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"group":  group,
@@ -177,12 +176,10 @@ func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) {
 		wg.Add(1)
 
 		go func() {
-			buf := make([]byte, 2*os.Getpagesize())
-
 			for group := range fanOutGroups {
 				started := time.Now()
 
-				readProjects(group, "", 0, buf, fanIn)
+				readProjects(group, "", 0, fanIn)
 
 				log.WithFields(log.Fields{
 					"group":    group,
