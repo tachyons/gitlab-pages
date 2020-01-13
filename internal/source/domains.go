@@ -2,27 +2,20 @@ package source
 
 import (
 	"errors"
-	"os"
-	"strings"
+	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/domains/gitlabsourceconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 )
 
-var newSourceDomains []string
-var brokenSourceDomain string
+var gitlabSourceConfig gitlabsourceconfig.GitlabSourceConfig
 
 func init() {
-	testDomains := os.Getenv("GITLAB_NEW_SOURCE_DOMAINS")
-	if testDomains != "" {
-		newSourceDomains = strings.Split(testDomains, ",")
-	}
-
-	brokenDomain := os.Getenv("GITLAB_NEW_SOURCE_BROKEN_DOMAIN")
-	if brokenDomain != "" {
-		brokenSourceDomain = brokenDomain
-	}
+	// Start watching the config file for domains that will use the new `gitlab` source,
+	// to be removed once we switch completely to using it.
+	go gitlabsourceconfig.WatchForGitlabSourceConfigChange(&gitlabSourceConfig, 1*time.Minute)
 }
 
 // Domains struct represents a map of all domains supported by pages. It is
@@ -57,7 +50,7 @@ func NewDomains(config Config) (*Domains, error) {
 // for some subset of domains, to test / PoC the new GitLab Domains Source that
 // we plan to use to replace the disk source.
 func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
-	if name == brokenSourceDomain {
+	if name == gitlabSourceConfig.Domains.Broken {
 		return nil, errors.New("broken test domain used")
 	}
 
@@ -82,7 +75,7 @@ func (d *Domains) source(domain string) Source {
 		return d.disk
 	}
 
-	for _, name := range newSourceDomains {
+	for _, name := range gitlabSourceConfig.Domains.Enabled {
 		if domain == name {
 			return d.gitlab
 		}
