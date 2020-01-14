@@ -24,6 +24,9 @@ func (s *MultiStringFlag) Set(value string) error {
 // Split each flag
 func (s *MultiStringFlag) Split() (result []string) {
 	for _, str := range *s {
+		if str == "" {
+			continue
+		}
 		result = append(result, strings.Split(str, ",")...)
 	}
 
