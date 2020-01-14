@@ -38,7 +38,7 @@ func TestMultiStringFlag_Split(t *testing.T) {
 		},
 		{
 			name:       "multiple_values",
-			s:          &MultiStringFlag{"value1", "value2", "value3"}, // -flag "value1"
+			s:          &MultiStringFlag{"value1", "value2", "value3"}, // -flag "value1,value2,value3"
 			wantResult: []string{"value1", "value2", "value3"},
 		},
 	}
