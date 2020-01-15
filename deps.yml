@@ -45,3 +45,12 @@ dependencies:
           pattern: 'ARG GITLAB_EXPORTER_VERSION=(\S+)'
         - filename: gitlab-exporter/Dockerfile.build.ubi8
           pattern: 'ARG GITLAB_EXPORTER_VERSION=(\S+)'
+      # rubygems
+      https://github.com/rubygems/rubygems.git:
+        replace_in_files:
+        - filename: gitlab-ruby/Dockerfile
+          pattern: 'ARG RUBYGEMS_VERSION=(\S+)'
+          range: '<= 2.x'
+        - filename: gitlab-ruby/Dockerfile.build.ubi8
+          pattern: 'ARG RUBYGEMS_VERSION=(\S+)'
+          range: '<= 2.x'
