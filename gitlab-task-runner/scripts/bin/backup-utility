@@ -112,7 +112,7 @@ EOF
 }
 
 function get_skipped(){
-  all=( artifacts.tar.gz uploads.tar.gz builds.tar.gz db lfs.tar.gz registry.tar.gz pages.tar.gz packages.tar.gz )
+  all=( artifacts.tar.gz uploads.tar.gz builds.tar.gz db repositories lfs.tar.gz registry.tar.gz pages.tar.gz packages.tar.gz )
   skipped_string=""
 
   for backup_item in ${all[@]}; do
