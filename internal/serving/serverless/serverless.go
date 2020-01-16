@@ -1,7 +1,6 @@
 package serverless
 
 import (
-	"net/http"
 	"net/http/httputil"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -26,15 +25,12 @@ func New(cluster Cluster) serving.Serving {
 
 // ServeFileHTTP handle an incoming request and proxies it to Knative cluster
 func (s *Serverless) ServeFileHTTP(h serving.Handler) bool {
-	return false
+	s.proxy.ServeHTTP(h.Writer, h.Request)
+
+	return true
 }
 
 // ServeNotFoundHTTP responds with 404
 func (s *Serverless) ServeNotFoundHTTP(h serving.Handler) {
 	httperrors.Serve404(h.Writer)
-}
-
-func (s *Serverless) director() func(request *http.Request) {
-	return func(request *http.Request) {
-	}
 }

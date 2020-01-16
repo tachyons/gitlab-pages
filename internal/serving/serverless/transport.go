@@ -31,10 +31,11 @@ func NewTransport(cluster Cluster) *Transport {
 	}
 
 	return &Transport{
+		cluster: cluster,
 		transport: &http.Transport{
 			DialContext:         dialContext,
 			TLSHandshakeTimeout: 5 * time.Second,
-			// TODO TLSClientConfig:     newTLSConfig(),
+			TLSClientConfig:     cluster.TLSConfig(),
 		},
 	}
 }
