@@ -188,6 +188,12 @@ function restore(){
 
   ! is_skipped "db"           && gitlab-rake gitlab:db:drop_tables
   ! is_skipped "db"           && gitlab-rake gitlab:backup:db:restore
+
+  # Previous versions of the dump failed to mark the repos as skipped, so we additionally check for the directory
+  if [ -e $backups_path/repositories ]; then
+    ! is_skipped "repositories" && gitlab-rake gitlab:backup:repo:restore
+  fi
+
   ! is_skipped "repositories" && gitlab-rake gitlab:backup:repo:restore
   ! is_skipped "builds"       && gitlab-rake gitlab:backup:builds:restore
 
