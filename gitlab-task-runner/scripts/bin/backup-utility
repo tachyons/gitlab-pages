@@ -112,7 +112,7 @@ EOF
 }
 
 function get_skipped(){
-  all=( artifacts.tar.gz uploads.tar.gz builds.tar.gz db lfs.tar.gz registry.tar.gz pages.tar.gz packages.tar.gz )
+  all=( artifacts.tar.gz uploads.tar.gz builds.tar.gz db repositories lfs.tar.gz registry.tar.gz pages.tar.gz packages.tar.gz )
   skipped_string=""
 
   for backup_item in ${all[@]}; do
@@ -188,7 +188,12 @@ function restore(){
 
   ! is_skipped "db"           && gitlab-rake gitlab:db:drop_tables
   ! is_skipped "db"           && gitlab-rake gitlab:backup:db:restore
-  ! is_skipped "repositories" && gitlab-rake gitlab:backup:repo:restore
+
+  # Previous versions of the dump failed to mark the repos as skipped, so we additionally check for the directory
+  if [ -e $backups_path/repositories ]; then
+    ! is_skipped "repositories" && gitlab-rake gitlab:backup:repo:restore
+  fi
+
   ! is_skipped "builds"       && gitlab-rake gitlab:backup:builds:restore
 
   if [ "$INSTALLATION_TYPE" = "gitlab-helm-chart" ]; then
