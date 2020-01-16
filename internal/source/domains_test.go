@@ -2,6 +2,7 @@ package source
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -20,6 +21,13 @@ func (c sourceConfig) GitlabServerURL() string {
 
 func (c sourceConfig) GitlabAPISecret() []byte {
 	return []byte(c.secret)
+}
+func (c sourceConfig) GitlabClientConnectionTimeout() time.Duration {
+	return 10 * time.Second
+}
+
+func (c sourceConfig) GitlabJWTTokenTimeout() time.Duration {
+	return 30 * time.Second
 }
 
 func TestDomainSources(t *testing.T) {
