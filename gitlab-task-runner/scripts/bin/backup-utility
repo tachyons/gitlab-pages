@@ -194,7 +194,6 @@ function restore(){
     ! is_skipped "repositories" && gitlab-rake gitlab:backup:repo:restore
   fi
 
-  ! is_skipped "repositories" && gitlab-rake gitlab:backup:repo:restore
   ! is_skipped "builds"       && gitlab-rake gitlab:backup:builds:restore
 
   if [ "$INSTALLATION_TYPE" = "gitlab-helm-chart" ]; then
