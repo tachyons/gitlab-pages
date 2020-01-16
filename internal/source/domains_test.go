@@ -26,7 +26,7 @@ func (c sourceConfig) GitlabClientConnectionTimeout() time.Duration {
 	return 10 * time.Second
 }
 
-func (c sourceConfig) GitlabJWTTokenTimeout() time.Duration {
+func (c sourceConfig) GitlabJWTTokenExpiry() time.Duration {
 	return 30 * time.Second
 }
 
