@@ -10,7 +10,6 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
@@ -92,7 +91,7 @@ func TestNewInvalidConfiguration(t *testing.T) {
 			got, err := NewClient(tt.args.baseURL, tt.args.secretKey, tt.args.connectionTimeout, tt.args.jwtTokenExpiry)
 			require.Nil(t, got)
 			require.NotNil(t, err)
-			assert.Contains(t, err.Error(), tt.wantErrMsg)
+			require.Contains(t, err.Error(), tt.wantErrMsg)
 		})
 	}
 }
@@ -114,8 +113,7 @@ func TestLookupForErrorResponses(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client, err := NewClient(server.URL, secretKey(t), defaultClientConnTimeout, defaultJWTTokenExpiry)
-			require.NoError(t, err)
+			client := defaultClient(t, server.URL)
 
 			lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
@@ -135,8 +133,7 @@ func TestMissingDomain(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	client, err := NewClient(server.URL, secretKey(t), defaultClientConnTimeout, defaultJWTTokenExpiry)
-	require.NoError(t, err)
+	client := defaultClient(t, server.URL)
 
 	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
@@ -177,8 +174,7 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	client, err := NewClient(server.URL, secretKey(t), defaultClientConnTimeout, defaultJWTTokenExpiry)
-	require.NoError(t, err)
+	client := defaultClient(t, server.URL)
 
 	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 	require.NoError(t, lookup.Error)
@@ -219,4 +215,12 @@ func secretKey(t *testing.T) []byte {
 	secretKey, err := base64.StdEncoding.DecodeString(fixture.GitLabAPISecretKey)
 	require.NoError(t, err)
 	return secretKey
+}
+
+func defaultClient(t *testing.T, url string) *Client {
+	t.Helper()
+
+	client, err := NewClient(url, secretKey(t), defaultClientConnTimeout, defaultJWTTokenExpiry)
+	require.NoError(t, err)
+	return client
 }
