@@ -281,6 +281,7 @@ func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
 		// Update prometheus metrics
 		metrics.DomainLastUpdateTime.Set(float64(time.Now().UTC().Unix()))
 		metrics.DomainsServed.Set(float64(len(dm)))
+		metrics.DomainsConfigurationUpdateDuration.Set(duration)
 		metrics.DomainUpdates.Inc()
 
 		time.Sleep(interval)
