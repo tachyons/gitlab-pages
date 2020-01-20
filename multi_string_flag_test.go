@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -17,6 +16,8 @@ func TestMultiStringFlagAppendsOnSet(t *testing.T) {
 	require.NoError(t, iface.Set("foo"))
 	require.NoError(t, iface.Set("bar"))
 
+	require.Error(t, iface.Set(""), errMultiStringSetEmptyValue)
+
 	require.Equal(t, MultiStringFlag{"foo", "bar"}, concrete)
 }
 
@@ -29,7 +30,7 @@ func TestMultiStringFlag_Split(t *testing.T) {
 		{
 			name:       "empty_string",
 			s:          &MultiStringFlag{}, // -flag ""
-			wantResult: nil,
+			wantResult: []string{},
 		},
 		{
 			name:       "one_value",
@@ -39,14 +40,13 @@ func TestMultiStringFlag_Split(t *testing.T) {
 		{
 			name:       "multiple_values",
 			s:          &MultiStringFlag{"value1", "", "value3"}, // -flag "value1,,value3"
-			wantResult: []string{"value1", "value3"},
+			wantResult: []string{"value1", "", "value3"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotResult := tt.s.Split(); !reflect.DeepEqual(gotResult, tt.wantResult) {
-				t.Errorf("MultiStringFlag.Split() = %v, want %v", gotResult, tt.wantResult)
-			}
+			gotResult := tt.s.Split()
+			require.ElementsMatch(t, tt.wantResult, gotResult)
 		})
 	}
 }
