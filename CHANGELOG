@@ -1,3 +1,7 @@
+v 1.14.0
+
+- Rollback godirwalk to v1.10.12 due to significant performance degradation
+
 v 1.13.0
 
 - Implement API based configuration source (not yet used)
