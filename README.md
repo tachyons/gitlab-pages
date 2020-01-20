@@ -76,7 +76,14 @@ run in SSL-offloading mode, custom TLS certificates will not work.
 Example:
 ```
 $ make
-$ ./gitlab-pages -listen-https "" -listen-http ":8090" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
+$ ./gitlab-pages -listen-http ":8090" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
+```
+
+To run on HTTPS ensure you have a root certificate key pair available
+
+```
+$ make
+$ ./gitlab-pages -listen-https ":9090" -root-cert=path/to/example.com.crt -root-key=path/to/example.com.key -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
 ### Run daemon **in secure mode**
