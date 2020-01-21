@@ -1,4 +1,4 @@
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.1
 
 FROM ${UBI_IMAGE}
 

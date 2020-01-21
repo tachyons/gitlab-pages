@@ -19,7 +19,7 @@
 #                       creates a directory for the release tag (e.g. 12.5).
 #
 #     RELEASE_PATH      The release root directory. A directory for the new
-#                       release will be created here. The previous release 
+#                       release will be created here. The previous release
 #                       directory will be looked up in here as well.
 #
 #     PREVIOUS_RELEASE  The directory name of the previous release (e.g. 12.4).
@@ -88,7 +88,7 @@ ARG GITLAB_VERSION=${RELEASE_TAG}
 
 ARG BASE_REGISTRY=registry.access.redhat.com
 ARG BASE_IMAGE=ubi8/ubi
-ARG BASE_TAG=8.0
+ARG BASE_TAG=8.1
 
 ARG UBI_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}
 
@@ -197,7 +197,7 @@ releaseImage() {
   replaceRailsImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceGitImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceAddDependencies "${DOCKERFILE}"
-  addBuildScripts "${FULL_IMAGE_NAME}" "${IMAGE_TAG}" "${IMAGE_ROOT}" 
+  addBuildScripts "${FULL_IMAGE_NAME}" "${IMAGE_TAG}" "${IMAGE_ROOT}"
   addLicense "${IMAGE_NAME}" "${IMAGE_ROOT}"
   addReadMe "${IMAGE_NAME}" "${IMAGE_ROOT}"
   replaceLabeledVersions "${DOCKERFILE}"
