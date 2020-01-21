@@ -33,12 +33,6 @@ func TestNewInvalidConfiguration(t *testing.T) {
 		jwtTokenExpiry    time.Duration
 	}
 
-	defaultArgs := args{
-		baseURL:           "https://gitlab.com",
-		secretKey:         secretKey(t),
-		connectionTimeout: defaultClientConnTimeout,
-		jwtTokenExpiry:    defaultJWTTokenExpiry,
-	}
 	tests := []struct {
 		name       string
 		args       args
@@ -47,51 +41,61 @@ func TestNewInvalidConfiguration(t *testing.T) {
 
 		{
 			name: "invalid_api_url",
-			args: func(a args) args {
-				a.baseURL = "%"
-				return a
-			}(defaultArgs),
-			wantErrMsg: "invalid URL escape",
+			args: args{
+				baseURL:           "%",
+				secretKey:         secretKey(t),
+				connectionTimeout: defaultClientConnTimeout,
+				jwtTokenExpiry:    defaultJWTTokenExpiry,
+			},
+			wantErrMsg: "parse %: invalid URL escape \"%\"",
 		},
 		{
 			name: "invalid_api_url_empty",
-			args: func(a args) args {
-				a.baseURL = ""
-				return a
-			}(defaultArgs),
+			args: args{
+				baseURL:           "",
+				secretKey:         secretKey(t),
+				connectionTimeout: defaultClientConnTimeout,
+				jwtTokenExpiry:    defaultJWTTokenExpiry,
+			},
 			wantErrMsg: "GitLab API URL or API secret has not been provided",
 		},
 		{
 			name: "invalid_api_secret_empty",
-			args: func(a args) args {
-				a.secretKey = []byte{}
-				return a
-			}(defaultArgs),
+			args: args{
+				baseURL:           "https://gitlab.com",
+				secretKey:         []byte{},
+				connectionTimeout: defaultClientConnTimeout,
+				jwtTokenExpiry:    defaultJWTTokenExpiry,
+			},
 			wantErrMsg: "GitLab API URL or API secret has not been provided",
 		},
 		{
 			name: "invalid_http_client_timeout",
-			args: func(a args) args {
-				a.connectionTimeout = 0
-				return a
-			}(defaultArgs),
+			args: args{
+				baseURL:           "https://gitlab.com",
+				secretKey:         secretKey(t),
+				connectionTimeout: 0,
+				jwtTokenExpiry:    defaultJWTTokenExpiry,
+			},
 			wantErrMsg: "GitLab HTTP client connection timeout has not been provided",
 		},
 		{
 			name: "invalid_jwt_token_expiry",
-			args: func(a args) args {
-				a.jwtTokenExpiry = 0
-				return a
-			}(defaultArgs),
+			args: args{
+				baseURL:           "https://gitlab.com",
+				secretKey:         secretKey(t),
+				connectionTimeout: defaultClientConnTimeout,
+				jwtTokenExpiry:    0,
+			},
 			wantErrMsg: "GitLab JWT token expiry has not been provided",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			got, err := NewClient(tt.args.baseURL, tt.args.secretKey, tt.args.connectionTimeout, tt.args.jwtTokenExpiry)
 			require.Nil(t, got)
-			require.NotNil(t, err)
-			require.Contains(t, err.Error(), tt.wantErrMsg)
+			require.EqualError(t, err, tt.wantErrMsg)
 		})
 	}
 }
@@ -212,8 +216,10 @@ func validateToken(t *testing.T, tokenString string) {
 
 func secretKey(t *testing.T) []byte {
 	t.Helper()
+
 	secretKey, err := base64.StdEncoding.DecodeString(fixture.GitLabAPISecretKey)
 	require.NoError(t, err)
+
 	return secretKey
 }
 
@@ -222,5 +228,6 @@ func defaultClient(t *testing.T, url string) *Client {
 
 	client, err := NewClient(url, secretKey(t), defaultClientConnTimeout, defaultJWTTokenExpiry)
 	require.NoError(t, err)
+
 	return client
 }
