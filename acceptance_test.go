@@ -1245,92 +1245,92 @@ func TestAccessControl(t *testing.T) {
 	testServer.StartTLS()
 	defer testServer.Close()
 
-	cases := []struct {
-		Host         string
-		Path         string
-		Status       int
-		RedirectBack bool
-		Description  string
+	tests := []struct {
+		host         string
+		path         string
+		status       int
+		redirectBack bool
+		name         string
 	}{
 		{
-			"group.auth.gitlab-example.com",
-			"/private.project/",
-			http.StatusOK,
-			false,
-			"project with access",
+			name:         "project with access",
+			host:         "group.auth.gitlab-example.com",
+			path:         "/private.project/",
+			status:       http.StatusOK,
+			redirectBack: false,
 		},
 		{
-			"group.auth.gitlab-example.com",
-			"/private.project.1/",
-			http.StatusNotFound, // Do not expose project existed
-			false,
-			"project without access",
+			name:         "project without access",
+			host:         "group.auth.gitlab-example.com",
+			path:         "/private.project.1/",
+			status:       http.StatusNotFound, // Do not expose project existed
+			redirectBack: false,
 		},
 		{
-			"group.auth.gitlab-example.com",
-			"/private.project.2/",
-			http.StatusFound,
-			true,
-			"invalid token test should redirect back",
+			name:         "invalid token test should redirect back",
+			host:         "group.auth.gitlab-example.com",
+			path:         "/private.project.2/",
+			status:       http.StatusFound,
+			redirectBack: true,
 		},
 		{
-			"group.auth.gitlab-example.com",
-			"/nonexistent/",
-			http.StatusNotFound,
-			false,
-			"no project should redirect to login and then return 404",
+			name:         "no project should redirect to login and then return 404",
+			host:         "group.auth.gitlab-example.com",
+			path:         "/nonexistent/",
+			status:       http.StatusNotFound,
+			redirectBack: false,
 		},
 		{
-			"nonexistent.gitlab-example.com",
-			"/nonexistent/",
-			http.StatusNotFound,
-			false,
-			"no project should redirect to login and then return 404",
+			name:         "no project should redirect to login and then return 404",
+			host:         "nonexistent.gitlab-example.com",
+			path:         "/nonexistent/",
+			status:       http.StatusNotFound,
+			redirectBack: false,
 		}, // subgroups
 		{
-			"group.auth.gitlab-example.com",
-			"/subgroup/private.project/",
-			http.StatusOK,
-			false,
-			"[subgroup] project with access",
+			name:         "[subgroup] project with access",
+			host:         "group.auth.gitlab-example.com",
+			path:         "/subgroup/private.project/",
+			status:       http.StatusOK,
+			redirectBack: false,
 		},
 		{
-			"group.auth.gitlab-example.com",
-			"/subgroup/private.project.1/",
-			http.StatusNotFound, // Do not expose project existed
-			false,
-			"[subgroup] project without access",
+			name:         "[subgroup] project without access",
+			host:         "group.auth.gitlab-example.com",
+			path:         "/subgroup/private.project.1/",
+			status:       http.StatusNotFound, // Do not expose project existed
+			redirectBack: false,
 		},
 		{
-			"group.auth.gitlab-example.com",
-			"/subgroup/private.project.2/",
-			http.StatusFound,
-			true,
-			"[subgroup] invalid token test should redirect back",
+			name:         "[subgroup] invalid token test should redirect back",
+			host:         "group.auth.gitlab-example.com",
+			path:         "/subgroup/private.project.2/",
+			status:       http.StatusFound,
+			redirectBack: true,
 		},
 		{
-			"group.auth.gitlab-example.com",
-			"/subgroup/nonexistent/",
-			http.StatusNotFound,
-			false,
-			"[subgroup] no project should redirect to login and then return 404",
+			name:         "[subgroup] no project should redirect to login and then return 404",
+			host:         "group.auth.gitlab-example.com",
+			path:         "/subgroup/nonexistent/",
+			status:       http.StatusNotFound,
+			redirectBack: false,
 		},
 		{
-			"nonexistent.gitlab-example.com",
-			"/subgroup/nonexistent/",
-			http.StatusNotFound,
-			false,
-			"[subgroup] no project should redirect to login and then return 404",
+			name:         "[subgroup] no project should redirect to login and then return 404",
+			host:         "nonexistent.gitlab-example.com",
+			path:         "/subgroup/nonexistent/",
+			status:       http.StatusNotFound,
+			redirectBack: false,
 		},
 	}
 
-	for _, c := range cases {
+	for _, tt := range tests {
 
-		t.Run(fmt.Sprintf("Access Control Test: %s", c.Description), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			teardown := RunPagesProcessWithAuthServerWithSSL(t, *pagesBinary, listeners, "", certFile, testServer.URL)
 			defer teardown()
 
-			rsp, err := GetRedirectPage(t, httpsListener, c.Host, c.Path)
+			rsp, err := GetRedirectPage(t, httpsListener, tt.host, tt.path)
 
 			require.NoError(t, err)
 			defer rsp.Body.Close()
@@ -1363,7 +1363,7 @@ func TestAccessControl(t *testing.T) {
 			// Will redirect auth callback to correct host
 			url, err = url.Parse(authrsp.Header.Get("Location"))
 			require.NoError(t, err)
-			require.Equal(t, c.Host, url.Host)
+			require.Equal(t, tt.host, url.Host)
 			require.Equal(t, "/auth", url.Path)
 
 			// Request auth callback in project domain
@@ -1372,21 +1372,21 @@ func TestAccessControl(t *testing.T) {
 			// server returns the ticket, user will be redirected to the project page
 			require.Equal(t, http.StatusFound, authrsp.StatusCode)
 			cookie = authrsp.Header.Get("Set-Cookie")
-			rsp, err = GetRedirectPageWithCookie(t, httpsListener, c.Host, c.Path, cookie)
+			rsp, err = GetRedirectPageWithCookie(t, httpsListener, tt.host, tt.path, cookie)
 
 			require.NoError(t, err)
 			defer rsp.Body.Close()
 
-			require.Equal(t, c.Status, rsp.StatusCode)
+			require.Equal(t, tt.status, rsp.StatusCode)
 			require.Equal(t, "", rsp.Header.Get("Cache-Control"))
 
-			if c.RedirectBack {
+			if tt.redirectBack {
 				url, err = url.Parse(rsp.Header.Get("Location"))
 				require.NoError(t, err)
 
 				require.Equal(t, "https", url.Scheme)
-				require.Equal(t, c.Host, url.Host)
-				require.Equal(t, c.Path, url.Path)
+				require.Equal(t, tt.host, url.Host)
+				require.Equal(t, tt.path, url.Path)
 			}
 		})
 	}
