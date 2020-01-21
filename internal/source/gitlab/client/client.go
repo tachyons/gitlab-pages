@@ -19,18 +19,15 @@ import (
 
 // Client is a HTTP client to access Pages internal API
 type Client struct {
-	secretKey  []byte
-	baseURL    *url.URL
-	httpClient *http.Client
+	secretKey      []byte
+	baseURL        *url.URL
+	httpClient     *http.Client
+	jwtTokenExpiry time.Duration
 }
-
-// TODO make these values configurable https://gitlab.com/gitlab-org/gitlab-pages/issues/274
-var tokenTimeout = 30 * time.Second
-var connectionTimeout = 10 * time.Second
 
 // NewClient initializes and returns new Client baseUrl is
 // appConfig.GitLabServer secretKey is appConfig.GitLabAPISecretKey
-func NewClient(baseURL string, secretKey []byte) (*Client, error) {
+func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpiry time.Duration) (*Client, error) {
 	if len(baseURL) == 0 || len(secretKey) == 0 {
 		return nil, errors.New("GitLab API URL or API secret has not been provided")
 	}
@@ -40,6 +37,14 @@ func NewClient(baseURL string, secretKey []byte) (*Client, error) {
 		return nil, err
 	}
 
+	if connectionTimeout == 0 {
+		return nil, errors.New("GitLab HTTP client connection timeout has not been provided")
+	}
+
+	if jwtTokenExpiry == 0 {
+		return nil, errors.New("GitLab JWT token expiry has not been provided")
+	}
+
 	return &Client{
 		secretKey: secretKey,
 		baseURL:   url,
@@ -47,12 +52,13 @@ func NewClient(baseURL string, secretKey []byte) (*Client, error) {
 			Timeout:   connectionTimeout,
 			Transport: httptransport.Transport,
 		},
+		jwtTokenExpiry: jwtTokenExpiry,
 	}, nil
 }
 
 // NewFromConfig creates a new client from Config struct
 func NewFromConfig(config Config) (*Client, error) {
-	return NewClient(config.GitlabServerURL(), config.GitlabAPISecret())
+	return NewClient(config.GitlabServerURL(), config.GitlabAPISecret(), config.GitlabClientConnectionTimeout(), config.GitlabJWTTokenExpiry())
 }
 
 // Resolve returns a VirtualDomain configuration wrapped into a Lookup for a
@@ -151,7 +157,7 @@ func (gc *Client) request(ctx context.Context, method string, endpoint *url.URL)
 func (gc *Client) token() (string, error) {
 	claims := jwt.StandardClaims{
 		Issuer:    "gitlab-pages",
-		ExpiresAt: time.Now().Add(tokenTimeout).Unix(),
+		ExpiresAt: time.Now().UTC().Add(gc.jwtTokenExpiry).Unix(),
 	}
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(gc.secretKey)

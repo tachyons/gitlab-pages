@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
@@ -14,34 +15,90 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
 
+const (
+	defaultClientConnTimeout = 10 * time.Second
+	defaultJWTTokenExpiry    = 30 * time.Second
+)
+
 func TestNewValidBaseURL(t *testing.T) {
-	_, err := NewClient("https://gitlab.com", secretKey())
+	_, err := NewClient("https://gitlab.com", secretKey(t), defaultClientConnTimeout, defaultJWTTokenExpiry)
 	require.NoError(t, err)
 }
 
-func TestNewInvalidBaseURL(t *testing.T) {
-	t.Run("when API URL is not valid", func(t *testing.T) {
-		client, err := NewClient("%", secretKey())
+func TestNewInvalidConfiguration(t *testing.T) {
+	type args struct {
+		baseURL           string
+		secretKey         []byte
+		connectionTimeout time.Duration
+		jwtTokenExpiry    time.Duration
+	}
 
-		require.Error(t, err)
-		require.Nil(t, client)
-	})
+	tests := []struct {
+		name       string
+		args       args
+		wantErrMsg string
+	}{
 
-	t.Run("when API URL is empty", func(t *testing.T) {
-		client, err := NewClient("", secretKey())
+		{
+			name: "invalid_api_url",
+			args: args{
+				baseURL:           "%",
+				secretKey:         secretKey(t),
+				connectionTimeout: defaultClientConnTimeout,
+				jwtTokenExpiry:    defaultJWTTokenExpiry,
+			},
+			wantErrMsg: "parse %: invalid URL escape \"%\"",
+		},
+		{
+			name: "invalid_api_url_empty",
+			args: args{
+				baseURL:           "",
+				secretKey:         secretKey(t),
+				connectionTimeout: defaultClientConnTimeout,
+				jwtTokenExpiry:    defaultJWTTokenExpiry,
+			},
+			wantErrMsg: "GitLab API URL or API secret has not been provided",
+		},
+		{
+			name: "invalid_api_secret_empty",
+			args: args{
+				baseURL:           "https://gitlab.com",
+				secretKey:         []byte{},
+				connectionTimeout: defaultClientConnTimeout,
+				jwtTokenExpiry:    defaultJWTTokenExpiry,
+			},
+			wantErrMsg: "GitLab API URL or API secret has not been provided",
+		},
+		{
+			name: "invalid_http_client_timeout",
+			args: args{
+				baseURL:           "https://gitlab.com",
+				secretKey:         secretKey(t),
+				connectionTimeout: 0,
+				jwtTokenExpiry:    defaultJWTTokenExpiry,
+			},
+			wantErrMsg: "GitLab HTTP client connection timeout has not been provided",
+		},
+		{
+			name: "invalid_jwt_token_expiry",
+			args: args{
+				baseURL:           "https://gitlab.com",
+				secretKey:         secretKey(t),
+				connectionTimeout: defaultClientConnTimeout,
+				jwtTokenExpiry:    0,
+			},
+			wantErrMsg: "GitLab JWT token expiry has not been provided",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 
-		require.Nil(t, client)
-		require.EqualError(t, err, "GitLab API URL or API secret has not been provided")
-	})
-
-	t.Run("when API secret is empty", func(t *testing.T) {
-		client, err := NewClient("https://gitlab.com", []byte{})
-
-		require.Nil(t, client)
-		require.EqualError(t, err, "GitLab API URL or API secret has not been provided")
-	})
+			got, err := NewClient(tt.args.baseURL, tt.args.secretKey, tt.args.connectionTimeout, tt.args.jwtTokenExpiry)
+			require.Nil(t, got)
+			require.EqualError(t, err, tt.wantErrMsg)
+		})
+	}
 }
-
 func TestLookupForErrorResponses(t *testing.T) {
 	tests := map[int]string{
 		http.StatusUnauthorized: "HTTP status: 401",
@@ -60,8 +117,7 @@ func TestLookupForErrorResponses(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client, err := NewClient(server.URL, secretKey())
-			require.NoError(t, err)
+			client := defaultClient(t, server.URL)
 
 			lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
@@ -81,8 +137,7 @@ func TestMissingDomain(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	client, err := NewClient(server.URL, secretKey())
-	require.NoError(t, err)
+	client := defaultClient(t, server.URL)
 
 	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
@@ -123,8 +178,7 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	client, err := NewClient(server.URL, secretKey())
-	require.NoError(t, err)
+	client := defaultClient(t, server.URL)
 
 	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 	require.NoError(t, lookup.Error)
@@ -143,12 +197,13 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 }
 
 func validateToken(t *testing.T, tokenString string) {
+	t.Helper()
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return secretKey(), nil
+		return secretKey(t), nil
 	})
 	require.NoError(t, err)
 
@@ -159,7 +214,20 @@ func validateToken(t *testing.T, tokenString string) {
 	require.Equal(t, "gitlab-pages", claims["iss"])
 }
 
-func secretKey() []byte {
-	secretKey, _ := base64.StdEncoding.DecodeString(fixture.GitLabAPISecretKey)
+func secretKey(t *testing.T) []byte {
+	t.Helper()
+
+	secretKey, err := base64.StdEncoding.DecodeString(fixture.GitLabAPISecretKey)
+	require.NoError(t, err)
+
 	return secretKey
+}
+
+func defaultClient(t *testing.T, url string) *Client {
+	t.Helper()
+
+	client, err := NewClient(url, secretKey(t), defaultClientConnTimeout, defaultJWTTokenExpiry)
+	require.NoError(t, err)
+
+	return client
 }
