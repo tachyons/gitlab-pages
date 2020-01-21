@@ -36,12 +36,15 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 	if err != nil {
 		return nil, err
 	}
+
 	if connectionTimeout == 0 {
 		return nil, errors.New("GitLab HTTP client connection timeout has not been provided")
 	}
+
 	if jwtTokenExpiry == 0 {
 		return nil, errors.New("GitLab JWT token expiry has not been provided")
 	}
+
 	return &Client{
 		secretKey: secretKey,
 		baseURL:   url,
@@ -154,7 +157,7 @@ func (gc *Client) request(ctx context.Context, method string, endpoint *url.URL)
 func (gc *Client) token() (string, error) {
 	claims := jwt.StandardClaims{
 		Issuer:    "gitlab-pages",
-		ExpiresAt: time.Now().Add(gc.jwtTokenExpiry).Unix(),
+		ExpiresAt: time.Now().UTC().Add(gc.jwtTokenExpiry).Unix(),
 	}
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(gc.secretKey)
