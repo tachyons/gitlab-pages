@@ -16,7 +16,7 @@ func TestMultiStringFlagAppendsOnSet(t *testing.T) {
 	require.NoError(t, iface.Set("foo"))
 	require.NoError(t, iface.Set("bar"))
 
-	require.Error(t, iface.Set(""), errMultiStringSetEmptyValue)
+	require.EqualError(t, iface.Set(""), "value cannot be empty")
 
 	require.Equal(t, MultiStringFlag{"foo", "bar"}, concrete)
 }

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var errMultiStringSetEmptyValue = errors.New("set value cannot be empty")
+var errMultiStringSetEmptyValue = errors.New("value cannot be empty")
 
 // MultiStringFlag implements the flag.Value interface and allows a string flag
 // to be specified multiple times on the command line.
