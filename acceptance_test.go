@@ -40,6 +40,8 @@ var (
 )
 
 func skipUnlessEnabled(t *testing.T, conditions ...string) {
+	t.Helper()
+
 	if testing.Short() {
 		t.Log("Acceptance tests disabled")
 		t.SkipNow()
@@ -137,10 +139,10 @@ func TestKnownHostReturns200(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			for _, spec := range listeners {
-				rsp, err := GetPageFromListener(t, spec, test.host, test.path)
+				rsp, err := GetPageFromListener(t, spec, tt.host, tt.path)
 
 				require.NoError(t, err)
 				rsp.Body.Close()
@@ -491,71 +493,71 @@ func TestArtifactProxyRequest(t *testing.T) {
 	testServer.StartTLS()
 	defer testServer.Close()
 
-	cases := []struct {
-		Host         string
-		Path         string
-		Status       int
-		BinaryOption string
-		Content      string
-		Length       int64
-		CacheControl string
-		ContentType  string
-		Description  string
+	tests := []struct {
+		name         string
+		host         string
+		path         string
+		status       int
+		binaryOption string
+		content      string
+		length       int64
+		cacheControl string
+		contentType  string
 	}{
 		{
-			"group.gitlab-example.com",
-			"/-/project/-/jobs/1/artifacts/200.html",
-			http.StatusOK,
-			"",
-			content,
-			contentLength,
-			"max-age=3600",
-			"text/html; charset=utf-8",
-			"basic proxied request",
+			name:         "basic proxied request",
+			host:         "group.gitlab-example.com",
+			path:         "/-/project/-/jobs/1/artifacts/200.html",
+			status:       http.StatusOK,
+			binaryOption: "",
+			content:      content,
+			length:       contentLength,
+			cacheControl: "max-age=3600",
+			contentType:  "text/html; charset=utf-8",
 		},
 		{
-			"group.gitlab-example.com",
-			"/-/subgroup/project/-/jobs/1/artifacts/200.html",
-			http.StatusOK,
-			"",
-			content,
-			contentLength,
-			"max-age=3600",
-			"text/html; charset=utf-8",
-			"basic proxied request for subgroup",
+			name:         "basic proxied request for subgroup",
+			host:         "group.gitlab-example.com",
+			path:         "/-/subgroup/project/-/jobs/1/artifacts/200.html",
+			status:       http.StatusOK,
+			binaryOption: "",
+			content:      content,
+			length:       contentLength,
+			cacheControl: "max-age=3600",
+			contentType:  "text/html; charset=utf-8",
 		},
 		{
-			"group.gitlab-example.com",
-			"/-/project/-/jobs/1/artifacts/delayed_200.html",
-			http.StatusBadGateway,
-			"-artifacts-server-timeout=1",
-			"",
-			0,
-			"",
-			"text/html; charset=utf-8",
-			"502 error while attempting to proxy",
+			name:         "502 error while attempting to proxy",
+			host:         "group.gitlab-example.com",
+			path:         "/-/project/-/jobs/1/artifacts/delayed_200.html",
+			status:       http.StatusBadGateway,
+			binaryOption: "-artifacts-server-timeout=1",
+			content:      "",
+			length:       0,
+			cacheControl: "",
+			contentType:  "text/html; charset=utf-8",
 		},
 		{
-			"group.gitlab-example.com",
-			"/-/project/-/jobs/1/artifacts/404.html",
-			http.StatusNotFound,
-			"",
-			"",
-			0,
-			"",
-			"text/html; charset=utf-8",
-			"Proxying 404 from server",
+			name:         "Proxying 404 from server",
+			host:         "group.gitlab-example.com",
+			path:         "/-/project/-/jobs/1/artifacts/404.html",
+			status:       http.StatusNotFound,
+			binaryOption: "",
+			content:      "",
+			length:       0,
+			cacheControl: "",
+			contentType:  "text/html; charset=utf-8",
 		},
 		{
-			"group.gitlab-example.com",
-			"/-/project/-/jobs/1/artifacts/500.html",
-			http.StatusInternalServerError,
-			"",
-			"",
-			0,
-			"",
-			"text/html; charset=utf-8",
-			"Proxying 500 from server",
+			name:         "Proxying 500 from server",
+			host:         "group.gitlab-example.com",
+			path:         "/-/project/-/jobs/1/artifacts/500.html",
+			status:       http.StatusInternalServerError,
+			binaryOption: "",
+			content:      "",
+			length:       0,
+			cacheControl: "",
+			contentType:  "text/html; charset=utf-8",
 		},
 	}
 
@@ -564,9 +566,9 @@ func TestArtifactProxyRequest(t *testing.T) {
 	artifactServerURL := testServer.URL + "/api/v4"
 	t.Log("Artifact server URL", artifactServerURL)
 
-	for _, c := range cases {
+	for _, tt := range tests {
 
-		t.Run(fmt.Sprintf("Proxy Request Test: %s", c.Description), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			teardown := RunPagesProcessWithSSLCertFile(
 				t,
 				*pagesBinary,
@@ -574,23 +576,23 @@ func TestArtifactProxyRequest(t *testing.T) {
 				"",
 				certFile,
 				"-artifacts-server="+artifactServerURL,
-				c.BinaryOption,
+				tt.binaryOption,
 			)
 			defer teardown()
 
-			resp, err := GetPageFromListener(t, httpListener, c.Host, c.Path)
+			resp, err := GetPageFromListener(t, httpListener, tt.host, tt.path)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			require.Equal(t, c.Status, resp.StatusCode)
-			require.Equal(t, c.ContentType, resp.Header.Get("Content-Type"))
+			require.Equal(t, tt.status, resp.StatusCode)
+			require.Equal(t, tt.contentType, resp.Header.Get("Content-Type"))
 
-			if !((c.Status == http.StatusBadGateway) || (c.Status == http.StatusNotFound) || (c.Status == http.StatusInternalServerError)) {
+			if !((tt.status == http.StatusBadGateway) || (tt.status == http.StatusNotFound) || (tt.status == http.StatusInternalServerError)) {
 				body, err := ioutil.ReadAll(resp.Body)
 				require.NoError(t, err)
-				require.Equal(t, c.Content, string(body))
-				require.Equal(t, c.Length, resp.ContentLength)
-				require.Equal(t, c.CacheControl, resp.Header.Get("Cache-Control"))
+				require.Equal(t, tt.content, string(body))
+				require.Equal(t, tt.length, resp.ContentLength)
+				require.Equal(t, tt.cacheControl, resp.Header.Get("Cache-Control"))
 			}
 		})
 	}
@@ -613,47 +615,47 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	testServer.StartTLS()
 	defer testServer.Close()
 
-	cases := []struct {
-		Host         string
-		Path         string
-		Status       int
-		BinaryOption string
-		Description  string
+	tests := []struct {
+		name         string
+		host         string
+		path         string
+		status       int
+		binaryOption string
 	}{
 		{
-			"group.gitlab-example.com",
-			"/-/private/-/jobs/1/artifacts/200.html",
-			http.StatusOK,
-			"",
-			"basic proxied request for private project",
+			name:         "basic proxied request for private project",
+			host:         "group.gitlab-example.com",
+			path:         "/-/private/-/jobs/1/artifacts/200.html",
+			status:       http.StatusOK,
+			binaryOption: "",
 		},
 		{
-			"group.gitlab-example.com",
-			"/-/subgroup/private/-/jobs/1/artifacts/200.html",
-			http.StatusOK,
-			"",
-			"basic proxied request for subgroup",
+			name:         "basic proxied request for subgroup",
+			host:         "group.gitlab-example.com",
+			path:         "/-/subgroup/private/-/jobs/1/artifacts/200.html",
+			status:       http.StatusOK,
+			binaryOption: "",
 		},
 		{
-			"group.gitlab-example.com",
-			"/-/private/-/jobs/1/artifacts/delayed_200.html",
-			http.StatusBadGateway,
-			"-artifacts-server-timeout=1",
-			"502 error while attempting to proxy",
+			name:         "502 error while attempting to proxy",
+			host:         "group.gitlab-example.com",
+			path:         "/-/private/-/jobs/1/artifacts/delayed_200.html",
+			status:       http.StatusBadGateway,
+			binaryOption: "-artifacts-server-timeout=1",
 		},
 		{
-			"group.gitlab-example.com",
-			"/-/private/-/jobs/1/artifacts/404.html",
-			http.StatusNotFound,
-			"",
-			"Proxying 404 from server",
+			name:         "Proxying 404 from server",
+			host:         "group.gitlab-example.com",
+			path:         "/-/private/-/jobs/1/artifacts/404.html",
+			status:       http.StatusNotFound,
+			binaryOption: "",
 		},
 		{
-			"group.gitlab-example.com",
-			"/-/private/-/jobs/1/artifacts/500.html",
-			http.StatusInternalServerError,
-			"",
-			"Proxying 500 from server",
+			name:         "Proxying 500 from server",
+			host:         "group.gitlab-example.com",
+			path:         "/-/private/-/jobs/1/artifacts/500.html",
+			status:       http.StatusInternalServerError,
+			binaryOption: "",
 		},
 	}
 
@@ -662,9 +664,9 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	artifactServerURL := testServer.URL + "/api/v4"
 	t.Log("Artifact server URL", artifactServerURL)
 
-	for _, c := range cases {
+	for _, tt := range tests {
 
-		t.Run(fmt.Sprintf("Proxy Request Test with AC: %s", c.Description), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			teardown := RunPagesProcessWithSSLCertFile(
 				t,
 				*pagesBinary,
@@ -677,11 +679,11 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 				"-auth-server="+testServer.URL,
 				"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
 				"-auth-secret=something-very-secret",
-				c.BinaryOption,
+				tt.binaryOption,
 			)
 			defer teardown()
 
-			resp, err := GetRedirectPage(t, httpListener, c.Host, c.Path)
+			resp, err := GetRedirectPage(t, httpListener, tt.host, tt.path)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
@@ -714,7 +716,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			// Will redirect auth callback to correct host
 			url, err = url.Parse(authrsp.Header.Get("Location"))
 			require.NoError(t, err)
-			require.Equal(t, c.Host, url.Host)
+			require.Equal(t, tt.host, url.Host)
 			require.Equal(t, "/auth", url.Path)
 
 			// Request auth callback in project domain
@@ -723,9 +725,9 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			// server returns the ticket, user will be redirected to the project page
 			require.Equal(t, http.StatusFound, authrsp.StatusCode)
 			cookie = authrsp.Header.Get("Set-Cookie")
-			resp, err = GetRedirectPageWithCookie(t, httpsListener, c.Host, c.Path, cookie)
+			resp, err = GetRedirectPageWithCookie(t, httpsListener, tt.host, tt.path, cookie)
 
-			require.Equal(t, c.Status, resp.StatusCode)
+			require.Equal(t, tt.status, resp.StatusCode)
 
 			require.NoError(t, err)
 			defer resp.Body.Close()

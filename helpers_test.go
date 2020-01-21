@@ -209,6 +209,7 @@ func RunPagesProcessWithAuthServerWithSSL(t *testing.T, pagesPath string, listen
 
 func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (teardown func()) {
 	t.Helper()
+
 	_, err := os.Stat(pagesPath)
 	require.NoError(t, err)
 
