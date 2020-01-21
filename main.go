@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
@@ -59,8 +60,8 @@ var (
 	gitLabAuthServer        = flag.String("auth-server", "", "DEPRECATED, use gitlab-server instead. GitLab server, for example https://www.gitlab.com")
 	gitLabServer            = flag.String("gitlab-server", "", "GitLab server, for example https://www.gitlab.com")
 	gitLabAPISecretKey      = flag.String("api-secret-key", "", "File with secret key used to authenticate with the GitLab API")
-	gitlabClientHTTPTimeout = flag.Int64("gitlab-client-http-timeout", 10, "GitLab API HTTP client connection timeout in seconds (default: 10s)")
-	gitlabClientJWTExpiry   = flag.Int64("gitlab-client-jwt-expiry", 30, "JWT Token expiry time in seconds (default: 30s)")
+	gitlabClientHTTPTimeout = flag.Duration("gitlab-client-http-timeout", 10*time.Second, "GitLab API HTTP client connection timeout in seconds (default: 10s)")
+	gitlabClientJWTExpiry   = flag.Duration("gitlab-client-jwt-expiry", 30*time.Second, "JWT Token expiry time in seconds (default: 30s)")
 	clientID                = flag.String("auth-client-id", "", "GitLab application Client ID")
 	clientSecret            = flag.String("auth-client-secret", "", "GitLab application Client Secret")
 	redirectURI             = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
@@ -178,8 +179,8 @@ func configFromFlags() appConfig {
 	}
 
 	config.GitLabServer = gitlabServerFromFlags()
-	config.GitlabClientTimeout = *gitlabClientHTTPTimeout
-	config.GitlbaJWTTokenExpiry = *gitlabClientJWTExpiry
+	config.GitlabClientHTTPTimeout = *gitlabClientHTTPTimeout
+	config.GitlabJWTTokenExpiration = *gitlabClientJWTExpiry
 	config.StoreSecret = *secret
 	config.ClientID = *clientID
 	config.ClientSecret = *clientSecret
