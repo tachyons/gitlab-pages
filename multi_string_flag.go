@@ -1,8 +1,11 @@
 package main
 
 import (
+	"errors"
 	"strings"
 )
+
+var errMultiStringSetEmptyValue = errors.New("value cannot be empty")
 
 // MultiStringFlag implements the flag.Value interface and allows a string flag
 // to be specified multiple times on the command line.
@@ -17,6 +20,9 @@ func (s *MultiStringFlag) String() string {
 
 // Set appends the value to the list of parameters
 func (s *MultiStringFlag) Set(value string) error {
+	if value == "" {
+		return errMultiStringSetEmptyValue
+	}
 	*s = append(*s, value)
 	return nil
 }
