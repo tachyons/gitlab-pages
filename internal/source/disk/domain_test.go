@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -186,6 +187,9 @@ func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, valu
 	handler(w, req)
 
 	if ungzip {
+		contentLength := w.Header().Get("Content-Length")
+		require.Equal(t, strconv.Itoa(w.Body.Len()), contentLength, "Content-Length")
+
 		reader, err := gzip.NewReader(w.Body)
 		require.NoError(t, err)
 		defer reader.Close()
