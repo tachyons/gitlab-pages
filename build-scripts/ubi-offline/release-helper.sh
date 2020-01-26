@@ -48,7 +48,7 @@ PREVIOUS_RELEASE="${3}"
 SOURCE="${4:-.}"
 
 DOCKERFILE_EXT='.ubi8'
-GITLAB_REPOSITORY='registry.access.redhat.com/gitlab/gitlab/'
+GITLAB_REPOSITORY='${BASE_REGISTRY}/gitlab/gitlab/'
 
 declare -A LABELED_VERSIONS=(
   [REGISTRY_VERSION]=
@@ -155,13 +155,13 @@ replaceLabeledVersions() {
 addLicense() {
   local IMAGE_NAME="${1}"
   local IMAGE_ROOT="${2}"
-  cp "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/LICENSE" "${IMAGE_ROOT}/"
+  cp -n "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/LICENSE" "${IMAGE_ROOT}/"
 }
 
 addReadMe() {
   local IMAGE_NAME="${1}"
   local IMAGE_ROOT="${2}"
-  cp "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/README.md" "${IMAGE_ROOT}/"
+  cp -n "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/README.md" "${IMAGE_ROOT}/"
 }
 
 addBuildScripts() {
@@ -169,12 +169,12 @@ addBuildScripts() {
   local IMAGE_NAME="${1%*-ee}";
   local IMAGE_TAG="${2}"
   local IMAGE_ROOT="${3}"
-  cp -R "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/build-scripts" "${IMAGE_ROOT}/"
+  cp -Rn "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/build-scripts" "${IMAGE_ROOT}/"
   chmod +x "${IMAGE_ROOT}/build-scripts"/*.sh
   sed -i "s/^TAG=.*/TAG=\$\{1:-${IMAGE_TAG}\}/g" "${IMAGE_ROOT}/build-scripts/build.sh"
   if [ -f "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/scripts/prebuild.sh" ]; then
     mkdir -p "${IMAGE_ROOT}/scripts"
-    cp "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/scripts/prebuild.sh" "${IMAGE_ROOT}/scripts"
+    cp -n "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/scripts/prebuild.sh" "${IMAGE_ROOT}/scripts"
     sed -i "s/^GITLAB_VERSION=.*/GITLAB_VERSION=${RELEASE_TAG}/g" "${IMAGE_ROOT}/scripts/prebuild.sh"
     chmod +x "${IMAGE_ROOT}/scripts/prebuild.sh"
   fi
