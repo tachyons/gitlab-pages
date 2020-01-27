@@ -335,7 +335,8 @@ gitlab-rails-ee:
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - fi
-    - pg_image=$(cat artifacts/postgresql_container.txt)
+    - pg_version=$(cat artifacts/postgresql_container.txt)
+    - pg_image="${CI_REGISTRY_IMAGE}/postgresql:${pg_version}"
     - gei_dir_version=$(get_version gitlab-elasticsearch-indexer)
     - gei_version=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$gei_dir_version" | sha1sum))
     - gei_image="${CI_REGISTRY_IMAGE}/gitlab-elasticsearch-indexer:${gei_version}${IMAGE_TAG_EXT}"
@@ -379,7 +380,8 @@ gitlab-rails-ce:
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version"
-    - pg_image=$(cat artifacts/postgresql_container.txt)
+    - pg_version=$(cat artifacts/postgresql_container.txt)
+    - pg_image="${CI_REGISTRY_IMAGE}/postgresql:${pg_version}"
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${CE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ce:${GITLAB_ASSETS_TAG}"
     - fetch_assets
