@@ -58,7 +58,6 @@ in one stage can be built concurrently. They do not depend on each other.
   * kubectl (intermediate, final)
   * gitlab-ruby (intermediate)
   * gitlab-container-registry (final)
-  * gitlab-redis-ha (final)
 
 **Stage II**
   * git-base (intermediate)

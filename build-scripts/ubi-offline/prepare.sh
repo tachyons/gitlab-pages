@@ -3,13 +3,13 @@
 #
 # Downloads, verifies, and extracts the binary dependencies into the right places.
 #
-# USAGE: 
+# USAGE:
 #
 #   prepare.sh TAG
 #
 #     GitLab release tag, e.g. v12.5.0-ubi8
 #
-# NOTE: 
+# NOTE:
 #
 #   This script requires `curl`, `gpg`, and `tar`.
 #
@@ -34,7 +34,7 @@ curl -Lf "${PACKAGE_HOST}/gpg" | gpg --import
 # Download UBI dependencies package and its signature.
 # Cache the package but always download the signature.
 curl -Lf "${PACKAGE_URL}.asc" -o "${WORKSPACE}/${PACKAGE_NAME}.asc"
-if [ ! -f "${CACHE_LOCATION}/${PACKAGE_NAME}" ]; then 
+if [ ! -f "${CACHE_LOCATION}/${PACKAGE_NAME}" ]; then
   curl -Lf "${PACKAGE_URL}" -o "${CACHE_LOCATION}/${PACKAGE_NAME}"
 fi
 cp "${CACHE_LOCATION}/${PACKAGE_NAME}" "${WORKSPACE}/${PACKAGE_NAME}"
@@ -54,4 +54,3 @@ done
 cp "${WORKSPACE}/gitlab-shell.tar.gz" "${SCRIPT_HOME}/../../gitaly"
 cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-task-runner"
 cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-unicorn"
-cp "${WORKSPACE}/kubectl.tar.gz" "${SCRIPT_HOME}/../../gitlab-redis-ha"

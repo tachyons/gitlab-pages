@@ -3,11 +3,11 @@
 #
 # Builds all UBI-based images in the right order.
 #
-# USAGE: 
+# USAGE:
 #
 #   build.sh
 #
-# NOTE: 
+# NOTE:
 #
 #   This script requires `docker`.
 #
@@ -32,7 +32,7 @@ buildImage() {
   IMAGE_NAME="${1}"
   IMAGE_DIR="${IMAGE_NAME%*-ee}"
   CONTEXT="${SCRIPT_HOME}/../../${IMAGE_DIR}"
-  { 
+  {
     docker build \
       -f "${CONTEXT}/Dockerfile${DOCKERFILE_EXT}" \
       -t "$(qualifiedName ${IMAGE_NAME})" \
@@ -52,7 +52,6 @@ rm -f "${WORKSPACE}"/*.out "${WORKSPACE}/failed.log"
 buildImage kubectl &
 buildImage gitlab-ruby &
 buildImage gitlab-container-registry &
-buildImage gitlab-redis-ha &
 
 wait
 

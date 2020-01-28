@@ -250,26 +250,6 @@ gitlab-python:
     - fi
     - push_if_master_or_stable_or_tag
 
-build:gitlab-redis-ha:
-  <<: *build-job-base
-  stage: prepare:phase-one
-  script:
-    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$(date -u +%D)" | sha1sum))
-    - build_if_needed
-    - copy_assets
-
-gitlab-redis-ha:
-  <<: *job-base
-  stage: phase-two
-  dependencies:
-    - build:kubectl
-    - build:gitlab-redis-ha
-  script:
-    - import_assets artifacts/ubi/kubectl.tar.gz
-    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$(date -u +%D)" | sha1sum))
-    - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}${IMAGE_TAG_EXT}"
-    - push_if_master_or_stable_or_tag
-
 build:gitlab-go:
   <<: *build-job-base
   stage: prepare:phase-one
@@ -942,7 +922,6 @@ ubi-assets-release:
     - build:gitlab-ruby
     - build:gitlab-go
     - build:git-base
-    - build:gitlab-redis-ha
     - build:gitlab-container-registry
     - build:gitlab-mailroom
     - build:gitlab-exporter
