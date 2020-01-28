@@ -22,11 +22,6 @@ func NewTransport(cluster Cluster) *Transport {
 	}
 
 	dialContext := func(ctx context.Context, network, address string) (net.Conn, error) {
-		// TODO
-		// if address == domain+":443" {
-		// 	address = cluster + ":443"
-		// }
-
 		return dialer.DialContext(ctx, network, address)
 	}
 
@@ -44,5 +39,6 @@ func NewTransport(cluster Cluster) *Transport {
 func (t *Transport) RoundTrip(request *http.Request) (*http.Response, error) {
 	response, err := t.transport.RoundTrip(request)
 
+	// TODO add prometheus metrics for round trip timing
 	return response, err
 }
