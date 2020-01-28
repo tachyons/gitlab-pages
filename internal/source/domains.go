@@ -4,7 +4,10 @@ import (
 	"errors"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/rollout"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/domains/gitlabsourceconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
@@ -79,6 +82,18 @@ func (d *Domains) source(domain string) Source {
 		if domain == name {
 			return d.gitlab
 		}
+	}
+
+	r := gitlabSourceConfig.Domains.Rollout
+
+	enabled, err := rollout.Rollout(domain, r.Percentage, r.Stickiness)
+	if err != nil {
+		log.WithError(err).Error("Rollout error")
+		return d.disk
+	}
+
+	if enabled {
+		return d.gitlab
 	}
 
 	return d.disk

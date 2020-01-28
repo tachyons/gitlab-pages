@@ -14,6 +14,13 @@ import (
 type GitlabSourceDomains struct {
 	Enabled []string
 	Broken  string
+	Rollout GitlabSourceRollout
+}
+
+// GitlabSourceRollout holds the rollout strategy and percentage
+type GitlabSourceRollout struct {
+	Stickiness string
+	Percentage int
 }
 
 // GitlabSourceConfig holds the configuration for the gitlab source
@@ -36,8 +43,10 @@ func (config *GitlabSourceConfig) UpdateFromYaml(content []byte) error {
 	*config = updated
 
 	log.WithFields(log.Fields{
-		"Enabled domains": config.Domains.Enabled,
-		"Broken domain":   config.Domains.Broken,
+		"Enabled domains":    config.Domains.Enabled,
+		"Broken domain":      config.Domains.Broken,
+		"Rollout %":          config.Domains.Rollout.Percentage,
+		"Rollout stickiness": config.Domains.Rollout.Stickiness,
 	}).Info("gitlab source config updated")
 
 	return nil
