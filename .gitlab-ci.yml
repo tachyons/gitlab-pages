@@ -246,7 +246,7 @@ gitlab-python:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
     - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
     - push_if_master_or_stable_or_tag
-    - push_if_master_or_stable_or_tag ${$PYTHON_VERSION}${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag ${PYTHON_VERSION}${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/python_container.txt
 
 build:gitlab-redis-ha:
