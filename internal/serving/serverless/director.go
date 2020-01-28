@@ -3,6 +3,8 @@ package serverless
 import (
 	"net/http"
 	"strings"
+
+	"github.com/tomasen/realip"
 )
 
 // NewDirectorFunc returns a director function capable of configuring a proxy
@@ -13,6 +15,7 @@ func NewDirectorFunc(cluster Cluster) func(*http.Request) {
 		request.URL.Host = strings.Join([]string{cluster.Address, cluster.Port}, ":")
 		request.URL.Scheme = "https"
 		request.Header.Set("User-Agent", "GitLab Pages Daemon")
-		request.Header.Set("X-Forwarded-For", "123") // TODO
+		request.Header.Set("X-Forwarded-For", realip.FromRequest(request))
+		request.Header.Set("X-Forwarded-Proto", "https")
 	}
 }

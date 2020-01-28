@@ -20,6 +20,8 @@ func TestServeFileHTTP(t *testing.T) {
 
 	cluster := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GitLab Pages Daemon", r.Header.Get("User-Agent"))
+		assert.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
+		assert.Contains(t, r.Header.Get("X-Forwarded-For"), "127.0.0.123")
 	}))
 
 	cluster.TLS = &tls.Config{
@@ -43,6 +45,7 @@ func TestServeFileHTTP(t *testing.T) {
 	t.Run("when proxying simple request to a cluster", func(t *testing.T) {
 		writer := httptest.NewRecorder()
 		request := httptest.NewRequest("GET", "http://example.gitlab.com", nil)
+		request.Header.Set("X-Real-IP", "127.0.0.123")
 		handler := serving.Handler{Writer: writer, Request: request}
 
 		assert.True(t, serverless.ServeFileHTTP(handler))
