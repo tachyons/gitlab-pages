@@ -1,6 +1,7 @@
 package source
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 
@@ -108,4 +109,76 @@ func TestGetDomain(t *testing.T) {
 		require.Nil(t, domain)
 		require.NoError(t, err)
 	})
+}
+
+func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
+	// This will produce the following pseudo-random sequence: 5, 87, 68
+	rand.Seed(42)
+
+	// Generates FNV hash 4091421005, 4091421005 % 100 = 5
+	domain05 := "test-domain-a.com"
+	// Generates FNV 2643293380, 2643293380 % 100 = 80
+	domain80 := "test-domain-b.com"
+
+	diskSource := disk.New()
+
+	gitlabSourceConfig.Domains.Rollout.Percentage = 80
+
+	type testDomain struct {
+		name   string
+		source string
+		times  int
+	}
+
+	tests := map[string]struct {
+		stickiness string
+		domains    []testDomain
+	}{
+		// domain05 should always use gitlab source,
+		// domain80 should use disk source
+		"default stickiness": {
+			stickiness: "",
+			domains: []testDomain{
+				{name: domain05, source: "gitlab"},
+				{name: domain80, source: "disk"},
+				{name: domain05, source: "gitlab"},
+			},
+		},
+		// Given that randSeed(42) will produce the following pseudo-random sequence:
+		// {5, 87, 68} the first and third call for domain05 should use gitlab source,
+		// while the second one should use disk source
+		"no stickiness": {
+			stickiness: "random",
+			domains: []testDomain{
+				{name: domain05, source: "gitlab"},
+				{name: domain05, source: "disk"},
+				{name: domain05, source: "gitlab"},
+			}},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			gitlabSource := NewMockSource()
+			for _, d := range tc.domains {
+				if d.source == "gitlab" {
+					gitlabSource.On("GetDomain", d.name).
+						Return(&domain.Domain{Name: d.name}, nil).
+						Once()
+				}
+			}
+			defer gitlabSource.AssertExpectations(t)
+
+			domains := &Domains{
+				disk:   diskSource,
+				gitlab: gitlabSource,
+			}
+
+			gitlabSourceConfig.Domains.Rollout.Stickiness = tc.stickiness
+
+			for _, domain := range tc.domains {
+				_, err := domains.GetDomain(domain.name)
+				require.NoError(t, err)
+			}
+		})
+	}
 }

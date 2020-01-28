@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/url"
 	"os"
 	"strings"
@@ -393,6 +394,8 @@ func printVersion(showVersion bool, version string) {
 
 func main() {
 	log.SetOutput(os.Stderr)
+
+	rand.Seed(time.Now().UnixNano())
 
 	daemonMain()
 	appMain()
