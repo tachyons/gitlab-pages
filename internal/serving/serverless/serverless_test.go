@@ -2,6 +2,7 @@ package serverless
 
 import (
 	"crypto/tls"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,12 +15,12 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
 
-func TestServeFileHTTP(t *testing.T) {
-	config, err := NewClusterConfig(fixture.Certificate, fixture.Key)
-	require.NoError(t, err)
-
+func withTestCluster(t *testing.T, cert, key string, block func(*http.ServeMux, *url.URL, *Config)) {
 	mux := http.NewServeMux()
 	cluster := httptest.NewUnstartedServer(mux)
+
+	config, err := NewClusterConfig(fixture.Certificate, fixture.Key)
+	require.NoError(t, err)
 
 	cluster.TLS = &tls.Config{
 		Certificates: []tls.Certificate{config.Certificate},
@@ -29,33 +30,66 @@ func TestServeFileHTTP(t *testing.T) {
 	cluster.StartTLS()
 	defer cluster.Close()
 
-	clusterURL, err := url.Parse(cluster.URL)
+	address, err := url.Parse(cluster.URL)
 	require.NoError(t, err)
 
-	serverless := New(Cluster{
-		Hostname: "knative.gitlab-example.com",
-		Address:  clusterURL.Hostname(),
-		Port:     clusterURL.Port(),
-		Config:   config,
+	block(mux, address, config)
+}
+
+func TestServeFileHTTP(t *testing.T) {
+	t.Run("when proxying simple request to a cluster", func(t *testing.T) {
+		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, config *Config) {
+			serverless := New(Cluster{
+				Hostname: "knative.gitlab-example.com",
+				Address:  server.Hostname(),
+				Port:     server.Port(),
+				Config:   config,
+			})
+
+			writer := httptest.NewRecorder()
+			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)
+			handler := serving.Handler{Writer: writer, Request: request}
+			request.Header.Set("X-Real-IP", "127.0.0.105")
+
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "GitLab Pages Daemon", r.Header.Get("User-Agent"))
+				assert.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
+				assert.Contains(t, r.Header.Get("X-Forwarded-For"), "127.0.0.105")
+			})
+
+			served := serverless.ServeFileHTTP(handler)
+			result := writer.Result()
+
+			assert.True(t, served)
+			assert.Equal(t, http.StatusOK, result.StatusCode)
+		})
 	})
 
-	t.Run("when proxying simple request to a cluster", func(t *testing.T) {
-		writer := httptest.NewRecorder()
-		request := httptest.NewRequest("GET", "http://example.gitlab.com/simple/proxy", nil)
-		request.Header.Set("X-Real-IP", "127.0.0.105")
+	t.Run("when proxying request with invalid hostname", func(t *testing.T) {
+		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, config *Config) {
+			serverless := New(Cluster{
+				Hostname: "knative.invalid-gitlab-example.com",
+				Address:  server.Hostname(),
+				Port:     server.Port(),
+				Config:   config,
+			})
 
-		handler := serving.Handler{Writer: writer, Request: request}
+			writer := httptest.NewRecorder()
+			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)
+			handler := serving.Handler{Writer: writer, Request: request}
 
-		mux.HandleFunc("/simple/proxy", func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "GitLab Pages Daemon", r.Header.Get("User-Agent"))
-			assert.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
-			assert.Contains(t, r.Header.Get("X-Forwarded-For"), "127.0.0.105")
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusBadRequest)
+			})
+
+			served := serverless.ServeFileHTTP(handler)
+			result := writer.Result()
+			body, err := ioutil.ReadAll(writer.Body)
+			require.NoError(t, err)
+
+			assert.True(t, served)
+			assert.Equal(t, http.StatusInternalServerError, result.StatusCode)
+			assert.Contains(t, string(body), "cluster error: x509: certificate")
 		})
-
-		served := serverless.ServeFileHTTP(handler)
-		result := writer.Result()
-
-		assert.True(t, served)
-		assert.Equal(t, http.StatusOK, result.StatusCode)
 	})
 }
