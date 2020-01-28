@@ -397,6 +397,12 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 
 	require.Contains(t, string(body), "gitlab_pages_http_in_flight_requests 0")
 	require.Contains(t, string(body), "gitlab_pages_served_domains 16")
+	require.Contains(t, string(body), "gitlab_pages_domains_failed_total 0")
+	require.Contains(t, string(body), "gitlab_pages_domains_updated_total 1")
+	require.Contains(t, string(body), "gitlab_pages_last_domain_update_seconds gauge")
+	require.Contains(t, string(body), "gitlab_pages_domains_configuration_update_duration gauge")
+	require.Contains(t, string(body), "gitlab_pages_domains_source_cache_hit 0")
+	require.Contains(t, string(body), "gitlab_pages_domains_source_cache_miss 0")
 }
 
 func TestStatusPage(t *testing.T) {

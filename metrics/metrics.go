@@ -29,6 +29,12 @@ var (
 		Help: "UNIX timestamp of the last update",
 	})
 
+	// DomainsConfigurationUpdateDuration is the time it takes to update domains configuration from disk
+	DomainsConfigurationUpdateDuration = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "gitlab_pages_domains_configuration_update_duration",
+		Help: "The time (in seconds) it takes to update domains configuration from disk",
+	})
+
 	// DomainsSourceCacheHit is the number of GitLab API call cache hits
 	DomainsSourceCacheHit = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "gitlab_pages_domains_source_cache_hit",
@@ -44,8 +50,10 @@ var (
 
 func init() {
 	prometheus.MustRegister(DomainsServed)
+	prometheus.MustRegister(FailedDomainUpdates)
 	prometheus.MustRegister(DomainUpdates)
 	prometheus.MustRegister(DomainLastUpdateTime)
+	prometheus.MustRegister(DomainsConfigurationUpdateDuration)
 	prometheus.MustRegister(DomainsSourceCacheHit)
 	prometheus.MustRegister(DomainsSourceCacheMiss)
 }
