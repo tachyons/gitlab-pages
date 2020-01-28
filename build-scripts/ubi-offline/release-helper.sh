@@ -35,7 +35,7 @@
 # CAVEATS:
 #
 #   This script does not set the version build arguments, such as `REGISTRY_VERSION`
-#   in `gitlab-container-registry` or `GITALY_VERSION` in `gitaly`.
+#   in `gitlab-container-registry` or `GITALY_SERVER_VERSION` in `gitaly`.
 #
 
 set -euxo pipefail
@@ -55,7 +55,7 @@ declare -A LABELED_VERSIONS=(
   [GITLAB_EXPORTER_VERSION]=
   [GITLAB_SHELL_VERSION]=
   [WORKHORSE_VERSION]=
-  [GITALY_VERSION]=
+  [GITALY_SERVER_VERSION]=
   [MAILROOM_VERSION]=
 )
 

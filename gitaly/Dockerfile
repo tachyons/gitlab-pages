@@ -8,7 +8,7 @@ FROM ${FROM_SHELL_IMAGE}:${SHELL_CONTAINER} as shell
 FROM ${FROM_IMAGE}:${TAG}
 
 ARG GITLAB_USER=git
-ARG GITALY_VERSION=v0.96.1
+ARG GITALY_SERVER_VERSION=v1.83.0
 ARG BUILD_DIR=/tmp/build
 ARG GITLAB_NAMESPACE="gitlab-org"
 ARG FETCH_ARTIFACTS_PAT
@@ -33,8 +33,8 @@ COPY shared/build-scripts/ /build-scripts
 # Download and compile Gitaly
 ARG CACHE_BUSTER=false
 RUN cd ${BUILD_DIR} && \
-    echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_VERSION}" && \
-    curl --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitaly.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_VERSION}" && \
+    echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_SERVER_VERSION}" && \
+    curl --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitaly.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_SERVER_VERSION}" && \
     tar -xjf gitaly.tar.bz2 --strip-components=1 && \
     rm gitaly.tar.bz2 && \
     cd ruby && \

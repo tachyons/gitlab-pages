@@ -2,15 +2,15 @@ ARG GIT_IMAGE=
 
 FROM ${GIT_IMAGE}
 
-ARG GITALY_VERSION
+ARG GITALY_SERVER_VERSION
 ARG GITLAB_USER=git
 
 LABEL source="https://gitlab.com/gitlab-org/gitaly" \
       name="Gitaly" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \
-      version=${GITALY_VERSION} \
-      release=${GITALY_VERSION} \
+      version=${GITALY_SERVER_VERSION} \
+      release=${GITALY_SERVER_VERSION} \
       summary="Gitaly is a Git RPC service for handling all the git calls made by GitLab." \
       description="Gitaly is a Git RPC service for handling all the git calls made by GitLab."
 
