@@ -178,10 +178,9 @@ postgresql:
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PG_VERSION" | sha1sum))
     - build_if_needed --build-arg "PG_VERSION=$PG_VERSION"
-    - if [ -n "$BUILDING_IMAGE" -a ! "$UBI_PIPELINE" = "true" ]; then
-    -   tag_and_push $PG_VERSION${IMAGE_TAG_EXT}
-    - fi
     - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag $PG_VERSION${IMAGE_TAG_EXT}
+    - echo -n "${CONTAINER_VERSION}" > artifacts/postgresql_container.txt
 
 cfssl-self-sign:
   <<: *job-base
@@ -320,6 +319,7 @@ gitlab-rails-ee:
   stage: phase-five
   dependencies:
     - build:gitlab-rails-ee
+    - postgresql
   variables:
     ee: "true"
   script:
@@ -332,7 +332,8 @@ gitlab-rails-ee:
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - fi
-    - pg_image="$CI_REGISTRY_IMAGE/postgresql:$PG_VERSION${IMAGE_TAG_EXT}"
+    - pg_version=$(cat artifacts/postgresql_container.txt)
+    - pg_image="${CI_REGISTRY_IMAGE}/postgresql:${pg_version}"
     - gei_dir_version=$(get_version gitlab-elasticsearch-indexer)
     - gei_version=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$gei_dir_version" | sha1sum))
     - gei_image="${CI_REGISTRY_IMAGE}/gitlab-elasticsearch-indexer:${gei_version}${IMAGE_TAG_EXT}"
@@ -369,12 +370,15 @@ gitlab-rails-ce:
   <<: *job-base
   <<: *except-ee
   stage: phase-five
+  dependencies:
+    - postgresql
   script:
     - ruby_version=$(get_version gitlab-ruby)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version"
-    - pg_image="$CI_REGISTRY_IMAGE/postgresql:$PG_VERSION"
+    - pg_version=$(cat artifacts/postgresql_container.txt)
+    - pg_image="${CI_REGISTRY_IMAGE}/postgresql:${pg_version}"
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${CE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ce:${GITLAB_ASSETS_TAG}"
     - fetch_assets
@@ -596,7 +600,6 @@ gitlab-exporter:
     - build_if_needed --build-arg "GITLAB_EXPORTER_VERSION=$GITLAB_EXPORTER_VERSION"
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
-                      --build-arg "PG_TAG=${PG_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag $GITLAB_EXPORTER_VERSION${IMAGE_TAG_EXT}
