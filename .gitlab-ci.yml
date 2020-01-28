@@ -74,9 +74,6 @@ stages:
     -   export IMAGE_TAG_EXT='-ubi8'
     -   use_assets
     - fi
-    - if [ -n "$GITALY_SERVER_VERSION" ]; then
-    -   export GITALY_VERSION=$GITALY_SERVER_VERSION;
-    - fi
     - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
     - export TARGET_VERSION=$(get_target_version)
     - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
@@ -761,8 +758,8 @@ build:gitaly:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - export shell_container=($(echo -n "$BASE_VERSION$go_version$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_VERSION$git_version$TARGET_VERSION" | sha1sum))
-    - build_if_needed --build-arg "VERSION=${GITALY_VERSION}"
+    - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_SERVER_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "VERSION=${GITALY_SERVER_VERSION}"
                       --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "API_URL=${CI_API_V4_URL}"
                       --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
@@ -779,11 +776,11 @@ gitaly:
     - shell_version=$(get_version gitlab-shell)
     - git_version=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
     - export shell_container=$(cat artifacts/shell_container.txt)
-    - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_SERVER_VERSION$git_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-shell:$shell_container${IMAGE_TAG_EXT}"
     - fi
-    - build_if_needed --build-arg "GITALY_VERSION=${GITALY_VERSION}"
+    - build_if_needed --build-arg "GITALY_SERVER_VERSION=${GITALY_SERVER_VERSION}"
                       --build-arg "TAG=$GIT_VERSION${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
@@ -791,9 +788,9 @@ gitaly:
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "SHELL_CONTAINER=$shell_container${IMAGE_TAG_EXT}"
-                      --build-arg "CACHE_BUSTER=$GITALY_VERSION$(date -uI)"
+                      --build-arg "CACHE_BUSTER=$GITALY_SERVER_VERSION$(date -uI)"
                       --build-arg "GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${GIT_VERSION}${IMAGE_TAG_EXT}"
-    - push_if_master_or_stable_or_tag $GITALY_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-shell
     - build:gitlab-shell
