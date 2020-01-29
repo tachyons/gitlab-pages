@@ -133,7 +133,7 @@ function is_tag(){
 }
 
 function trim_edition(){
-  echo $1 | sed -e "s/-.e$//"
+  echo $1 | sed -e "s/-.e\(-ubi8\)\?$/\1/"
 }
 
 function trim_tag(){
