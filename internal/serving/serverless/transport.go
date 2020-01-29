@@ -22,6 +22,8 @@ func NewTransport(cluster Cluster) *Transport {
 	}
 
 	dialContext := func(ctx context.Context, network, address string) (net.Conn, error) {
+		address = cluster.Host()
+
 		return dialer.DialContext(ctx, network, address)
 	}
 

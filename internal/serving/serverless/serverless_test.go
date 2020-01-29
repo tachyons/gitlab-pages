@@ -15,7 +15,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
 
-func withTestCluster(t *testing.T, cert, key string, block func(*http.ServeMux, *url.URL, *ClusterCerts)) {
+func withTestCluster(t *testing.T, cert, key string, block func(*http.ServeMux, *url.URL, *Certs)) {
 	mux := http.NewServeMux()
 	cluster := httptest.NewUnstartedServer(mux)
 
@@ -38,13 +38,20 @@ func withTestCluster(t *testing.T, cert, key string, block func(*http.ServeMux, 
 
 func TestServeFileHTTP(t *testing.T) {
 	t.Run("when proxying simple request to a cluster", func(t *testing.T) {
-		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *ClusterCerts) {
-			serverless := New(Cluster{
-				Hostname: "knative.gitlab-example.com",
-				Address:  server.Hostname(),
-				Port:     server.Port(),
-				Certs:    certs,
-			})
+		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
+			serverless := New(
+				Function{
+					Name:       "my-func",
+					Namespace:  "my-namespace-123",
+					BaseDomain: "knative.example.com",
+				},
+				Cluster{
+					Name:    "knative.gitlab-example.com",
+					Address: server.Hostname(),
+					Port:    server.Port(),
+					Certs:   certs,
+				},
+			)
 
 			writer := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)
@@ -52,6 +59,7 @@ func TestServeFileHTTP(t *testing.T) {
 			request.Header.Set("X-Real-IP", "127.0.0.105")
 
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "my-func.my-namespace-123.knative.example.com", r.Host)
 				assert.Equal(t, "GitLab Pages Daemon", r.Header.Get("User-Agent"))
 				assert.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
 				assert.Contains(t, r.Header.Get("X-Forwarded-For"), "127.0.0.105")
@@ -66,13 +74,20 @@ func TestServeFileHTTP(t *testing.T) {
 	})
 
 	t.Run("when proxying request with invalid hostname", func(t *testing.T) {
-		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *ClusterCerts) {
-			serverless := New(Cluster{
-				Hostname: "knative.invalid-gitlab-example.com",
-				Address:  server.Hostname(),
-				Port:     server.Port(),
-				Certs:    certs,
-			})
+		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
+			serverless := New(
+				Function{
+					Name:       "my-func",
+					Namespace:  "my-namespace-123",
+					BaseDomain: "knative.example.com",
+				},
+				Cluster{
+					Name:    "knative.invalid-gitlab-example.com",
+					Address: server.Hostname(),
+					Port:    server.Port(),
+					Certs:   certs,
+				},
+			)
 
 			writer := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)

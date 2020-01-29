@@ -2,35 +2,20 @@ package serverless
 
 import (
 	"crypto/tls"
-	"crypto/x509"
+	"strings"
 )
 
 // Cluster represent a Knative cluster that we want to proxy requests to
 type Cluster struct {
-	Address  string
-	Port     string
-	Hostname string
-	Certs    *ClusterCerts
+	Address string // Address is a real IP address of a cluster ingress
+	Port    string // Port is a real port of HTTP TLS service
+	Name    string // Name is a cluster name, used in cluster certificates
+	Certs   *Certs
 }
 
-// ClusterCerts holds definition of certificates we use to perform mTLS
-// handshake
-type ClusterCerts struct {
-	RootCerts   *x509.CertPool
-	Certificate tls.Certificate
-}
-
-// NewClusterCerts creates a new cluster configuration from cert / key pair
-func NewClusterCerts(clientCert, clientKey string) (*ClusterCerts, error) {
-	cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
-	if err != nil {
-		return nil, err
-	}
-
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM([]byte(clientCert))
-
-	return &ClusterCerts{RootCerts: caCertPool, Certificate: cert}, nil
+// Host returns a real cluster location based on IP address and port
+func (c Cluster) Host() string {
+	return strings.Join([]string{c.Address, c.Port}, ":")
 }
 
 // TLSConfig builds a new tls.Config and returns a pointer to it
@@ -38,6 +23,6 @@ func (c Cluster) TLSConfig() *tls.Config {
 	return &tls.Config{
 		Certificates: []tls.Certificate{c.Certs.Certificate},
 		RootCAs:      c.Certs.RootCerts,
-		ServerName:   c.Hostname,
+		ServerName:   c.Name,
 	}
 }

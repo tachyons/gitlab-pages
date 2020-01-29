@@ -14,9 +14,9 @@ type Serverless struct {
 }
 
 // New returns a new serving instance
-func New(cluster Cluster) serving.Serving {
+func New(function Function, cluster Cluster) serving.Serving {
 	proxy := httputil.ReverseProxy{
-		Director:     NewDirectorFunc(cluster),
+		Director:     NewDirectorFunc(function),
 		Transport:    NewTransport(cluster),
 		ErrorHandler: NewErrorHandler(),
 	}
