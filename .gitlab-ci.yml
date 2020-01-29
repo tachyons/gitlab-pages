@@ -209,12 +209,8 @@ kubectl:
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"
-    - if [ -n "${BUILDING_IMAGE}" -a "$UBI_PIPELINE" = "true" ]; then
-    -   tag_and_push $KUBECTL_VERSION${IMAGE_TAG_EXT}
-    - else
-    -   push_if_master_or_stable_or_tag $KUBECTL_VERSION
-    - fi
     - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag $KUBECTL_VERSION${IMAGE_TAG_EXT}
 
 alpine-certificates:
   <<: *job-base
