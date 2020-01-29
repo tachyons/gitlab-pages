@@ -107,4 +107,76 @@ func TestServeFileHTTP(t *testing.T) {
 			assert.Contains(t, string(body), "cluster error: x509: certificate")
 		})
 	})
+
+	t.Run("when a cluster responds with an error", func(t *testing.T) {
+		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
+			serverless := New(
+				Function{
+					Name:       "my-func",
+					Namespace:  "my-namespace-123",
+					BaseDomain: "knative.example.com",
+				},
+				Cluster{
+					Name:    "knative.gitlab-example.com",
+					Address: server.Hostname(),
+					Port:    server.Port(),
+					Certs:   certs,
+				},
+			)
+
+			writer := httptest.NewRecorder()
+			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)
+			handler := serving.Handler{Writer: writer, Request: request}
+
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				w.Write([]byte("sorry, service unavailable"))
+			})
+
+			served := serverless.ServeFileHTTP(handler)
+			result := writer.Result()
+			body, err := ioutil.ReadAll(writer.Body)
+			require.NoError(t, err)
+
+			assert.True(t, served)
+			assert.Equal(t, http.StatusServiceUnavailable, result.StatusCode)
+			assert.Contains(t, string(body), "sorry, service unavailable")
+		})
+	})
+
+	t.Run("when a cluster responds correctly", func(t *testing.T) {
+		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
+			serverless := New(
+				Function{
+					Name:       "my-func",
+					Namespace:  "my-namespace-123",
+					BaseDomain: "knative.example.com",
+				},
+				Cluster{
+					Name:    "knative.gitlab-example.com",
+					Address: server.Hostname(),
+					Port:    server.Port(),
+					Certs:   certs,
+				},
+			)
+
+			writer := httptest.NewRecorder()
+			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)
+			handler := serving.Handler{Writer: writer, Request: request}
+
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("OK"))
+			})
+
+			served := serverless.ServeFileHTTP(handler)
+			result := writer.Result()
+			body, err := ioutil.ReadAll(writer.Body)
+			require.NoError(t, err)
+
+			assert.True(t, served)
+			assert.Equal(t, http.StatusOK, result.StatusCode)
+			assert.Contains(t, string(body), "OK")
+		})
+	})
 }
