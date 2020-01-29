@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
@@ -59,17 +58,17 @@ func TestServeFileHTTP(t *testing.T) {
 			request.Header.Set("X-Real-IP", "127.0.0.105")
 
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, "my-func.my-namespace-123.knative.example.com", r.Host)
-				assert.Equal(t, "GitLab Pages Daemon", r.Header.Get("User-Agent"))
-				assert.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
-				assert.Contains(t, r.Header.Get("X-Forwarded-For"), "127.0.0.105")
+				require.Equal(t, "my-func.my-namespace-123.knative.example.com", r.Host)
+				require.Equal(t, "GitLab Pages Daemon", r.Header.Get("User-Agent"))
+				require.Equal(t, "https", r.Header.Get("X-Forwarded-Proto"))
+				require.Contains(t, r.Header.Get("X-Forwarded-For"), "127.0.0.105")
 			})
 
 			served := serverless.ServeFileHTTP(handler)
 			result := writer.Result()
 
-			assert.True(t, served)
-			assert.Equal(t, http.StatusOK, result.StatusCode)
+			require.True(t, served)
+			require.Equal(t, http.StatusOK, result.StatusCode)
 		})
 	})
 
@@ -102,9 +101,9 @@ func TestServeFileHTTP(t *testing.T) {
 			body, err := ioutil.ReadAll(writer.Body)
 			require.NoError(t, err)
 
-			assert.True(t, served)
-			assert.Equal(t, http.StatusInternalServerError, result.StatusCode)
-			assert.Contains(t, string(body), "cluster error: x509: certificate")
+			require.True(t, served)
+			require.Equal(t, http.StatusInternalServerError, result.StatusCode)
+			require.Contains(t, string(body), "cluster error: x509: certificate")
 		})
 	})
 
@@ -138,9 +137,9 @@ func TestServeFileHTTP(t *testing.T) {
 			body, err := ioutil.ReadAll(writer.Body)
 			require.NoError(t, err)
 
-			assert.True(t, served)
-			assert.Equal(t, http.StatusServiceUnavailable, result.StatusCode)
-			assert.Contains(t, string(body), "sorry, service unavailable")
+			require.True(t, served)
+			require.Equal(t, http.StatusServiceUnavailable, result.StatusCode)
+			require.Contains(t, string(body), "sorry, service unavailable")
 		})
 	})
 
@@ -174,9 +173,9 @@ func TestServeFileHTTP(t *testing.T) {
 			body, err := ioutil.ReadAll(writer.Body)
 			require.NoError(t, err)
 
-			assert.True(t, served)
-			assert.Equal(t, http.StatusOK, result.StatusCode)
-			assert.Contains(t, string(body), "OK")
+			require.True(t, served)
+			require.Equal(t, http.StatusOK, result.StatusCode)
+			require.Contains(t, string(body), "OK")
 		})
 	})
 }
