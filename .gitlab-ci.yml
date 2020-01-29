@@ -245,10 +245,9 @@ gitlab-python:
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
     - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
-    - if [ -n "$BUILDING_IMAGE" -a ! "$UBI_PIPELINE" = "true" ]; then
-    -   tag_and_push $PYTHON_VERSION
-    - fi
     - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag ${PYTHON_VERSION}${IMAGE_TAG_EXT}
+    - echo -n "${CONTAINER_VERSION}" > artifacts/python_container.txt
 
 build:gitlab-redis-ha:
   <<: *build-job-base
@@ -428,6 +427,7 @@ gitlab-task-runner-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
+    - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
@@ -435,13 +435,14 @@ gitlab-task-runner-ee:
     - fi
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
-                      --build-arg "PYTHON_TAG=${PYTHON_VERSION}${IMAGE_TAG_EXT}"
+                      --build-arg "PYTHON_TAG=${python_version}${IMAGE_TAG_EXT}"
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
+    - gitlab-python
     - build:gitlab-task-runner-ee
     - build:gitlab-python
   <<: *except-ce
@@ -453,16 +454,18 @@ gitlab-task-runner-ce:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ce.txt)
+    - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
                       --build-arg "TAG=$rails_container"
-                      --build-arg "PYTHON_TAG=${PYTHON_VERSION}"
+                      --build-arg "PYTHON_TAG=${python_version}"
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
+    - gitlab-python
   <<: *except-ee
 
 gitlab-geo-logcursor:
@@ -505,6 +508,7 @@ gitlab-unicorn-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
+    - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
@@ -512,12 +516,13 @@ gitlab-unicorn-ee:
     - fi
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
-                      --build-arg "PYTHON_TAG=${PYTHON_VERSION}${IMAGE_TAG_EXT}"
+                      --build-arg "PYTHON_TAG=${python_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
+    - gitlab-python
     - build:gitlab-unicorn-ee
     - build:gitlab-python
   <<: *except-ce
