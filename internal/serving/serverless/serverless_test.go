@@ -15,16 +15,16 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
 
-func withTestCluster(t *testing.T, cert, key string, block func(*http.ServeMux, *url.URL, *Config)) {
+func withTestCluster(t *testing.T, cert, key string, block func(*http.ServeMux, *url.URL, *ClusterCerts)) {
 	mux := http.NewServeMux()
 	cluster := httptest.NewUnstartedServer(mux)
 
-	config, err := NewClusterConfig(fixture.Certificate, fixture.Key)
+	certs, err := NewClusterCerts(fixture.Certificate, fixture.Key)
 	require.NoError(t, err)
 
 	cluster.TLS = &tls.Config{
-		Certificates: []tls.Certificate{config.Certificate},
-		RootCAs:      config.RootCerts,
+		Certificates: []tls.Certificate{certs.Certificate},
+		RootCAs:      certs.RootCerts,
 	}
 
 	cluster.StartTLS()
@@ -33,17 +33,17 @@ func withTestCluster(t *testing.T, cert, key string, block func(*http.ServeMux, 
 	address, err := url.Parse(cluster.URL)
 	require.NoError(t, err)
 
-	block(mux, address, config)
+	block(mux, address, certs)
 }
 
 func TestServeFileHTTP(t *testing.T) {
 	t.Run("when proxying simple request to a cluster", func(t *testing.T) {
-		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, config *Config) {
+		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *ClusterCerts) {
 			serverless := New(Cluster{
 				Hostname: "knative.gitlab-example.com",
 				Address:  server.Hostname(),
 				Port:     server.Port(),
-				Config:   config,
+				Certs:    certs,
 			})
 
 			writer := httptest.NewRecorder()
@@ -66,12 +66,12 @@ func TestServeFileHTTP(t *testing.T) {
 	})
 
 	t.Run("when proxying request with invalid hostname", func(t *testing.T) {
-		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, config *Config) {
+		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *ClusterCerts) {
 			serverless := New(Cluster{
 				Hostname: "knative.invalid-gitlab-example.com",
 				Address:  server.Hostname(),
 				Port:     server.Port(),
-				Config:   config,
+				Certs:    certs,
 			})
 
 			writer := httptest.NewRecorder()
