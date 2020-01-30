@@ -189,7 +189,10 @@ RUN mv /srv/gitlab/log /var/log/gitlab && \
     chmod -R ug-s ${DATADIR}/repo && \
     find ${DATADIR}/repo -type d -print0 | sudo xargs -0 chmod g+s && \
     mkdir -p public/uploads && chown ${GITLAB_USER}:${GITLAB_USER} public/uploads && \
-    chmod 0700 public/uploads
+    chmod 0700 public/uploads && \
+    mkdir /home/git/gitlab-shell && \
+    chown git:git /home/git/gitlab-shell && \
+    ln -s /srv/gitlab/GITLAB_SHELL_VERSION /home/git/gitlab-shell/VERSION
 
 COPY scripts/ /scripts
 
