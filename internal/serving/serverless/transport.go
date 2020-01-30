@@ -17,8 +17,8 @@ type Transport struct {
 // NewTransport fabricates as new transport type
 func NewTransport(cluster Cluster) *Transport {
 	dialer := net.Dialer{
-		Timeout:   60 * time.Second,
-		KeepAlive: 60 * time.Second,
+		Timeout:   4 * time.Minute,
+		KeepAlive: 6 * time.Minute,
 	}
 
 	dialContext := func(ctx context.Context, network, address string) (net.Conn, error) {
