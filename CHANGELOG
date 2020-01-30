@@ -1,3 +1,9 @@
+v 1.15.0
+
+- Implement support for incremental rollout of the new API based configuration source
+- Add domain configuration duration (from disk) to the exported Prometheus metrics
+- Make GitLab API client timeout and JWT expiry configurable
+
 v 1.14.0
 
 - Rollback godirwalk to v1.10.12 due to significant performance degradation
