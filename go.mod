@@ -20,6 +20,7 @@ require (
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0
+	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	gitlab.com/gitlab-org/labkit v0.0.0-20190902063225-3253d7975ca7
 	gitlab.com/lupine/go-mimedb v0.0.0-20180307000149-e8af1d659877
