@@ -5,9 +5,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestWithHTTPSFlag(t *testing.T) {
@@ -15,10 +17,65 @@ func TestWithHTTPSFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	httpsRequest := WithHTTPSFlag(r, true)
+	httpsRequest.URL.Scheme = SchemeHTTPS
 	require.True(t, IsHTTPS(httpsRequest))
 
 	httpRequest := WithHTTPSFlag(r, false)
+	httpsRequest.URL.Scheme = SchemeHTTP
 	require.False(t, IsHTTPS(httpRequest))
+
+}
+
+func TestIsHTTPS(t *testing.T) {
+	hook := test.NewGlobal()
+
+	tests := []struct {
+		name           string
+		flag           bool
+		scheme         string
+		wantLogEntries string
+	}{
+		{
+			name:   "https",
+			flag:   true,
+			scheme: "https",
+		},
+		{
+			name:   "http",
+			flag:   false,
+			scheme: "http",
+		},
+		{
+			name:           "scheme true but flag is false",
+			flag:           false,
+			scheme:         "https",
+			wantLogEntries: "request: r.URL.Scheme does not match value in ctxHTTPSKey",
+		},
+		{
+			name:           "scheme false but flag is true",
+			flag:           true,
+			scheme:         "http",
+			wantLogEntries: "request: r.URL.Scheme does not match value in ctxHTTPSKey",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hook.Reset()
+
+			r, err := http.NewRequest("GET", "/", nil)
+			require.NoError(t, err)
+			r.URL.Scheme = tt.scheme
+
+			httpsRequest := WithHTTPSFlag(r, tt.flag)
+
+			got := IsHTTPS(httpsRequest)
+			require.Equal(t, tt.flag, got)
+
+			testhelpers.AssertLogContains(t, tt.wantLogEntries, hook.AllEntries())
+		})
+	}
+
 }
 
 func TestPanics(t *testing.T) {

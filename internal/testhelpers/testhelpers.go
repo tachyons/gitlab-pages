@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,4 +41,19 @@ func AssertRedirectTo(t *testing.T, handler http.HandlerFunc, method string,
 	handler(recorder, req)
 
 	require.Equal(t, expectedURL, recorder.Header().Get("Location"))
+
+}
+
+// AssertLogContains checks that wantLogEntry is contained in at least one of the log entries
+func AssertLogContains(t *testing.T, wantLogEntry string, entries []*logrus.Entry) {
+	t.Helper()
+
+	if wantLogEntry != "" {
+		messages := make([]string, len(entries))
+		for k, entry := range entries {
+			messages[k] = entry.Message
+		}
+
+		require.Contains(t, messages, wantLogEntry)
+	}
 }

@@ -177,6 +177,15 @@ $ ./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pa
 This is most useful in dual-stack environments (IPv4+IPv6) where both Gitlab
 Pages and another HTTP server have to co-exist on the same server.
 
+
+#### Listening behind a reverse proxy
+
+When `listen-proxy` is used please make sure that your reverse proxy solution is configured to strip the [RFC7239 Forwarded headers](https://tools.ietf.org/html/rfc7239).
+
+The `gorilla/handlers.ProxyHeaders` middleware is used when listening behind a proxy via `listen-proxy` configuration option. For more information please review the [gorilla/handlers#ProxyHeaders](https://godoc.org/github.com/gorilla/handlers#ProxyHeaders) documentation.
+
+> NOTE: This middleware should only be used when behind a reverse proxy like nginx, HAProxy or Apache. Reverse proxies that don't (or are configured not to) strip these headers from client requests, or where these headers are accepted "as is" from a remote client (e.g. when Go is not behind a proxy), can manifest as a vulnerability if your application uses these headers for validating the 'trustworthiness' of a request.
+
 ### GitLab access control
 
 GitLab access control is configured with properties `auth-client-id`, `auth-client-secret`, `auth-redirect-uri`, `auth-server` and `auth-secret`. Client ID, secret and redirect uri are configured in the GitLab and should match. `auth-server` points to a GitLab instance used for authentication. `auth-redirect-uri` should be `http(s)://pages-domain/auth`. Note that if the pages-domain is not handled by GitLab pages, then the `auth-redirect-uri` should use some reserved namespace prefix (such as `http(s)://projects.pages-domain/auth`). Using HTTPS is _strongly_ encouraged. `auth-secret` is used to encrypt the session cookie, and it should be strong enough.
