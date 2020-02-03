@@ -182,7 +182,7 @@ Pages and another HTTP server have to co-exist on the same server.
 
 When `listen-proxy` is used please make sure that your reverse proxy solution is configured to strip the [RFC7239 Forwarded headers](https://tools.ietf.org/html/rfc7239).
 
-The `gorilla/handlers.ProxyHeaders` middleware is used when listening behind a proxy via `listen-proxy` configuration option. For more information please review the [gorilla/handlers#ProxyHeaders](https://godoc.org/github.com/gorilla/handlers#ProxyHeaders) documentation.
+We use `gorilla/handlers.ProxyHeaders` middleware. For more information please review the [gorilla/handlers#ProxyHeaders](https://godoc.org/github.com/gorilla/handlers#ProxyHeaders) documentation.
 
 > NOTE: This middleware should only be used when behind a reverse proxy like nginx, HAProxy or Apache. Reverse proxies that don't (or are configured not to) strip these headers from client requests, or where these headers are accepted "as is" from a remote client (e.g. when Go is not behind a proxy), can manifest as a vulnerability if your application uses these headers for validating the 'trustworthiness' of a request.
 
