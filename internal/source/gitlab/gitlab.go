@@ -72,14 +72,7 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 		isRootPath := urlPath == path.Clean(lookup.Prefix)
 
 		if isSubPath || isRootPath {
-			lookupPath := &serving.LookupPath{
-				Prefix:             lookup.Prefix,
-				Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
-				IsNamespaceProject: (lookup.Prefix == "/" && len(response.Domain.LookupPaths) > 1),
-				IsHTTPSOnly:        lookup.HTTPSOnly,
-				HasAccessControl:   lookup.AccessControl,
-				ProjectID:          uint64(lookup.ProjectID),
-			}
+			lookupPath := serving.NewLookupPath(len(response.Domain.LookupPaths), lookup)
 
 			subPath := ""
 			if isSubPath {

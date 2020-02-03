@@ -8,6 +8,16 @@ type Handler struct {
 	Writer     http.ResponseWriter
 	Request    *http.Request
 	LookupPath *LookupPath
-	// Parsed representation of Request.URI that is part of LookupPath.Prefix
-	SubPath string
+	Serving    Serving
+	SubPath    string
+}
+
+// ServeFileHTTP passes the handler itself to a serving function
+func (h Handler) ServeFileHTTP() bool {
+	return h.Serving.ServeFileHTTP(h)
+}
+
+// ServeNotFoundHTTP passes the handler itself to a serving function
+func (h Handler) ServeNotFoundHTTP() {
+	h.Serving.ServeNotFoundHTTP(h)
 }

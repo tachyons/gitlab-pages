@@ -19,8 +19,6 @@ type Domain struct {
 
 	Resolver Resolver
 
-	serving serving.Serving
-
 	certificate      *tls.Certificate
 	certificateError error
 	certificateOnce  sync.Once
@@ -57,16 +55,8 @@ func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
 	return lookupPath
 }
 
-// Serving returns domain serving driver
-func (d *Domain) Serving() serving.Serving {
-	if d.serving == nil {
-		d.serving = disk.New()
-	}
-
-	return d.serving
-}
-
-func (d *Domain) toHandler(w http.ResponseWriter, r *http.Request) serving.Handler {
+// Handler returns a serving handler for this request
+func (d *Domain) Handler(w http.ResponseWriter, r *http.Request) serving.Handler {
 	project, subpath := d.resolve(r)
 
 	return serving.Handler{
@@ -74,6 +64,7 @@ func (d *Domain) toHandler(w http.ResponseWriter, r *http.Request) serving.Handl
 		Request:    r,
 		LookupPath: project,
 		SubPath:    subpath,
+		Serving:    disk.New(),
 	}
 }
 
@@ -168,7 +159,8 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	return d.Serving().ServeFileHTTP(d.toHandler(w, r))
+	return d.Handler(w, r).ServeFileHTTP()
+	//d.Serving().ServeFileHTTP(d.toHandler(w, r))
 }
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
@@ -178,5 +170,6 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d.Serving().ServeNotFoundHTTP(d.toHandler(w, r))
+	d.Handler(w, r).ServeNotFoundHTTP()
+	//d.Serving().ServeNotFoundHTTP(d.toHandler(w, r))
 }
