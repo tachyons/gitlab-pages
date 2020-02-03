@@ -56,7 +56,7 @@ var (
 	// ServerlessLatency records serverless serving roundtrip duration
 	ServerlessLatency = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name: "gitlab_pages_serverless_latency",
-		Help: "Serverless serving rountrip duration",
+		Help: "Serverless serving roundtrip duration",
 	})
 )
 
