@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 // Serverless is a servering used to proxy requests between a client and
@@ -26,6 +27,8 @@ func New(function Function, cluster Cluster) serving.Serving {
 
 // ServeFileHTTP handle an incoming request and proxies it to Knative cluster
 func (s *Serverless) ServeFileHTTP(h serving.Handler) bool {
+	metrics.ServerlessRequests.Inc()
+
 	s.proxy.ServeHTTP(h.Writer, h.Request)
 
 	return true

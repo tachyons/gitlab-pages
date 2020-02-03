@@ -46,6 +46,18 @@ var (
 		Name: "gitlab_pages_domains_source_cache_miss",
 		Help: "The number of GitLab domains API cache misses",
 	})
+
+	// ServerlessRequests measures the amount of serverless invocations
+	ServerlessRequests = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_serverless_requests",
+		Help: "The number of total GitLab Serverless requests served",
+	})
+
+	// ServerlessLatency records serverless serving roundtrip duration
+	ServerlessLatency = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "gitlab_pages_serverless_latency",
+		Help: "Serverless serving rountrip duration",
+	})
 )
 
 func init() {
@@ -56,4 +68,6 @@ func init() {
 	prometheus.MustRegister(DomainsConfigurationUpdateDuration)
 	prometheus.MustRegister(DomainsSourceCacheHit)
 	prometheus.MustRegister(DomainsSourceCacheMiss)
+	prometheus.MustRegister(ServerlessRequests)
+	prometheus.MustRegister(ServerlessLatency)
 }
