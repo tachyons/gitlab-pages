@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+bench_runs=5
+new_code_stats="bench.new.txt"
+old_code_stats="bench.old.txt"
+
+bench_loop() {
+    times="$1"
+    file="$2"
+
+    go test -bench=. gitlab.com/gitlab-org/gitlab-pages/internal/source/disk > "$file"
+
+    for _ in $(seq 1 "$times"); do
+        go test -bench=. gitlab.com/gitlab-org/gitlab-pages/internal/source/disk >> "$file"
+    done
+}
+
+bench_loop "$bench_runs" "$new_code_stats"
+
+if [ -z "$CI" ]; then
+    ./bin/benchstat "$new_code_stats"
+else
+    target_branch=${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-master}
+
+    git checkout -f "$target_branch"
+
+    bench_loop "$bench_runs" "$old_code_stats"
+    ./bin/benchstat "$old_code_stats" "$new_code_stats"
+fi
+
+
+# -*- mode: sh; -*-
+

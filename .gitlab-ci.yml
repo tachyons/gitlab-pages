@@ -81,3 +81,15 @@ check deps:
   needs: ['download deps']
   script:
     - make deps-check
+
+benchmark:
+  extends: .go-mod-cache
+  stage: test
+  needs: ['download deps']
+  script:
+    - make setup
+    - make benchstat
+  only:
+    - merge_requests
+    - branches
+    - tags
