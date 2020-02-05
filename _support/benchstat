@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+old_run=$1
+new_run=$2
+
+echo "Benchmarks comparison"
+./bin/benchstat -delta-test none "$old_run" "$new_run"
+
+first_line=$(./bin/benchstat -delta-test none -sort delta -csv "$old_run" "$new_run" | head -2 | tail -1)
+delta=$(echo "$first_line" | cut -d , -f 6 | cut -d % -f 1)
+
+if [ -z "$delta" ]; then
+    echo "Nothing to compare!"
+    exit 1
+fi
+
+[ "$delta" = "~" ] && exit 0
+
+limit=0.5
+if echo "$delta" "$limit" | awk '{exit !( $1 > $2)}'; then
+    echo "Performance degradation detected"
+    exit 1
+fi
+
+# -*- mode: sh; -*-
