@@ -13,15 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getEntries(t *testing.T) godirwalk.Dirents {
-	fis, err := godirwalk.ReadDirents(".", nil)
-
-	require.NoError(t, err)
-
-	return fis
-}
-
-func getEntriesForBenchmark(t *testing.B) godirwalk.Dirents {
+func getEntries(t require.TestingT) godirwalk.Dirents {
 	fis, err := godirwalk.ReadDirents(".", nil)
 
 	require.NoError(t, err)
@@ -199,7 +191,7 @@ func buildFakeDomainsDirectory(t require.TestingT, nGroups, levels int) func() {
 			domain = fmt.Sprintf("%d.%s", j, domain)
 			buildFakeProjectsDirectory(t, parent, domain)
 		}
-		if i%100 == 0 {
+		if testing.Verbose() && i%100 == 0 {
 			fmt.Print(".")
 		}
 	}
@@ -208,7 +200,11 @@ func buildFakeDomainsDirectory(t require.TestingT, nGroups, levels int) func() {
 
 	return func() {
 		defer cleanup()
-		fmt.Printf("cleaning up test directory %s\n", testRoot)
+
+		if testing.Verbose() {
+			fmt.Printf("cleaning up test directory %s\n", testRoot)
+		}
+
 		os.RemoveAll(testRoot)
 	}
 }
@@ -223,18 +219,30 @@ func buildFakeProjectsDirectory(t require.TestingT, groupPath, domain string) {
 	}
 }
 
-func BenchmarkReadGroups(b *testing.B) {
-	nGroups := 10000
-	b.Logf("creating fake domains directory with %d groups", nGroups)
-	cleanup := buildFakeDomainsDirectory(b, nGroups, 0)
+// this is a safeguard against compiler optimizations
+// we use this package variable to make sure the benchmarkReadGroups loop
+// has side effects outside of the loop.
+// Without this the compiler (with the optimizations enabled) may remove the whole loop
+var result int
+
+func benchmarkReadGroups(b *testing.B, groups, levels int) {
+	cleanup := buildFakeDomainsDirectory(b, groups, levels)
 	defer cleanup()
 
-	b.Run("ReadGroups", func(b *testing.B) {
-		var dm Map
-		for i := 0; i < 2; i++ {
-			dm = make(Map)
-			dm.ReadGroups("example.com", getEntriesForBenchmark(b))
-		}
-		b.Logf("found %d domains", len(dm))
-	})
+	b.ResetTimer()
+
+	domainsCnt := 0
+	for i := 0; i < b.N; i++ {
+		dm := make(Map)
+		dm.ReadGroups("example.com", getEntries(b))
+		domainsCnt = len(dm)
+	}
+	result = domainsCnt
+}
+
+func BenchmarkReadGroups(b *testing.B) {
+	b.Run("10 groups 3 levels", func(b *testing.B) { benchmarkReadGroups(b, 10, 3) })
+	b.Run("100 groups 3 levels", func(b *testing.B) { benchmarkReadGroups(b, 100, 3) })
+	b.Run("1000 groups 3 levels", func(b *testing.B) { benchmarkReadGroups(b, 1000, 3) })
+	b.Run("10000 groups 1 levels", func(b *testing.B) { benchmarkReadGroups(b, 10000, 1) })
 }
