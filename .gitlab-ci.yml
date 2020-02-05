@@ -17,8 +17,16 @@ stages:
     paths:
       - .GOPATH/pkg/mod/
 
+.base-job:
+  only:
+    refs:
+      - merge_requests
+      - master
+
 .tests:
-  extends: .go-mod-cache
+  extends:
+    - .base-job
+    - .go-mod-cache
   stage: test
   needs: ['download deps']
   script:
@@ -36,12 +44,24 @@ license_management:
   stage: prepare
   variables:
     LICENSE_MANAGEMENT_SETUP_CMD: go mod vendor
+  only:
+    refs:
+      - merge_requests
+      - master
+    changes:
+      - go.{mod,sum}
 
 sast:
   stage: prepare
+  only:
+    refs:
+      - merge_requests
+      - master
 
 download deps:
-  extends: .go-mod-cache
+  extends:
+    - .base-job
+    - .go-mod-cache
   stage: prepare
   script:
     - make deps-download
@@ -51,7 +71,9 @@ download deps:
       - go.sum
 
 verify:
-  extends: .go-mod-cache
+  extends:
+    - .base-job
+    - .go-mod-cache
   stage: test
   needs: ['download deps']
   script:
@@ -84,8 +106,25 @@ race:
   - make race
 
 check deps:
-  extends: .go-mod-cache
+  extends:
+    - .base-job
+    - .go-mod-cache
   stage: test
   needs: ['download deps']
   script:
     - make deps-check
+
+benchmark:
+  extends:
+    - .base-job
+    - .go-mod-cache
+  stage: test
+  needs: ['download deps']
+  script:
+    - make setup
+    - make benchstat
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - bench.*.txt

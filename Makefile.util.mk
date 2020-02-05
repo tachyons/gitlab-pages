@@ -26,6 +26,9 @@ acceptance: .GOPATH/.ok gitlab-pages
 bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ $(allpackages)
 
+benchstat: .GOPATH/.ok bin/benchstat
+	@_support/benchmark
+
 # The acceptance tests cannot count for coverage
 cover: bin/gocovmerge .GOPATH/.ok gitlab-pages
 	@echo "NOTE: make cover does not exit 1 on failure, don't use it to check for tests success!"

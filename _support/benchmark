@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -e
+
+bench_runs=3
+new_code_stats="bench.new.txt"
+pkgs="gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+
+bench_loop() {
+    times="$1"
+    file="$2"
+
+    go test -bench=. "$pkgs" > "$file"
+
+    for _ in $(seq 2 "$times"); do
+        go test -bench=. "$pkgs" >> "$file"
+    done
+}
+
+echo "Running benchmarks $bench_runs times"
+bench_loop "$bench_runs" "$new_code_stats"
+./bin/benchstat "$new_code_stats"
+
+ if [ -n "$CI" ]; then
+    old_code_stats="bench.old.txt"
+    target_branch=${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-master}
+
+    echo
+    echo "CI detected - running in comparison mode"
+
+    git checkout -q -f "$target_branch"
+
+    echo "Running benchmarks on $target_branch $bench_runs times"
+    bench_loop "$bench_runs" "$old_code_stats"
+
+    git checkout -q -f "$CI_COMMIT_SHA"
+
+    _support/benchstat "$old_code_stats" "$new_code_stats"
+fi
+
+# -*- mode: sh; -*-

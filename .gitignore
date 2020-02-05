@@ -6,3 +6,4 @@ shared/pages/.update
 # Used by the makefile
 /.GOPATH
 /bin
+/bench.*.txt

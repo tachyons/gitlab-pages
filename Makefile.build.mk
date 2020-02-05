@@ -4,6 +4,7 @@ all: gitlab-pages
 
 setup: clean .GOPATH/.ok
 	go get golang.org/x/tools/cmd/goimports@v0.0.0-20191010201905-e5ffc44a6fee
+	go get golang.org/x/perf/cmd/benchstat@v0.0.0-20191209155426-36b577b0eb03
 	go get golang.org/x/lint/golint@v0.0.0-20190930215403-16217165b5de
 	go get github.com/wadey/gocovmerge@v0.0.0-20160331181800-b5bfa59ec0ad
 	go get github.com/fzipp/gocyclo@v0.0.0-20150627053110-6acd4345c835
