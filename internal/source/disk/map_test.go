@@ -233,6 +233,7 @@ func benchmarkReadGroups(b *testing.B, groups, levels int) {
 
 	domainsCnt := 0
 	for i := 0; i < b.N; i++ {
+		time.Sleep(2 * time.Second)
 		dm := make(Map)
 		dm.ReadGroups("example.com", getEntries(b))
 		domainsCnt = len(dm)
