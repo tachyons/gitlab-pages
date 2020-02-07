@@ -57,12 +57,12 @@ func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
 
 // Handler returns a serving handler for this request
 func (d *Domain) Handler(w http.ResponseWriter, r *http.Request) serving.Handler {
-	project, subpath := d.resolve(r)
+	lookup, subpath := d.resolve(r)
 
 	return serving.Handler{
 		Writer:     w,
 		Request:    r,
-		LookupPath: project,
+		LookupPath: lookup,
 		SubPath:    subpath,
 		Serving:    disk.New(),
 	}
