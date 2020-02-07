@@ -15,6 +15,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 // Client is a HTTP client to access Pages internal API
@@ -100,6 +101,8 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 	if err != nil {
 		return nil, err
 	}
+
+	metrics.DomainsSourceRequests.Inc()
 
 	resp, err := gc.httpClient.Do(req)
 	if err != nil {

@@ -35,6 +35,12 @@ var (
 		Help: "The time (in seconds) it takes to update domains configuration from disk",
 	})
 
+	// DomainsSourceRequests is the number of GitLab API calls
+	DomainsSourceRequests = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_domains_source_requests",
+		Help: "The number of GitLab domains API HTTP requests",
+	})
+
 	// DomainsSourceCacheHit is the number of GitLab API call cache hits
 	DomainsSourceCacheHit = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "gitlab_pages_domains_source_cache_hit",
@@ -66,6 +72,7 @@ func init() {
 	prometheus.MustRegister(DomainUpdates)
 	prometheus.MustRegister(DomainLastUpdateTime)
 	prometheus.MustRegister(DomainsConfigurationUpdateDuration)
+	prometheus.MustRegister(DomainsSourceRequests)
 	prometheus.MustRegister(DomainsSourceCacheHit)
 	prometheus.MustRegister(DomainsSourceCacheMiss)
 	prometheus.MustRegister(ServerlessRequests)
