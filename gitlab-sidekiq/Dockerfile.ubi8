@@ -22,6 +22,7 @@ COPY scripts/ /scripts/
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
     && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps openssh-clients \
+    && rm /usr/libexec/openssh/ssh-keysign \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
 
 USER ${GITLAB_USER}:${GITLAB_USER}
