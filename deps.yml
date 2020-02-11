@@ -54,3 +54,12 @@ dependencies:
         - filename: gitlab-ruby/Dockerfile.build.ubi8
           pattern: 'ARG RUBYGEMS_VERSION=(\S+)'
           range: '<= 2.x'
+      # redis gem
+      https://github.com/redis/redis-rb.git:
+        replace_in_files:
+        - filename: gitlab-mailroom/scripts/install-dependencies
+          pattern: 'redis:(\S+)'
+          tag_prefix: 'v'
+        - filename: gitlab-mailroom/Dockerfile.build.ubi8
+          pattern: 'redis:(\S+)'
+          tag_prefix: 'v'
