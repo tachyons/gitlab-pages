@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 )
 
 // Domain is a domain that gitlab-pages can serve.
@@ -37,35 +36,23 @@ func (d *Domain) isUnconfigured() bool {
 	return d.Resolver == nil
 }
 
-func (d *Domain) resolve(r *http.Request) (*serving.LookupPath, string) {
-	lookupPath, subpath, _ := d.Resolver.Resolve(r)
-
+func (d *Domain) resolve(r *http.Request) *serving.Request {
 	// Current implementation does not return errors in any case
-	if lookupPath == nil {
-		return nil, ""
-	}
+	request, _ := d.Resolver.Resolve(r)
 
-	return lookupPath, subpath
+	return request
 }
 
-// GetLookupPath returns a project details based on the request
+// GetLookupPath returns a project details based on the request. If LookupPath
+// is nil it means that a project does not exist.
 func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
-	lookupPath, _ := d.resolve(r)
+	request := d.resolve(r)
 
-	return lookupPath
-}
-
-// Handler returns a serving handler for this request
-func (d *Domain) Handler(w http.ResponseWriter, r *http.Request) serving.Handler {
-	lookup, subpath := d.resolve(r)
-
-	return serving.Handler{
-		Writer:     w,
-		Request:    r,
-		LookupPath: lookup,
-		SubPath:    subpath,
-		Serving:    disk.New(),
+	if request == nil {
+		return nil
 	}
+
+	return d.resolve(r).LookupPath
 }
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
@@ -159,8 +146,9 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	return d.Handler(w, r).ServeFileHTTP()
-	//d.Serving().ServeFileHTTP(d.toHandler(w, r))
+	request := d.resolve(r)
+
+	return request.ServeFileHTTP(w, r)
 }
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
@@ -170,6 +158,7 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d.Handler(w, r).ServeNotFoundHTTP()
-	//d.Serving().ServeNotFoundHTTP(d.toHandler(w, r))
+	request := d.resolve(r)
+
+	request.ServeNotFoundHTTP(w, r)
 }

@@ -8,16 +8,5 @@ type Handler struct {
 	Writer     http.ResponseWriter
 	Request    *http.Request
 	LookupPath *LookupPath
-	Serving    Serving
 	SubPath    string
-}
-
-// ServeFileHTTP passes the handler itself to a serving function
-func (h Handler) ServeFileHTTP() bool {
-	return h.Serving.ServeFileHTTP(h)
-}
-
-// ServeNotFoundHTTP passes the handler itself to a serving function
-func (h Handler) ServeNotFoundHTTP() {
-	h.Serving.ServeNotFoundHTTP(h)
 }
