@@ -19,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 // VERSION stores the information about the semantic version of application
@@ -396,6 +397,8 @@ func main() {
 	log.SetOutput(os.Stderr)
 
 	rand.Seed(time.Now().UnixNano())
+
+	metrics.MustRegister()
 
 	daemonMain()
 	appMain()
