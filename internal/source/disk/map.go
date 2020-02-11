@@ -252,7 +252,7 @@ func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
 		fis, err := godirwalk.ReadDirents(".", nil)
 		if err != nil {
 			log.WithError(err).Warn("domain scan failed")
-			metrics.FailedDomainUpdates.Inc()
+			metrics.DomainFailedUpdates.Inc()
 			continue
 		}
 
