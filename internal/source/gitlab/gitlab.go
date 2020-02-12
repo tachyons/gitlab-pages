@@ -6,9 +6,6 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"time"
-
-	store "github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -23,7 +20,6 @@ import (
 // information about domains from GitLab instance.
 type Gitlab struct {
 	client api.Resolver
-	store  *store.Cache
 }
 
 // New returns a new instance of gitlab domain source.
@@ -33,10 +29,7 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
-	return &Gitlab{
-		client: cache.NewCache(client),
-		store:  store.New(time.Hour, time.Minute),
-	}, nil
+	return &Gitlab{client: cache.NewCache(client)}, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from
