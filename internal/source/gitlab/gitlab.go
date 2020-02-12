@@ -10,10 +10,10 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/factory"
 )
 
 // Gitlab source represent a new domains configuration source. We fetch all the
@@ -46,6 +46,8 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 		return nil, nil
 	}
 
+	// TODO introduce a second-level cache for domains, invalidate using etags
+	// from first-level cache
 	domain := domain.Domain{
 		Name:            name,
 		CertificateCert: lookup.Domain.Certificate,
@@ -68,33 +70,25 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 	}
 
 	urlPath := path.Clean(r.URL.Path)
-	lookups := len(response.Domain.LookupPaths)
+	size := len(response.Domain.LookupPaths)
 
 	for _, lookup := range response.Domain.LookupPaths {
 		isSubPath := strings.HasPrefix(urlPath, lookup.Prefix)
 		isRootPath := urlPath == path.Clean(lookup.Prefix)
 
 		if isSubPath || isRootPath {
-			lookupPath := &serving.LookupPath{
-				Prefix:             lookup.Prefix,
-				Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
-				IsNamespaceProject: (lookup.Prefix == "/" && lookups > 1),
-				IsHTTPSOnly:        lookup.HTTPSOnly,
-				HasAccessControl:   lookup.AccessControl,
-				ProjectID:          uint64(lookup.ProjectID),
-			}
-
 			subPath := ""
 			if isSubPath {
 				subPath = strings.TrimPrefix(urlPath, lookup.Prefix)
 			}
 
 			return &serving.Request{
-				Serving:    disk.New(),
-				LookupPath: lookupPath,
+				Serving:    factory.Serving(lookup),
+				LookupPath: factory.LookupPath(size, lookup),
 				SubPath:    subPath}, nil
 		}
 	}
 
-	return &serving.Request{Serving: disk.New()}, errors.New("could not match lookup path")
+	return &serving.Request{Serving: factory.DefaultServing()},
+		errors.New("could not match lookup path")
 }

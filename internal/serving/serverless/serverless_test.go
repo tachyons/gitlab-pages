@@ -40,9 +40,9 @@ func TestServeFileHTTP(t *testing.T) {
 		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
 			serverless := New(
 				Function{
-					Name:       "my-func",
-					Namespace:  "my-namespace-123",
-					BaseDomain: "knative.example.com",
+					Name:      "my-func",
+					Namespace: "my-namespace-123",
+					Domain:    "knative.example.com",
 				},
 				Cluster{
 					Name:    "knative.gitlab-example.com",
@@ -76,9 +76,9 @@ func TestServeFileHTTP(t *testing.T) {
 		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
 			serverless := New(
 				Function{
-					Name:       "my-func",
-					Namespace:  "my-namespace-123",
-					BaseDomain: "knative.example.com",
+					Name:      "my-func",
+					Namespace: "my-namespace-123",
+					Domain:    "knative.example.com",
 				},
 				Cluster{
 					Name:    "knative.invalid-gitlab-example.com",
@@ -111,9 +111,9 @@ func TestServeFileHTTP(t *testing.T) {
 		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
 			serverless := New(
 				Function{
-					Name:       "my-func",
-					Namespace:  "my-namespace-123",
-					BaseDomain: "knative.example.com",
+					Name:      "my-func",
+					Namespace: "my-namespace-123",
+					Domain:    "knative.example.com",
 				},
 				Cluster{
 					Name:    "knative.gitlab-example.com",
@@ -147,9 +147,9 @@ func TestServeFileHTTP(t *testing.T) {
 		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
 			serverless := New(
 				Function{
-					Name:       "my-func",
-					Namespace:  "my-namespace-123",
-					BaseDomain: "knative.example.com",
+					Name:      "my-func",
+					Namespace: "my-namespace-123",
+					Domain:    "knative.example.com",
 				},
 				Cluster{
 					Name:    "knative.gitlab-example.com",

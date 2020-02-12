@@ -6,16 +6,18 @@ type LookupPath struct {
 	AccessControl bool   `json:"access_control,omitempty"`
 	HTTPSOnly     bool   `json:"https_only,omitempty"`
 	Prefix        string `json:"prefix,omitempty"`
-	Source        source `json:"source,omitempty"`
+	Source        Source `json:"source,omitempty"`
 }
 
-type source struct {
+// Source describes GitLab Page serving variant
+type Source struct {
 	Type       string     `json:"type,omitempty"`
 	Path       string     `json:"path,omitempty"`
-	Serverless serverless `json:"serverless,omitempty"`
+	Serverless Serverless `json:"serverless,omitempty"`
 }
 
-type serverless struct {
+// Serverless describeg serverless serving configuration
+type Serverless struct {
 	Function function `json:"function,omitempty"`
 	Cluster  cluster  `json:"cluster,omitempty"`
 }
