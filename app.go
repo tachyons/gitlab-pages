@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 
+	ghandlers "github.com/gorilla/handlers"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
@@ -271,10 +272,8 @@ func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 // httpInitialMiddleware sets up HTTP requests
 func (a *theApp) httpInitialMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		https := r.TLS != nil
-		r = request.WithHTTPSFlag(r, https)
 
-		handler.ServeHTTP(w, r)
+		handler.ServeHTTP(w, setRequestScheme(r))
 	})
 }
 
@@ -291,6 +290,20 @@ func (a *theApp) proxyInitialMiddleware(handler http.Handler) http.Handler {
 
 		handler.ServeHTTP(w, r)
 	})
+}
+
+// setRequestScheme will update r.URL.Scheme if empty based on r.TLS
+func setRequestScheme(r *http.Request) *http.Request {
+	https := false
+	if r.URL.Scheme == request.SchemeHTTPS || r.TLS != nil {
+		// make sure is set for non-proxy requests
+		r.URL.Scheme = request.SchemeHTTPS
+		https = true
+	} else {
+		r.URL.Scheme = request.SchemeHTTP
+	}
+
+	return request.WithHTTPSFlag(r, https)
 }
 
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
@@ -330,7 +343,8 @@ func (a *theApp) Run() {
 		log.WithError(err).Fatal("Unable to configure pipeline")
 	}
 
-	proxyHandler := a.proxyInitialMiddleware(commonHandlerPipeline)
+	proxyHandler := a.proxyInitialMiddleware(ghandlers.ProxyHeaders(commonHandlerPipeline))
+
 	httpHandler := a.httpInitialMiddleware(commonHandlerPipeline)
 
 	// Listen for HTTP

@@ -11,8 +11,8 @@ var (
 		Help: "The number of sites served by this Pages app",
 	})
 
-	// FailedDomainUpdates counts the number of failed site updates
-	FailedDomainUpdates = prometheus.NewCounter(prometheus.CounterOpts{
+	// DomainFailedUpdates counts the number of failed site updates
+	DomainFailedUpdates = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "gitlab_pages_domains_failed_total",
 		Help: "The total number of site updates that have failed since daemon start",
 	})
@@ -46,14 +46,45 @@ var (
 		Name: "gitlab_pages_domains_source_cache_miss",
 		Help: "The number of GitLab domains API cache misses",
 	})
+
+	// ServerlessRequests measures the amount of serverless invocations
+	ServerlessRequests = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_serverless_requests",
+		Help: "The number of total GitLab Serverless requests served",
+	})
+
+	// ServerlessLatency records serverless serving roundtrip duration
+	ServerlessLatency = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "gitlab_pages_serverless_latency",
+		Help: "Serverless serving roundtrip duration",
+	})
+
+	// DomainsSourceAPIReqTotal is the number of calls made to the GitLab API that returned a 4XX error
+	DomainsSourceAPIReqTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "gitlab_pages_domains_source_api_requests_total",
+		Help: "The number of GitLab domains API calls with different status codes",
+	}, []string{"status_code"})
+
+	// DomainsSourceAPICallDuration is the time it takes to get a response from the GitLab API in seconds
+	DomainsSourceAPICallDuration = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gitlab_pages_domains_source_api_call_duration",
+		Help: "The time (in seconds) it takes to get a response from the GitLab domains API",
+	}, []string{"status_code"})
 )
 
-func init() {
-	prometheus.MustRegister(DomainsServed)
-	prometheus.MustRegister(FailedDomainUpdates)
-	prometheus.MustRegister(DomainUpdates)
-	prometheus.MustRegister(DomainLastUpdateTime)
-	prometheus.MustRegister(DomainsConfigurationUpdateDuration)
-	prometheus.MustRegister(DomainsSourceCacheHit)
-	prometheus.MustRegister(DomainsSourceCacheMiss)
+// MustRegister collectors with the Prometheus client
+func MustRegister() {
+	prometheus.MustRegister(
+		DomainsServed,
+		DomainFailedUpdates,
+		DomainUpdates,
+		DomainLastUpdateTime,
+		DomainsConfigurationUpdateDuration,
+		DomainsSourceCacheHit,
+		DomainsSourceCacheMiss,
+		DomainsSourceAPIReqTotal,
+		DomainsSourceAPICallDuration,
+		ServerlessRequests,
+		ServerlessLatency,
+	)
 }

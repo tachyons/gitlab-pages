@@ -11,10 +11,11 @@ import (
 	"net/url"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 // Client is a HTTP client to access Pages internal API
@@ -32,7 +33,7 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 		return nil, errors.New("GitLab API URL or API secret has not been provided")
 	}
 
-	url, err := url.Parse(baseURL)
+	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +48,10 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 
 	return &Client{
 		secretKey: secretKey,
-		baseURL:   url,
+		baseURL:   parsedURL,
 		httpClient: &http.Client{
 			Timeout:   connectionTimeout,
-			Transport: httptransport.Transport,
+			Transport: httptransport.NewTransportWithMetrics(metrics.DomainsSourceAPICallDuration, metrics.DomainsSourceAPIReqTotal),
 		},
 		jwtTokenExpiry: jwtTokenExpiry,
 	}, nil
@@ -115,6 +116,8 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 		return resp, nil
 	}
 
+	// nolint: errcheck
+	// best effort to discard and close the response body
 	io.Copy(ioutil.Discard, resp.Body)
 	resp.Body.Close()
 

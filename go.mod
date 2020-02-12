@@ -9,6 +9,7 @@ require (
 	github.com/getsentry/raven-go v0.1.2 // indirect
 	github.com/golang/mock v1.3.1
 	github.com/gorilla/context v1.1.1
+	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
