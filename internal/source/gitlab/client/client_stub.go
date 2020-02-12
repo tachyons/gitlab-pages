@@ -31,6 +31,7 @@ func (c StubClient) GetLookup(ctx context.Context, host string) api.Lookup {
 	}
 	defer f.Close()
 
+	lookup.ETag = "simple-etag"
 	lookup.Error = json.NewDecoder(f).Decode(&lookup.Domain)
 
 	return lookup

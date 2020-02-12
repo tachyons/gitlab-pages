@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -87,6 +89,12 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 
 	lookup := api.Lookup{Name: host}
 	lookup.Error = json.NewDecoder(resp.Body).Decode(&lookup.Domain)
+
+	sum := md5.New()
+	io.Copy(sum, resp.Body)
+	io.WriteString(sum, host)
+	hash := sum.Sum(nil)
+	lookup.ETag = hex.EncodeToString(hash[:])
 
 	return lookup
 }

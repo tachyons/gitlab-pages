@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
+
+	store "github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -19,6 +22,7 @@ import (
 // information about domains from GitLab instance.
 type Gitlab struct {
 	client api.Resolver
+	store  *store.Cache
 }
 
 // New returns a new instance of gitlab domain source.
@@ -28,7 +32,16 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
-	return &Gitlab{client: cache.NewCache(client)}, nil
+	return NewFromClient(client), nil
+}
+
+// NewFromClient fabricates a new Gitlab domains source using api.Client passed
+// in an argument
+func NewFromClient(client api.Client) *Gitlab {
+	return &Gitlab{
+		client: cache.NewCache(client),
+		store:  store.New(time.Hour, time.Minute),
+	}
 }
 
 // GetDomain return a representation of a domain that we have fetched from
@@ -45,12 +58,23 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 		return nil, nil
 	}
 
+	if len(lookup.ETag) == 0 {
+		return nil, errors.New("lookup does not contain etag")
+	}
+
+	entry, ok := g.store.Get(lookup.ETag)
+	if ok {
+		return entry.(*domain.Domain), nil
+	}
+
 	domain := domain.Domain{
 		Name:            name,
 		CertificateCert: lookup.Domain.Certificate,
 		CertificateKey:  lookup.Domain.Key,
 		Resolver:        g,
 	}
+
+	g.store.SetDefault(lookup.ETag, &domain)
 
 	return &domain, nil
 }
