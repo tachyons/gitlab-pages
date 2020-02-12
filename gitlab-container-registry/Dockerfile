@@ -9,14 +9,15 @@ ARG REGISTRY_VERSION=v2.8.0-gitlab
 ARG REGISTRY_NAMESPACE=gitlab-org
 ARG REGISTRY_PROJECT=container-registry
 ARG GOPATH=/go
+ARG REGISTRY_SOURCE_PATH=${GOPATH}/src/github.com/docker/distribution
 
 RUN buildDeps=' \
   make' \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && GOPATH=${GOPATH} go get gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT} \
-  && cd ${GOPATH}/src/gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT} \
-  && git checkout ${REGISTRY_VERSION} \
+  && git clone https://gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT}.git \
+    --branch ${REGISTRY_VERSION} --single-branch ${REGISTRY_SOURCE_PATH} \
+  && cd ${REGISTRY_SOURCE_PATH} \
   && CGO_ENABLED=0 BUILDTAGS=${DOCKER_BUILDTAGS} make clean binaries \
   && cp bin/registry /usr/local/bin/registry \
   && rm -rf ${GOPATH} \
