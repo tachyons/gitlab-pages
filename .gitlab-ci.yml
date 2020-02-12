@@ -333,6 +333,7 @@ gitlab-rails-ee:
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
     -   container_id=$(docker create "${CI_REGISTRY_IMAGE}/${image_name}")
     -   rm -rf ${CI_PROJECT_DIR}/gitlab-rails/vendor
+    -   mkdir -p ${CI_PROJECT_DIR}/gitlab-rails/vendor
     -   docker cp $container_id:/srv/gitlab/vendor/bundle ${CI_PROJECT_DIR}/gitlab-rails/vendor
     -   docker rm -v $container_id
     - fi
@@ -373,6 +374,7 @@ gitlab-rails-ce:
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
     -   container_id=$(docker create "${CI_REGISTRY_IMAGE}/${image_name}")
     -   rm -rf ${CI_PROJECT_DIR}/gitlab-rails/vendor
+    -   mkdir -p ${CI_PROJECT_DIR}/gitlab-rails/vendor
     -   docker cp $container_id:/srv/gitlab/vendor/bundle ${CI_PROJECT_DIR}/gitlab-rails/vendor
     -   docker rm -v $container_id
     - fi
