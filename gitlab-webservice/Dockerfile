@@ -25,7 +25,7 @@ ARG GITLAB_USER=git
 USER $GITLAB_USER:$GITLAB_USER
 
 COPY scripts/ /scripts
-COPY --chown ${GITLAB_USER} configuration/ ${CONFIG}/
+COPY --chown=${GITLAB_USER} configuration/ ${CONFIG}/
 
 RUN cd /srv/gitlab && \
     mkdir -p public/uploads && chown ${GITLAB_USER}:${GITLAB_USER} public/uploads && \
