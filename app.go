@@ -88,6 +88,13 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 
 func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, error) {
 	host := request.GetHostWithoutPort(r)
+
+	// For healthcheck check requests we
+	// do not need to lookup the domain
+	if a.isHealthCheckRequest(r) {
+		return host, nil, nil
+	}
+
 	domain, err := a.domain(host)
 
 	return host, domain, err
@@ -125,7 +132,7 @@ func (a *theApp) checkAuthenticationIfNotExists(domain *domain.Domain, w http.Re
 
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
 	// short circuit content serving to check for a status page
-	if r.RequestURI == a.appConfig.StatusPath {
+	if a.isHealthCheckRequest(r) {
 		a.healthCheck(w, r, https)
 		return true
 	}
@@ -467,4 +474,8 @@ func runApp(config appConfig) {
 // fatal will log a fatal error and exit.
 func fatal(err error, message string) {
 	log.WithError(err).Fatal(message)
+}
+
+func (a *theApp) isHealthCheckRequest(r *http.Request) bool {
+	return r.RequestURI == a.appConfig.StatusPath
 }

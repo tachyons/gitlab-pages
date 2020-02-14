@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -57,4 +58,47 @@ func newGetRequestWithScheme(t *testing.T, scheme string, withTLS bool) *http.Re
 	}
 
 	return req
+}
+
+func TestIsHealthCheckRequest(t *testing.T) {
+	tests := []struct {
+		name          string
+		path          string
+		isHealthcheck bool
+	}{
+		{
+			name:          "Not a healthcheck request",
+			path:          "/foo/bar",
+			isHealthcheck: false,
+		},
+		{
+			name:          "Healthcheck request",
+			path:          "/-/healthcheck",
+			isHealthcheck: true,
+		},
+	}
+
+	app := theApp{}
+	app.appConfig.StatusPath = "/-/healthcheck"
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest("GET", tc.path, nil)
+			require.Equal(t, tc.isHealthcheck, app.isHealthCheckRequest(r))
+		})
+	}
+}
+
+func TestGetHostAndDomainDoNotLookupDomainForHealthCheckRequest(t *testing.T) {
+	app := theApp{}
+	app.appConfig.StatusPath = "/-/healthcheck"
+
+	r := httptest.NewRequest("GET", "/-/healthcheck", nil)
+	r.Host = "gitlab.com"
+
+	host, domain, err := app.getHostAndDomain(r)
+
+	require.Equal(t, "gitlab.com", host)
+	require.Nil(t, domain)
+	require.NoError(t, err)
 }
