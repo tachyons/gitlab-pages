@@ -466,7 +466,7 @@ gitlab-geo-logcursor:
     - gitlab-rails-ee
   <<: *except-ce
 
-build:gitlab-unicorn-ee:
+build:gitlab-webservice-ee:
   <<: *build-job-base
   stage: prepare:phase-two
   dependencies:
@@ -479,7 +479,7 @@ build:gitlab-unicorn-ee:
     - build_if_needed
     - copy_assets
 
-gitlab-unicorn-ee:
+gitlab-webservice-ee:
   <<: *job-base
   stage: phase-six
   script:
@@ -502,66 +502,11 @@ gitlab-unicorn-ee:
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
-    - build:gitlab-unicorn-ee
+    - build:gitlab-webservice-ee
     - build:gitlab-python
   <<: *except-ce
 
-gitlab-unicorn-ce:
-  <<: *job-base
-  stage: phase-six
-  script:
-    - ruby_version=$(get_version gitlab-ruby)
-    - rails_version=$(get_version gitlab-rails)
-    - rails_container=$(cat artifacts/rails_container_ce.txt)
-    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
-    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
-    - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
-                      --build-arg "TAG=$rails_container"
-    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
-  dependencies:
-    - gitlab-rails-ce
-  <<: *except-ee
-
-build:gitlab-puma-ee:
-  <<: *build-job-base
-  stage: prepare:phase-two
-  dependencies:
-    - build:gitlab-python
-  script:
-    - import_assets artifacts/ubi/gitlab-python.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
-    - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
-    - build_if_needed
-    - copy_assets
-
-gitlab-puma-ee:
-  <<: *job-base
-  stage: phase-six
-  script:
-    - import_assets artifacts/ubi/gitlab-python.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
-    - rails_version=$(get_version gitlab-rails)
-    - rails_container=$(cat artifacts/rails_container_ee.txt)
-    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
-    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
-    - if [ ! "$UBI_PIPELINE" = "true" ]; then
-    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
-    - fi
-    - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
-                      --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
-                      --build-arg "PYTHON_TAG=${PYTHON_VERSION}${IMAGE_TAG_EXT}"
-                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
-                      --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
-    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
-  dependencies:
-    - gitlab-rails-ee
-    - build:gitlab-puma-ee
-    - build:gitlab-python
-  <<: *except-ce
-
-gitlab-puma-ce:
+gitlab-webservice-ce:
   <<: *job-base
   stage: phase-six
   script:
@@ -994,8 +939,7 @@ ubi-assets-release:
     - build:gitlab-workhorse-ee
     - build:gitlab-rails-ee
     - build:gitlab-task-runner-ee
-    - build:gitlab-unicorn-ee
-    - build:gitlab-puma-ee
+    - build:gitlab-webservice-ee
   when: manual
   only:
     refs:

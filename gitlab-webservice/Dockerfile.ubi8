@@ -7,15 +7,15 @@ ARG GITLAB_VERSION
 ARG GITLAB_USER=git
 
 LABEL source="https://gitlab.com/gitlab-org/gitlab" \
-      name="GitLab Unicorn" \
+      name="GitLab Web Service" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \
       version=${GITLAB_VERSION} \
       release=${GITLAB_VERSION} \
-      summary="GitLab Unicorn run the GitLab Rails application with Unicorn web server." \
-      description="GitLab Unicorn run the GitLab Rails application with Unicorn web server."
+      summary="GitLab Web Service runs the GitLab Rails application with Unicorn or Puma web server." \
+      description="GitLab Web Service runs the GitLab Rails application with Unicorn or Puma web server."
 
-ADD gitlab-unicorn-ee.tar.gz /
+ADD gitlab-webservice-ee.tar.gz /
 ADD gitlab-python.tar.gz /
 
 COPY scripts/ /scripts
