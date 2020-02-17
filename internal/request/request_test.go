@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestWithHTTPSFlag(t *testing.T) {
@@ -30,10 +29,9 @@ func TestIsHTTPS(t *testing.T) {
 	hook := test.NewGlobal()
 
 	tests := []struct {
-		name           string
-		flag           bool
-		scheme         string
-		wantLogEntries string
+		name   string
+		flag   bool
+		scheme string
 	}{
 		{
 			name:   "https",
@@ -44,18 +42,6 @@ func TestIsHTTPS(t *testing.T) {
 			name:   "http",
 			flag:   false,
 			scheme: "http",
-		},
-		{
-			name:           "scheme true but flag is false",
-			flag:           false,
-			scheme:         "https",
-			wantLogEntries: "request: r.URL.Scheme does not match value in ctxHTTPSKey",
-		},
-		{
-			name:           "scheme false but flag is true",
-			flag:           true,
-			scheme:         "http",
-			wantLogEntries: "request: r.URL.Scheme does not match value in ctxHTTPSKey",
 		},
 	}
 
@@ -71,8 +57,6 @@ func TestIsHTTPS(t *testing.T) {
 
 			got := IsHTTPS(httpsRequest)
 			require.Equal(t, tt.flag, got)
-
-			testhelpers.AssertLogContains(t, tt.wantLogEntries, hook.AllEntries())
 		})
 	}
 
@@ -81,10 +65,6 @@ func TestIsHTTPS(t *testing.T) {
 func TestPanics(t *testing.T) {
 	r, err := http.NewRequest("GET", "/", nil)
 	require.NoError(t, err)
-
-	require.Panics(t, func() {
-		IsHTTPS(r)
-	})
 
 	require.Panics(t, func() {
 		GetHost(r)
