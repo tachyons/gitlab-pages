@@ -37,6 +37,7 @@ func WithHTTPSFlag(r *http.Request, https bool) *http.Request {
 func IsHTTPS(r *http.Request) bool {
 	https := r.Context().Value(ctxHTTPSKey).(bool)
 
+	log.Infof("request.IsHTTPS... scheme: '%s' ctxHTTPSKey: '%t'", r.URL.Scheme, https)
 	if https != (r.URL.Scheme == SchemeHTTPS) {
 		log.WithFields(log.Fields{
 			"ctxHTTPSKey": https,

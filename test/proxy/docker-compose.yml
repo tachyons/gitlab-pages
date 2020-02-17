@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+  reverse-proxy:
+    # The official v2.0 Traefik docker image
+    image: traefik:v2.1.4
+    # Enables the web UI and tells Traefik to listen to docker
+#    command: --providers.docker # --api.insecure=true
+    ports:
+      # The HTTP port
+      - "80:80"
+      - "443:443"
+#      - "3010:3010"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik.yml:/traefik.yml
+  pages:
+    build:
+      context: ../..
+      dockerfile: test/proxy/Dockerfile
+    volumes:
+      - /Users/jaime/dev/gitlab/ee/gitlab/shared/pages:/go/app/shared/pages
+    ports:
+      - "3010"
+    command: ./gitlab-pages -daemon-inplace-chroot -listen-proxy :3010 -artifacts-server http://10.8.244.99:3000/api/v4 -pages-root /go/app/shared/pages -pages-domain docker.localhost -log-verbose
+    depends_on:
+      - reverse-proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pages.rule=Host(`root.docker.localhost`)"
+      - "traefik.http.routers.pages.entrypoints=web"
+      - "traefik.http.routers.pages.service=pages"
+      - "traefik.http.services.pages.loadbalancer.passhostheader=false"
+      - "traefik.http.routers.pages-secure.rule=Host(`root.docker.localhost`)"
+      - "traefik.http.routers.pages-secure.entrypoints=websecure"
+      - "traefik.http.routers.pages-secure.tls=true"
+      - "traefik.http.routers.pages-secure.service=pages-secure"
+      - "traefik.http.services.pages-secure.loadbalancer.passhostheader=false"
