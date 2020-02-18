@@ -181,7 +181,7 @@ addBuildScripts() {
 }
 
 cleanupDirectory() {
-  rm -rf "${IMAGE_ROOT}"/{patches,vendor,renderDockerfile,Dockerfile.erb}
+  rm -rf "${IMAGE_ROOT}"/{patches,vendor,renderDockerfile,Dockerfile.erb,centos-8-base.repo}
 }
 
 releaseImage() {
