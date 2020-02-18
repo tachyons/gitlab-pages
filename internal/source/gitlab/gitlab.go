@@ -66,7 +66,7 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 
 	response := g.client.Resolve(r.Context(), host)
 	if response.Error != nil {
-		return nil, response.Error
+		return &serving.Request{Serving: factory.DefaultServing()}, response.Error
 	}
 
 	urlPath := path.Clean(r.URL.Path)

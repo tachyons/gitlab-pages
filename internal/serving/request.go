@@ -11,7 +11,7 @@ type Request struct {
 }
 
 // ServeFileHTTP forwards serving request handler to the serving itself
-func (s Request) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
+func (s *Request) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	handler := Handler{
 		Writer:     w,
 		Request:    r,
@@ -23,7 +23,7 @@ func (s Request) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 }
 
 // ServeNotFoundHTTP forwards serving request handler to the serving itself
-func (s Request) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Request) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	handler := Handler{
 		Writer:     w,
 		Request:    r,

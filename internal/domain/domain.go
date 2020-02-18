@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 )
 
 // Domain is a domain that gitlab-pages can serve.
@@ -37,8 +38,11 @@ func (d *Domain) isUnconfigured() bool {
 }
 
 func (d *Domain) resolve(r *http.Request) *serving.Request {
-	// Current implementation does not return errors in any case
 	request, _ := d.Resolver.Resolve(r)
+
+	if request == nil {
+		return &serving.Request{Serving: disk.New()}
+	}
 
 	return request
 }
@@ -52,7 +56,7 @@ func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
 		return nil
 	}
 
-	return d.resolve(r).LookupPath
+	return request.LookupPath
 }
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
