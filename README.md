@@ -1,7 +1,6 @@
 ## GitLab Pages Daemon
 
-[![build status](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/build.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
-
+[![build status](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/pipeline.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
 [![coverage report](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/coverage.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
 
 This is a simple HTTP server written in Go, made to serve GitLab Pages with

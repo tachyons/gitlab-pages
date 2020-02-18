@@ -1,3 +1,8 @@
+v 1.16.0
+
+- Add metrics for GitLab API calls !229
+- Change the way proxy headers like `X-Forwarded-For` are handled !225
+
 v 1.15.0
 
 - Implement support for incremental rollout of the new API based configuration source
