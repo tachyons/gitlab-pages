@@ -16,19 +16,14 @@ type Source struct {
 	Serverless Serverless `json:"serverless,omitempty"`
 }
 
-// Serverless describeg serverless serving configuration
+// Serverless describes serverless serving configuration
 type Serverless struct {
-	Function function `json:"function,omitempty"`
-	Cluster  cluster  `json:"cluster,omitempty"`
+	Service string  `json:"service,omitempty"`
+	Cluster Cluster `json:"cluster,omitempty"`
 }
 
-type function struct {
-	Name      string `json:"name,omitempty"`
-	Domain    string `json:"domain,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-}
-
-type cluster struct {
+// Cluster describes serverless cluster configuration
+type Cluster struct {
 	Address         string `json:"address,omitempty"`
 	Port            string `json:"port,omitempty"`
 	Hostname        string `json:"hostname,omitempty"`

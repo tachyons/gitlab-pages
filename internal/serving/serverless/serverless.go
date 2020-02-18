@@ -19,9 +19,7 @@ type Serverless struct {
 // NewFromAPISource returns a serverless serving instance built from GitLab API
 // response
 func NewFromAPISource(config api.Serverless) (serving.Serving, error) {
-	function := Function(config.Function)
-
-	if len(function.Name) == 0 {
+	if len(config.Service) == 0 {
 		return nil, errors.New("incomplete serverless serving config")
 	}
 
@@ -40,13 +38,13 @@ func NewFromAPISource(config api.Serverless) (serving.Serving, error) {
 		Certs:   certs,
 	}
 
-	return New(function, cluster), nil
+	return New(config.Service, cluster), nil
 }
 
 // New returns a new serving instance
-func New(function Function, cluster Cluster) serving.Serving {
+func New(service string, cluster Cluster) serving.Serving {
 	proxy := httputil.ReverseProxy{
-		Director:     NewDirectorFunc(function),
+		Director:     NewDirectorFunc(service),
 		Transport:    NewTransport(cluster),
 		ErrorHandler: NewErrorHandler(),
 	}

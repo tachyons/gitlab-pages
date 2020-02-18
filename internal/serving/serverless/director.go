@@ -8,12 +8,10 @@ import (
 
 // NewDirectorFunc returns a director function capable of configuring a proxy
 // request
-func NewDirectorFunc(function Function) func(*http.Request) {
+func NewDirectorFunc(service string) func(*http.Request) {
 	return func(request *http.Request) {
-		host := function.Host()
-
-		request.Host = host
-		request.URL.Host = host
+		request.Host = service
+		request.URL.Host = service
 		request.URL.Scheme = "https"
 		request.Header.Set("User-Agent", "GitLab Pages Daemon")
 		request.Header.Set("X-Forwarded-For", realip.FromRequest(request))
