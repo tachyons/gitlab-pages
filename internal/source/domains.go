@@ -2,6 +2,7 @@ package source
 
 import (
 	"errors"
+	"regexp"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -13,7 +14,10 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 )
 
-var gitlabSourceConfig gitlabsourceconfig.GitlabSourceConfig
+var (
+	gitlabSourceConfig    gitlabsourceconfig.GitlabSourceConfig
+	serverlessDomainRegex = regexp.MustCompile(`^[^.]+-[[:xdigit:]]{2}a1[[:xdigit:]]{10}f2[[:xdigit:]]{2}[[:xdigit:]]+-?.*`)
+)
 
 func init() {
 	// Start watching the config file for domains that will use the new `gitlab` source,
@@ -78,6 +82,10 @@ func (d *Domains) source(domain string) Source {
 		return d.disk
 	}
 
+	if IsServerlessDomain(domain) {
+		return d.gitlab
+	}
+
 	for _, name := range gitlabSourceConfig.Domains.Enabled {
 		if domain == name {
 			return d.gitlab
@@ -97,4 +105,10 @@ func (d *Domains) source(domain string) Source {
 	}
 
 	return d.disk
+}
+
+// IsServerlessDomain checks if a domain requested is a serverless domain we
+// need to handle differently
+func IsServerlessDomain(domain string) bool {
+	return serverlessDomainRegex.MatchString(domain)
 }
