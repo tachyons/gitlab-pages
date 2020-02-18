@@ -4,7 +4,6 @@ FROM ${RUBY_IMAGE}
 
 ARG GITLAB_SHELL_VERSION
 ARG GITLAB_USER=git
-ARG RHEL_REPOSITORY=https://downloads.redhat.com/redhat/rhel/rhel-8-beta/rhel-8-beta.repo
 
 LABEL source="https://gitlab.com/gitlab-org/gitlab-shell" \
       name="GitLab Shell" \
