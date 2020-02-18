@@ -12,9 +12,15 @@ ADD git-base.tar.gz /
 ADD gitlab-ruby.tar.gz /
 ADD gitlab-go.tar.gz /
 
+COPY centos-8-base.repo /tmp/
+
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
-RUN mkdir -p /assets/srv/gitlab-shell \
+RUN mkdir -p /assets/tmp \
+    && dnf --disableplugin=subscription-manager config-manager --add-repo /tmp/centos-8-base.repo \
+    && dnf --disableplugin=subscription-manager --enablerepo=centos-8-* --disablerepo=ubi-8-* download openssh-server \
+    && mv openssh-server-*.rpm /assets/tmp \
+    && mkdir -p /assets/srv/gitlab-shell \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
     && /gitlab-fetch \
         "${API_URL}" \
