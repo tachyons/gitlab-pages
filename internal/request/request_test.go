@@ -5,61 +5,25 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 )
 
-func TestWithHTTPSFlag(t *testing.T) {
-	r, err := http.NewRequest("GET", "/", nil)
-	require.NoError(t, err)
-
-	httpsRequest := WithHTTPSFlag(r, true)
-	httpsRequest.URL.Scheme = SchemeHTTPS
-	require.True(t, IsHTTPS(httpsRequest))
-
-	httpRequest := WithHTTPSFlag(r, false)
-	httpsRequest.URL.Scheme = SchemeHTTP
-	require.False(t, IsHTTPS(httpRequest))
-
-}
-
 func TestIsHTTPS(t *testing.T) {
-	hook := test.NewGlobal()
+	t.Run("when scheme is http", func(t *testing.T) {
+		httpRequest, err := http.NewRequest("GET", "/", nil)
+		require.NoError(t, err)
+		httpRequest.URL.Scheme = SchemeHTTP
+		require.False(t, IsHTTPS(httpRequest))
+	})
 
-	tests := []struct {
-		name   string
-		flag   bool
-		scheme string
-	}{
-		{
-			name:   "https",
-			flag:   true,
-			scheme: "https",
-		},
-		{
-			name:   "http",
-			flag:   false,
-			scheme: "http",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			hook.Reset()
-
-			r, err := http.NewRequest("GET", "/", nil)
-			require.NoError(t, err)
-			r.URL.Scheme = tt.scheme
-
-			httpsRequest := WithHTTPSFlag(r, tt.flag)
-
-			got := IsHTTPS(httpsRequest)
-			require.Equal(t, tt.flag, got)
-		})
-	}
-
+	t.Run("when scheme is https", func(t *testing.T) {
+		httpsRequest, err := http.NewRequest("GET", "/", nil)
+		require.NoError(t, err)
+		httpsRequest.URL.Scheme = SchemeHTTPS
+		require.True(t, IsHTTPS(httpsRequest))
+	})
 }
 
 func TestPanics(t *testing.T) {

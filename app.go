@@ -280,10 +280,6 @@ func (a *theApp) httpInitialMiddleware(handler http.Handler) http.Handler {
 // proxyInitialMiddleware sets up proxy requests
 func (a *theApp) proxyInitialMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		forwardedProto := r.Header.Get(xForwardedProto)
-		https := forwardedProto == xForwardedProtoHTTPS
-
-		r = request.WithHTTPSFlag(r, https)
 		if forwardedHost := r.Header.Get(xForwardedHost); forwardedHost != "" {
 			r.Host = forwardedHost
 		}
@@ -294,16 +290,14 @@ func (a *theApp) proxyInitialMiddleware(handler http.Handler) http.Handler {
 
 // setRequestScheme will update r.URL.Scheme if empty based on r.TLS
 func setRequestScheme(r *http.Request) *http.Request {
-	https := false
 	if r.URL.Scheme == request.SchemeHTTPS || r.TLS != nil {
 		// make sure is set for non-proxy requests
 		r.URL.Scheme = request.SchemeHTTPS
-		https = true
 	} else {
 		r.URL.Scheme = request.SchemeHTTP
 	}
 
-	return request.WithHTTPSFlag(r, https)
+	return r
 }
 
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
