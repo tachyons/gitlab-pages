@@ -4,7 +4,6 @@ FROM ${RUBY_IMAGE}
 
 ARG GITLAB_SHELL_VERSION
 ARG GITLAB_USER=git
-ARG RHEL_REPOSITORY=https://downloads.redhat.com/redhat/rhel/rhel-8-beta/rhel-8-beta.repo
 
 LABEL source="https://gitlab.com/gitlab-org/gitlab-shell" \
       name="GitLab Shell" \
@@ -22,10 +21,9 @@ COPY sshd_config /etc/ssh/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps \
-    && dnf --disableplugin=subscription-manager config-manager --add-repo ${RHEL_REPOSITORY} \
-    && dnf --disableplugin=subscription-manager --enablerepo=rhel-8-for-x86_64-* --disablerepo=ubi-8-* --nogpgcheck install -yb --nodocs openssh-server \
-    && rm /usr/libexec/openssh/ssh-keysign \
+    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps openssh \
+    && dnf --disableplugin=subscription-manager install -yb /tmp/openssh-server-*.rpm \
+    && rm /tmp/openssh-server-*.rpm /usr/libexec/openssh/ssh-keysign \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /srv/sshd /var/log/gitlab-shell \
     && touch /var/log/gitlab-shell/gitlab-shell.log \
