@@ -54,7 +54,8 @@ func TestTryAuthenticate(t *testing.T) {
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/something/else")
 	require.NoError(t, err)
-	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
+	reqURL.Scheme = request.SchemeHTTPS
+	r := &http.Request{URL: reqURL}
 
 	require.Equal(t, false, auth.TryAuthenticate(result, r, source.NewMockSource()))
 }
@@ -65,7 +66,8 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?error=access_denied")
 	require.NoError(t, err)
-	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
+	reqURL.Scheme = request.SchemeHTTPS
+	r := &http.Request{URL: reqURL}
 
 	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
 	require.Equal(t, 401, result.Code)
@@ -78,7 +80,8 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=invalid")
 	require.NoError(t, err)
-	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
+	reqURL.Scheme = request.SchemeHTTPS
+	r := &http.Request{URL: reqURL}
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["state"] = "state"
@@ -115,8 +118,13 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 		"http://pages.gitlab-example.com/auth",
 		apiServer.URL)
 
-	r, _ := http.NewRequest("GET", "/auth?code=1&state=state", nil)
-	r = request.WithHTTPSFlag(r, https)
+	r, err := http.NewRequest("GET", "/auth?code=1&state=state", nil)
+	require.NoError(t, err)
+	if https {
+		r.URL.Scheme = request.SchemeHTTPS
+	} else {
+		r.URL.Scheme = request.SchemeHTTP
+	}
 
 	setSessionValues(r, map[interface{}]interface{}{
 		"uri":   "https://pages.gitlab-example.com/project/",
@@ -166,7 +174,8 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
 	require.NoError(t, err)
-	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
+	reqURL.Scheme = request.SchemeHTTPS
+	r := &http.Request{URL: reqURL}
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
@@ -203,7 +212,8 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
 	require.NoError(t, err)
-	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
+	reqURL.Scheme = request.SchemeHTTPS
+	r := &http.Request{URL: reqURL}
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
@@ -242,7 +252,6 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	reqURL, err := url.Parse("/auth?code=1&state=state")
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
-	r = request.WithHTTPSFlag(r, false)
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
@@ -279,7 +288,8 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
 	require.NoError(t, err)
-	r := request.WithHTTPSFlag(&http.Request{URL: reqURL}, true)
+	reqURL.Scheme = request.SchemeHTTPS
+	r := &http.Request{URL: reqURL}
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
@@ -318,8 +328,6 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	reqURL, err := url.Parse("/auth?code=1&state=state")
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
-	r = request.WithHTTPSFlag(r, false)
-
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
@@ -348,7 +356,6 @@ func TestGetTokenIfExistsWhenTokenExists(t *testing.T) {
 	reqURL, err := url.Parse("/")
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
-	r = request.WithHTTPSFlag(r, false)
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
@@ -371,7 +378,6 @@ func TestGetTokenIfExistsWhenTokenDoesNotExist(t *testing.T) {
 	reqURL, err := url.Parse("http://pages.gitlab-example.com/test")
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL, Host: "pages.gitlab-example.com", RequestURI: "/test"}
-	r = request.WithHTTPSFlag(r, false)
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Save(r, result)
@@ -393,7 +399,6 @@ func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
 	reqURL, err := url.Parse("http://pages.gitlab-example.com/test")
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL, Host: "pages.gitlab-example.com", RequestURI: "/test"}
-	r = request.WithHTTPSFlag(r, false)
 
 	resp := &http.Response{StatusCode: http.StatusUnauthorized, Body: ioutil.NopCloser(bytes.NewReader([]byte("{\"error\":\"invalid_token\"}")))}
 
@@ -414,7 +419,6 @@ func TestCheckResponseForInvalidTokenWhenNotInvalidToken(t *testing.T) {
 	reqURL, err := url.Parse("/something")
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
-	r = request.WithHTTPSFlag(r, false)
 
 	resp := &http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader([]byte("ok")))}
 

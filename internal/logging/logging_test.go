@@ -13,25 +13,25 @@ import (
 func TestGetExtraLogFields(t *testing.T) {
 	tests := []struct {
 		name   string
-		https  bool
+		scheme string
 		host   string
 		domain *domain.Domain
 	}{
 		{
 			name:   "https",
-			https:  true,
+			scheme: request.SchemeHTTPS,
 			host:   "githost.io",
 			domain: &domain.Domain{},
 		},
 		{
 			name:   "http",
-			https:  false,
+			scheme: request.SchemeHTTP,
 			host:   "githost.io",
 			domain: &domain.Domain{},
 		},
 		{
 			name:   "no_domain",
-			https:  false,
+			scheme: request.SchemeHTTP,
 			host:   "githost.io",
 			domain: nil,
 		},
@@ -42,11 +42,11 @@ func TestGetExtraLogFields(t *testing.T) {
 			req, err := http.NewRequest("GET", "/", nil)
 			require.NoError(t, err)
 
-			req = request.WithHTTPSFlag(req, tt.https)
+			req.URL.Scheme = tt.scheme
 			req = request.WithHostAndDomain(req, tt.host, tt.domain)
 
 			got := getExtraLogFields(req)
-			require.Equal(t, got["pages_https"], tt.https)
+			require.Equal(t, got["pages_https"], tt.scheme == request.SchemeHTTPS)
 			require.Equal(t, got["pages_host"], tt.host)
 			require.Equal(t, got["pages_project_id"], uint64(0x0))
 		})

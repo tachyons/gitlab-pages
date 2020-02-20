@@ -5,15 +5,12 @@ import (
 	"net"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
-
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 )
 
 type ctxKey string
 
 const (
-	ctxHTTPSKey  ctxKey = "https"
 	ctxHostKey   ctxKey = "host"
 	ctxDomainKey ctxKey = "domain"
 
@@ -23,30 +20,10 @@ const (
 	SchemeHTTPS = "https"
 )
 
-// WithHTTPSFlag saves https flag in request's context
-func WithHTTPSFlag(r *http.Request, https bool) *http.Request {
-	ctx := context.WithValue(r.Context(), ctxHTTPSKey, https)
-
-	return r.WithContext(ctx)
-}
-
 // IsHTTPS checks whether the request originated from HTTP or HTTPS.
-// It reads the ctxHTTPSKey from the context and returns its value
-// It also checks that r.URL.Scheme matches the value in ctxHTTPSKey for HTTPS requests
-// TODO: remove the ctxHTTPSKey from the context https://gitlab.com/gitlab-org/gitlab-pages/issues/219
+// It checks the value from r.URL.Scheme
 func IsHTTPS(r *http.Request) bool {
-	https := r.Context().Value(ctxHTTPSKey).(bool)
-
-	if https != (r.URL.Scheme == SchemeHTTPS) {
-		log.WithFields(log.Fields{
-			"ctxHTTPSKey": https,
-			"scheme":      r.URL.Scheme,
-		}).Warn("request: r.URL.Scheme does not match value in ctxHTTPSKey")
-	}
-
-	// Returning the value of ctxHTTPSKey for now, can just switch to r.URL.Scheme == SchemeHTTPS later
-	// and later can remove IsHTTPS method altogether
-	return https
+	return r.URL.Scheme == SchemeHTTPS
 }
 
 // WithHostAndDomain saves host name and domain in the request's context
