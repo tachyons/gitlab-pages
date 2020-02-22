@@ -80,7 +80,7 @@ duplicateImageDir() {
   mv "${IMAGE_ROOT}/Dockerfile${DOCKERFILE_EXT}" "${IMAGE_ROOT}/Dockerfile"
 }
 
-prependBuildStage() {
+prependBaseArgs() {
   local DOCKERFILE="${1}"
   local IMAGE_NAME="${2}"
   cat - "${DOCKERFILE}" > "${DOCKERFILE}.0" <<-EOF
@@ -92,6 +92,15 @@ ARG BASE_TAG=8.1
 
 ARG UBI_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}
 
+EOF
+  mv "${DOCKERFILE}.0" "${DOCKERFILE}"
+}
+
+prependBuildStage() {
+  local DOCKERFILE="${1}"
+  local IMAGE_NAME="${2}"
+  if grep -sq 'ADD .*.tar.gz' "${DOCKERFILE}"; then
+    cat - "${DOCKERFILE}" > "${DOCKERFILE}.0" <<-EOF
 FROM \${UBI_IMAGE} AS builder
 
 ARG NEXUS_SERVER
@@ -104,7 +113,8 @@ ADD build-scripts/ /build-scripts/
 RUN /build-scripts/prepare.sh "\${PACKAGE_URL}"
 
 EOF
-  mv "${DOCKERFILE}.0" "${DOCKERFILE}"
+    mv "${DOCKERFILE}.0" "${DOCKERFILE}"
+  fi
 }
 
 replaceUbiImageArg() {
@@ -192,7 +202,8 @@ releaseImage() {
   local DOCKERFILE="${IMAGE_ROOT}/Dockerfile"
   duplicateImageDir "${IMAGE_NAME}" "${IMAGE_ROOT}"
   replaceUbiImageArg "${DOCKERFILE}"
-  prependBuildStage "${DOCKERFILE}" "${IMAGE_NAME}" $@
+  prependBuildStage "${DOCKERFILE}" "${IMAGE_NAME}"
+  prependBaseArgs "${DOCKERFILE}" "${IMAGE_NAME}"
   replaceRubyImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceRailsImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceGitImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
@@ -215,7 +226,7 @@ releaseImage gitaly gitlab-shell
 releaseImage gitlab-exporter
 releaseImage gitlab-mailroom
 releaseImage gitlab-rails-ee
-releaseImage gitlab-unicorn-ee gitlab-python
-releaseImage gitlab-task-runner-ee gitlab-python
+releaseImage gitlab-unicorn-ee
+releaseImage gitlab-task-runner-ee
 releaseImage gitlab-sidekiq-ee
 releaseImage gitlab-workhorse-ee
