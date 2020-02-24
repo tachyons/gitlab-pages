@@ -5,7 +5,7 @@ import "net/http"
 // Request is a type that aggregates a serving itself, project lookup path and
 // a request subpath based on an incoming request to serve page.
 type Request struct {
-	Serving    Serving     // Serving choosen to serve this request
+	Serving    Serving     // Serving chosen to serve this request
 	LookupPath *LookupPath // LookupPath contains pages project details
 	SubPath    string      // Subpath is a URL path subcomponent for this request
 }

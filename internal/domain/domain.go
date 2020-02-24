@@ -40,6 +40,8 @@ func (d *Domain) isUnconfigured() bool {
 func (d *Domain) resolve(r *http.Request) *serving.Request {
 	request, _ := d.Resolver.Resolve(r)
 
+	// TODO improve code around default serving, when `disk` serving gets removed
+	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
 	if request == nil {
 		return &serving.Request{Serving: disk.New()}
 	}

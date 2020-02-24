@@ -82,6 +82,9 @@ func (d *Domains) source(domain string) Source {
 		return d.disk
 	}
 
+	// This check is only needed until we enable `d.gitlab` source in all
+	// environments (including on-premises installations) followed by removal of
+	// `d,disk` source. This can be safely removed afterwards.
 	if IsServerlessDomain(domain) {
 		return d.gitlab
 	}
@@ -108,7 +111,11 @@ func (d *Domains) source(domain string) Source {
 }
 
 // IsServerlessDomain checks if a domain requested is a serverless domain we
-// need to handle differently
+// need to handle differently.
+//
+// Domain is a serverless domain when it matches `serverlessDomainRegex`. The
+// regular expression is also defined on the gitlab-rails side, see
+// https://gitlab.com/gitlab-org/gitlab/-/blob/master/app/models/serverless/domain.rb#L7
 func IsServerlessDomain(domain string) bool {
 	return serverlessDomainRegex.MatchString(domain)
 }

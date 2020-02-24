@@ -7,6 +7,10 @@ import (
 
 var disk *Disk
 
+func init() {
+	disk = &Disk{}
+}
+
 // Disk describes a disk access serving
 type Disk struct {
 	Reader

@@ -89,6 +89,8 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 		}
 	}
 
+	// TODO improve code around default serving, when `disk` serving gets removed
+	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
 	return &serving.Request{Serving: factory.DefaultServing()},
 		errors.New("could not match lookup path")
 }
