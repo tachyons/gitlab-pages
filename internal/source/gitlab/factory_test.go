@@ -1,4 +1,4 @@
-package factory
+package gitlab
 
 import (
 	"testing"
@@ -11,14 +11,34 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
-func TestServing(t *testing.T) {
+func TestFabricateLookupPath(t *testing.T) {
+	t.Run("when lookup path is not a namespace project", func(t *testing.T) {
+		lookup := api.LookupPath{Prefix: "/something"}
+
+		path := fabricateLookupPath(1, lookup)
+
+		require.Equal(t, path.Prefix, "/something")
+		require.False(t, path.IsNamespaceProject)
+	})
+
+	t.Run("when lookup path is a namespace project", func(t *testing.T) {
+		lookup := api.LookupPath{Prefix: "/"}
+
+		path := fabricateLookupPath(2, lookup)
+
+		require.Equal(t, path.Prefix, "/")
+		require.True(t, path.IsNamespaceProject)
+	})
+}
+
+func TestFabricateServing(t *testing.T) {
 	t.Run("when lookup path requires disk serving", func(t *testing.T) {
 		lookup := api.LookupPath{
 			Prefix: "/",
 			Source: api.Source{Type: "file"},
 		}
 
-		require.IsType(t, &disk.Disk{}, Serving(lookup))
+		require.IsType(t, &disk.Disk{}, fabricateServing(lookup))
 	})
 
 	t.Run("when lookup path requires serverless serving", func(t *testing.T) {
@@ -39,6 +59,6 @@ func TestServing(t *testing.T) {
 			},
 		}
 
-		require.IsType(t, &serverless.Serverless{}, Serving(lookup))
+		require.IsType(t, &serverless.Serverless{}, fabricateServing(lookup))
 	})
 }

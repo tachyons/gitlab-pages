@@ -13,7 +13,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/factory"
 )
 
 // Gitlab source represent a new domains configuration source. We fetch all the
@@ -66,7 +65,7 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 
 	response := g.client.Resolve(r.Context(), host)
 	if response.Error != nil {
-		return &serving.Request{Serving: factory.DefaultServing()}, response.Error
+		return &serving.Request{Serving: defaultServing()}, response.Error
 	}
 
 	urlPath := path.Clean(r.URL.Path)
@@ -83,14 +82,14 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 			}
 
 			return &serving.Request{
-				Serving:    factory.Serving(lookup),
-				LookupPath: factory.LookupPath(size, lookup),
+				Serving:    fabricateServing(lookup),
+				LookupPath: fabricateLookupPath(size, lookup),
 				SubPath:    subPath}, nil
 		}
 	}
 
 	// TODO improve code around default serving, when `disk` serving gets removed
 	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
-	return &serving.Request{Serving: factory.DefaultServing()},
+	return &serving.Request{Serving: defaultServing()},
 		errors.New("could not match lookup path")
 }
