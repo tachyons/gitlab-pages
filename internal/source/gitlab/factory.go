@@ -3,6 +3,8 @@ package gitlab
 import (
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/serverless"
@@ -33,6 +35,8 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 	case "serverless":
 		serving, err := serverless.NewFromAPISource(source.Serverless)
 		if err != nil {
+			log.WithError(err).Errorf("could not fabricate serving for project %d", lookup.ProjectID)
+
 			break
 		}
 
