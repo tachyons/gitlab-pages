@@ -279,6 +279,7 @@ build:gitlab-rails-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
+    - fetch_assets
     - build_if_needed --build-arg "GITLAB_EDITION=gitlab-ee"
                       --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "PROJECT=${EE_PROJECT}"
