@@ -17,6 +17,9 @@ complexity: .GOPATH/.ok bin/gocyclo
 test: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) $(allpackages)
 
+race: .GOPATH/.ok gitlab-pages
+	CGO_ENABLED=1 go test -race $(if $V,-v) $(allpackages)
+
 acceptance: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) $(IMPORT_PATH)
 
