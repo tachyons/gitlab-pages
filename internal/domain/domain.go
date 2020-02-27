@@ -49,8 +49,8 @@ func (d *Domain) resolve(r *http.Request) *serving.Request {
 	return request
 }
 
-// GetLookupPath returns a project details based on the request. If LookupPath
-// is nil it means that a project does not exist.
+// GetLookupPath returns a project details based on the request. It returns nil
+// if project does not exist.
 func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
 	request := d.resolve(r)
 

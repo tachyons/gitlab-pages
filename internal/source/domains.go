@@ -15,7 +15,11 @@ import (
 )
 
 var (
-	gitlabSourceConfig    gitlabsourceconfig.GitlabSourceConfig
+	gitlabSourceConfig gitlabsourceconfig.GitlabSourceConfig
+
+	// serverlessDomainRegex is a regular expression we use to check if a domain
+	// is a serverless domain, to short circut gitlab source rollout. It can be
+	// removed after the rollout is done
 	serverlessDomainRegex = regexp.MustCompile(`^[^.]+-[[:xdigit:]]{2}a1[[:xdigit:]]{10}f2[[:xdigit:]]{2}[[:xdigit:]]+-?.*`)
 )
 
@@ -84,7 +88,7 @@ func (d *Domains) source(domain string) Source {
 
 	// This check is only needed until we enable `d.gitlab` source in all
 	// environments (including on-premises installations) followed by removal of
-	// `d,disk` source. This can be safely removed afterwards.
+	// `d.disk` source. This can be safely removed afterwards.
 	if IsServerlessDomain(domain) {
 		return d.gitlab
 	}

@@ -5,11 +5,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
 
-var disk *Disk
-
-func init() {
-	disk = &Disk{}
-}
+var disk *Disk = &Disk{}
 
 // Disk describes a disk access serving
 type Disk struct {
