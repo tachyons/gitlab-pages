@@ -19,8 +19,6 @@ type Domain struct {
 
 	Resolver Resolver
 
-	serving serving.Serving
-
 	certificate      *tls.Certificate
 	certificateError error
 	certificateOnce  sync.Once
@@ -39,42 +37,28 @@ func (d *Domain) isUnconfigured() bool {
 	return d.Resolver == nil
 }
 
-func (d *Domain) resolve(r *http.Request) (*serving.LookupPath, string) {
-	lookupPath, subpath, _ := d.Resolver.Resolve(r)
+func (d *Domain) resolve(r *http.Request) *serving.Request {
+	request, _ := d.Resolver.Resolve(r)
 
-	// Current implementation does not return errors in any case
-	if lookupPath == nil {
-		return nil, ""
+	// TODO improve code around default serving, when `disk` serving gets removed
+	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
+	if request == nil {
+		return &serving.Request{Serving: disk.New()}
 	}
 
-	return lookupPath, subpath
+	return request
 }
 
-// GetLookupPath returns a project details based on the request
+// GetLookupPath returns a project details based on the request. It returns nil
+// if project does not exist.
 func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
-	lookupPath, _ := d.resolve(r)
+	request := d.resolve(r)
 
-	return lookupPath
-}
-
-// Serving returns domain serving driver
-func (d *Domain) Serving() serving.Serving {
-	if d.serving == nil {
-		d.serving = disk.New()
+	if request == nil {
+		return nil
 	}
 
-	return d.serving
-}
-
-func (d *Domain) toHandler(w http.ResponseWriter, r *http.Request) serving.Handler {
-	project, subpath := d.resolve(r)
-
-	return serving.Handler{
-		Writer:     w,
-		Request:    r,
-		LookupPath: project,
-		SubPath:    subpath,
-	}
+	return request.LookupPath
 }
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
@@ -168,7 +152,9 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	return d.Serving().ServeFileHTTP(d.toHandler(w, r))
+	request := d.resolve(r)
+
+	return request.ServeFileHTTP(w, r)
 }
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
@@ -178,5 +164,7 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d.Serving().ServeNotFoundHTTP(d.toHandler(w, r))
+	request := d.resolve(r)
+
+	request.ServeNotFoundHTTP(w, r)
 }

@@ -109,6 +109,37 @@ func TestGetDomain(t *testing.T) {
 		require.Nil(t, domain)
 		require.NoError(t, err)
 	})
+
+	t.Run("when requesting a serverless domain", func(t *testing.T) {
+		testDomain := "func-aba1aabbccddeef2abaabbcc.serverless.gitlab.io"
+
+		newSource := NewMockSource()
+		newSource.On("GetDomain", testDomain).
+			Return(&domain.Domain{Name: testDomain}, nil).
+			Once()
+		defer newSource.AssertExpectations(t)
+
+		domains := &Domains{
+			disk:   disk.New(),
+			gitlab: newSource,
+		}
+
+		domains.GetDomain(testDomain)
+	})
+}
+
+func TestIsServerlessDomain(t *testing.T) {
+	t.Run("when a domain is serverless domain", func(t *testing.T) {
+		require.True(t, IsServerlessDomain("some-function-aba1aabbccddeef2abaabbcc.serverless.gitlab.io"))
+	})
+
+	t.Run("when a domain is serverless domain with environment", func(t *testing.T) {
+		require.True(t, IsServerlessDomain("some-function-aba1aabbccddeef2abaabbcc-testing.serverless.gitlab.io"))
+	})
+
+	t.Run("when a domain is not a serverless domain", func(t *testing.T) {
+		require.False(t, IsServerlessDomain("somedomain.gitlab.io"))
+	})
 }
 
 func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {

@@ -45,6 +45,8 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 		return nil, nil
 	}
 
+	// TODO introduce a second-level cache for domains, invalidate using etags
+	// from first-level cache
 	domain := domain.Domain{
 		Name:            name,
 		CertificateCert: lookup.Domain.Certificate,
@@ -55,40 +57,39 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 	return &domain, nil
 }
 
-// Resolve is supposed to get the serving lookup path based on the request from
-// the GitLab source
-func (g *Gitlab) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
+// Resolve is supposed to return the serving request containing lookup path,
+// subpath for a given lookup and the serving itself created based on a request
+// from GitLab pages domains source
+func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 	host := request.GetHostWithoutPort(r)
 
 	response := g.client.Resolve(r.Context(), host)
 	if response.Error != nil {
-		return nil, "", response.Error
+		return &serving.Request{Serving: defaultServing()}, response.Error
 	}
 
 	urlPath := path.Clean(r.URL.Path)
+	size := len(response.Domain.LookupPaths)
 
 	for _, lookup := range response.Domain.LookupPaths {
 		isSubPath := strings.HasPrefix(urlPath, lookup.Prefix)
 		isRootPath := urlPath == path.Clean(lookup.Prefix)
 
 		if isSubPath || isRootPath {
-			lookupPath := &serving.LookupPath{
-				Prefix:             lookup.Prefix,
-				Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
-				IsNamespaceProject: (lookup.Prefix == "/" && len(response.Domain.LookupPaths) > 1),
-				IsHTTPSOnly:        lookup.HTTPSOnly,
-				HasAccessControl:   lookup.AccessControl,
-				ProjectID:          uint64(lookup.ProjectID),
-			}
-
 			subPath := ""
 			if isSubPath {
 				subPath = strings.TrimPrefix(urlPath, lookup.Prefix)
 			}
 
-			return lookupPath, subPath, nil
+			return &serving.Request{
+				Serving:    fabricateServing(lookup),
+				LookupPath: fabricateLookupPath(size, lookup),
+				SubPath:    subPath}, nil
 		}
 	}
 
-	return nil, "", errors.New("could not match lookup path")
+	// TODO improve code around default serving, when `disk` serving gets removed
+	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
+	return &serving.Request{Serving: defaultServing()},
+		errors.New("could not match lookup path")
 }

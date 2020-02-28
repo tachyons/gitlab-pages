@@ -8,6 +8,5 @@ type Handler struct {
 	Writer     http.ResponseWriter
 	Request    *http.Request
 	LookupPath *LookupPath
-	// Parsed representation of Request.URI that is part of LookupPath.Prefix
-	SubPath string
+	SubPath    string
 }

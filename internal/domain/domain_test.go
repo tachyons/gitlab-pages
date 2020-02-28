@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -21,8 +22,12 @@ type stubbedResolver struct {
 	err     error
 }
 
-func (resolver *stubbedResolver) Resolve(*http.Request) (*serving.LookupPath, string, error) {
-	return resolver.project, resolver.subpath, resolver.err
+func (resolver *stubbedResolver) Resolve(*http.Request) (*serving.Request, error) {
+	return &serving.Request{
+		Serving:    disk.New(),
+		LookupPath: resolver.project,
+		SubPath:    resolver.subpath,
+	}, resolver.err
 }
 
 func serveFileOrNotFound(domain *Domain) http.HandlerFunc {

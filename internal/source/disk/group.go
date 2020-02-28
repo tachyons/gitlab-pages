@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 )
 
 const (
@@ -77,11 +78,13 @@ func (g *Group) getProjectConfigWithSubpath(r *http.Request) (*projectConfig, st
 
 // Resolve tries to find project and its config recursively for a given request
 // to a group domain
-func (g *Group) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
+func (g *Group) Resolve(r *http.Request) (*serving.Request, error) {
 	projectConfig, prefix, projectPath, subPath := g.getProjectConfigWithSubpath(r)
 
 	if projectConfig == nil {
-		return nil, "", nil // it is not an error when project does not exist
+		// it is not an error when project does not exist, in that case
+		// serving.Request.LookupPath is nil.
+		return &serving.Request{Serving: disk.New()}, nil
 	}
 
 	lookupPath := &serving.LookupPath{
@@ -93,5 +96,9 @@ func (g *Group) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
 		ProjectID:          projectConfig.ID,
 	}
 
-	return lookupPath, subPath, nil
+	return &serving.Request{
+		Serving:    disk.New(),
+		LookupPath: lookupPath,
+		SubPath:    subPath,
+	}, nil
 }

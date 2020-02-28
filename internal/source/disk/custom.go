@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 )
 
 type customProjectResolver struct {
@@ -12,7 +13,7 @@ type customProjectResolver struct {
 	path string
 }
 
-func (p *customProjectResolver) Resolve(r *http.Request) (*serving.LookupPath, string, error) {
+func (p *customProjectResolver) Resolve(r *http.Request) (*serving.Request, error) {
 	lookupPath := &serving.LookupPath{
 		Prefix:             "/",
 		Path:               p.path,
@@ -22,5 +23,9 @@ func (p *customProjectResolver) Resolve(r *http.Request) (*serving.LookupPath, s
 		ProjectID:          p.config.ID,
 	}
 
-	return lookupPath, r.URL.Path, nil
+	return &serving.Request{
+		Serving:    disk.New(),
+		LookupPath: lookupPath,
+		SubPath:    r.URL.Path,
+	}, nil
 }

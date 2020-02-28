@@ -5,15 +5,17 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
 
-// Serving describes a disk access serving
-type Serving struct {
-	Reader
+var disk *Disk = &Disk{}
+
+// Disk describes a disk access serving
+type Disk struct {
+	reader Reader
 }
 
 // ServeFileHTTP serves a file from disk and returns true. It returns false
 // when a file could not been found.
-func (s *Serving) ServeFileHTTP(h serving.Handler) bool {
-	if s.tryFile(h) == nil {
+func (s *Disk) ServeFileHTTP(h serving.Handler) bool {
+	if s.reader.tryFile(h) == nil {
 		return true
 	}
 
@@ -21,8 +23,8 @@ func (s *Serving) ServeFileHTTP(h serving.Handler) bool {
 }
 
 // ServeNotFoundHTTP tries to read a custom 404 page
-func (s *Serving) ServeNotFoundHTTP(h serving.Handler) {
-	if s.tryNotFound(h) == nil {
+func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
+	if s.reader.tryNotFound(h) == nil {
 		return
 	}
 
@@ -33,5 +35,9 @@ func (s *Serving) ServeNotFoundHTTP(h serving.Handler) {
 // New returns a serving instance that is capable of reading files
 // from the disk
 func New() serving.Serving {
-	return &Serving{}
+	if disk == nil {
+		disk = &Disk{}
+	}
+
+	return disk
 }

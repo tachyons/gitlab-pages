@@ -39,11 +39,7 @@ func TestServeFileHTTP(t *testing.T) {
 	t.Run("when proxying simple request to a cluster", func(t *testing.T) {
 		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
 			serverless := New(
-				Function{
-					Name:       "my-func",
-					Namespace:  "my-namespace-123",
-					BaseDomain: "knative.example.com",
-				},
+				"my-func.my-namespace-123.knative.example.com",
 				Cluster{
 					Name:    "knative.gitlab-example.com",
 					Address: server.Hostname(),
@@ -75,11 +71,7 @@ func TestServeFileHTTP(t *testing.T) {
 	t.Run("when proxying request with invalid hostname", func(t *testing.T) {
 		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
 			serverless := New(
-				Function{
-					Name:       "my-func",
-					Namespace:  "my-namespace-123",
-					BaseDomain: "knative.example.com",
-				},
+				"my-func.my-namespace-123.knative.example.com",
 				Cluster{
 					Name:    "knative.invalid-gitlab-example.com",
 					Address: server.Hostname(),
@@ -110,11 +102,7 @@ func TestServeFileHTTP(t *testing.T) {
 	t.Run("when a cluster responds with an error", func(t *testing.T) {
 		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
 			serverless := New(
-				Function{
-					Name:       "my-func",
-					Namespace:  "my-namespace-123",
-					BaseDomain: "knative.example.com",
-				},
+				"my-func.my-namespace-123.knative.example.com",
 				Cluster{
 					Name:    "knative.gitlab-example.com",
 					Address: server.Hostname(),
@@ -146,11 +134,7 @@ func TestServeFileHTTP(t *testing.T) {
 	t.Run("when a cluster responds correctly", func(t *testing.T) {
 		withTestCluster(t, fixture.Certificate, fixture.Key, func(mux *http.ServeMux, server *url.URL, certs *Certs) {
 			serverless := New(
-				Function{
-					Name:       "my-func",
-					Namespace:  "my-namespace-123",
-					BaseDomain: "knative.example.com",
-				},
+				"my-func.my-namespace-123.knative.example.com",
 				Cluster{
 					Name:    "knative.gitlab-example.com",
 					Address: server.Hostname(),

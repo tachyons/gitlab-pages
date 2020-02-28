@@ -1,10 +1,12 @@
 package serverless
 
 import (
+	"errors"
 	"net/http/httputil"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -14,10 +16,35 @@ type Serverless struct {
 	proxy *httputil.ReverseProxy
 }
 
+// NewFromAPISource returns a serverless serving instance built from GitLab API
+// response
+func NewFromAPISource(config api.Serverless) (serving.Serving, error) {
+	if len(config.Service) == 0 {
+		return nil, errors.New("incomplete serverless serving config")
+	}
+
+	certs, err := NewClusterCerts(
+		config.Cluster.CertificateCert,
+		config.Cluster.CertificateKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster := Cluster{
+		Name:    config.Cluster.Hostname,
+		Address: config.Cluster.Address,
+		Port:    config.Cluster.Port,
+		Certs:   certs,
+	}
+
+	return New(config.Service, cluster), nil
+}
+
 // New returns a new serving instance
-func New(function Function, cluster Cluster) serving.Serving {
+func New(service string, cluster Cluster) serving.Serving {
 	proxy := httputil.ReverseProxy{
-		Director:     NewDirectorFunc(function),
+		Director:     NewDirectorFunc(service),
 		Transport:    NewTransport(cluster),
 		ErrorHandler: NewErrorHandler(),
 	}
