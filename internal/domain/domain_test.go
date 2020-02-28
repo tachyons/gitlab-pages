@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
@@ -138,6 +139,18 @@ func TestDomainNoCertificate(t *testing.T) {
 	_, err2 := testDomain.EnsureCertificate()
 	require.Error(t, err)
 	require.Equal(t, err, err2)
+}
+
+func BenchmarkEnsureCertificate(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		testDomain := &Domain{
+			Name:            "test.domain.com",
+			CertificateCert: fixture.Certificate,
+			CertificateKey:  fixture.Key,
+		}
+
+		testDomain.EnsureCertificate()
+	}
 }
 
 var chdirSet = false
