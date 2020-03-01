@@ -25,6 +25,6 @@ RUN dnf clean all \
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
-CMD /usr/bin/mail_room -c /var/opt/gitlab/mail_room.yml
+CMD /usr/bin/mail_room -c /var/opt/gitlab/mail_room.yml --log-exit-as json
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
