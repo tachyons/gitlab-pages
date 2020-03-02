@@ -24,7 +24,7 @@ COPY gitconfig /usr/local/etc/gitconfig
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
     && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps net-tools libicu openssh-clients \
-    && rm /usr/libexec/openssh/ssh-keysign \
+    && rm -f /usr/local/tmp/tmp/openssh-server-*.rpm /usr/libexec/openssh/ssh-keysign \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories \
     && touch /var/log/gitaly/gitaly.log \
