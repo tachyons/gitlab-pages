@@ -33,7 +33,7 @@ queue_requests false
 # accepted protocols.
 bind 'tcp://0.0.0.0:8080'
 
-workers 3
+workers 2
 
 require_relative "/srv/gitlab/lib/gitlab/cluster/lifecycle_events"
 require_relative "/srv/gitlab/lib/gitlab/cluster/puma_worker_killer_initializer"
