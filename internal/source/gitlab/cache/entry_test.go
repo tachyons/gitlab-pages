@@ -10,35 +10,55 @@ import (
 )
 
 func TestIsUpToDateAndNeedsRefresh(t *testing.T) {
-	t.Run("when is resolved and not expired", func(t *testing.T) {
-		entry := newCacheEntry("my.gitlab.com")
-		entry.response = &api.Lookup{}
+	tests := []struct {
+		name                string
+		resolved            bool
+		expired             bool
+		expectedIsUpToDate  bool
+		expectedNeedRefresh bool
+	}{
+		{
+			name:                "resolved_and_not_expired",
+			resolved:            true,
+			expired:             false,
+			expectedIsUpToDate:  true,
+			expectedNeedRefresh: false,
+		},
+		{
+			name:                "resolved_and_expired",
+			resolved:            true,
+			expired:             true,
+			expectedIsUpToDate:  false,
+			expectedNeedRefresh: true,
+		},
+		{
+			name:                "not_resolved_and_not_expired",
+			resolved:            false,
+			expired:             false,
+			expectedIsUpToDate:  false,
+			expectedNeedRefresh: false,
+		},
+		{
+			name:                "not_resolved_and_expired",
+			resolved:            false,
+			expired:             true,
+			expectedIsUpToDate:  false,
+			expectedNeedRefresh: false,
+		},
+	}
 
-		require.True(t, entry.IsUpToDate())
-		require.False(t, entry.NeedsRefresh())
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entry := newCacheEntry("my.gitlab.com", defaultCacheConfig.entryRefreshTimeout, nil)
+			if tt.resolved {
+				entry.response = &api.Lookup{}
+			}
+			if tt.expired {
+				entry.created = time.Now().Add(-time.Hour)
+			}
 
-	t.Run("when is resolved and is expired", func(t *testing.T) {
-		entry := newCacheEntry("my.gitlab.com")
-		entry.response = &api.Lookup{}
-		entry.created = time.Now().Add(-time.Hour)
-
-		require.False(t, entry.IsUpToDate())
-		require.True(t, entry.NeedsRefresh())
-	})
-
-	t.Run("when is not resolved and not expired", func(t *testing.T) {
-		entry := newCacheEntry("my.gitlab.com")
-
-		require.False(t, entry.IsUpToDate())
-		require.False(t, entry.NeedsRefresh())
-	})
-
-	t.Run("when is not resolved and is expired", func(t *testing.T) {
-		entry := newCacheEntry("my.gitlab.com")
-		entry.created = time.Now().Add(-time.Hour)
-
-		require.False(t, entry.IsUpToDate())
-		require.False(t, entry.NeedsRefresh())
-	})
+			require.Equal(t, tt.expectedIsUpToDate, entry.IsUpToDate())
+			require.Equal(t, tt.expectedNeedRefresh, entry.NeedsRefresh())
+		})
+	}
 }
