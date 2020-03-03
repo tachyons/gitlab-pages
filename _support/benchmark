@@ -4,7 +4,7 @@ set -e
 
 bench_runs=3
 new_code_stats="bench.new.txt"
-pkgs="gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+pkgs="gitlab.com/gitlab-org/gitlab-pages/internal/domain gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 
 bench_loop() {
     times="$1"
