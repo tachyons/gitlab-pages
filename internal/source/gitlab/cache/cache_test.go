@@ -69,7 +69,7 @@ func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
 	return lookup
 }
 
-func withTestCache(config resolverConfig, block func(*Cache, *client)) {
+func withTestCache(config resolverConfig, cacheConfig *cacheConfig, block func(*Cache, *client)) {
 	var chanSize int
 
 	if config.buffered {
@@ -84,7 +84,7 @@ func withTestCache(config resolverConfig, block func(*Cache, *client)) {
 		failure: config.failure,
 	}
 
-	cache := NewCache(resolver)
+	cache := NewCache(resolver, cacheConfig)
 
 	block(cache, resolver)
 }
@@ -122,7 +122,7 @@ type entryConfig struct {
 
 func TestResolve(t *testing.T) {
 	t.Run("when item is not cached", func(t *testing.T) {
-		withTestCache(resolverConfig{buffered: true}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{buffered: true}, nil, func(cache *Cache, resolver *client) {
 			resolver.domain <- "my.gitlab.com"
 
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
@@ -134,7 +134,7 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when item is not cached and accessed multiple times", func(t *testing.T) {
-		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			wg := &sync.WaitGroup{}
 			ctx := context.Background()
 
@@ -158,7 +158,7 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when item is in short cache", func(t *testing.T) {
-		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
@@ -169,7 +169,7 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when a non-retrieved new item is in short cache", func(t *testing.T) {
-		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(*Entry) {
 				lookup := make(chan *api.Lookup, 1)
 
@@ -192,7 +192,7 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when item is in long cache only", func(t *testing.T) {
-		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
@@ -206,7 +206,7 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when item in long cache is requested multiple times", func(t *testing.T) {
-		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
 				cache.Resolve(context.Background(), "my.gitlab.com")
 				cache.Resolve(context.Background(), "my.gitlab.com")
@@ -221,9 +221,10 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when retrieval failed with an error", func(t *testing.T) {
-		withTestCache(resolverConfig{failure: errors.New("500 err")}, func(cache *Cache, resolver *client) {
-			maxRetrievalInterval = 0
+		cc := defaultCacheConfig
+		cc.maxRetrievalInterval = 0
 
+		withTestCache(resolverConfig{failure: errors.New("500 err")}, &cc, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			require.Equal(t, uint64(3), resolver.stats.getLookups())
@@ -235,7 +236,7 @@ func TestResolve(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(ctx, "my.gitlab.com")
 
 			require.Equal(t, uint64(0), resolver.stats.getLookups())
@@ -244,12 +245,10 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when retrieval failed because of an internal retriever context timeout", func(t *testing.T) {
-		t.Skip("Data race")
+		cc := defaultCacheConfig
+		cc.retrievalTimeout = 0
 
-		retrievalTimeout = 0
-		defer func() { retrievalTimeout = 5 * time.Second }()
-
-		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, &cc, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			require.Equal(t, uint64(0), resolver.stats.getLookups())
@@ -258,7 +257,7 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when retrieval failed because of resolution context being canceled", func(t *testing.T) {
-		withTestCache(resolverConfig{}, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(entry *Entry) {
 				ctx, cancel := context.WithCancel(context.Background())
 

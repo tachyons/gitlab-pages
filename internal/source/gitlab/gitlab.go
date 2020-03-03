@@ -28,7 +28,8 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
-	return &Gitlab{client: cache.NewCache(client)}, nil
+	// using nil for cache config will use the default values specified in internal/source/gitlab/cache/cache.go#12
+	return &Gitlab{client: cache.NewCache(client, nil)}, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from
