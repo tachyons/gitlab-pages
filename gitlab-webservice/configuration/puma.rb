@@ -4,7 +4,7 @@
 #
 # The default is "config.ru".
 #
-rackup 'config.ru'
+rackup '/srv/gitlab/config.ru'
 pidfile "#{ENV['HOME']}/puma.pid"
 state_path "#{ENV['HOME']}/puma.state"
 
