@@ -65,18 +65,31 @@ func getExtraLogFields(r *http.Request) log.Fields {
 	}
 }
 
-// AccessLogger configures the GitLab pages HTTP access logger middleware
-func AccessLogger(handler http.Handler, format string) (http.Handler, error) {
-
+// BasicAccessLogger configures the GitLab pages basic HTTP access logger middleware
+func BasicAccessLogger(handler http.Handler, format string, extraFields log.ExtraFieldsGeneratorFunc) (http.Handler, error) {
 	accessLogger, err := getAccessLogger(format)
 	if err != nil {
 		return nil, err
 	}
 
+	if extraFields == nil {
+		extraFields = func(r *http.Request) log.Fields {
+			return log.Fields{
+				"pages_https": request.IsHTTPS(r),
+				"pages_host":  r.Host,
+			}
+		}
+	}
+
 	return log.AccessLogger(handler,
-		log.WithExtraFields(getExtraLogFields),
+		log.WithExtraFields(extraFields),
 		log.WithAccessLogger(accessLogger),
 	), nil
+}
+
+// AccessLogger configures the GitLab pages HTTP access logger middleware with extra log fields
+func AccessLogger(handler http.Handler, format string) (http.Handler, error) {
+	return BasicAccessLogger(handler, format, getExtraLogFields)
 }
 
 // LogRequest will inject request host and path to the logged messages

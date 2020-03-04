@@ -124,12 +124,6 @@ func (a *theApp) checkAuthenticationIfNotExists(domain *domain.Domain, w http.Re
 }
 
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
-	// short circuit content serving to check for a status page
-	if r.RequestURI == a.appConfig.StatusPath {
-		a.healthCheck(w, r, https)
-		return true
-	}
-
 	// Add auto redirect
 	if !https && a.RedirectHTTP {
 		a.redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
@@ -175,6 +169,27 @@ func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
 
 		handler.ServeHTTP(w, r)
 	})
+}
+
+// healthCheckMiddleware is serving the application status check
+func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, error) {
+	healthCheck := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		a.healthCheck(w, r, request.IsHTTPS(r))
+	})
+
+	loggedHealthCheck, err := logging.BasicAccessLogger(healthCheck, a.LogFormat, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.RequestURI == a.appConfig.StatusPath {
+			loggedHealthCheck.ServeHTTP(w, r)
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	}), nil
 }
 
 // customHeadersMiddleware will inject custom headers into the response
@@ -310,7 +325,6 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = a.auxiliaryMiddleware(handler)
 	handler = a.authMiddleware(handler)
 	handler = a.acmeMiddleware(handler)
-	handler = a.customHeadersMiddleware(handler)
 	handler, err := logging.AccessLogger(handler, a.LogFormat)
 	if err != nil {
 		return nil, err
@@ -321,6 +335,15 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = metricsMiddleware(handler)
 
 	handler = a.routingMiddleware(handler)
+
+	// Health Check
+	handler, err = a.healthCheckMiddleware(handler)
+	if err != nil {
+		return nil, err
+	}
+
+	// Custom response headers
+	handler = a.customHeadersMiddleware(handler)
 
 	return handler, nil
 }
