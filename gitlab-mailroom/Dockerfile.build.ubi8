@@ -2,7 +2,7 @@ ARG BUILD_IMAGE=
 
 FROM ${BUILD_IMAGE}
 
-ARG MAILROOM_VERSION=0.9.1
+ARG MAILROOM_VERSION=0.0.3
 
 ADD gitlab-ruby.tar.gz /
 
@@ -10,7 +10,7 @@ COPY shared/build-scripts/ /build-scripts
 
 RUN mkdir /assets \
     && gem install \
-      mail_room:${MAILROOM_VERSION} \
+      gitlab-mail_room:${MAILROOM_VERSION} \
       charlock_holmes:0.7.6 \
       redis:4.1.3 redis-namespace:1.6.0 \
     && /build-scripts/cleanup-gems /usr/lib/ruby/gems \

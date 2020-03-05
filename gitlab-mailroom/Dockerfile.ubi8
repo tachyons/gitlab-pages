@@ -5,7 +5,7 @@ FROM ${RUBY_IMAGE}
 ARG MAILROOM_VERSION
 ARG GITLAB_USER=git
 
-LABEL source="https://github.com/tpitale/mail_room/" \
+LABEL source="https://gitlab.com/gitlab-org/gitlab-mail_room/" \
       name="GitLab Mailroom" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \
