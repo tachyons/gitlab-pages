@@ -135,6 +135,15 @@ RUN cd /srv/gitlab && \
     rm -rf node_modules/ tmp/ spec/ && \
     /build-scripts/cleanup-gems
 
+# Generate bootsnap cache
+RUN echo "Generating bootsnap cache"; \
+    cd /srv/gitlab && \
+    sudo -u ${GITLAB_USER} mkdir tmp/ && \
+    sudo -u ${GITLAB_USER} -H $COMPILE_ASSETS_ENV ENABLE_BOOTSNAP=1 \
+         busybox time bin/rails runner 'exit 0' 2>/dev/null && \
+    du -hs /srv/gitlab/tmp/cache/bootsnap-* ;
+# exit code of this command will be that of `du`
+
 <% if !compile_assets %>
 # install assets from assets container (see ARG ASSETS_IMAGE at top)
 COPY --chown=git --from=assets assets /srv/gitlab/public/assets/

@@ -29,7 +29,7 @@ RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts /srv/gitlab \
     && chmod -R ug+rwX shared/pages/ \
     && chmod 0700 public/uploads \
     && mkdir /home/git/gitlab-shell \
-    && chown git:git /home/git/gitlab-shell \
+    && chown ${GITLAB_USER}:${GITLAB_USER} /home/git/gitlab-shell \
     && ln -s /srv/gitlab/GITLAB_SHELL_VERSION /home/git/gitlab-shell/VERSION \
     && sed -e '/host: localhost/d' -e '/port: 80/d' -i config/gitlab.yml \
     && sed -e "s/# user:.*/user: ${GITLAB_USER}/" -e "s:/home/git/repositories:${GITLAB_DATA}/repo:" -i config/gitlab.yml
@@ -38,5 +38,13 @@ ENV RAILS_ENV=production
 ENV EXECJS_RUNTIME=Disabled
 ENV CONFIG_TEMPLATE_DIRECTORY=/srv/gitlab/config
 ENV UPGRADE_STATUS_DIR=${GITLAB_DATA}/.upgrade-status
+
+# Generate bootsnap cache
+RUN echo "Generating bootsnap cache"; \
+    cd /srv/gitlab && \
+    su ${GITLAB_USER} -c "mkdir /srv/gitlab/tmp/"  && \
+    su ${GITLAB_USER} -c "ENABLE_BOOTSNAP=1 bin/rails runner 'exit 0'" && \
+    du -hs /srv/gitlab/tmp/cache/bootsnap-* ;
+# exit code of this command will be that of `du`
 
 VOLUME ${GITLAB_DATA} /var/log
