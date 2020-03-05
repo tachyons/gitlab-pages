@@ -38,7 +38,6 @@ func TestNewInvalidConfiguration(t *testing.T) {
 		args       args
 		wantErrMsg string
 	}{
-
 		{
 			name: "invalid_api_url",
 			args: args{
@@ -47,7 +46,7 @@ func TestNewInvalidConfiguration(t *testing.T) {
 				connectionTimeout: defaultClientConnTimeout,
 				jwtTokenExpiry:    defaultJWTTokenExpiry,
 			},
-			wantErrMsg: "parse %: invalid URL escape \"%\"",
+			wantErrMsg: "invalid URL escape \"%\"",
 		},
 		{
 			name: "invalid_api_url_empty",
@@ -92,10 +91,10 @@ func TestNewInvalidConfiguration(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			got, err := NewClient(tt.args.baseURL, tt.args.secretKey, tt.args.connectionTimeout, tt.args.jwtTokenExpiry)
 			require.Nil(t, got)
-			require.EqualError(t, err, tt.wantErrMsg)
+			require.NotNil(t, err)
+			require.Contains(t, err.Error(), tt.wantErrMsg)
 		})
 	}
 }
