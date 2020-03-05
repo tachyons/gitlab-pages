@@ -1,3 +1,9 @@
+v 1.17.0
+
+- Extract health check in its own middleware !247
+- Increase GitLab internal API response timeout !253
+- Add support for proxying GitLab serverless requests !232
+
 v 1.16.0
 
 - Add metrics for GitLab API calls !229
