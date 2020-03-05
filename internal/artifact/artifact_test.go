@@ -143,6 +143,15 @@ func TestBuildURL(t *testing.T) {
 		{
 			"https://gitlab.com/api/v4/",
 			"GROUP.GITLAB.IO",
+			"/-/SUBGROUP/PROJECT/-/JOBS/1/ARTIFACTS/PATH/TO/FILE {!#1.txt",
+			"https://gitlab.com/api/v4/projects/GROUP%2FSUBGROUP%2FPROJECT/jobs/1/artifacts/PATH/TO/FILE%20%7B%21%231.txt",
+			"gitlab.io",
+			true,
+			"Special characters in name",
+		},
+		{
+			"https://gitlab.com/api/v4/",
+			"GROUP.GITLAB.IO",
 			"/-/SUBGROUP/PROJECT/-/JOBS/1/ARTIFACTS/PATH/TO/FILE.txt",
 			"https://gitlab.com/api/v4/projects/GROUP%2FSUBGROUP%2FPROJECT/jobs/1/artifacts/PATH/TO/FILE.txt",
 			"gitlab.io",
