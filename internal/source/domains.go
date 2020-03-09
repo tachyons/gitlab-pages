@@ -24,6 +24,8 @@ var (
 )
 
 func init() {
+
+	log.Info("whaaaaat")
 	// Start watching the config file for domains that will use the new `gitlab` source,
 	// to be removed once we switch completely to using it.
 	go gitlabsourceconfig.WatchForGitlabSourceConfigChange(&gitlabSourceConfig, 1*time.Minute)
@@ -82,7 +84,9 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
+	log.Infof("the domain: %s and domains... %+v", domain, d)
 	if d.gitlab == nil {
+		log.Info("seems lik d.gitlab is nil...")
 		return d.disk
 	}
 

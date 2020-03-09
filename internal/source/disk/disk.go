@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 )
 
@@ -33,6 +35,7 @@ func (d *Disk) GetDomain(host string) (*domain.Domain, error) {
 
 	domain, _ := d.dm[host]
 
+	log.Info("Found a domain? for host:%s domain: %+v", host, domain)
 	return domain, nil
 }
 

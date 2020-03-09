@@ -34,9 +34,11 @@ type GitlabSourceConfig struct {
 // the fields already set.
 func (config *GitlabSourceConfig) UpdateFromYaml(content []byte) error {
 	updated := GitlabSourceConfig{}
-
+	log.Infof("we should be coming here....")
 	err := yaml.Unmarshal(content, &updated)
 	if err != nil {
+		log.WithError(err).Error("oooops...")
+
 		return err
 	}
 
@@ -60,7 +62,7 @@ func WatchForGitlabSourceConfigChange(config *GitlabSourceConfig, interval time.
 	if gitlabSourceConfigFile == "" {
 		gitlabSourceConfigFile = ".gitlab-source-config.yml"
 	}
-
+	log.Info("WatchForGitlabSourceConfigChange: %+v", config)
 	for {
 		content, err := readConfig(gitlabSourceConfigFile)
 		if err != nil {
@@ -84,8 +86,11 @@ func WatchForGitlabSourceConfigChange(config *GitlabSourceConfig, interval time.
 }
 
 func readConfig(configfile string) ([]byte, error) {
-	content, err := ioutil.ReadFile(configfile)
 
+	wd, err := os.Getwd()
+	log.WithError(err).Infof("the current directory %s", wd)
+	content, err := ioutil.ReadFile(configfile)
+	log.WithError(err).Errorf("the config file: %s", configfile)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
