@@ -73,7 +73,7 @@ var (
 	tlsMaxVersion           = flag.String("tls-max-version", "", tlsconfig.FlagUsage("max"))
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
-	singleHost                 = flag.Bool("singleHost", false, "EXPERIMENTAL: can be removed without notice")
+	singleHost                 = flag.Bool("single-host", false, "EXPERIMENTAL: can be removed without notice")
 
 	// See init()
 	listenHTTP  MultiStringFlag
