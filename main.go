@@ -73,6 +73,7 @@ var (
 	tlsMaxVersion           = flag.String("tls-max-version", "", tlsconfig.FlagUsage("max"))
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
+	singleHost                 = flag.Bool("singleHost", false, "EXPERIMENTAL: can be removed without notice")
 
 	// See init()
 	listenHTTP  MultiStringFlag
@@ -147,6 +148,7 @@ func configFromFlags() appConfig {
 	var config appConfig
 
 	config.Domain = strings.ToLower(*pagesDomain)
+	config.SingleHost = *singleHost
 	config.RedirectHTTP = *redirectHTTP
 	config.HTTP2 = *useHTTP2
 	config.DisableCrossOriginRequests = *disableCrossOriginRequests

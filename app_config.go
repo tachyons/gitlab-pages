@@ -4,6 +4,7 @@ import "time"
 
 type appConfig struct {
 	Domain                 string
+	SingleHost             bool
 	ArtifactsServer        string
 	ArtifactsServerTimeout int
 	RootCertificate        []byte
