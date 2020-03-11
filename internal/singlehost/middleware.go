@@ -1,8 +1,11 @@
 package singlehost
 
 import (
+	"net"
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type middleware struct {
@@ -23,14 +26,31 @@ func (m middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m middleware) extractHostFromPath(r *http.Request) {
-	// custom domain
-	if r.Host != m.pagesDomain {
+	host, port, err := net.SplitHostPort(r.Host)
+	if err != nil {
 		return
 	}
 
-	segments := strings.SplitN(r.URL.Path, "/", 2)
-	namespace, newPath := segments[0], segments[1]
+	if host != m.pagesDomain {
+		return
+	}
 
-	r.Host = namespace + "." + m.pagesDomain
+	segments := strings.SplitN(r.URL.Path, "/", 3)
+	namespace, newPath := segments[1], "/"+segments[2]
+
+	newHost := namespace + "." + m.pagesDomain
+
+	if port != "" {
+		newHost += ":" + port
+	}
+
+	log.WithFields(log.Fields{
+		"old_host": r.Host,
+		"new_host": newHost,
+		"old_path": r.URL.Path,
+		"new_path": newPath,
+	}).Debug("Rewrite namespace host")
+
+	r.Host = newHost
 	r.URL.Path = newPath
 }
