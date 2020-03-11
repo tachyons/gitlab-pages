@@ -214,17 +214,6 @@ func (a *theApp) acmeMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
-// authMiddleware handles authentication requests
-func (a *theApp) authMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if a.Auth.TryAuthenticate(w, r) {
-			return
-		}
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
 // auxiliaryMiddleware will handle status updates, not-ready requests and other
 // not static-content responses
 func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
@@ -323,7 +312,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	}
 	handler = a.accessControlMiddleware(handler)
 	handler = a.auxiliaryMiddleware(handler)
-	handler = a.authMiddleware(handler)
+	handler = a.Auth.Middleware(handler)
 	handler = a.acmeMiddleware(handler)
 	handler, err := logging.AccessLogger(handler, a.LogFormat)
 	if err != nil {

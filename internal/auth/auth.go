@@ -107,8 +107,19 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 	return session, nil
 }
 
-// TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
-func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
+// Middleware handles authentication requests
+func (a *Auth) Middleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if a.tryAuthenticate(w, r) {
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// tryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
+func (a *Auth) tryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 	if a == nil {
 		return false
 	}
