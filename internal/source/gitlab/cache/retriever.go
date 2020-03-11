@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -40,6 +41,33 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-cha
 		var lookup api.Lookup
 
 		for i := 1; i <= maxRetrievalRetries; i++ {
+			fmt.Printf("retrieving domain: %q from cache: %d \n", domain, i)
+
+			if domain == "test.jaime" {
+				response <- api.Lookup{
+					Name:  "test.jaime",
+					Error: nil,
+					Domain: &api.VirtualDomain{
+						Certificate: "",
+						Key:         "",
+						LookupPaths: []api.LookupPath{
+							api.LookupPath{
+								ProjectID:     20,
+								AccessControl: false,
+								HTTPSOnly:     false,
+								Prefix:        "/",
+								Source: api.Source{
+									Type: "file",
+									Type:"object-storage"
+									Path: "bucket://",
+								},
+							},
+						},
+					},
+				}
+				break
+			}
+
 			lookup = r.client.GetLookup(ctx, domain)
 
 			if lookup.Error != nil {

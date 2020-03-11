@@ -1,5 +1,5 @@
 domains:
   enabled:
-    - root.127.0.0.1.xip.io
+    - test.jaime
   rollout:
-    percentage: 100
+    percentage: 10
