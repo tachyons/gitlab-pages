@@ -19,4 +19,4 @@ RUN apt-get update \
   && mv yq_linux_amd64 /usr/local/bin/yq
 
 # Default to non-root user
-USER nobody:nobody
+USER 65534:65534

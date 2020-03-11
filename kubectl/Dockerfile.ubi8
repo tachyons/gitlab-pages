@@ -10,4 +10,4 @@ RUN chmod +x /usr/local/bin/{kubectl,yq} \
     && dnf --disableplugin=subscription-manager --nogpgcheck install -by --nodocs openssh openssl
 
 # Default to non-root user
-USER nobody:nobody
+USER 65534:65534
