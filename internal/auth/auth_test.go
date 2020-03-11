@@ -22,7 +22,8 @@ func createAuth(t *testing.T) *Auth {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		"http://gitlab-example.com")
+		"http://gitlab-example.com",
+		source.NewMockSource())
 }
 
 func defaultCookieStore() sessions.Store {
@@ -57,7 +58,7 @@ func TestTryAuthenticate(t *testing.T) {
 	reqURL.Scheme = request.SchemeHTTPS
 	r := &http.Request{URL: reqURL}
 
-	require.Equal(t, false, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	require.Equal(t, false, auth.TryAuthenticate(result, r))
 }
 
 func TestTryAuthenticateWithError(t *testing.T) {
@@ -69,7 +70,7 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	reqURL.Scheme = request.SchemeHTTPS
 	r := &http.Request{URL: reqURL}
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	require.Equal(t, true, auth.TryAuthenticate(result, r))
 	require.Equal(t, 401, result.Code)
 }
 
@@ -87,7 +88,7 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	session.Values["state"] = "state"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	require.Equal(t, true, auth.TryAuthenticate(result, r))
 	require.Equal(t, 401, result.Code)
 }
 
@@ -116,7 +117,9 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		apiServer.URL)
+		apiServer.URL,
+		source.NewMockSource(),
+	)
 
 	r, err := http.NewRequest("GET", "/auth?code=1&state=state", nil)
 	require.NoError(t, err)
@@ -132,7 +135,7 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	})
 
 	result := httptest.NewRecorder()
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	require.Equal(t, true, auth.TryAuthenticate(result, r))
 	require.Equal(t, 302, result.Code)
 	require.Equal(t, "https://pages.gitlab-example.com/project/", result.Header().Get("Location"))
 	require.Equal(t, 600, result.Result().Cookies()[0].MaxAge)
@@ -169,7 +172,8 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		apiServer.URL)
+		apiServer.URL,
+		source.NewMockSource())
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
@@ -207,7 +211,8 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		apiServer.URL)
+		apiServer.URL,
+		source.NewMockSource())
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
@@ -246,7 +251,8 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		apiServer.URL)
+		apiServer.URL,
+		source.NewMockSource())
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
@@ -283,7 +289,8 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		apiServer.URL)
+		apiServer.URL,
+		source.NewMockSource())
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
@@ -322,7 +329,8 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		apiServer.URL)
+		apiServer.URL,
+		source.NewMockSource())
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
@@ -350,7 +358,8 @@ func TestGetTokenIfExistsWhenTokenExists(t *testing.T) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		"")
+		"",
+		source.NewMockSource())
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/")
@@ -372,7 +381,8 @@ func TestGetTokenIfExistsWhenTokenDoesNotExist(t *testing.T) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		"")
+		"",
+		source.NewMockSource())
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("http://pages.gitlab-example.com/test")
@@ -393,7 +403,8 @@ func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		"")
+		"",
+		source.NewMockSource())
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("http://pages.gitlab-example.com/test")
@@ -413,7 +424,8 @@ func TestCheckResponseForInvalidTokenWhenNotInvalidToken(t *testing.T) {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		"")
+		"",
+		source.NewMockSource())
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/something")

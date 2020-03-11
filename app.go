@@ -217,7 +217,7 @@ func (a *theApp) acmeMiddleware(handler http.Handler) http.Handler {
 // authMiddleware handles authentication requests
 func (a *theApp) authMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if a.Auth.TryAuthenticate(w, r, a.domains) {
+		if a.Auth.TryAuthenticate(w, r) {
 			return
 		}
 
@@ -457,7 +457,7 @@ func runApp(config appConfig) {
 
 	if config.ClientID != "" {
 		a.Auth = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
-			config.RedirectURI, config.GitLabServer)
+			config.RedirectURI, config.GitLabServer, domains)
 	}
 
 	a.Handlers = handlers.New(a.Auth, a.Artifact)

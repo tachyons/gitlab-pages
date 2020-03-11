@@ -50,6 +50,7 @@ var (
 // Auth handles authenticating users with GitLab API
 type Auth struct {
 	pagesDomain  string
+	domains      source.Source
 	clientID     string
 	clientSecret string
 	redirectURI  string
@@ -107,7 +108,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 }
 
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
-func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains source.Source) bool {
+func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request) bool {
 	if a == nil {
 		return false
 	}
@@ -124,7 +125,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains s
 
 	logRequest(r).Info("Receive OAuth authentication callback")
 
-	if a.handleProxyingAuth(session, w, r, domains) {
+	if a.handleProxyingAuth(session, w, r) {
 		return true
 	}
 
@@ -198,20 +199,20 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, redirectURI, 302)
 }
 
-func (a *Auth) domainAllowed(name string, domains source.Source) bool {
+func (a *Auth) domainAllowed(name string) bool {
 	isConfigured := (name == a.pagesDomain) || strings.HasSuffix("."+name, a.pagesDomain)
 
 	if isConfigured {
 		return true
 	}
 
-	domain, err := domains.GetDomain(name)
+	domain, err := a.domains.GetDomain(name)
 
 	// domain exists and there is no error
 	return (domain != nil && err == nil)
 }
 
-func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domains source.Source) bool {
+func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
 	// If request is for authenticating via custom domain
 	if shouldProxyAuth(r) {
 		domain := r.URL.Query().Get("domain")
@@ -230,7 +231,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			host = proxyurl.Host
 		}
 
-		if !a.domainAllowed(host, domains) {
+		if !a.domainAllowed(host) {
 			logRequest(r).WithField("domain", host).Warn("Domain is not configured")
 			httperrors.Serve401(w)
 			return true
@@ -609,9 +610,10 @@ func createCookieStore(storeSecret string) sessions.Store {
 
 // New when authentication supported this will be used to create authentication handler
 func New(pagesDomain string, storeSecret string, clientID string, clientSecret string,
-	redirectURI string, gitLabServer string) *Auth {
+	redirectURI string, gitLabServer string, domains source.Source) *Auth {
 	return &Auth{
 		pagesDomain:  pagesDomain,
+		domains:      domains,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		redirectURI:  redirectURI,
