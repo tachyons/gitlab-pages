@@ -24,6 +24,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/singlehost"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
@@ -335,6 +336,10 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = metricsMiddleware(handler)
 
 	handler = a.routingMiddleware(handler)
+
+	if a.appConfig.SingleHost {
+		handler = singlehost.NewMiddleware(handler)
+	}
 
 	// Health Check
 	handler, err = a.healthCheckMiddleware(handler)
