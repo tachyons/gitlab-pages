@@ -63,7 +63,8 @@ RUN curl -fsSL "https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NOD
 RUN mkdir /usr/local/yarn \
   && curl -fsSL "https://yarnpkg.com/downloads/${YARN_VERSION}/yarn-v${YARN_VERSION}.tar.gz" \
   | tar -xzC /usr/local/yarn --strip 1 \
-  && ln -sf /usr/local/yarn/bin/yarn /usr/local/bin/
+  && ln -sf /usr/local/yarn/bin/yarn /usr/local/bin/ \
+  && ln -sf /usr/local/yarn/bin/yarnpkg /usr/local/bin/
 
 # create gitlab user
 RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER}
