@@ -4,6 +4,8 @@ variables:
   # Format of the auto-deploy tag for auto-deploy builds.
   # https://gitlab.com/gitlab-org/release/docs/blob/master/general/deploy/auto-deploy.md#auto-deploy-tagging
   AUTO_DEPLOY_TAG_REGEX: '^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$'
+  # Suffix to the cache key of gitlab-rails-* where Gem vendor bundles are stored. Enables easy cache busting.
+  RAILS_CACHE_SUFFIX: 20200312
 
 stages:
   - prepare
@@ -340,7 +342,7 @@ gitlab-rails-ee:
     - fi
     - echo -n "${CONTAINER_VERSION}" > artifacts/rails_container_ee.txt
   cache:
-    key: "$CI_JOB_NAME-gitlab-rails-vendor-bundle-20200312"
+    key: "$CI_JOB_NAME-gitlab-rails-vendor-bundle-$RAILS_CACHE_SUFFIX"
     paths:
       - gitlab-rails/vendor/bundle
 
@@ -381,7 +383,7 @@ gitlab-rails-ce:
     - fi
     - echo -n "${CONTAINER_VERSION}" > artifacts/rails_container_ce.txt
   cache:
-    key: "$CI_JOB_NAME-gitlab-rails-vendor-bundle"
+    key: "$CI_JOB_NAME-gitlab-rails-vendor-bundle-$RAILS_CACHE_SUFFIX"
     paths:
       - gitlab-rails/vendor/bundle
 
