@@ -18,8 +18,12 @@ rm -rf \
 # there's a better way to whitelist directories.
 rm -rf \
   ${ruby_dir}/*/gems/rugged*/vendor \
-  ${ruby_dir}/*/gems/ace-rails*/vendor \
   ${ruby_dir}/*/gems/libyajl2*/**/vendor
+
+# ACE editor includes a bundle of Javascrip contents (13M)
+# Commented here, because these sources are needed for asset compilation
+#rm -rf \
+#  ${ruby_dir}/*/gems/ace-rails*/vendor \
 
 # exclude gem build logs
 rm -rf \
