@@ -11,10 +11,10 @@ import (
 )
 
 var writeURLhandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, r.Host+"/"+r.URL.Path)
+	fmt.Fprintf(w, r.Host+r.URL.Path)
 })
 
-func testServeHTTP(t *testing.T) {
+func TestServeHTTP(t *testing.T) {
 	handler := NewMiddleware(writeURLhandler, "pages.example.com")
 
 	tests := []struct {
@@ -24,18 +24,33 @@ func testServeHTTP(t *testing.T) {
 	}{
 		{
 			name:        "custom domain",
-			URL:         "mydomain.example.com",
+			URL:         "http://mydomain.example.com",
 			expectedURL: "mydomain.example.com",
 		},
 		{
 			name:        "namespace root",
-			URL:         "pages.example.com/group",
+			URL:         "http://pages.example.com/group",
+			expectedURL: "group.pages.example.com",
+		},
+		{
+			name:        "namespace root with port",
+			URL:         "http://pages.example.com:8080/group",
+			expectedURL: "group.pages.example.com:8080",
+		},
+		{
+			name:        "namespace root with trailing slash",
+			URL:         "http://pages.example.com/group/",
 			expectedURL: "group.pages.example.com",
 		},
 		{
 			name:        "namespace with path",
-			URL:         "pages.example.com/group/path/to/file",
+			URL:         "http://pages.example.com/group/path/to/file",
 			expectedURL: "group.pages.example.com/path/to/file",
+		},
+		{
+			name:        "namespace with path and port",
+			URL:         "http://pages.example.com:8080/group/path/to/file",
+			expectedURL: "group.pages.example.com:8080/path/to/file",
 		},
 	}
 	for _, tt := range tests {

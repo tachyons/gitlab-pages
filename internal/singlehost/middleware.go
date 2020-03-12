@@ -3,6 +3,7 @@ package singlehost
 import (
 	"net"
 	"net/http"
+	"path"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -28,31 +29,46 @@ func (m middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m middleware) extractHostFromPath(r *http.Request) {
-	host, port, err := net.SplitHostPort(r.Host)
-	if err != nil {
+	logger := log.WithFields(log.Fields{
+		"orig_host":    r.Host,
+		"orig_path":    r.URL.Path,
+		"pages_domain": m.pagesDomain,
+	})
+
+	if !m.isTopPagesDomain(r.Host) {
+		logger.Debug("Incoming request does not match pages domain")
 		return
 	}
 
-	if host != m.pagesDomain {
+	path := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+	segments := strings.SplitN(path, "/", 2)
+	if len(segments) == 0 {
+		logger.Debug("can't extract group from path because first segment is empty")
 		return
 	}
 
-	segments := strings.SplitN(r.URL.Path, "/", 3)
-	namespace, newPath := segments[1], "/"+segments[2]
+	namespace := segments[0]
+	newPath := ""
 
-	newHost := namespace + "." + m.pagesDomain
-
-	if port != "" {
-		newHost += ":" + port
+	if len(segments) > 1 {
+		newPath = "/" + segments[1]
 	}
 
-	log.WithFields(log.Fields{
-		"old_host": r.Host,
-		"new_host": newHost,
+	newHost := namespace + "." + r.Host
+
+	logger.WithFields(log.Fields{
 		"old_path": r.URL.Path,
 		"new_path": newPath,
 	}).Debug("Rewrite namespace host")
 
 	r.Host = newHost
 	r.URL.Path = newPath
+}
+
+func (m middleware) isTopPagesDomain(host string) bool {
+	hostWithoutPort, _, err := net.SplitHostPort(host)
+	if err != nil {
+		hostWithoutPort = host
+	}
+	return hostWithoutPort == m.pagesDomain
 }
