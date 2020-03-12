@@ -43,9 +43,9 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-cha
 		for i := 1; i <= maxRetrievalRetries; i++ {
 			fmt.Printf("retrieving domain: %q from cache: %d \n", domain, i)
 
-			if domain == "test.jaime" {
+			if domain == "jaime.test" {
 				response <- api.Lookup{
-					Name:  "test.jaime",
+					Name:  "jaime.test",
 					Error: nil,
 					Domain: &api.VirtualDomain{
 						Certificate: "",
@@ -57,9 +57,9 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-cha
 								HTTPSOnly:     false,
 								Prefix:        "/",
 								Source: api.Source{
-									Type: "file",
-									Type:"object-storage"
-									Path: "bucket://",
+									Type: "object",
+									// type object storage TODO
+									Path: "root/blog/public/",
 								},
 							},
 						},

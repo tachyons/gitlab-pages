@@ -1,5 +1,5 @@
 domains:
   enabled:
-    - test.jaime
+    - jaime.test
   rollout:
     percentage: 10

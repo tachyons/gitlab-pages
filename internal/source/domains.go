@@ -24,8 +24,6 @@ var (
 )
 
 func init() {
-
-	log.Info("whaaaaat")
 	// Start watching the config file for domains that will use the new `gitlab` source,
 	// to be removed once we switch completely to using it.
 	go gitlabsourceconfig.WatchForGitlabSourceConfigChange(&gitlabSourceConfig, 1*time.Minute)

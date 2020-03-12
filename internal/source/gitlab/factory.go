@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/serverless"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/objectstorage"
 )
 
 // fabricateLookupPath fabricates a serving LookupPath based on the API LookupPath
@@ -35,12 +36,20 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 	case "serverless":
 		serving, err := serverless.NewFromAPISource(source.Serverless)
 		if err != nil {
-			log.WithError(err).Errorf("could not fabricate serving for project %d", lookup.ProjectID)
+			log.WithError(err).Errorf("could not fabricate serverless serving for project %d", lookup.ProjectID)
 
 			break
 		}
 
 		return serving
+	case "object":
+		// TODO make values configurable - needs omnibus update
+		objectStorage, err := objectstorage.New("gitlab.local:9000", "pages", "minio", "gdk-minio", false)
+		if err != nil {
+			log.WithError(err).Errorf("could not fabricate object serving for project %d", lookup.ProjectID)
+			break
+		}
+		return objectStorage
 	}
 
 	return defaultServing()

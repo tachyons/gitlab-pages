@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/certifi/gocertifi v0.0.0-20190905060710-a5e0173ced67 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fzipp/gocyclo v0.0.0-20150627053110-6acd4345c835
 	github.com/getsentry/raven-go v0.1.2 // indirect
@@ -15,6 +16,7 @@ require (
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/karrick/godirwalk v1.10.12
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/minio/minio-go/v6 v6.0.49
 	github.com/namsral/flag v1.7.4-pre
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.1.0

@@ -3,7 +3,6 @@ package gitlab
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"path"
 	"strings"
@@ -36,7 +35,6 @@ func New(config client.Config) (*Gitlab, error) {
 // GitLab
 func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 	lookup := g.client.Resolve(context.Background(), name)
-	fmt.Printf("gitlab GetDomain: %q %+v %+v\n", lookup.Name, lookup.Error, lookup.Domain)
 	if lookup.Error != nil {
 		return nil, lookup.Error
 	}
@@ -54,7 +52,6 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 		CertificateKey:  lookup.Domain.Key,
 		Resolver:        g,
 	}
-	fmt.Printf("did we find the domain? %+v\n", domain)
 	return &domain, nil
 }
 
@@ -64,19 +61,15 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 	host := request.GetHostWithoutPort(r)
 
-	fmt.Printf("gitlab.Resolve 1\n")
 	response := g.client.Resolve(r.Context(), host)
 	if response.Error != nil {
-		fmt.Printf("gitlab.Resolve 2\n")
-
 		return &serving.Request{Serving: defaultServing()}, response.Error
 	}
 
 	urlPath := path.Clean(r.URL.Path)
 	size := len(response.Domain.LookupPaths)
 
-	for k, lookup := range response.Domain.LookupPaths {
-		fmt.Printf("gitlab.Resolve 3... %d-%+v\n", k, lookup)
+	for _, lookup := range response.Domain.LookupPaths {
 
 		isSubPath := strings.HasPrefix(urlPath, lookup.Prefix)
 		isRootPath := urlPath == path.Clean(lookup.Prefix)

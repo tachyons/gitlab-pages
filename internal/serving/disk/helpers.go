@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
@@ -47,6 +48,7 @@ func detectContentType(path string) (string, error) {
 		contentType = http.DetectContentType(buf[:n])
 	}
 
+	fmt.Printf("disk source.... the content type: %q", contentType)
 	return contentType, nil
 }
 
