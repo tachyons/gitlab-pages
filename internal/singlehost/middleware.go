@@ -14,7 +14,9 @@ type middleware struct {
 }
 
 // NewMiddleware returns new single host middleware
-// which substitutes first path segment for host
+// which substitutes first path segment for host, e.g.:
+// pages.example.com/group becames group.pages.example.com
+// pages.example.com/group/subgroup/path/index.html becames group.pages.example.com/subgroup/path/index.html
 func NewMiddleware(next http.Handler, pagesDomain string) http.Handler {
 	return middleware{next: next, pagesDomain: pagesDomain}
 }
