@@ -46,15 +46,17 @@ function needs_build(){
 
 function build_if_needed(){
   pushd $(get_trimmed_job_name)
-
   if [ -x renderDockerfile ]; then
     ./renderDockerfile
   fi
+  popd
 
   if needs_build; then
+    pushd $(get_trimmed_job_name) # enter image directory
+
     if [ ! -f "Dockerfile${DOCKERFILE_EXT}" ]; then
       echo "Skipping $(get_trimmed_job_name): Dockerfile${DOCKERFILE_EXT} does not exist."
-      popd
+      popd # be sure to reset working directory
       return 0
     fi
 
@@ -87,6 +89,8 @@ function build_if_needed(){
 
     docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.}
 
+    popd # exit image directory
+
     # Push new image unless it is a UBI build image
     if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
       docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}"
@@ -95,8 +99,6 @@ function build_if_needed(){
       tag_and_push $CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}
     fi
   fi
-
-  popd
 
   # Record image repository and tag unless it is a UBI build image
   if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
