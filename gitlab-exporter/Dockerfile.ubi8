@@ -24,7 +24,7 @@ COPY scripts/ /scripts/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps uuid \
+    && dnf install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps uuid \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab ${CONFIG_DIRECTORY} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab ${CONFIG_DIRECTORY}

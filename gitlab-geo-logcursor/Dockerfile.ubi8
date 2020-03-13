@@ -21,7 +21,7 @@ COPY scripts/  /scripts/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps \
+    && dnf install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
 
 USER ${GITLAB_USER}:${GITLAB_USER}

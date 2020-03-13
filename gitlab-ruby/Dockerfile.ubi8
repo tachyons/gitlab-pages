@@ -10,7 +10,7 @@ ENV CONFIG_TEMPLATE_DIRECTORY=/etc
 
 RUN dnf clean all \
     && rm -rf /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -by --nodocs ncurses libedit
+    && dnf install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs ncurses libedit
 
 ENTRYPOINT ["/scripts/entrypoint.sh"]
 

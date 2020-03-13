@@ -8,7 +8,7 @@ ARG LIBEDIT_VERSION=20170329-3.1
 ENV LIBDIR=/usr/lib64
 ENV INCLUDEDIR=/usr/include
 
-RUN dnf --disableplugin=subscription-manager install -by --nodocs \
+RUN dnf install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs \
         cmake gcc gcc-c++ make patch perl \
         bzip2 libedit ncurses uuid \
         curl-devel libicu-devel libffi-devel libuuid-devel openssl-devel ncurses-devel pcre2-devel zlib-devel \

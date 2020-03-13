@@ -22,7 +22,7 @@ COPY scripts/lib/* /usr/lib/ruby/vendor_ruby
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs ca-certificates openssl
+    && dnf install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs ca-certificates openssl
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
