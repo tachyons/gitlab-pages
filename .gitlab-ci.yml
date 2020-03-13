@@ -25,11 +25,11 @@ stages:
 .auto_deploy_items:
   - &auto_deploy_branch_var $CI_COMMIT_REF_NAME =~ /^[0-9]+-[0-9]+-auto-deploy-[0-9]+$/
   - &auto_deploy_tag_var $CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/
-  - &auto_deploy_tag_ref /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/@gitlab-org/build/CNG 
+  - &com_auto_deploy_tag_ref /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/@gitlab-org/build/CNG 
 
 .ubi_items:
   - &ubi_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
-  - &ubi_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
+  - &com_ubi_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
   - &ubi_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
 
 .common:
@@ -37,7 +37,7 @@ stages:
   - &ce_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?$/
   - &ce_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/
   - &ee_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/
-  - &ee_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
+  - &com_ee_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
   - &ee_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ee$/
 
 # except-ce: except when this is a CE pipeline (EE/UBI)
@@ -50,9 +50,9 @@ stages:
       - *ce_stable_var
       - *auto_deploy_branch_var
     refs:
-      - *ee_tag_ref
-      - *ubi_tag_ref
-      - *auto_deploy_tag_ref
+      - *com_ee_tag_ref
+      - *com_ubi_tag_ref
+      - *com_auto_deploy_tag_ref
 
 # except-ee: except when this is an EE pipeline (CE)
 .except-ee: &except-ee
@@ -103,9 +103,9 @@ stages:
   except:
     refs:
       - *ce_tag_ref
-      - *ee_tag_ref
-      - *ubi_tag_ref
-      - *auto_deploy_tag_ref
+      - *com_ee_tag_ref
+      - *com_ubi_tag_ref
+      - *com_auto_deploy_tag_ref
     variables:
       - $DEPS_PIPELINE
       - *auto_deploy_branch_var
@@ -147,8 +147,8 @@ stages:
       - *ubi_stable_var
   except:
     refs:
-      - *ubi_tag_ref
-      - *auto_deploy_tag_ref
+      - *com_ubi_tag_ref
+      - *com_auto_deploy_tag_ref
     variables:
       - $DEPS_PIPELINE
       - *auto_deploy_branch_var
