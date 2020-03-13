@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -16,7 +17,8 @@ var writeURLhandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reque
 })
 
 func TestServeHTTP(t *testing.T) {
-	handler := NewMiddleware(writeURLhandler, "pages.example.com")
+	handler, err := NewMiddleware(writeURLhandler, "pages.example.com")
+	require.NoError(t, err)
 
 	tests := []struct {
 		name        string
@@ -95,7 +97,8 @@ func TestServeHTTPWithRedirect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			redirectHandler := http.RedirectHandler(tt.redirectURL, 302)
-			handler := NewMiddleware(redirectHandler, "pages.example.com")
+			handler, err := NewMiddleware(redirectHandler, "pages.example.com")
+			require.NoError(t, err)
 
 			testhelpers.AssertRedirectTo(t, handler.ServeHTTP, "GET", "/", nil, tt.expectedRedirectURL)
 		})

@@ -338,7 +338,10 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = a.routingMiddleware(handler)
 
 	if a.appConfig.SingleHost {
-		handler = singlehost.NewMiddleware(handler, a.appConfig.Domain)
+		handler, err = singlehost.NewMiddleware(handler, a.appConfig.Domain)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Health Check

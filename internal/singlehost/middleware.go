@@ -1,6 +1,7 @@
 package singlehost
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"strings"
@@ -17,8 +18,11 @@ type middleware struct {
 // which substitutes first path segment for host, e.g.:
 // pages.example.com/group becames group.pages.example.com
 // pages.example.com/group/subgroup/path/index.html becames group.pages.example.com/subgroup/path/index.html
-func NewMiddleware(next http.Handler, pagesDomain string) http.Handler {
-	return middleware{next: next, pagesDomain: pagesDomain}
+func NewMiddleware(next http.Handler, pagesDomain string) (http.Handler, error) {
+	if next == nil {
+		return nil, errors.New("Can't build singlehost middleware: next middleware is empty")
+	}
+	return middleware{next: next, pagesDomain: pagesDomain}, nil
 }
 
 func (m middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
