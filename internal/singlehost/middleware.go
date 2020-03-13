@@ -3,7 +3,6 @@ package singlehost
 import (
 	"net"
 	"net/http"
-	"path"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -40,7 +39,7 @@ func (m middleware) extractHostFromPath(r *http.Request) {
 		return
 	}
 
-	path := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+	path := strings.TrimLeft(r.URL.Path, "/")
 	segments := strings.SplitN(path, "/", 2)
 	if len(segments) == 0 {
 		logger.Debug("can't extract group from path because first segment is empty")
@@ -48,10 +47,10 @@ func (m middleware) extractHostFromPath(r *http.Request) {
 	}
 
 	namespace := segments[0]
-	newPath := ""
+	newPath := "/"
 
 	if len(segments) > 1 {
-		newPath = "/" + segments[1]
+		newPath += segments[1]
 	}
 
 	newHost := namespace + "." + r.Host

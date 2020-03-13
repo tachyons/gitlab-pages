@@ -30,22 +30,27 @@ func TestServeHTTP(t *testing.T) {
 		{
 			name:        "namespace root",
 			URL:         "http://pages.example.com/group",
-			expectedURL: "group.pages.example.com",
+			expectedURL: "group.pages.example.com/",
 		},
 		{
 			name:        "namespace root with port",
 			URL:         "http://pages.example.com:8080/group",
-			expectedURL: "group.pages.example.com:8080",
+			expectedURL: "group.pages.example.com:8080/",
 		},
 		{
 			name:        "namespace root with trailing slash",
 			URL:         "http://pages.example.com/group/",
-			expectedURL: "group.pages.example.com",
+			expectedURL: "group.pages.example.com/",
 		},
 		{
 			name:        "namespace with path",
 			URL:         "http://pages.example.com/group/path/to/file",
 			expectedURL: "group.pages.example.com/path/to/file",
+		},
+		{
+			name:        "namespace with path does not remove trailing slash",
+			URL:         "http://pages.example.com/group/path/to/file/",
+			expectedURL: "group.pages.example.com/path/to/file/",
 		},
 		{
 			name:        "namespace with path and port",
