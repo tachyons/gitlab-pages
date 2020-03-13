@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 var writeURLhandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -69,6 +70,34 @@ func TestServeHTTP(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tt.expectedURL, string(body))
+		})
+	}
+}
+
+func TestServeHTTPWithRedirect(t *testing.T) {
+	tests := []struct {
+		name                string
+		redirectURL         string
+		expectedRedirectURL string
+	}{
+		{
+			name:                "redirecting to non-group domain",
+			redirectURL:         "//example.com:8080/test",
+			expectedRedirectURL: "//example.com:8080/test",
+		},
+		{
+			name:                "redirecting to group domain",
+			redirectURL:         "//group.pages.example.com:8080/test",
+			expectedRedirectURL: "//pages.example.com:8080/group/test",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			redirectHandler := http.RedirectHandler(tt.redirectURL, 302)
+			handler := NewMiddleware(redirectHandler, "pages.example.com")
+
+			testhelpers.AssertRedirectTo(t, handler.ServeHTTP, "GET", "/", nil, tt.expectedRedirectURL)
 		})
 	}
 }

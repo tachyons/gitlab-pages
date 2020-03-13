@@ -24,7 +24,9 @@ func NewMiddleware(next http.Handler, pagesDomain string) http.Handler {
 func (m middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.extractHostFromPath(r)
 
-	m.next.ServeHTTP(w, r)
+	ww := newResponseWriter(w, m.pagesDomain)
+
+	m.next.ServeHTTP(ww, r)
 }
 
 func (m middleware) extractHostFromPath(r *http.Request) {
