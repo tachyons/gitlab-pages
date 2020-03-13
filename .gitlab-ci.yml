@@ -22,36 +22,51 @@ stages:
   - phase-six
   - release
 
-.deps_pipeline: &deps_pipeline
-  variables:
-    - $DEPS_PIPELINE
+.auto_deploy_items:
+  - &auto_deploy_branch_var $CI_COMMIT_REF_NAME =~ /^[0-9]+-[0-9]+-auto-deploy-[0-9]+$/
+  - &auto_deploy_tag_var $CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/
+  - &com_auto_deploy_tag_ref /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/@gitlab-org/build/CNG 
 
+.ubi_items:
+  - &ubi_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
+  - &com_ubi_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
+  - &ubi_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
+
+.common:
+  - &ce_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
+  - &ce_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?$/
+  - &ce_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/
+  - &ee_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/
+  - &com_ee_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
+  - &ee_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ee$/
+
+# except-ce: except when this is a CE pipeline (EE/UBI)
 .except-ce: &except-ce
   except:
     variables:
-      - $CE_PIPELINE
-      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
-      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/
       - $DEPS_PIPELINE
+      - $CE_PIPELINE
+      - *ce_tag_var
+      - *ce_stable_var
+      - *auto_deploy_branch_var
     refs:
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
+      - *com_ee_tag_ref
+      - *com_ubi_tag_ref
+      - *com_auto_deploy_tag_ref
 
+# except-ee: except when this is an EE pipeline (CE)
 .except-ee: &except-ee
   except:
     variables:
+      - $DEPS_PIPELINE
       - $EE_PIPELINE
       - $UBI_PIPELINE == "true"
-      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/
-      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ee$/
-      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
-      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
-      - $DEPS_PIPELINE
-      # Format of the auto-deploy tag for auto-deploy builds.
-      # https://gitlab.com/gitlab-org/release/docs/blob/master/general/deploy/auto-deploy.md#auto-deploy-tagging
-      - $CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/
-      # Don't run CE job for auto-deploy branches (X-Y-auto-deploy-ISODATE)
-      - $CI_COMMIT_REF_NAME =~ /^[0-9]+-[0-9]+-auto-deploy-[0-9]+$/
+      - *ee_tag_var
+      - *ee_stable_var
+      - *ubi_tag_var
+      - *ubi_stable_var
+      - *auto_deploy_branch_var
+      - *auto_deploy_tag_var
 
 .job-base: &job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -86,14 +101,14 @@ stages:
     paths:
       - artifacts/
   except:
-    <<: *deps_pipeline
     refs:
-      - /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
+      - *ce_tag_ref
+      - *com_ee_tag_ref
+      - *com_ubi_tag_ref
+      - *com_auto_deploy_tag_ref
     variables:
-      # don't do ANYTHING on auto-deploy branches :wink:
-      - $CI_COMMIT_REF_NAME =~ /^[0-9]+-[0-9]+-auto-deploy-[0-9]+$/
+      - $DEPS_PIPELINE
+      - *auto_deploy_branch_var
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -128,12 +143,15 @@ stages:
   only:
     variables:
       - $UBI_PIPELINE == "true"
-      - $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
-      - $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
+      - *ubi_tag_var
+      - *ubi_stable_var
   except:
-    <<: *deps_pipeline
     refs:
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
+      - *com_ubi_tag_ref
+      - *com_auto_deploy_tag_ref
+    variables:
+      - $DEPS_PIPELINE
+      - *auto_deploy_branch_var
 
 dependency_update:
   image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:0.0.41
@@ -142,7 +160,8 @@ dependency_update:
     - curl https://deps.app/install.sh | bash -s -- -b $HOME/bin
     - $HOME/bin/deps ci
   only:
-    <<: *deps_pipeline
+    variables:
+      - $DEPS_PIPELINE
 
 gitlab-ubi-builder:
   <<: *build-job-base
