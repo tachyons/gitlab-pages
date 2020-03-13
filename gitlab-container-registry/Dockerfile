@@ -5,7 +5,7 @@ ARG GIT_TAG=2.24.1
 FROM ${FROM_IMAGE}:${GIT_TAG} as builder
 
 ARG DOCKER_BUILDTAGS="include_oss include_gcs"
-ARG REGISTRY_VERSION=v2.8.1-gitlab
+ARG REGISTRY_VERSION=v2.8.2-gitlab
 ARG REGISTRY_NAMESPACE=gitlab-org
 ARG REGISTRY_PROJECT=container-registry
 ARG GOPATH=/go
