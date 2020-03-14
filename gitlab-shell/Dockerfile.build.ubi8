@@ -17,7 +17,7 @@ COPY centos-8-base.repo /tmp/
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
 RUN mkdir -p /assets/usr/local/tmp \
-    && dnf --add-repo /tmp/centos-8-base.repo \
+    && dnf config-manager --add-repo /tmp/centos-8-base.repo \
     && dnf --enablerepo=centos-8-* --disablerepo=ubi-8-* download openssh-server \
     && mv openssh-server-*.rpm /assets/usr/local/tmp \
     && mkdir -p /assets/srv/gitlab-shell \
