@@ -4,7 +4,7 @@ FROM ${RUBY_IMAGE}
 
 ARG GITLAB_EXPORTER_VERSION
 ARG GITLAB_USER=git
-ARG DNF_OPTS=
+ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/gitlab-exporter" \
       name="GitLab Exporter" \
@@ -25,7 +25,7 @@ COPY scripts/ /scripts/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --no-docs procps uuid \
+    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps uuid \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab ${CONFIG_DIRECTORY} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab ${CONFIG_DIRECTORY}
