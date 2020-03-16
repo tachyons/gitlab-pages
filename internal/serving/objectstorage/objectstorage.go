@@ -127,13 +127,16 @@ func (c *Client) tryZipFile(handler serving.Handler) (bool, error) {
 		c.cacheMux.Unlock()
 	}
 
-	filename := "index.html"
-	if handler.SubPath != "" {
-		filename = handler.SubPath
+	filename := handler.SubPath
+	if filename == "" {
+		filename = "index.html"
 	}
 
 	file, stat, err := reader.Open(filename)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return false, nil
+		}
 		return false, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
