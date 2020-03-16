@@ -82,9 +82,7 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
-	log.Infof("the domain: %s and domains... %+v", domain, d)
 	if d.gitlab == nil {
-		log.Info("seems lik d.gitlab is nil...")
 		return d.disk
 	}
 

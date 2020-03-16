@@ -3,6 +3,7 @@ package gitlab
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"path"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/objectstorage"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
@@ -18,7 +20,8 @@ import (
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
-	client api.Resolver
+	client        api.Resolver
+	objectStorage *objectstorage.Client
 }
 
 // New returns a new instance of gitlab domain source.
@@ -28,7 +31,12 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
-	return &Gitlab{client: cache.NewCache(client)}, nil
+	// TODO make values configurable - needs omnibus update
+	objectStorage, err := objectstorage.New("gitlab.local:9000", "pages", "minio", "gdk-minio", false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create object storage client: %w", err)
+	}
+	return &Gitlab{client: cache.NewCache(client), objectStorage: objectStorage}, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from
@@ -79,9 +87,13 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 			if isSubPath {
 				subPath = strings.TrimPrefix(urlPath, lookup.Prefix)
 			}
+			s := fabricateServing(lookup)
+			if lookup.Source.Type == "object_storage" {
+				s = g.objectStorage
+			}
 
 			return &serving.Request{
-				Serving:    fabricateServing(lookup),
+				Serving:    s,
 				LookupPath: fabricateLookupPath(size, lookup),
 				SubPath:    subPath}, nil
 		}

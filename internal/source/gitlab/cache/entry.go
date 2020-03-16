@@ -3,7 +3,6 @@ package cache
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -70,7 +69,7 @@ func (e *Entry) Retrieve(ctx context.Context, client api.Client) (lookup *api.Lo
 	case <-e.retrieved:
 		lookup = e.Lookup()
 	}
-	fmt.Printf("found the lookup... %+v\n", lookup)
+
 	return lookup
 }
 
