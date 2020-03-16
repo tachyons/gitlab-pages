@@ -78,7 +78,6 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 	size := len(response.Domain.LookupPaths)
 
 	for _, lookup := range response.Domain.LookupPaths {
-
 		isSubPath := strings.HasPrefix(urlPath, lookup.Prefix)
 		isRootPath := urlPath == path.Clean(lookup.Prefix)
 

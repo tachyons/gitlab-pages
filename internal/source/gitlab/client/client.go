@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"time"
 
@@ -77,7 +76,6 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	params := url.Values{}
 	params.Set("host", host)
 
-	fmt.Printf("\n\nclient.GetLookup 1 \n")
 	resp, err := gc.get(ctx, "/api/v4/internal/pages", params)
 	if err != nil {
 		return api.Lookup{Name: host, Error: err}
@@ -103,14 +101,11 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 	if err != nil {
 		return nil, err
 	}
-	dreq, err := httputil.DumpRequestOut(req, true)
-	fmt.Printf("the request out: %q\nerr:%+v", dreq, err)
+
 	resp, err := gc.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	dres, err := httputil.DumpResponse(resp, true)
-	fmt.Printf("the response %q\nerr:%+v", dres, err)
 
 	if resp == nil {
 		return nil, errors.New("unknown response")
