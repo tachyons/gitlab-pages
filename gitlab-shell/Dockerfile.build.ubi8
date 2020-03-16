@@ -7,7 +7,7 @@ ARG PROJECT=gitlab-shell
 ARG VERSION=master
 ARG API_URL=
 ARG API_TOKEN=
-ARG DNF_OPTS="--no-docs"
+ARG DNF_OPTS
 
 ADD git-base.tar.gz /
 ADD gitlab-ruby.tar.gz /
@@ -18,8 +18,8 @@ COPY centos-8-base.repo /tmp/
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
 RUN mkdir -p /assets/usr/local/tmp \
-    && dnf config-manager --add-repo /tmp/centos-8-base.repo ${DNF_OPTS} \
-    && dnf --enablerepo=centos-8-* --disablerepo=ubi-8-* ${DNF_OPTS} download openssh-server \
+    && dnf ${DNF_OPTS} config-manager --add-repo /tmp/centos-8-base.repo  \
+    && dnf ${DNF_OPTS} --enablerepo=centos-8-* --disablerepo=ubi-8-* download openssh-server \
     && mv openssh-server-*.rpm /assets/usr/local/tmp \
     && mkdir -p /assets/srv/gitlab-shell \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
