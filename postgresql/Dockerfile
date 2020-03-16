@@ -1,7 +1,7 @@
 FROM debian:stretch-slim
 
 ARG BUILD_DIR=/tmp/build
-ARG PG_VERSION=10.11
+ARG PG_VERSION=11.7
 
 ENV LANG=C.UTF-8
 
