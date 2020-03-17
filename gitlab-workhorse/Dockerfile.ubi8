@@ -5,6 +5,7 @@ FROM ${RUBY_IMAGE}
 ARG WORKHORSE_VERSION=v5.2.0
 ARG GITLAB_USER=git
 ARG GITLAB_DATA=/var/opt/gitlab
+ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/gitlab-workhorse" \
       name="GitLab Workhorse" \
@@ -23,7 +24,7 @@ COPY scripts/ /scripts/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs perl \
+    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs perl \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} \

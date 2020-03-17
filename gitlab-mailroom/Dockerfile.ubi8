@@ -4,6 +4,7 @@ FROM ${RUBY_IMAGE}
 
 ARG MAILROOM_VERSION
 ARG GITLAB_USER=git
+ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/gitlab-mail_room/" \
       name="GitLab Mailroom" \
@@ -20,7 +21,7 @@ COPY scripts/ /scripts/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps libicu tzdata \
+    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps libicu tzdata \
     && adduser -m ${GITLAB_USER}
 
 USER ${GITLAB_USER}:${GITLAB_USER}
