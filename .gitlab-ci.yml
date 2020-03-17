@@ -493,7 +493,7 @@ gitlab-geo-logcursor:
     - gitlab-rails-ee
   <<: *except-ce
 
-build:gitlab-unicorn-ee:
+build:gitlab-webservice-ee:
   <<: *build-job-base
   stage: prepare:phase-two
   dependencies:
@@ -506,7 +506,7 @@ build:gitlab-unicorn-ee:
     - build_if_needed
     - copy_assets
 
-gitlab-unicorn-ee:
+gitlab-webservice-ee:
   <<: *job-base
   stage: phase-six
   script:
@@ -529,11 +529,11 @@ gitlab-unicorn-ee:
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
-    - build:gitlab-unicorn-ee
+    - build:gitlab-webservice-ee
     - build:gitlab-python
   <<: *except-ce
 
-gitlab-unicorn-ce:
+gitlab-webservice-ce:
   <<: *job-base
   stage: phase-six
   script:
@@ -966,7 +966,7 @@ ubi-assets-release:
     - build:gitlab-workhorse-ee
     - build:gitlab-rails-ee
     - build:gitlab-task-runner-ee
-    - build:gitlab-unicorn-ee
+    - build:gitlab-webservice-ee
   when: manual
   only:
     refs:
