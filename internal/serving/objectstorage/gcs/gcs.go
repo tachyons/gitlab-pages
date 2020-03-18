@@ -44,7 +44,7 @@ func NewGCS(bucket string) (*GCS, error) {
 		option.WithCredentialsFile(defaultAppCreds),
 		option.WithScopes(storage.ScopeReadOnly))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create gcs client: %w", err)
+		return nil, fmt.Errorf("failed to create gcs client: %v", err)
 	}
 	return &GCS{
 		bucket: bucket,
@@ -63,7 +63,7 @@ func (gcs *GCS) GetObject(path string) (objectstorage.Object, error) {
 		if err == storage.ErrObjectNotExist {
 			return nil, objectstorage.ErrKeyNotFound
 		}
-		return nil, fmt.Errorf("failed to get reader... %w", err)
+		return nil, fmt.Errorf("failed to get reader... %v", err)
 	}
 
 	return &object{

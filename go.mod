@@ -34,6 +34,7 @@ require (
 	golang.org/x/sys v0.0.0-20200316230553-a7d97aace0b0
 	golang.org/x/tools v0.0.0-20200317031654-fbeba2149c82
 	google.golang.org/api v0.20.0
+	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/genproto v0.0.0-20200316142031-303a05041dad // indirect
 	google.golang.org/grpc v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2

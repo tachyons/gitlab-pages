@@ -133,7 +133,7 @@ func (c *Client) tryZipFile(handler serving.Handler) (bool, error) {
 				// could not find zip file
 				return false, nil
 			}
-			return false, fmt.Errorf("failed to get object: %w", err)
+			return false, fmt.Errorf("failed to get object: %v", err)
 		}
 
 		r, err := obj.ReaderAt()
@@ -142,7 +142,7 @@ func (c *Client) tryZipFile(handler serving.Handler) (bool, error) {
 		}
 		reader, err = zip.New(r, obj.Size())
 		if err != nil {
-			return false, fmt.Errorf("failed create zip.Reader: %w", err)
+			return false, fmt.Errorf("failed create zip.Reader: %v", err)
 		}
 
 		c.cachedReaders[projectID] = reader
@@ -161,7 +161,7 @@ func (c *Client) handleZipFile(reader *zip.Reader, handler serving.Handler) erro
 		if strings.Contains(err.Error(), "not found") {
 			return nil
 		}
-		return fmt.Errorf("failed to open file: %w", err)
+		return fmt.Errorf("failed to open file: %v", err)
 	}
 	defer file.Close()
 	contentType := mime.TypeByExtension(filepath.Ext(stat.Name()))
@@ -184,7 +184,7 @@ func writeContent(handler serving.Handler, content io.Reader, fileName string, m
 	var err error
 	_, err = io.Copy(w, content.(io.Reader))
 	if err != nil {
-		return fmt.Errorf("failed to write response: %w", err)
+		return fmt.Errorf("failed to write response: %v", err)
 	}
 
 	return nil

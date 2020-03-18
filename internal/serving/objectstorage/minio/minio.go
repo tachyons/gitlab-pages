@@ -26,7 +26,7 @@ type object struct {
 func New(endpoint, bucket, accessKeyID, secretAccessKey string, useSSL bool) (*Minio, error) {
 	minioClient, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create minio client: %w", err)
+		return nil, fmt.Errorf("failed to create minio client: %v", err)
 	}
 	return &Minio{
 		bucket: bucket,
@@ -39,14 +39,14 @@ func (m *Minio) GetObject(path string) (objectstorage.Object, error) {
 	// TODO c.minio.GetObjectWithContext fails locally for some reason
 	obj, err := m.client.GetObject(m.bucket, path, minio.GetObjectOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get object: %w", err)
+		return nil, fmt.Errorf("failed to get object: %v", err)
 	}
 	stat, err := obj.Stat()
 	if err != nil {
 		if e, ok := err.(minio.ErrorResponse); ok && e.Code == "NoSuchKey" {
 			return nil, objectstorage.ErrKeyNotFound
 		}
-		return nil, fmt.Errorf("failed to stat object: %w", err)
+		return nil, fmt.Errorf("failed to stat object: %v", err)
 	}
 	return &object{
 		object:     obj,

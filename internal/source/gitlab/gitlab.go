@@ -41,13 +41,13 @@ func New(config client.Config, objectStorageProvider objectstorage.Provider) (*G
 		var err error
 		provider, err = minio.New("gitlab.local:9000", "pages", "minio", "gdk-minio", false)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create minio client: %w", err)
+			return nil, fmt.Errorf("failed to create minio client: %v", err)
 		}
 	case objectstorage.ProviderGCS:
 		var err error
 		provider, err = gcs.NewGCS("jaime-test-bucket")
 		if err != nil {
-			return nil, fmt.Errorf("failed to create gcs client: %w", err)
+			return nil, fmt.Errorf("failed to create gcs client: %v", err)
 		}
 	default:
 		log.Warn("no object storage provider set")
