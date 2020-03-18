@@ -15,7 +15,7 @@ ARG CI_API_V4_URL
 RUN buildDeps=' \
     gcc make' \
     && apt-get update \
-    && apt-get install -y --no-install-recommends $buildDeps \
+    && apt-get install -y --no-install-recommends $buildDeps xtail \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p ${BUILD_DIR}
 

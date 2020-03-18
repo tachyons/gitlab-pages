@@ -16,6 +16,10 @@ gitlab-workhorse \
   -config "/srv/gitlab/config/workhorse-config.toml" \
 >> /var/log/gitlab/workhorse.log 2>&1 &
 
-tail -f /var/log/gitlab/workhorse.log
+if hash xtail 2>/dev/null; then
+    xtail /var/log/gitaly
+else
+    tail -f /var/log/gitaly/*
+fi
 
 wait
