@@ -21,17 +21,22 @@ import (
 // ErrKeyNotFound TODO update doc
 var ErrKeyNotFound = errors.New("key not found")
 
+// Provider ..
 type Provider string
 
 const (
-	ProviderS3  Provider = "s3"
+	// ProviderS3 ..
+	ProviderS3 Provider = "s3"
+	// ProviderGCS ..
 	ProviderGCS Provider = "gcs"
 )
 
+// ObjectStorage ..
 type ObjectStorage interface {
 	GetObject(path string) (Object, error)
 }
 
+// Object ..
 type Object interface {
 	ReaderAt() (io.ReaderAt, error)
 	Reader() io.Reader
@@ -42,6 +47,7 @@ type Object interface {
 	Close() error
 }
 
+// Client ..
 type Client struct {
 	bucket   string
 	provider ObjectStorage
@@ -50,6 +56,7 @@ type Client struct {
 	cachedReaders map[uint64]*zip.Reader
 }
 
+// New ..
 func New(provider ObjectStorage) *Client {
 	return &Client{
 		provider:      provider,
@@ -58,6 +65,7 @@ func New(provider ObjectStorage) *Client {
 	}
 }
 
+// ServeFileHTTP ..
 func (c *Client) ServeFileHTTP(handler serving.Handler) bool {
 	served, err := c.tryZipFile(handler)
 	if err != nil {
@@ -73,6 +81,7 @@ func (c *Client) ServeFileHTTP(handler serving.Handler) bool {
 	return true
 }
 
+// ServeNotFoundHTTP ..
 func (c *Client) ServeNotFoundHTTP(handler serving.Handler) {
 	httperrors.Serve404(handler.Writer)
 }
@@ -107,10 +116,10 @@ func (c *Client) serveFile(handler serving.Handler) error {
 }
 
 func (c *Client) tryZipFile(handler serving.Handler) (bool, error) {
-	projectID := handler.LookupPath.ProjectID
 	c.cacheMux.Lock()
+	defer c.cacheMux.Unlock()
+	projectID := handler.LookupPath.ProjectID
 	reader, ok := c.cachedReaders[projectID]
-	c.cacheMux.Unlock()
 	if ok && reader == nil {
 		// cached zip not found
 		// TODO need to expire the cache
@@ -136,29 +145,28 @@ func (c *Client) tryZipFile(handler serving.Handler) (bool, error) {
 			return false, fmt.Errorf("failed create zip.Reader: %w", err)
 		}
 
-		c.cacheMux.Lock()
 		c.cachedReaders[projectID] = reader
-		c.cacheMux.Unlock()
 	}
+	err := c.handleZipFile(reader, handler)
+	return err == nil, err
+}
 
+func (c *Client) handleZipFile(reader *zip.Reader, handler serving.Handler) error {
 	filename := handler.SubPath
 	if filename == "" {
 		filename = "index.html"
 	}
-
 	file, stat, err := reader.Open(filename)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			return false, nil
+			return nil
 		}
-		return false, fmt.Errorf("failed to open file: %w", err)
+		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 	contentType := mime.TypeByExtension(filepath.Ext(stat.Name()))
-	err = writeContent(handler, file, stat.Name(), stat.ModTime(), contentType)
-	return err == nil, err
+	return writeContent(handler, file, stat.Name(), stat.ModTime(), contentType)
 }
-
 func writeContent(handler serving.Handler, content io.Reader, fileName string, modTime time.Time, contentType string) error {
 	if content == nil {
 		return nil

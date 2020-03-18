@@ -15,6 +15,7 @@ const zipDeployPath = "public"
 const maxSymlinkSize = 4096
 const maxSymlinkDepth = 3
 
+// Reader ..
 type Reader struct {
 	archive *zip.Reader
 }
@@ -110,7 +111,7 @@ func (r *Reader) resolvePublic(path string) (string, *zip.File, error) {
 	return file.Name[len(zipDeployPath)+1:], file, nil
 }
 
-// Open reaturns a ReadCloser to the caller which is responsible of closing. os.FileInfo is also returned in one go.
+// Open returns a ReadCloser to the caller which is responsible of closing. os.FileInfo is also returned in one go.
 func (r *Reader) Open(path string) (io.ReadCloser, os.FileInfo, error) {
 	_, file, err := r.resolvePublic(path)
 	if err != nil {

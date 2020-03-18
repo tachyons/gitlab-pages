@@ -19,10 +19,10 @@ const defaultAppCreds = "/Users/jaime/.gitlab/gitlab-gcp-creds.json"
 const bucketName = "jaime-test-bucket"
 
 var (
-	defaultTimeout          = time.Second * 100
-	defaultGetObjectTimeout = time.Second * 500
+	defaultTimeout = time.Second * 10
 )
 
+// GCS ..
 type GCS struct {
 	bucket string
 	client *storage.Client
@@ -33,6 +33,7 @@ type object struct {
 	objHandle *storage.ObjectHandle
 }
 
+// NewGCS ..
 func NewGCS(bucket string) (*GCS, error) {
 	// Creates the new bucket.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
@@ -51,6 +52,7 @@ func NewGCS(bucket string) (*GCS, error) {
 	}, nil
 }
 
+// GetObject ..
 func (gcs *GCS) GetObject(path string) (objectstorage.Object, error) {
 	// TODO make this context cancellable from the caller
 	ctx := context.Background()
@@ -70,6 +72,7 @@ func (gcs *GCS) GetObject(path string) (objectstorage.Object, error) {
 	}, nil
 }
 
+// ReaderAt ..
 func (o *object) ReaderAt() (io.ReaderAt, error) {
 	buff := bytes.NewBuffer([]byte{})
 	_, err := io.Copy(buff, o.reader)
@@ -79,18 +82,28 @@ func (o *object) ReaderAt() (io.ReaderAt, error) {
 
 	return bytes.NewReader(buff.Bytes()), nil
 }
+
+// Reader ..
 func (o *object) Reader() io.Reader {
 	return o.reader
 }
+
+// Size ..
 func (o *object) Size() int64 {
 	return o.reader.Attrs.Size
 }
+
+// Name ..
 func (o *object) Name() string {
 	return o.objHandle.ObjectName()
 }
+
+// ModTime ..
 func (o *object) ModTime() time.Time {
 	return o.reader.Attrs.LastModified
 }
+
+// ContentType ..
 func (o *object) ContentType() string {
 	contentType := o.reader.Attrs.ContentType
 	if contentType == "" {
@@ -98,6 +111,8 @@ func (o *object) ContentType() string {
 	}
 	return contentType
 }
+
+// Close ..
 func (o *object) Close() error {
 	return o.reader.Close()
 }
