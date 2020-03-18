@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rollout"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/objectstorage"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/domains/gitlabsourceconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
@@ -45,7 +46,8 @@ func NewDomains(config Config) (*Domains, error) {
 		return &Domains{disk: disk.New()}, nil
 	}
 
-	gitlab, err := gitlab.New(config)
+	gitlab, err := gitlab.New(config, objectstorage.ProviderS3)
+	// gitlab, err := gitlab.New(config, objectstorage.ProviderGCS)
 	if err != nil {
 		return nil, err
 	}

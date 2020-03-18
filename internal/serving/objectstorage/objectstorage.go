@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/minio/minio-go/v6"
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -22,42 +21,41 @@ import (
 // ErrKeyNotFound TODO update doc
 var ErrKeyNotFound = errors.New("key not found")
 
-type Client struct {
-	bucket string
-	minio  *minio.Client
+type Provider string
 
+const (
+	ProviderS3  Provider = "s3"
+	ProviderGCS Provider = "gcs"
+)
+
+type ObjectStorage interface {
+	GetObject(path string) (Object, error)
+}
+
+type Object interface {
+	ReaderAt() (io.ReaderAt, error)
+	Reader() io.Reader
+	Name() string
+	Size() int64
+	ModTime() time.Time
+	ContentType() string
+	Close() error
+}
+
+type Client struct {
+	bucket   string
+	provider ObjectStorage
 	// TODO: cache zip files by projectID for now, will need to expire/cleanup
 	cacheMux      sync.Mutex
 	cachedReaders map[uint64]*zip.Reader
 }
 
-func New(endpoint, bucket, accessKeyID, secretAccessKey string, useSSL bool) (*Client, error) {
-	minioClient, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create minio client: %w", err)
-	}
+func New(provider ObjectStorage) *Client {
 	return &Client{
-		bucket:        bucket,
-		minio:         minioClient,
+		provider:      provider,
 		cacheMux:      sync.Mutex{},
 		cachedReaders: map[uint64]*zip.Reader{},
-	}, nil
-}
-
-func (c *Client) GetObject(path string) (*minio.Object, *minio.ObjectInfo, error) {
-	// TODO c.minio.GetObjectWithContext fails locally for some reason
-	obj, err := c.minio.GetObject(c.bucket, path, minio.GetObjectOptions{})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get object: %w", err)
 	}
-	stat, err := obj.Stat()
-	if err != nil {
-		if e, ok := err.(minio.ErrorResponse); ok && e.Code == "NoSuchKey" {
-			return nil, nil, ErrKeyNotFound
-		}
-		return nil, nil, fmt.Errorf("failed to stat object: %w", err)
-	}
-	return obj, &stat, nil
 }
 
 func (c *Client) ServeFileHTTP(handler serving.Handler) bool {
@@ -66,10 +64,8 @@ func (c *Client) ServeFileHTTP(handler serving.Handler) bool {
 		log.WithError(err).Error("file not found in archive")
 		return false
 	}
-
 	if !served {
 		if err := c.serveFile(handler); err != nil {
-			log.WithError(err).Error("can't serve file")
 			return false
 		}
 	}
@@ -95,11 +91,19 @@ func (c *Client) serveFile(handler serving.Handler) error {
 	if endsWithSlash(fileName) {
 		fileName += "index.html"
 	}
-	content, stat, err := c.GetObject(fileName)
+	object, err := c.provider.GetObject(fileName)
+	if err != nil {
+		if err == ErrKeyNotFound {
+			return nil
+		}
+		return err
+	}
+	defer object.Close()
+	err = writeContent(handler, object.Reader(), object.Name(), object.ModTime(), object.ContentType())
 	if err != nil {
 		return err
 	}
-	return writeContent(handler, content, stat.Key, stat.LastModified, false)
+	return nil
 }
 
 func (c *Client) tryZipFile(handler serving.Handler) (bool, error) {
@@ -107,21 +111,31 @@ func (c *Client) tryZipFile(handler serving.Handler) (bool, error) {
 	c.cacheMux.Lock()
 	reader, ok := c.cachedReaders[projectID]
 	c.cacheMux.Unlock()
-	if !ok {
+	if ok && reader == nil {
+		// cached zip not found
+		// TODO need to expire the cache
+		return false, nil
+	} else if !ok {
 		// TODO assume the API returns the base path of the project and we'll look for artifact.zip
-		obj, objStat, err := c.GetObject(handler.LookupPath.Path + "artifact.zip")
+		obj, err := c.provider.GetObject(handler.LookupPath.Path + "artifactssssss.zip")
 		if err != nil {
 			if err == ErrKeyNotFound {
+				c.cachedReaders[projectID] = nil
 				// could not find zip file
 				return false, nil
 			}
 			return false, fmt.Errorf("failed to get object: %w", err)
 		}
-		// override reader
-		reader, err = zip.New(obj, objStat.Size)
+
+		r, err := obj.ReaderAt()
+		if err != nil {
+			return false, err
+		}
+		reader, err = zip.New(r, obj.Size())
 		if err != nil {
 			return false, fmt.Errorf("failed create zip.Reader: %w", err)
 		}
+
 		c.cacheMux.Lock()
 		c.cachedReaders[projectID] = reader
 		c.cacheMux.Unlock()
@@ -140,30 +154,30 @@ func (c *Client) tryZipFile(handler serving.Handler) (bool, error) {
 		return false, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
-
-	err = writeContent(handler, file, stat.Name(), stat.ModTime(), true)
+	contentType := mime.TypeByExtension(filepath.Ext(stat.Name()))
+	err = writeContent(handler, file, stat.Name(), stat.ModTime(), contentType)
 	return err == nil, err
 }
 
-func writeContent(handler serving.Handler, content interface{}, fileName string, modTime time.Time, fromZip bool) error {
+func writeContent(handler serving.Handler, content io.Reader, fileName string, modTime time.Time, contentType string) error {
+	if content == nil {
+		return nil
+	}
+
 	w := handler.Writer
 	if !handler.LookupPath.HasAccessControl {
 		// Set caching headers
 		w.Header().Set("Cache-Control", "max-age=600")
 		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 	}
-	contentType := mime.TypeByExtension(filepath.Ext(fileName))
 	w.Header().Set("Content-Type", contentType)
-
+	w.Header().Set("Last-Modified", modTime.UTC().Format(http.TimeFormat))
 	// TODO implement Seek(offset int64, whence int) (int64, error) so that we can use http.ServeContent?
 	var err error
-	if fromZip {
-		_, err = io.Copy(w, content.(io.Reader))
-		if err != nil {
-			return fmt.Errorf("failed to write response: %w", err)
-		}
-	} else {
-		http.ServeContent(w, handler.Request, fileName, modTime, content.(io.ReadSeeker))
+	_, err = io.Copy(w, content.(io.Reader))
+	if err != nil {
+		return fmt.Errorf("failed to write response: %w", err)
 	}
+
 	return nil
 }

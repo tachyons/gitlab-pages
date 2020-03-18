@@ -34,7 +34,6 @@ type GitlabSourceConfig struct {
 // the fields already set.
 func (config *GitlabSourceConfig) UpdateFromYaml(content []byte) error {
 	updated := GitlabSourceConfig{}
-	log.Infof("we should be coming here....")
 	err := yaml.Unmarshal(content, &updated)
 	if err != nil {
 		log.WithError(err).Error("oooops...")

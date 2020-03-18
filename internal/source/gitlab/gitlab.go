@@ -8,10 +8,14 @@ import (
 	"path"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/objectstorage"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/objectstorage/gcs"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/objectstorage/minio"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
@@ -25,18 +29,32 @@ type Gitlab struct {
 }
 
 // New returns a new instance of gitlab domain source.
-func New(config client.Config) (*Gitlab, error) {
+func New(config client.Config, objectStorageProvider objectstorage.Provider) (*Gitlab, error) {
 	client, err := client.NewFromConfig(config)
 	if err != nil {
 		return nil, err
 	}
-
+	var provider objectstorage.ObjectStorage
 	// TODO make values configurable - needs omnibus update
-	objectStorage, err := objectstorage.New("gitlab.local:9000", "pages", "minio", "gdk-minio", false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create object storage client: %w", err)
+	switch objectStorageProvider {
+	case objectstorage.ProviderS3:
+		var err error
+		provider, err = minio.New("gitlab.local:9000", "pages", "minio", "gdk-minio", false)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create minio client: %w", err)
+		}
+	case objectstorage.ProviderGCS:
+		var err error
+		provider, err = gcs.NewGCS("jaime-test-bucket")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gcs client: %w", err)
+		}
+	default:
+		log.Warn("no object storage provider set")
+
 	}
-	return &Gitlab{client: cache.NewCache(client), objectStorage: objectStorage}, nil
+
+	return &Gitlab{client: cache.NewCache(client), objectStorage: objectstorage.New(provider)}, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from
