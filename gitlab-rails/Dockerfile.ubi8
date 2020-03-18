@@ -4,10 +4,11 @@ FROM ${RUBY_IMAGE}
 
 ARG GITLAB_USER=git
 ARG GITLAB_DATA=/var/opt/gitlab
+ARG DNF_OPTS
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs libicu tzdata uuid \
+    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs libicu tzdata uuid \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p ${GITLAB_DATA}/{.upgrade-status,data,repo,config} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} ${GITLAB_DATA} \
