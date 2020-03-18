@@ -22,7 +22,7 @@ else
     -c /srv/gitlab/config/unicorn.rb /srv/gitlab/config.ru &
 fi
 
-if hash xtail 2>/dev/null; then
+if command -v xtail >/dev/null; then
     xtail /var/log/gitlab
 else
     tail -f /var/log/gitlab/*

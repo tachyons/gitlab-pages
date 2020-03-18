@@ -26,7 +26,7 @@ echo "Starting OpenSSH"
 
 echo "Tailing Logs"
 
-if hash xtail 2>/dev/null; then
+if command -v xtail >/dev/null; then
     xtail /var/log/gitlab-shell
 else
     touch /var/log/gitlab-shell/ssh.log
