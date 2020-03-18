@@ -2,22 +2,44 @@ package cache
 
 import (
 	"context"
+	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
+var defaultCacheConfig = cacheConfig{
+	cacheExpiry:          10 * time.Minute,
+	entryRefreshTimeout:  60 * time.Second,
+	retrievalTimeout:     30 * time.Second,
+	maxRetrievalInterval: time.Second,
+	maxRetrievalRetries:  3,
+}
+
 // Cache is a short and long caching mechanism for GitLab source
 type Cache struct {
-	client api.Client
-	store  Store
+	client      api.Client
+	store       Store
+	cacheConfig *cacheConfig
+}
+
+type cacheConfig struct {
+	cacheExpiry          time.Duration
+	entryRefreshTimeout  time.Duration
+	retrievalTimeout     time.Duration
+	maxRetrievalInterval time.Duration
+	maxRetrievalRetries  int
 }
 
 // NewCache creates a new instance of Cache.
-func NewCache(client api.Client) *Cache {
+func NewCache(client api.Client, cc *cacheConfig) *Cache {
+	if cc == nil {
+		cc = &defaultCacheConfig
+	}
+
 	return &Cache{
 		client: client,
-		store:  newMemStore(),
+		store:  newMemStore(client, cc),
 	}
 }
 
@@ -25,8 +47,8 @@ func NewCache(client api.Client) *Cache {
 // algorithm works as follows:
 // - We first check if the cache entry exists, and if it is up-to-date. If it
 //   is fresh we return the lookup entry from cache and it is a cache hit.
-// - If entry is not up-to-date, what means that it has been created in a cache
-//   more than `shortCacheExpiry` duration ago,  we schedule an asynchronous
+// - If entry is not up-to-date, that means it has been created in a cache
+//   more than `entryRefreshTimeout` duration ago,  we schedule an asynchronous
 //   retrieval of the latest configuration we are going to obtain through the
 //   API, and we immediately return an old value, to avoid blocking clients. In
 //   this case it is also a cache hit.

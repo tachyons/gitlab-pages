@@ -54,7 +54,8 @@ func New(config client.Config, objectStorageProvider objectstorage.Provider) (*G
 
 	}
 
-	return &Gitlab{client: cache.NewCache(client), objectStorage: objectstorage.New(provider)}, nil
+	// using nil for cache config will use the default values specified in internal/source/gitlab/cache/cache.go#12
+	return &Gitlab{client: cache.NewCache(client, nil), objectStorage: objectstorage.New(provider)}, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from

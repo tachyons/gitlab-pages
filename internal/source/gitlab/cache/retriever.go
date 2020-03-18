@@ -13,13 +13,26 @@ import (
 // Retriever is an utility type that performs an HTTP request with backoff in
 // case of errors
 type Retriever struct {
-	client api.Client
+	client               api.Client
+	retrievalTimeout     time.Duration
+	maxRetrievalInterval time.Duration
+	maxRetrievalRetries  int
+}
+
+// NewRetriever creates a Retriever with a client
+func NewRetriever(client api.Client, retrievalTimeout, maxRetrievalInterval time.Duration, maxRetrievalRetries int) *Retriever {
+	return &Retriever{
+		client:               client,
+		retrievalTimeout:     retrievalTimeout,
+		maxRetrievalInterval: maxRetrievalInterval,
+		maxRetrievalRetries:  maxRetrievalRetries,
+	}
 }
 
 // Retrieve retrieves a lookup response from external source with timeout and
 // backoff. It has its own context with timeout.
 func (r *Retriever) Retrieve(domain string) (lookup api.Lookup) {
-	ctx, cancel := context.WithTimeout(context.Background(), retrievalTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), r.retrievalTimeout)
 	defer cancel()
 
 	select {
@@ -39,7 +52,7 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-cha
 	go func() {
 		var lookup api.Lookup
 
-		for i := 1; i <= maxRetrievalRetries; i++ {
+		for i := 1; i <= r.maxRetrievalRetries; i++ {
 			if domain == "jaime.test" {
 				response <- api.Lookup{
 					Name:  "jaime.test",
@@ -68,7 +81,7 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-cha
 			lookup = r.client.GetLookup(ctx, domain)
 
 			if lookup.Error != nil {
-				time.Sleep(maxRetrievalInterval)
+				time.Sleep(r.maxRetrievalInterval)
 			} else {
 				break
 			}

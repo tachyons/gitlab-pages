@@ -130,6 +130,22 @@ func addCacheHeader(w http.ResponseWriter, resp *http.Response) {
 	}
 }
 
+// encodePathSegments separately encodes each segment of the path, as
+// segments can have special characters in them, if the path is not valid
+// and gets re-encoded by URL.Parse, %2f will get replaced with '/',
+// breaking the namespace that we pass for group%2fproject.
+//
+// See https://github.com/golang/go/issues/6658 for more context
+func encodePathSegments(path string) string {
+	parsed := strings.Split(path, "/")
+
+	var encoded []string
+	for _, str := range parsed {
+		encoded = append(encoded, url.PathEscape(str))
+	}
+	return strings.Join(encoded, "/")
+}
+
 // BuildURL returns a pointer to a url.URL for where the request should be
 // proxied to. The returned bool will indicate if there is some sort of issue
 // with the url while it is being generated.
@@ -156,7 +172,7 @@ func (a *Artifact) BuildURL(host, requestPath string) (*url.URL, bool) {
 	}
 
 	jobID := parts[0][2]
-	artifactPath := parts[0][3]
+	artifactPath := encodePathSegments(parts[0][3])
 
 	projectID := url.PathEscape(path.Join(topGroup, restOfPath))
 	generated := fmt.Sprintf(apiURLTemplate, a.server, projectID, jobID, artifactPath)

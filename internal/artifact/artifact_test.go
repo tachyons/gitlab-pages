@@ -141,6 +141,15 @@ func TestBuildURL(t *testing.T) {
 			"API URL has trailing slash",
 		},
 		{
+			"https://gitlab.com/api/v4",
+			"group.gitlab.io",
+			"/-/project/-/jobs/1/artifacts/path/to/file {!#1.txt",
+			"https://gitlab.com/api/v4/projects/group%2Fproject/jobs/1/artifacts/path/to/file%20%7B%21%231.txt",
+			"gitlab.io",
+			true,
+			"Special characters in name",
+		},
+		{
 			"https://gitlab.com/api/v4/",
 			"GROUP.GITLAB.IO",
 			"/-/SUBGROUP/PROJECT/-/JOBS/1/ARTIFACTS/PATH/TO/FILE.txt",
