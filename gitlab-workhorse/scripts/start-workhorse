@@ -19,7 +19,7 @@ gitlab-workhorse \
 if command -v xtail >/dev/null; then
     xtail /var/log/gitaly
 else
-    tail -f /var/log/gitaly/*
+    tail -f /var/log/gitlab/*
 fi
 
 wait
