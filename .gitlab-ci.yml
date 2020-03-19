@@ -35,7 +35,7 @@ stages:
 
 .common:
   - &ce_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
-  - &ce_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?$/
+  - &com_ce_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
   - &ce_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/
   - &ee_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/
   - &com_ee_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
@@ -51,6 +51,7 @@ stages:
       - *ce_stable_var
       - *auto_deploy_branch_var
     refs:
+      - *com_ce_tag_ref
       - *com_ee_tag_ref
       - *com_ubi_tag_ref
       - *com_auto_deploy_tag_ref
@@ -103,7 +104,7 @@ stages:
       - artifacts/
   except:
     refs:
-      - *ce_tag_ref
+      - *com_ce_tag_ref
       - *com_ee_tag_ref
       - *com_ubi_tag_ref
       - *com_auto_deploy_tag_ref
