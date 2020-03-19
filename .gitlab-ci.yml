@@ -69,6 +69,11 @@ stages:
       - *ubi_stable_var
       - *auto_deploy_branch_var
       - *auto_deploy_tag_var
+    refs:
+      - *com_ce_tag_ref
+      - *com_ee_tag_ref
+      - *com_ubi_tag_ref
+      - *com_auto_deploy_tag_ref
 
 .job-base: &job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
