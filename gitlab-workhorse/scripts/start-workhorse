@@ -17,7 +17,7 @@ gitlab-workhorse \
 >> /var/log/gitlab/workhorse.log 2>&1 &
 
 if command -v xtail >/dev/null; then
-    xtail /var/log/gitaly
+    xtail /var/log/gitlab
 else
     tail -f /var/log/gitlab/*
 fi
