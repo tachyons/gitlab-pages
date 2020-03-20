@@ -76,6 +76,6 @@ DOCKER_OPTS="--build-arg RAILS_IMAGE=$(qualifiedName gitlab-rails-ee)"
 buildImage gitlab-geo-logcursor &
 buildImage gitlab-sidekiq-ee &
 buildImage gitlab-task-runner-ee &
-buildImage gitlab-unicorn-ee &
+buildImage gitlab-webservice-ee &
 
 wait

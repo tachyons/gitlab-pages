@@ -226,7 +226,7 @@ releaseImage gitaly gitlab-shell
 releaseImage gitlab-exporter
 releaseImage gitlab-mailroom
 releaseImage gitlab-rails-ee
-releaseImage gitlab-unicorn-ee
+releaseImage gitlab-webservice-ee
 releaseImage gitlab-task-runner-ee
 releaseImage gitlab-sidekiq-ee
 releaseImage gitlab-workhorse-ee
