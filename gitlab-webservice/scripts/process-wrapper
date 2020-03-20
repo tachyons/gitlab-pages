@@ -22,6 +22,10 @@ else
     -c /srv/gitlab/config/unicorn.rb /srv/gitlab/config.ru &
 fi
 
-tail -f /var/log/gitlab/*
+if command -v xtail >/dev/null; then
+    xtail /var/log/gitlab
+else
+    tail -f /var/log/gitlab/*
+fi
 
 wait

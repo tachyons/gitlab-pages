@@ -10,8 +10,10 @@ ENV SIDEKIQ_TIMEOUT=4
 
 # Install runtime deps. openssh-client is required so that SSH client binaries
 # are present for repository mirroring.
+# xtail is necessary for logs that are tailed after the pod starts
+# https://gitlab.com/gitlab-org/charts/gitlab/-/issues/1957
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssh-client
+    && apt-get install -y --no-install-recommends openssh-client xtail
 
 # Add scripts
 COPY scripts/  /scripts/

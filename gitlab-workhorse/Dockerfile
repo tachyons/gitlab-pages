@@ -16,7 +16,7 @@ ARG CI_API_V4_URL
 RUN buildDeps=' \
   make' \
   && apt-get update \
-  && apt-get install -y --no-install-recommends $buildDeps \
+  && apt-get install -y --no-install-recommends $buildDeps xtail \
   && mkdir -p ${BUILD_DIR} \
   && cd ${BUILD_DIR} \
   && echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-workhorse/repository/archive.tar.bz2?sha=${WORKHORSE_VERSION}" \
