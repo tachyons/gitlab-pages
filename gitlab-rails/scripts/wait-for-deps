@@ -3,17 +3,30 @@
 WAIT_FOR_TIMEOUT="${WAIT_FOR_TIMEOUT:-5}"
 
 # Configure for which schema to be verifying
-SCHEMA_FILE=db/schema.rb
+SCHEMA_FILE=db/structure.sql
 SCHEMA_RAKE_TASK=db:version
-if [ "${DB_SCHEMA_TARGET,,}" == "geo" ]; then
-  SCHEMA_FILE=ee/db/geo/schema.rb
-  SCHEMA_RAKE_TASK=geo:db:version
-fi
+SCHEMA_FORMAT=sql
 
 cd /srv/gitlab
 
+# Retain support for older schema if needed
+if [ ! -f "db/structure.sql" ]; then
+  SCHEMA_FILE=db/schema.rb
+  SCHEMA_FORMAT=ruby
+fi
+
+if [ "${DB_SCHEMA_TARGET,,}" == "geo" ]; then
+  SCHEMA_FILE=ee/db/geo/schema.rb
+  SCHEMA_RAKE_TASK=geo:db:version
+  SCHEMA_FORMAT=ruby
+fi
+
 # fetch the schema desired version directly from the source code
-SCHEMA_VERSION=$(grep '(version: ' ${SCHEMA_FILE} | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)) do/\1/')
+if [ "${SCHEMA_FORMAT,,}" == "ruby" ]; then
+  SCHEMA_VERSION=$(grep '(version: ' ${SCHEMA_FILE} | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)) do/\1/')
+else
+  SCHEMA_VERSION=$(sed -n '/INSERT INTO "schema_migrations" (version) VALUES/,/;/p' ${SCHEMA_FILE} | grep -o "[[:digit:]]*" | awk -v max=0 '{if($1>max){max=$1}}END{print max}')
+fi
 
 # Stash DB_SCHEMA_VERSION, so we can check it at exit.
 DB_SCHEMA_VERSION="0"
