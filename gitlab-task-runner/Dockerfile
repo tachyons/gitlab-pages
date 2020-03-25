@@ -19,12 +19,17 @@ RUN apt-get update \
   ca-certificates \
   openssl \
   tar \
-  python python-pip \
-  python-setuptools \
+  patch \
   && ldconfig \
-  && pip install --upgrade s3cmd==${S3CMD_VERSION} \
+  && pip3 install --upgrade s3cmd==${S3CMD_VERSION} \
   && pip3 install gsutil==${GSUTIL_VERSION} crcmod \
   && rm -rf /var/lib/apt/lists/*
+
+# Patch s3cmd for https://gitlab.com/gitlab-org/charts/gitlab/-/issues/1649
+COPY patches/s3cmd-unicode.patch /tmp/
+RUN cd $(pip3 show -f s3cmd | awk '$1 ~ /Location/ {print $NF}') \
+    && patch -p1 < /tmp/s3cmd-unicode.patch \
+    && rm /tmp/s3cmd-unicode.patch
 
 ARG GITLAB_USER=git
 
