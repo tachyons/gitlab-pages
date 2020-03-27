@@ -233,14 +233,14 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when retrieval failed because of an external context being canceled", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
+		cc := defaultCacheConfig
+		cc.retrievalTimeout = 0
 
-		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
-			lookup := cache.Resolve(ctx, "my.gitlab.com")
+		withTestCache(resolverConfig{}, &cc, func(cache *Cache, resolver *client) {
+			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			require.Equal(t, uint64(0), resolver.stats.getLookups())
-			require.EqualError(t, lookup.Error, "context done")
+			require.EqualError(t, lookup.Error, "retrieval context done")
 		})
 	})
 
