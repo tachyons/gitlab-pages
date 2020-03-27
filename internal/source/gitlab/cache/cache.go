@@ -9,8 +9,8 @@ import (
 )
 
 var defaultCacheConfig = cacheConfig{
-	cacheExpiry:          10 * time.Minute,
-	entryRefreshTimeout:  60 * time.Second,
+	cacheExpiry:          15 * time.Minute,
+	entryRefreshTimeout:  5 * time.Minute,
 	retrievalTimeout:     30 * time.Second,
 	maxRetrievalInterval: time.Second,
 	maxRetrievalRetries:  3,
