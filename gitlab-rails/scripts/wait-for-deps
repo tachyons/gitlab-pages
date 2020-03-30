@@ -25,7 +25,7 @@ fi
 if [ "${SCHEMA_FORMAT,,}" == "ruby" ]; then
   SCHEMA_VERSION=$(grep '(version: ' ${SCHEMA_FILE} | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)) do/\1/')
 else
-  SCHEMA_VERSION=$(sed -n '/INSERT INTO "schema_migrations" (version) VALUES/,/;/p' ${SCHEMA_FILE} | grep -o "[[:digit:]]*" | awk -v max=0 '{if($1>max){max=$1}}END{print max}')
+  SCHEMA_VERSION=$(sed -n '/COPY "schema_migrations" (version) FROM STDIN/,/\\\./p' ${SCHEMA_FILE} | grep -o "[[:digit:]]*" | awk -v max=0 '{if($1>max){max=$1}}END{print max}')
 fi
 
 # Stash DB_SCHEMA_VERSION, so we can check it at exit.
