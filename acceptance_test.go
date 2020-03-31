@@ -1214,7 +1214,7 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
-	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
+	rsp, err := GetRedirectPage(t, httpListener, "group.auth.gitlab-example.com", "/nonexistent/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
