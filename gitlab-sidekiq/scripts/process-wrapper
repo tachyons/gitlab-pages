@@ -5,6 +5,20 @@ set -e
 echo "Starting Sidekiq"
 
 if [[ "${SIDEKIQ_CLUSTER^^}" = 'TRUE' ]]; then
+    if [ -n "${SIDEKIQ_NEGATE_QUEUES}" ]; then
+        queues="${SIDEKIQ_NEGATE_QUEUES}"
+        negate_flag='--negate'
+    else
+        queues="${SIDEKIQ_QUEUES:-*}"
+        negate_flag=''
+    fi
+
+    if [[ "${SIDEKIQ_EXPERIMENTAL_QUEUE_SELECTOR}" = 'true' ]]; then
+      experimental_queue_selector_flag='--experimental-queue-selector'
+    else
+      experimental_queue_selector_flag=''
+    fi
+
     # sidekiq-cluster offers two things:
     #
     # 1. The ability to run and supervise multiple Sidekiq processes,
@@ -28,7 +42,9 @@ if [[ "${SIDEKIQ_CLUSTER^^}" = 'TRUE' ]]; then
             --min-concurrency ${SIDEKIQ_CONCURRENCY_MIN:-$SIDEKIQ_CONCURRENCY} \
             --max-concurrency ${SIDEKIQ_CONCURRENCY_MAX:-$SIDEKIQ_CONCURRENCY} \
             -t $SIDEKIQ_TIMEOUT \
-            '*'
+            $experimental_queue_selector_flag \
+            $negate_flag \
+            "${queues}"
         ) &
 else
     /srv/gitlab/bin/bundle exec sidekiq \
