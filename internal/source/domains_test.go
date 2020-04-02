@@ -14,6 +14,7 @@ import (
 type sourceConfig struct {
 	api    string
 	secret string
+	enable bool
 }
 
 func (c sourceConfig) InternalGitLabServerURL() string {
@@ -30,13 +31,16 @@ func (c sourceConfig) GitlabClientConnectionTimeout() time.Duration {
 func (c sourceConfig) GitlabJWTTokenExpiry() time.Duration {
 	return 30 * time.Second
 }
+func (c sourceConfig) GitlabEnableSourceAPI() bool {
+	return c.enable
+}
 
 func TestDomainSources(t *testing.T) {
-	t.Run("when GitLab API URL has been provided", func(t *testing.T) {
-		domains, err := NewDomains(sourceConfig{api: "https://gitlab.com", secret: "abc"})
+	t.Run("when GitLab API URL has been provided but cannot authenticate", func(t *testing.T) {
+		domains, err := NewDomains(sourceConfig{api: "https://gitlab.com", secret: "abc", enable: true})
 		require.NoError(t, err)
 
-		require.NotNil(t, domains.gitlab)
+		require.Nil(t, domains.gitlab)
 		require.NotNil(t, domains.disk)
 	})
 
@@ -50,7 +54,7 @@ func TestDomainSources(t *testing.T) {
 }
 
 func TestGetDomain(t *testing.T) {
-	gitlabSourceConfig.Domains.Enabled = []string{"new-source-test.gitlab.io"}
+	gitlabSourceConfig.Domains.Enabled = []string{"new-Source-test.gitlab.io"}
 	gitlabSourceConfig.Domains.Broken = "pages-broken-poc.gitlab.io"
 
 	t.Run("when requesting a test domain", func(t *testing.T) {
@@ -100,11 +104,11 @@ func TestGetDomain(t *testing.T) {
 		require.EqualError(t, err, "broken test domain used")
 	})
 
-	t.Run("when requesting a test domain in case of the source not being fully configured", func(t *testing.T) {
+	t.Run("when requesting a test domain in case of the Source not being fully configured", func(t *testing.T) {
 		domains, err := NewDomains(sourceConfig{})
 		require.NoError(t, err)
 
-		domain, err := domains.GetDomain("new-source-test.gitlab.io")
+		domain, err := domains.GetDomain("new-Source-test.gitlab.io")
 
 		require.Nil(t, domain)
 		require.NoError(t, err)
@@ -165,8 +169,8 @@ func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 		stickiness string
 		domains    []testDomain
 	}{
-		// domain05 should always use gitlab source,
-		// domain80 should use disk source
+		// domain05 should always use gitlab Source,
+		// domain80 should use disk Source
 		"default stickiness": {
 			stickiness: "",
 			domains: []testDomain{
@@ -176,8 +180,8 @@ func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 			},
 		},
 		// Given that randSeed(42) will produce the following pseudo-random sequence:
-		// {5, 87, 68} the first and third call for domain05 should use gitlab source,
-		// while the second one should use disk source
+		// {5, 87, 68} the first and third call for domain05 should use gitlab Source,
+		// while the second one should use disk Source
 		"no stickiness": {
 			stickiness: "random",
 			domains: []testDomain{
