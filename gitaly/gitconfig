@@ -8,6 +8,7 @@
     writeBitmaps = true
 [pack]
     threads = 1
+    useSparse = true
 [receive]
     fsckobjects = true
     advertisepushoptions = true
@@ -15,3 +16,5 @@
     hiderefs = ^refs/tmp/
     hiderefs = ^refs/keep-around/
     hiderefs = ^refs/remotes/
+[fetch]
+  writeCommitGraph = true
