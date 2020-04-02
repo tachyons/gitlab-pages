@@ -18,6 +18,11 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
+// ConnectionErrorMsg to be returned with `gc.preflightCheck` if pages
+// cannot contact /api/v4/internal/pages either because of a 404 (disabled)
+// or a 401 given that the credentials used are wrong
+const ConnectionErrorMsg = "failed to connect to internal pages API"
+
 // Client is a HTTP client to access Pages internal API
 type Client struct {
 	secretKey      []byte
@@ -70,13 +75,17 @@ func (gc *Client) Resolve(ctx context.Context, host string) *api.Lookup {
 	return &lookup
 }
 
-// GetLookup returns a VirtualDomain configuration wrapped into a Lookup for a
-// given host
-func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
+func (gc *Client) getLookupResponse(ctx context.Context, host string) (*http.Response, error) {
 	params := url.Values{}
 	params.Set("host", host)
 
-	resp, err := gc.get(ctx, "/api/v4/internal/pages", params)
+	return gc.get(ctx, "/api/v4/internal/pages", params)
+}
+
+// GetLookup returns a VirtualDomain configuration wrapped into a Lookup for a
+// given host
+func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
+	resp, err := gc.getLookupResponse(ctx, host)
 	if err != nil {
 		return api.Lookup{Name: host, Error: err}
 	}
@@ -89,6 +98,16 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	lookup.Error = json.NewDecoder(resp.Body).Decode(&lookup.Domain)
 
 	return lookup
+}
+
+// Ping internal/pages API for source domain configuration can be accessed from Pages.
+// Timeout is the same as -gitlab-client-http-timeout
+func (gc *Client) Ping() error {
+	_, err := gc.getLookupResponse(context.Background(), "gitlab.com")
+	if err != nil {
+		return fmt.Errorf("%s: %v", ConnectionErrorMsg, err)
+	}
+	return nil
 }
 
 func (gc *Client) get(ctx context.Context, path string, params url.Values) (*http.Response, error) {

@@ -23,13 +23,17 @@ type Gitlab struct {
 
 // New returns a new instance of gitlab domain source.
 func New(config client.Config) (*Gitlab, error) {
-	client, err := client.NewFromConfig(config)
+	cli, err := client.NewFromConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
+	if err := cli.Ping(); err != nil {
+		return nil, err
+	}
+
 	// using nil for cache config will use the default values specified in internal/source/gitlab/cache/cache.go#12
-	return &Gitlab{client: cache.NewCache(client, nil)}, nil
+	return &Gitlab{client: cache.NewCache(cli, nil)}, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from
