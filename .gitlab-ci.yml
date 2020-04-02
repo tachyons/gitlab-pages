@@ -789,7 +789,7 @@ build:gitaly:
 
 gitaly:
   <<: *job-base
-  stage: phase-five
+  stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-shell.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
