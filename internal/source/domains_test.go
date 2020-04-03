@@ -54,7 +54,7 @@ func TestDomainSources(t *testing.T) {
 }
 
 func TestGetDomain(t *testing.T) {
-	gitlabSourceConfig.Domains.Enabled = []string{"new-Source-test.gitlab.io"}
+	gitlabSourceConfig.Domains.Enabled = []string{"new-source-test.gitlab.io"}
 	gitlabSourceConfig.Domains.Broken = "pages-broken-poc.gitlab.io"
 
 	t.Run("when requesting a test domain", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestGetDomain(t *testing.T) {
 		domains, err := NewDomains(sourceConfig{})
 		require.NoError(t, err)
 
-		domain, err := domains.GetDomain("new-Source-test.gitlab.io")
+		domain, err := domains.GetDomain("new-source-test.gitlab.io")
 
 		require.Nil(t, domain)
 		require.NoError(t, err)
@@ -169,8 +169,8 @@ func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 		stickiness string
 		domains    []testDomain
 	}{
-		// domain05 should always use gitlab Source,
-		// domain80 should use disk Source
+		// domain05 should always use gitlab source,
+		// domain80 should use disk source
 		"default stickiness": {
 			stickiness: "",
 			domains: []testDomain{
@@ -180,8 +180,8 @@ func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 			},
 		},
 		// Given that randSeed(42) will produce the following pseudo-random sequence:
-		// {5, 87, 68} the first and third call for domain05 should use gitlab Source,
-		// while the second one should use disk Source
+		// {5, 87, 68} the first and third call for domain05 should use gitlab source,
+		// while the second one should use disk source
 		"no stickiness": {
 			stickiness: "random",
 			domains: []testDomain{
