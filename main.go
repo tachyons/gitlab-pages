@@ -64,7 +64,7 @@ var (
 	gitLabAPISecretKey      = flag.String("api-secret-key", "", "File with secret key used to authenticate with the GitLab API")
 	gitlabClientHTTPTimeout = flag.Duration("gitlab-client-http-timeout", 10*time.Second, "GitLab API HTTP client connection timeout in seconds (default: 10s)")
 	gitlabClientJWTExpiry   = flag.Duration("gitlab-client-jwt-expiry", 30*time.Second, "JWT Token expiry time in seconds (default: 30s)")
-	enableDomainSourceAPI   = flag.Bool("enable-domain-source-api", true, "Enable use of GitLab's domain source API configuration")
+	disableDomainSourceAPI  = flag.Bool("disable-gitlab-config-source", false, "Disable use of GitLab's domain source API configuration")
 	clientID                = flag.String("auth-client-id", "", "GitLab application Client ID")
 	clientSecret            = flag.String("auth-client-secret", "", "GitLab application Client Secret")
 	redirectURI             = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
@@ -184,7 +184,7 @@ func configFromFlags() appConfig {
 	config.GitLabServer = gitlabServerFromFlags()
 	config.GitlabClientHTTPTimeout = *gitlabClientHTTPTimeout
 	config.GitlabJWTTokenExpiration = *gitlabClientJWTExpiry
-	config.EnableDomainSourceAPI = *enableDomainSourceAPI
+	config.DisableDomainSourceAPI = *disableDomainSourceAPI
 	config.StoreSecret = *secret
 	config.ClientID = *clientID
 	config.ClientSecret = *clientSecret

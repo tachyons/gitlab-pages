@@ -46,8 +46,8 @@ func NewDomains(config Config) (*Domains, error) {
 
 	// fallback to disk if these values are empty
 	// TODO communicate disk source deprecation https://gitlab.com/gitlab-org/gitlab-pages/-/issues/351
-	if !config.GitlabEnableSourceAPI() || len(config.GitlabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		log.Warn("disk source will be deprecated soon, please use -enable-domain-source-api")
+	if config.GitlabDisableDomainConfiguration() || len(config.GitlabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
+		log.Warn("disk source will be deprecated soon see TODO")
 		return &Domains{disk: disk.New()}, nil
 	}
 

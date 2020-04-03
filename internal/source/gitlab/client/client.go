@@ -75,17 +75,13 @@ func (gc *Client) Resolve(ctx context.Context, host string) *api.Lookup {
 	return &lookup
 }
 
-func (gc *Client) getLookupResponse(ctx context.Context, host string) (*http.Response, error) {
-	params := url.Values{}
-	params.Set("host", host)
-
-	return gc.get(ctx, "/api/v4/internal/pages", params)
-}
-
 // GetLookup returns a VirtualDomain configuration wrapped into a Lookup for a
 // given host
 func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
-	resp, err := gc.getLookupResponse(ctx, host)
+	params := url.Values{}
+	params.Set("host", host)
+
+	resp, err := gc.get(ctx, "/api/v4/internal/pages", params)
 	if err != nil {
 		return api.Lookup{Name: host, Error: err}
 	}
@@ -103,7 +99,7 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 // Ping internal/pages API for source domain configuration can be accessed from Pages.
 // Timeout is the same as -gitlab-client-http-timeout
 func (gc *Client) Ping() error {
-	_, err := gc.getLookupResponse(context.Background(), "gitlab.com")
+	_, err := gc.get(context.Background(), "/api/v4/internal/pages/enabled", url.Values{})
 	if err != nil {
 		return fmt.Errorf("%s: %v", ConnectionErrorMsg, err)
 	}

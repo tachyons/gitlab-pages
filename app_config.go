@@ -32,7 +32,7 @@ type appConfig struct {
 	GitLabAPISecretKey       []byte
 	GitlabClientHTTPTimeout  time.Duration
 	GitlabJWTTokenExpiration time.Duration
-	EnableDomainSourceAPI    bool
+	DisableDomainSourceAPI   bool
 	ClientID                 string
 	ClientSecret             string
 	RedirectURI              string
@@ -59,6 +59,6 @@ func (config appConfig) GitlabJWTTokenExpiry() time.Duration {
 	return config.GitlabJWTTokenExpiration
 }
 
-func (config appConfig) GitlabEnableSourceAPI() bool {
-	return config.EnableDomainSourceAPI
+func (config appConfig) GitlabDisableDomainConfiguration() bool {
+	return config.DisableDomainSourceAPI
 }
