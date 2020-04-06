@@ -180,6 +180,16 @@ gitlab-ubi-builder:
     - mkdir -p artifacts/images
     - build_if_needed
 
+danger-review:
+  image: registry.gitlab.com/gitlab-org/gitlab-build-images:danger
+  stage: prepare
+  cache: {}
+  only:
+    variables:
+      - $DANGER_GITLAB_API_TOKEN
+  script:
+    - danger --fail-on-errors=true
+
 build:gitlab-ruby:
   <<: *build-job-base
   stage: prepare:phase-one
