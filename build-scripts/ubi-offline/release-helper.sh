@@ -37,6 +37,7 @@ SOURCE="${3:-.}"
 DOCKERFILE_EXT='.ubi8'
 GITLAB_REPOSITORY='${BASE_REGISTRY}/gitlab/gitlab/'
 ASSET_SHA_FILE="/tmp/deps-${RELEASE_TAG}.tar.sha256"
+ASSET_PUB_KEY_ID='5c7738cc4840f93f6e9170ff5a0e20d5f9706778'
 
 declare -A LABELED_VERSIONS=(
   [REGISTRY_VERSION]=
@@ -57,14 +58,7 @@ done
 
 # TODO move sha calculation to a signed asset
 if [ ! -f "${ASSET_SHA_FILE}" ]; then
-  for server in $(shuf -e ha.pool.sks-keyservers.net \
-                              hkp://p80.pool.sks-keyservers.net:80 \
-                              keyserver.ubuntu.com \
-                              hkp://keyserver.ubuntu.com:80 \
-                              pgp.mit.edu) ;
-  do
-      gpg --batch --keyserver "$server" --recv-keys 5c7738cc4840f93f6e9170ff5a0e20d5f9706778 && break || : ; \
-  done
+  gpg --batch --keyserver "keyserver.ubuntu.com" --recv-keys $ASSET_PUB_KEY_ID
 
   rm -f "/tmp/deps-${RELEASE_TAG}.tar" "/tmp/deps-${RELEASE_TAG}.tar.asc"
   curl --create-dirs "https://gitlab-ubi.s3.us-east-2.amazonaws.com/ubi8-build-dependencies-${RELEASE_TAG}.tar" -o "/tmp/deps-${RELEASE_TAG}.tar"
