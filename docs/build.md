@@ -71,7 +71,7 @@ in one stage can be built concurrently. They do not depend on each other.
   * gitlab-geo-logcursor (final)
   * gitlab-sidekiq (final)
   * gitlab-task-runner (final)
-  * gitlab-unicorn (final)
+  * gitlab-webservice (final)
 
 The rule of thumb is that majority of final images have `LABEL` and `USER` Docker build
 instructions.

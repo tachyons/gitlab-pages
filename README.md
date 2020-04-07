@@ -9,7 +9,7 @@ Each directory contains the `Dockerfile` for a specific component of the
 infrastructure needed to run GitLab.
 
 * [rails](/gitlab-rails) - The Rails code needed for both API and web.
-* [unicorn](/gitlab-unicorn) - The Unicorn container that exposes Rails.
+* [webservice](/gitlab-webservice) - The webservice container that exposes Rails webservers (Unicorn or Puma).
 * [workhorse](/gitlab-workhorse) - The GitLab Workhorse container providing smart-proxy in front of Rails.
 * [sidekiq](/gitlab-sidekiq) - The Sidekiq container that runs async Rails jobs.
 * [shell](/gitlab-shell) - Running GitLab Shell and OpenSSH to provide git over ssh, and authorized keys support from the database

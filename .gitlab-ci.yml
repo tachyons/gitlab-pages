@@ -7,6 +7,7 @@ variables:
   AUTO_DEPLOY_BRANCH_REGEX: '^[0-9]+-[0-9]+-auto-deploy-[0-9]+$'
   # Suffix to the cache key of gitlab-rails-* where Gem vendor bundles are stored. Enables easy cache busting.
   RAILS_CACHE_SUFFIX: 20200312
+  DNF_OPTS: '--disableplugin=subscription-manager'
 
 stages:
   - prepare
@@ -25,7 +26,7 @@ stages:
 .auto_deploy_items:
   - &auto_deploy_branch_var $CI_COMMIT_REF_NAME =~ /^[0-9]+-[0-9]+-auto-deploy-[0-9]+$/
   - &auto_deploy_tag_var $CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/
-  - &com_auto_deploy_tag_ref /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/@gitlab-org/build/CNG 
+  - &com_auto_deploy_tag_ref /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/@gitlab-org/build/CNG
 
 .ubi_items:
   - &ubi_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
@@ -34,7 +35,7 @@ stages:
 
 .common:
   - &ce_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
-  - &ce_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?$/
+  - &com_ce_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
   - &ce_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/
   - &ee_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/
   - &com_ee_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
@@ -50,6 +51,7 @@ stages:
       - *ce_stable_var
       - *auto_deploy_branch_var
     refs:
+      - *com_ce_tag_ref
       - *com_ee_tag_ref
       - *com_ubi_tag_ref
       - *com_auto_deploy_tag_ref
@@ -67,6 +69,11 @@ stages:
       - *ubi_stable_var
       - *auto_deploy_branch_var
       - *auto_deploy_tag_var
+    refs:
+      - *com_ce_tag_ref
+      - *com_ee_tag_ref
+      - *com_ubi_tag_ref
+      - *com_auto_deploy_tag_ref
 
 .job-base: &job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -102,7 +109,7 @@ stages:
       - artifacts/
   except:
     refs:
-      - *ce_tag_ref
+      - *com_ce_tag_ref
       - *com_ee_tag_ref
       - *com_ubi_tag_ref
       - *com_auto_deploy_tag_ref
@@ -172,6 +179,16 @@ gitlab-ubi-builder:
     - export UBI_BUILD_IMAGE='false'
     - mkdir -p artifacts/images
     - build_if_needed
+
+danger-review:
+  image: registry.gitlab.com/gitlab-org/gitlab-build-images:danger
+  stage: prepare
+  cache: {}
+  only:
+    variables:
+      - $DANGER_GITLAB_API_TOKEN
+  script:
+    - danger --fail-on-errors=true
 
 build:gitlab-ruby:
   <<: *build-job-base
@@ -493,7 +510,7 @@ gitlab-geo-logcursor:
     - gitlab-rails-ee
   <<: *except-ce
 
-build:gitlab-unicorn-ee:
+build:gitlab-webservice-ee:
   <<: *build-job-base
   stage: prepare:phase-two
   dependencies:
@@ -506,7 +523,7 @@ build:gitlab-unicorn-ee:
     - build_if_needed
     - copy_assets
 
-gitlab-unicorn-ee:
+gitlab-webservice-ee:
   <<: *job-base
   stage: phase-six
   script:
@@ -529,11 +546,11 @@ gitlab-unicorn-ee:
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
-    - build:gitlab-unicorn-ee
+    - build:gitlab-webservice-ee
     - build:gitlab-python
   <<: *except-ce
 
-gitlab-unicorn-ce:
+gitlab-webservice-ce:
   <<: *job-base
   stage: phase-six
   script:
@@ -782,7 +799,7 @@ build:gitaly:
 
 gitaly:
   <<: *job-base
-  stage: phase-five
+  stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-shell.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
@@ -966,7 +983,7 @@ ubi-assets-release:
     - build:gitlab-workhorse-ee
     - build:gitlab-rails-ee
     - build:gitlab-task-runner-ee
-    - build:gitlab-unicorn-ee
+    - build:gitlab-webservice-ee
   when: manual
   only:
     refs:

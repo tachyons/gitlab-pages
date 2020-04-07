@@ -4,11 +4,12 @@ FROM ${UBI_IMAGE}
 
 ARG BUILD_DIR=/tmp/build
 ARG LIBEDIT_VERSION=20170329-3.1
+ARG DNF_OPTS
 
 ENV LIBDIR=/usr/lib64
 ENV INCLUDEDIR=/usr/include
 
-RUN dnf --disableplugin=subscription-manager install -by --nodocs \
+RUN dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs \
         cmake gcc gcc-c++ make patch perl \
         bzip2 libedit ncurses uuid \
         curl-devel libicu-devel libffi-devel libuuid-devel openssl-devel ncurses-devel pcre2-devel zlib-devel \

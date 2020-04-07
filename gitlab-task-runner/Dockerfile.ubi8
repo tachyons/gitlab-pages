@@ -4,6 +4,7 @@ FROM ${RAILS_IMAGE}
 
 ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/gitlab" \
       name="GitLab Task Runner" \
@@ -22,7 +23,13 @@ COPY scripts/lib/* /usr/lib/ruby/vendor_ruby
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs ca-certificates openssl
+    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs ca-certificates openssl patch
+
+# Patch s3cmd for https://gitlab.com/gitlab-org/charts/gitlab/-/issues/1649
+COPY patches/s3cmd-unicode.patch /tmp/
+RUN cd $(pip3 show -f s3cmd | awk '$1 ~ /Location/ {print $NF}') \
+    && patch -p1 < /tmp/s3cmd-unicode.patch \
+    && rm /tmp/s3cmd-unicode.patch
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 

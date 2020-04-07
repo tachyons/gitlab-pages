@@ -159,7 +159,7 @@ ARG GITLAB_USER=git
 # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=866729
 RUN mkdir -p /usr/share/man/man7 \
     && apt-get update \
-    && apt-get install -y --no-install-recommends libicu57 libre2-3 tzdata
+    && apt-get install -y --no-install-recommends libicu57 libre2-3 tzdata xtail
 
 <% if ee? %>
 # Include the gitlab-elasticsearch-indexer

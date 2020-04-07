@@ -9,7 +9,7 @@ FROM ${FROM_IMAGE}:${TAG}
 
 ARG DATADIR=/var/opt/gitlab
 ARG CONFIG=/srv/gitlab/config
-ARG DOCUTILS_VERSION="0.11"
+ARG DOCUTILS_VERSION="0.16"
 
 COPY --from=python /usr/local/bin /usr/local/bin/
 COPY --from=python /usr/local/lib /usr/local/lib/
@@ -25,7 +25,7 @@ ARG GITLAB_USER=git
 USER $GITLAB_USER:$GITLAB_USER
 
 COPY scripts/ /scripts
-COPY unicorn.rb ${CONFIG}/unicorn.rb
+COPY --chown=${GITLAB_USER} configuration/ ${CONFIG}/
 
 RUN cd /srv/gitlab && \
     mkdir -p public/uploads && chown ${GITLAB_USER}:${GITLAB_USER} public/uploads && \

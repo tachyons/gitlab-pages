@@ -4,6 +4,7 @@ FROM ${RAILS_IMAGE}
 
 ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+ARG DNF_OPTS
 
 LABEL source="https://github.com/mperham/sidekiq" \
       name="GitLab Sidekiq" \
@@ -21,7 +22,7 @@ COPY scripts/ /scripts/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps openssh-clients \
+    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps openssh-clients \
     && rm /usr/libexec/openssh/ssh-keysign \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
 

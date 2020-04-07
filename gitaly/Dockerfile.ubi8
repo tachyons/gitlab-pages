@@ -4,6 +4,7 @@ FROM ${GIT_IMAGE}
 
 ARG GITALY_SERVER_VERSION
 ARG GITLAB_USER=git
+ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/gitaly" \
       name="Gitaly" \
@@ -23,7 +24,7 @@ COPY gitconfig /usr/local/etc/gitconfig
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -yb --nodocs procps net-tools libicu openssh-clients \
+    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps net-tools libicu openssh-clients \
     && rm -f /usr/local/tmp/openssh-server-*.rpm /usr/libexec/openssh/ssh-keysign \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories \

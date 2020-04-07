@@ -1,5 +1,5 @@
 #!/bin/bash
-declare -a nightly_builds=( gitlab-rails-ee gitlab-rails-ce gitlab-unicorn-ce gitlab-unicorn-ee gitaly gitlab-shell gitlab-sidekiq-ee gitlab-sidekiq-ce gitlab-workhorse-ce gitlab-workhorse-ee )
+declare -a nightly_builds=( gitlab-rails-ee gitlab-rails-ce gitlab-webservice-ce gitlab-webservice-ee gitaly gitlab-shell gitlab-sidekiq-ee gitlab-sidekiq-ce gitlab-workhorse-ce gitlab-workhorse-ee )
 
 function _containsElement () {
   local e match="$1"
@@ -85,6 +85,10 @@ function build_if_needed(){
     if [ "${UBI_BUILD_IMAGE}" = 'true' ]; then
       [ -z "${BUILD_IMAGE}" ] && export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest-ubi8"
       DOCKER_ARGS+=(--build-arg BUILD_IMAGE="${BUILD_IMAGE}")
+    fi
+
+    if [ "${UBI_PIPELINE}" = 'true' ]; then
+      DOCKER_ARGS+=(--build-arg DNF_OPTS="${DNF_OPTS:-}")
     fi
 
     docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.}

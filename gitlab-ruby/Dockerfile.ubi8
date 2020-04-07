@@ -2,6 +2,8 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.1
 
 FROM ${UBI_IMAGE}
 
+ARG DNF_OPTS
+
 ADD gitlab-ruby.tar.gz /
 
 COPY scripts/ /scripts
@@ -10,7 +12,7 @@ ENV CONFIG_TEMPLATE_DIRECTORY=/etc
 
 RUN dnf clean all \
     && rm -rf /var/cache/dnf \
-    && dnf --disableplugin=subscription-manager --nogpgcheck install -by --nodocs ncurses libedit
+    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs ncurses libedit
 
 ENTRYPOINT ["/scripts/entrypoint.sh"]
 

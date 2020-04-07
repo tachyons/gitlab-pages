@@ -1,0 +1,20 @@
+Generated from https://github.com/s3tools/s3cmd/compare/v2.0.2...5d280cb772d67e9f0c3eb79029f984b2b9815e1e.diff
+diff --git a/S3/Config.py b/S3/Config.py
+index e6e76f0b..10390cbc 100644
+--- a/S3/Config.py
++++ b/S3/Config.py
+@@ -263,10 +263,10 @@ def role_config(self):
+                 conn.request('GET', "/latest/meta-data/iam/security-credentials/%s"%files.decode('UTF-8'))
+                 resp=conn.getresponse()
+                 if resp.status == 200:
+-                    creds=json.load(resp)
+-                    Config().update_option('access_key', creds['AccessKeyId'].encode('ascii'))
+-                    Config().update_option('secret_key', creds['SecretAccessKey'].encode('ascii'))
+-                    Config().update_option('access_token', creds['Token'].encode('ascii'))
++                    creds=json.load(resp, encoding="utf-8")
++                    Config().update_option('access_key', config_unicodise(creds['AccessKeyId']))
++                    Config().update_option('secret_key', config_unicodise(creds['SecretAccessKey']))
++                    Config().update_option('access_token', config_unicodise(creds['Token']))
+                 else:
+                     raise IOError
+             else:

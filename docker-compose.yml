@@ -17,11 +17,11 @@ services:
     depends_on:
       - omnibus
     volumes:
-      - ./dev/unicorn-config:/var/opt/gitlab/config/templates
+      - ./dev/webservice-config:/var/opt/gitlab/config/templates
       - ./dev/shell-secret:/var/opt/gitlab/config/secrets
       - db-upgrade:/var/opt/gitlab/.upgrade-status
-  unicorn:
-    image: ${GITLAB_UNICORN_IMAGE}
+  webservice:
+    image: ${GITLAB_WEBSERVICE_IMAGE}
     environment:
       - "GITLAB_HOST=localhost"
       - "GITLAB_PORT=${NGINX_HOST_PORT}"
@@ -33,9 +33,9 @@ services:
     depends_on:
       - omnibus
     ports:
-      - "${UNICORN_HOST_PORT}:8080"
+      - "${WEBSERVICE_HOST_PORT}:8080"
     volumes:
-      - ./dev/unicorn-config:/var/opt/gitlab/config/templates
+      - ./dev/webservice-config:/var/opt/gitlab/config/templates
       - ./dev/shell-secret:/var/opt/gitlab/config/secrets
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/srv/gitlab/.gitlab_workhorse_secret
       - uploads:/srv/gitlab/public/uploads
@@ -44,10 +44,10 @@ services:
     environment:
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
-      - "GITLAB_WORKHORSE_EXTRA_ARGS=-authBackend http://unicorn:8080"
+      - "GITLAB_WORKHORSE_EXTRA_ARGS=-authBackend http://webservice:8080"
     command: ["/scripts/start-workhorse"]
     depends_on:
-      - unicorn
+      - webservice
     ports:
       - "${WORKHORSE_HOST_PORT}:8181"
     volumes:
