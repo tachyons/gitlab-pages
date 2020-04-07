@@ -20,7 +20,7 @@ RUN buildDeps=' \
   && mkdir -p ${BUILD_DIR} \
   && cd ${BUILD_DIR} \
   && echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-workhorse/repository/archive.tar.bz2?sha=${WORKHORSE_VERSION}" \
-  && curl --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o workhorse.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-workhorse/repository/archive.tar.bz2?sha=${WORKHORSE_VERSION}" \
+  && curl --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o workhorse.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-workhorse/repository/archive.tar.bz2?sha=${WORKHORSE_VERSION}" \
   && tar -xjf workhorse.tar.bz2 \
   && rm workhorse.tar.bz2 \
   && cd gitlab-workhorse-* \

@@ -23,7 +23,7 @@ RUN buildDeps=' \
     && mkdir -p ${BUILD_DIR}
 
 RUN cd ${BUILD_DIR} \
-    && curl -so git.tar.gz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz" \
+    && curl --retry 6 -so git.tar.gz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz" \
     && tar -xf git.tar.gz \
     && cd ${BUILD_DIR}/git-${GIT_VERSION} \
     && echo "USE_LIBPCRE2=YesPlease \n\

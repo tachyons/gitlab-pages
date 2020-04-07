@@ -13,7 +13,7 @@ ENV LANG=C.UTF-8
 COPY shared/build-scripts/ /build-scripts
 
 RUN mkdir /assets \
-    && curl -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.gz | tar -xz \
+    && curl --retry 6 -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.gz | tar -xz \
     && cd ruby-${RUBY_MINOR_VERSION} \
     && ./configure --prefix=/usr --disable-dtrace --disable-install-doc --disable-install-rdoc --enable-shared --with-out-ext=dbm,readline --without-gmp --without-gdbm --without-tk \
     && make -j "$(nproc)" \
@@ -21,7 +21,7 @@ RUN mkdir /assets \
     && gem update --no-document --system ${RUBYGEMS_VERSION} \
     && gem install bundler --version ${BUNDLER_VERSION} --force --no-document \
     && cd .. \
-    && curl -sL https://github.com/connoratherton/rb-readline/archive/v${RBREADLINE_VERSION}.tar.gz | tar -xz \
+    && curl --retry 6 -sL https://github.com/connoratherton/rb-readline/archive/v${RBREADLINE_VERSION}.tar.gz | tar -xz \
     && ruby rb-readline-${RBREADLINE_VERSION}/setup.rb \
     && /build-scripts/cleanup-gems /usr/lib/ruby/gems \
     && cp -R --parents \
