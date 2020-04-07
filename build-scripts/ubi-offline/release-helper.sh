@@ -3,39 +3,27 @@
 #
 # This is a helper script for CNG UBI source release. This script:
 #
-#   - Creates a directory for the new release using the specified release tag.
+#   - Fetches and verifies the sha256 of the release assets
 #   - Duplicates the UBI image directories (Dockerfiles and assets) and
 #     restructures and renames the files where needed.
 #   - Replaces CI-specific Dockerfile arguments.
 #   - Prepends the build stage Dockerfile instructions.
-#   - Copies some of the assets from the previous release, including, LICENSE,
-#     README.md, and build-scripts/+
 #
 # USAGE:
 #
-#   release-helper RELEASE_TAG RELEASE_PATH PREVIOUS_RELEASE [SOURCE]
+#   release-helper RELEASE_TAG RELEASE_PATH [SOURCE]
 #
-#     RELEASE_TAG       GitLab release tag (e.g. v12.5.1-ubi8). The scripts
-#                       creates a directory for the release tag (e.g. 12.5).
+#     RELEASE_TAG       GitLab release tag (e.g. v12.5.1-ubi8).
 #
 #     RELEASE_PATH      The release root directory. A directory for the new
-#                       release will be created here. The previous release
-#                       directory will be looked up in here as well.
-#
-#     PREVIOUS_RELEASE  The directory name of the previous release (e.g. 12.4).
-#                       Some assets will be copied from the previous release.
+#                       release will be created here.
 #
 #     SOURCE            The root directory of GitLab CNG repository. The current
 #                       directory is used when not specified.
 #
 # NOTE:
 #
-#   This script requires GNU sed.
-#
-# CAVEATS:
-#
-#   This script does not set the version build arguments, such as `REGISTRY_VERSION`
-#   in `gitlab-container-registry` or `GITALY_SERVER_VERSION` in `gitaly`.
+#   This script requires GNU sed, gpg, and curl
 #
 
 set -euxo pipefail
@@ -44,11 +32,12 @@ SCRIPT_HOME="$( cd "${BASH_SOURCE[0]%/*}" > /dev/null 2>&1 && pwd )"
 
 RELEASE_TAG="${1}"
 RELEASE_PATH="${2}"
-PREVIOUS_RELEASE="${3}"
-SOURCE="${4:-.}"
+SOURCE="${3:-.}"
 
 DOCKERFILE_EXT='.ubi8'
 GITLAB_REPOSITORY='${BASE_REGISTRY}/gitlab/gitlab/'
+ASSET_SHA_FILE="/tmp/deps-${RELEASE_TAG}.tar.sha256"
+ASSET_PUB_KEY_ID='5c7738cc4840f93f6e9170ff5a0e20d5f9706778'
 
 declare -A LABELED_VERSIONS=(
   [REGISTRY_VERSION]=
@@ -66,6 +55,17 @@ for _KEY in "${!LABELED_VERSIONS[@]}"; do
     | sed -e 's/[ \"]//g'
   )
 done
+
+# TODO move sha calculation to a signed asset
+if [ ! -f "${ASSET_SHA_FILE}" ]; then
+  gpg --batch --keyserver "keyserver.ubuntu.com" --recv-keys $ASSET_PUB_KEY_ID
+
+  rm -f "/tmp/deps-${RELEASE_TAG}.tar" "/tmp/deps-${RELEASE_TAG}.tar.asc"
+  curl --create-dirs "https://gitlab-ubi.s3.us-east-2.amazonaws.com/ubi8-build-dependencies-${RELEASE_TAG}.tar" -o "/tmp/deps-${RELEASE_TAG}.tar"
+  curl --create-dirs "https://gitlab-ubi.s3.us-east-2.amazonaws.com/ubi8-build-dependencies-${RELEASE_TAG}.tar.asc" -o "/tmp/deps-${RELEASE_TAG}.tar.asc"
+  gpg --verify "/tmp/deps-${RELEASE_TAG}.tar.asc" "/tmp/deps-${RELEASE_TAG}.tar"
+  sha256sum "/tmp/deps-${RELEASE_TAG}.tar" | awk '{print $1}' > "${ASSET_SHA_FILE}"
+fi
 
 duplicateImageDir() {
   local IMAGE_NAME="${1}"
@@ -86,8 +86,8 @@ prependBaseArgs() {
   cat - "${DOCKERFILE}" > "${DOCKERFILE}.0" <<-EOF
 ARG GITLAB_VERSION=${RELEASE_TAG}
 
-ARG BASE_REGISTRY=registry.access.redhat.com
-ARG BASE_IMAGE=ubi8/ubi
+ARG BASE_REGISTRY=nexus-docker-secure.levelup-nexus.svc.cluster.local:18082
+ARG BASE_IMAGE=redhat/ubi/ubi8
 ARG BASE_TAG=8.1
 
 ARG UBI_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}
@@ -103,15 +103,13 @@ prependBuildStage() {
     cat - "${DOCKERFILE}" > "${DOCKERFILE}.0" <<-EOF
 FROM \${UBI_IMAGE} AS builder
 
-ARG NEXUS_SERVER
-ARG VENDOR=gitlab
+ARG GITLAB_VERSION
 ARG PACKAGE_NAME=ubi8-build-dependencies-\${GITLAB_VERSION}.tar
-ARG PACKAGE_URL=https://\${NEXUS_SERVER}/repository/dsop/\${VENDOR}/${IMAGE_NAME}/\${PACKAGE_NAME}
 
+COPY \${PACKAGE_NAME} /opt/
 ADD build-scripts/ /build-scripts/
 
-RUN /build-scripts/prepare.sh "\${PACKAGE_URL}"
-
+RUN /build-scripts/prepare.sh "/opt/\${PACKAGE_NAME}"
 EOF
     mv "${DOCKERFILE}.0" "${DOCKERFILE}"
   fi
@@ -158,35 +156,36 @@ replaceAddDependencies() {
 replaceLabeledVersions() {
   local DOCKERFILE="${1}"
   for _KEY in "${!LABELED_VERSIONS[@]}"; do
-    sed -i "s/^ARG ${_KEY}/ARG ${_KEY}=${LABELED_VERSIONS[$_KEY]}/g" "${DOCKERFILE}"
+    sed -i "s/^ARG ${_KEY}.*/ARG ${_KEY}=${LABELED_VERSIONS[$_KEY]}/g" "${DOCKERFILE}"
   done
 }
 
-addLicense() {
-  local IMAGE_NAME="${1}"
+updateBuildScripts() {
+  local IMAGE_TAG="${1}"
   local IMAGE_ROOT="${2}"
-  cp -n "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/LICENSE" "${IMAGE_ROOT}/"
+  if [ -f "${IMAGE_ROOT}/build-scripts/build.sh" ]; then
+    sed -i "s/^TAG=.*/TAG=\$\{1:-${IMAGE_TAG}\}/g" "${IMAGE_ROOT}/build-scripts/build.sh"
+  fi
 }
 
-addReadMe() {
-  local IMAGE_NAME="${1}"
+updateJenkinsfile() {
+  local IMAGE_TAG="${1}"
   local IMAGE_ROOT="${2}"
-  cp -n "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/README.md" "${IMAGE_ROOT}/"
+  sed -i "s/version: \".*\"/version: \"${IMAGE_TAG}\"/g" "${IMAGE_ROOT}/Jenkinsfile"
 }
 
-addBuildScripts() {
-  local FULL_IMAGE_NAME="${1}"
-  local IMAGE_NAME="${1%*-ee}";
-  local IMAGE_TAG="${2}"
-  local IMAGE_ROOT="${3}"
-  cp -Rn "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/build-scripts" "${IMAGE_ROOT}/"
-  chmod +x "${IMAGE_ROOT}/build-scripts"/*.sh
-  sed -i "s/^TAG=.*/TAG=\$\{1:-${IMAGE_TAG}\}/g" "${IMAGE_ROOT}/build-scripts/build.sh"
-  if [ -f "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/scripts/prebuild.sh" ]; then
-    mkdir -p "${IMAGE_ROOT}/scripts"
-    cp -n "${RELEASE_PATH}/${IMAGE_NAME}/${PREVIOUS_RELEASE}/scripts/prebuild.sh" "${IMAGE_ROOT}/scripts"
-    sed -i "s/^GITLAB_VERSION=.*/GITLAB_VERSION=${RELEASE_TAG}/g" "${IMAGE_ROOT}/scripts/prebuild.sh"
-    chmod +x "${IMAGE_ROOT}/scripts/prebuild.sh"
+updateDownload() {
+  local IMAGE_ROOT="${1}"
+  local ASSET_SHA=$(cat "${ASSET_SHA_FILE}")
+
+  if [ -f "${IMAGE_ROOT}/download.yaml" ]; then
+    sed -i "s/ubi8-build-dependencies-.*.tar/ubi8-build-dependencies-${RELEASE_TAG}.tar/g" "${IMAGE_ROOT}/download.yaml"
+    sed -i "s/value: \".*\"/value: \"${ASSET_SHA}\"/g" "${IMAGE_ROOT}/download.yaml"
+  fi
+
+  if [ -f "${IMAGE_ROOT}/download.json" ]; then
+    sed -i "s/ubi8-build-dependencies-.*.tar/ubi8-build-dependencies-${RELEASE_TAG}.tar/g" "${IMAGE_ROOT}/download.json"
+    sed -i "s/\"value\": \".*\"/\"value\": \"${ASSET_SHA}\"/g" "${IMAGE_ROOT}/download.json"
   fi
 }
 
@@ -196,9 +195,9 @@ cleanupDirectory() {
 
 releaseImage() {
   local IMAGE_NAME="${1%*-ee}"; local FULL_IMAGE_NAME="${1}"; shift
-  local IMAGE_TAG="${RELEASE_TAG%.*}"
+  local IMAGE_TAG="${RELEASE_TAG%-*}"
   IMAGE_TAG="${IMAGE_TAG#v*}"
-  local IMAGE_ROOT="${RELEASE_PATH}/${IMAGE_NAME}/${IMAGE_TAG}"
+  local IMAGE_ROOT="${RELEASE_PATH}/${IMAGE_NAME}"
   local DOCKERFILE="${IMAGE_ROOT}/Dockerfile"
   duplicateImageDir "${IMAGE_NAME}" "${IMAGE_ROOT}"
   replaceUbiImageArg "${DOCKERFILE}"
@@ -208,9 +207,9 @@ releaseImage() {
   replaceRailsImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceGitImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceAddDependencies "${DOCKERFILE}"
-  addBuildScripts "${FULL_IMAGE_NAME}" "${IMAGE_TAG}" "${IMAGE_ROOT}"
-  addLicense "${IMAGE_NAME}" "${IMAGE_ROOT}"
-  addReadMe "${IMAGE_NAME}" "${IMAGE_ROOT}"
+  updateBuildScripts "${IMAGE_TAG}" "${IMAGE_ROOT}"
+  updateJenkinsfile "${IMAGE_TAG}" "${IMAGE_ROOT}"
+  updateDownload "${IMAGE_ROOT}"
   replaceLabeledVersions "${DOCKERFILE}"
   cleanupDirectory
 }
