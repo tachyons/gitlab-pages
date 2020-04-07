@@ -28,7 +28,7 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
-	if err := cli.Ping(); err != nil {
+	if err := cli.Status(); err != nil {
 		return nil, err
 	}
 

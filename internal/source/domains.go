@@ -53,7 +53,7 @@ func NewDomains(config Config) (*Domains, error) {
 	gl, err := gitlab.New(config)
 	if err != nil {
 		if strings.Contains(err.Error(), client.ConnectionErrorMsg) {
-			log.WithError(err).Warn("could not reach /api/v4/internal/pages/enabled endpoint, defaulting to disk source")
+			log.WithError(err).Warn("could not reach /api/v4/internal/pages/status, defaulting to disk source")
 			return &Domains{disk: disk.New()}, nil
 		}
 		return nil, err

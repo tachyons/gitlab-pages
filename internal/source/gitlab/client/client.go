@@ -96,10 +96,11 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	return lookup
 }
 
-// Ping internal/pages API for source domain configuration can be accessed from Pages.
+// Status checks that Pages can reach the rails internal Pages API
+// for source domain configuration.
 // Timeout is the same as -gitlab-client-http-timeout
-func (gc *Client) Ping() error {
-	_, err := gc.get(context.Background(), "/api/v4/internal/pages/enabled", url.Values{})
+func (gc *Client) Status() error {
+	_, err := gc.get(context.Background(), "/api/v4/internal/pages/status", url.Values{})
 	if err != nil {
 		return fmt.Errorf("%s: %v", ConnectionErrorMsg, err)
 	}

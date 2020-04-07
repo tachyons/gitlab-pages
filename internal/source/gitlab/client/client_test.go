@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
@@ -193,6 +194,47 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 
 	require.Equal(t, "file", lookupPath.Source.Type)
 	require.Equal(t, "mygroup/myproject/public/", lookupPath.Source.Path)
+}
+
+func TestClientStatus(t *testing.T) {
+	tests := []struct {
+		name    string
+		status  int
+		wantErr bool
+	}{
+		{
+			name:    "api_enabled",
+			status:  http.StatusNoContent,
+			wantErr: false,
+		},
+		{
+			name:    "api_unauthorized",
+			status:  http.StatusUnauthorized,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux := http.NewServeMux()
+			mux.HandleFunc("/api/v4/internal/pages/status", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.status)
+			})
+			server := httptest.NewServer(mux)
+			defer server.Close()
+
+			client := defaultClient(t, server.URL)
+
+			err := client.Status()
+			require.Equal(t, tt.wantErr, err != nil)
+
+			if tt.wantErr {
+				require.NotNil(t, err)
+				require.Contains(t, err.Error(), strconv.Itoa(tt.status))
+			}
+		})
+	}
+
 }
 
 func validateToken(t *testing.T, tokenString string) {
