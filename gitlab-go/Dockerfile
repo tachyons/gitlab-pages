@@ -12,7 +12,7 @@ ENV GO_URL="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.ta
 # install go
 RUN mkdir ${BUILD_DIR} \
   && cd ${BUILD_DIR} \
-  && curl -so golang.tar.xz ${GO_URL} \
+  && curl --retry 6 -so golang.tar.xz ${GO_URL} \
   && tar -xf golang.tar.xz \
   && mv ${BUILD_DIR}/go /usr/local/go \
   && rm golang.tar.xz \

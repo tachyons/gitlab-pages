@@ -29,13 +29,13 @@ mkdir -p "${WORKSPACE}"
 mkdir -p "${CACHE_LOCATION}"
 
 # Download and import GitLab's public key
-curl -Lf "${PACKAGE_HOST}/gpg" | gpg --import
+curl --retry 6 -Lf "${PACKAGE_HOST}/gpg" | gpg --import
 
 # Download UBI dependencies package and its signature.
 # Cache the package but always download the signature.
-curl -Lf "${PACKAGE_URL}.asc" -o "${WORKSPACE}/${PACKAGE_NAME}.asc"
+curl --retry 6 -Lf "${PACKAGE_URL}.asc" -o "${WORKSPACE}/${PACKAGE_NAME}.asc"
 if [ ! -f "${CACHE_LOCATION}/${PACKAGE_NAME}" ]; then
-  curl -Lf "${PACKAGE_URL}" -o "${CACHE_LOCATION}/${PACKAGE_NAME}"
+  curl --retry 6 -Lf "${PACKAGE_URL}" -o "${CACHE_LOCATION}/${PACKAGE_NAME}"
 fi
 cp "${CACHE_LOCATION}/${PACKAGE_NAME}" "${WORKSPACE}/${PACKAGE_NAME}"
 

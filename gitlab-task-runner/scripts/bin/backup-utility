@@ -47,7 +47,7 @@ function fetch_remote_backup(){
 
   if is_url $1; then
     >&2 echo "Downloading from $1";
-    curl --progress-bar -o $output_path $1
+    curl --retry 6 --progress-bar -o $output_path $1
   else # It's a timestamp
     file_name="$1_gitlab_backup.tar"
     if [ "${BACKUP_BACKEND}" = "s3" ]; then

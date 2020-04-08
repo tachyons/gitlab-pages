@@ -51,7 +51,7 @@ RUN buildDeps=' \
   && apt-get install -y --no-install-recommends $buildDeps \
   && rm -rf /var/lib/apt/lists/* \
   && cd ${BUILD_DIR} \
-  && curl -so ruby.tar.xz https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.xz \
+  && curl --retry 6 -so ruby.tar.xz https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.xz \
   && tar -xf ruby.tar.xz \
   && rm ruby.tar.xz \
   && cd ruby-${RUBY_MINOR_VERSION} \
@@ -63,7 +63,7 @@ RUN buildDeps=' \
   && rm -rf ${BUILD_DIR} \
   && gem update --system "$RUBYGEMS_VERSION" \
   && gem install bundler --version "$BUNDLER_VERSION" --force --no-ri --no-rdoc \
-  && curl -s https://codeload.github.com/ConnorAtherton/rb-readline/tar.gz/v0.5.5 | tar -xz \
+  && curl --retry 6 -s https://codeload.github.com/ConnorAtherton/rb-readline/tar.gz/v0.5.5 | tar -xz \
   && ruby rb-readline-0.5.5/setup.rb && rm -rf rb-readline-0.5.5 \
 	&& rm -rf /root/.gem/ \
 	&& /build-scripts/cleanup-gems /usr/lib/ruby/gems

@@ -57,11 +57,11 @@ RUN buildDeps=' \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p ${BUILD_DIR}
 
-RUN curl -fsSL "https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz" \
+RUN curl --retry 6 -fsSL "https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz" \
   | tar --strip-components 1 -xzC /usr/local/
 
 RUN mkdir /usr/local/yarn \
-  && curl -fsSL "https://yarnpkg.com/downloads/${YARN_VERSION}/yarn-v${YARN_VERSION}.tar.gz" \
+  && curl --retry 6 -fsSL "https://yarnpkg.com/downloads/${YARN_VERSION}/yarn-v${YARN_VERSION}.tar.gz" \
   | tar -xzC /usr/local/yarn --strip 1 \
   && ln -sf /usr/local/yarn/bin/yarn /usr/local/bin/ \
   && ln -sf /usr/local/yarn/bin/yarnpkg /usr/local/bin/
@@ -87,7 +87,7 @@ ARG CI_API_V4_URL
 ARG CACHE_BUSTER=false
 RUN cd /home/${GITLAB_USER} && \
     echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2F${GITLAB_PROJECT}/repository/archive.tar.bz2?sha=${GITLAB_VERSION}" && \
-    sudo -u ${GITLAB_USER} -H curl --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2F${GITLAB_PROJECT}/repository/archive.tar.bz2?sha=${GITLAB_VERSION}" && \
+    sudo -u ${GITLAB_USER} -H curl --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2F${GITLAB_PROJECT}/repository/archive.tar.bz2?sha=${GITLAB_VERSION}" && \
     sudo -u ${GITLAB_USER} -H tar -xjf gitlab.tar.bz2 && \
     REVISION=$(find -maxdepth 1 -name ${GITLAB_EDITION}-* -print | awk -F '-' '{print $NF}' | cut -c -11) && \
     mv ${GITLAB_PROJECT}-* /srv/gitlab && \

@@ -15,4 +15,4 @@ URL="${API_URL}/projects/${NAMESPACE}%2F${PROJECT}/repository/archive.tar.gz?sha
 TOKEN="PRIVATE-TOKEN: ${PRIVATE_TOKEN}"
 
 mkdir -p "${PROJECT}-${VERSION}"
-curl -L -H "${TOKEN}" "${URL}" | tar -xz --strip-components=1 -C "${PROJECT}-${VERSION}"
+curl --retry 6 -L -H "${TOKEN}" "${URL}" | tar -xz --strip-components=1 -C "${PROJECT}-${VERSION}"

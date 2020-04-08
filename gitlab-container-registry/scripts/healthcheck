@@ -2,6 +2,6 @@
 
 set -e
 
-status=$(curl -s -q -w '%{http_code}' http://127.0.0.1:${GITLAB_CONTAINER_REGISTRY_LISTEN_PORT:-5000}/v2/)
+status=$(curl --retry 6 -s -q -w '%{http_code}' http://127.0.0.1:${GITLAB_CONTAINER_REGISTRY_LISTEN_PORT:-5000}/v2/)
 
 [[ '200 401' =~ "$status" ]]

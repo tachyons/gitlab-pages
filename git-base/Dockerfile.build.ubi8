@@ -5,10 +5,10 @@ FROM ${BUILD_IMAGE}
 ARG GIT_VERSION=2.26.0
 
 RUN mkdir /assets \
-    && curl https://mirrors.edge.kernel.org/pub/software/scm/git/sha256sums.asc -o sha256sums.asc \
+    && curl --retry 6 https://mirrors.edge.kernel.org/pub/software/scm/git/sha256sums.asc -o sha256sums.asc \
     && gpg2 --locate-keys autosigner@kernel.org \
     && gpg2 --auto-key-retrieve --verify sha256sums.asc \
-    && curl https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz -o git-${GIT_VERSION}.tar.gz \
+    && curl --retry 6 https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz -o git-${GIT_VERSION}.tar.gz \
     && grep -q $(sha256sum git-${GIT_VERSION}.tar.gz) sha256sums.asc \
     && tar -xzf git-${GIT_VERSION}.tar.gz \
     && cd git-${GIT_VERSION} \

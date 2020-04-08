@@ -22,7 +22,7 @@ RUN buildDeps=' \
 
 RUN cd ${BUILD_DIR} && \
   echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-elasticsearch-indexer/repository/archive.tar.bz2?sha=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}" && \
-  curl --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab-elasticsearch-indexer.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-elasticsearch-indexer/repository/archive.tar.bz2?sha=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}" && \
+  curl --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab-elasticsearch-indexer.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-elasticsearch-indexer/repository/archive.tar.bz2?sha=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}" && \
   tar -xjf gitlab-elasticsearch-indexer.tar.bz2 --strip-components=1 && \
   rm gitlab-elasticsearch-indexer.tar.bz2 && \
   make && \

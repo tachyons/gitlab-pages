@@ -16,7 +16,7 @@ RUN buildDeps=' \
   apt-get update && \
   apt-get install -y --no-install-recommends $buildDeps && \
   mkdir ${BUILD_DIR} && \
-  curl -fsSL https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz \
+  curl --retry 6 -fsSL https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz \
   | tar -xz -C ${BUILD_DIR}  && \
   cd ${BUILD_DIR}/Python-${PYTHON_VERSION} && \
   ./configure --enable-shared --with-readline=editline --with-dbmliborder= && make && \

@@ -164,7 +164,7 @@ dependency_update:
   image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:0.0.41
   stage: prepare
   script:
-    - curl https://deps.app/install.sh | bash -s -- -b $HOME/bin
+    - curl --retry 6 https://deps.app/install.sh | bash -s -- -b $HOME/bin
     - $HOME/bin/deps ci
   only:
     variables:
@@ -262,7 +262,7 @@ alpine-certificates:
   script:
     - export DOCKERFILE_EXT=
     # sets CA_PKG_VERSION to `20171114-r3` (from `P:ca-certificates\nV:VERSION\n`)
-    - export CA_PKG_VERSION=$(curl -qs http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/x86_64/APKINDEX.tar.gz | tar xzf - -O APKINDEX | grep -A1 '^P:ca-certificates$' | tail -n1 | cut -d ':' -f2)
+    - export CA_PKG_VERSION=$(curl --retry 6 -qs http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/x86_64/APKINDEX.tar.gz | tar xzf - -O APKINDEX | grep -A1 '^P:ca-certificates$' | tail -n1 | cut -d ':' -f2)
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$CA_PKG_VERSION" | sha1sum))
     - build_if_needed --build-arg "ALPINE_VERSION=${ALPINE_VERSION}"
                       --build-arg "CA_PKG_VERSION=${CA_PKG_VERSION}"
@@ -1017,7 +1017,7 @@ ubi-assets-release:
     - aws s3 cp
         --quiet --acl public-read --content-type application/x-tar
         ${ASSETS_PACK} "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}"
-    - curl -f -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:application/json' --data
+    - curl --retry 6 -f -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:application/json' --data
         "$(printf
           '{"tag_name":"%s","ref":"%s","name":"%s","description":"%s","assets":{"links":[{"name":"%s","url":"%s"},{"name":"%s","url":"%s"}]}}'
           "${UBI_RELEASE_TAG}"
