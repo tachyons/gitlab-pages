@@ -24,7 +24,7 @@ variables:
   CE_PROJECT: "gitlab-foss"
   EE_PROJECT: "gitlab"
   COMPILE_ASSETS: "false"
-  S3CMD_VERSION: "2.0.2"
+  S3CMD_VERSION: "2.1.0"
   PYTHON_VERSION: "3.7.3"
 
 ## Note
