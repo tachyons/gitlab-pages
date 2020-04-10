@@ -41,10 +41,13 @@ function checkSchemaVersion() {
     # Ask for the current DB schema version, via the schema_migrations table
     SCHEMA_QUERY="SELECT schema_migrations.version FROM schema_migrations ORDER BY schema_migrations.version DESC LIMIT 1"
     DB_SCHEMA_VERSION=$(/scripts/rails-pg-env ${DATABASE_FILE} psql -Atc "${SCHEMA_QUERY}")
-
-    # If psql failed, we could not connect to the DB, and DB_SCHEMA_VERSION is empty.
-    if [ $? -ne 0 ]; then
-      return 1
+    PG_EXIT=$?
+    # If psql failed: DB_SCHEMA_VERSION will be empty ('')
+    # - 2: could not connect to the DB (host, port, auth, dbname)
+    # - 1: 'schema_migrations' table is not present
+    # - 0: "All is well *enough*"
+    if [ $PG_EXIT -eq 2 ]; then
+      return 2
     fi
 
     DB_SCHEMA_VERSION=${DB_SCHEMA_VERSION:-0}
