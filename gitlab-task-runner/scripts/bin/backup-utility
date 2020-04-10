@@ -261,6 +261,7 @@ do
       export STORAGE_CLASS="$2"
       shift
       shift
+      ;;
     *)
       usage
       echo "Unexpected parameter: $key"
