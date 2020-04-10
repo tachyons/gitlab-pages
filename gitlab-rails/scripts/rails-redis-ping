@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'yaml'
+require 'redis'
+
+if ARGV.length != 1
+  puts <<-USAGE
+  Usage: rails-redis-ping resque-file
+  
+    - resque-file: file name of resque configuration file in /srv/gitlab/config
+  USAGE
+  exit 1
+end
+
+# pull & prep the config object
+resque_file = "/srv/gitlab/config/#{ARGV[0]}"
+resque_yaml = YAML.load_file(resque_file)
+config = resque_yaml["production"]
+
+begin
+  # configure the Redis client
+  redis = Redis.new(config)
+
+  # "ping" the server
+  redis.ping
+rescue RuntimeError => e
+  puts e.message
+else
+  # nicely disconnect
+  redis.disconnect!
+  # exit 0 if we succeed.
+  exit
+end
+
+exit 1
