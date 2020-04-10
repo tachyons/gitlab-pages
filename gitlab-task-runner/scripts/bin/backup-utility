@@ -147,7 +147,7 @@ function backup(){
   write_backup_info $skipped
   pack_backup $backup_name
   if [ "${BACKUP_BACKEND}" = "s3" ]; then
-    if [ -n "${STORAGE_CLASS}" ]
+    if [ -n "${STORAGE_CLASS}" ]; then
       s3cmd put ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
     else
       s3cmd put --storage-class "${STORAGE_CLASS}" ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
