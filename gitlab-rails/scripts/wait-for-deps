@@ -7,6 +7,7 @@ SCHEMA_FILE=db/structure.sql
 SCHEMA_VERSION_DIR=db/schema_migrations
 SCHEMA_RAKE_TASK=db:version
 SCHEMA_FORMAT=sql
+DATABASE_FILE=database.yml
 
 cd /srv/gitlab
 
@@ -18,8 +19,8 @@ fi
 
 if [ "${DB_SCHEMA_TARGET,,}" == "geo" ]; then
   SCHEMA_FILE=ee/db/geo/schema.rb
-  SCHEMA_RAKE_TASK=geo:db:version
   SCHEMA_FORMAT=ruby
+  DATABASE_FILE=database_geo.yml
 fi
 
 # fetch the schema desired version directly from the source code
@@ -37,15 +38,16 @@ DB_SCHEMA_VERSION="0"
 # Compare desired schema version to active schema version in the database
 # - set BYPASS_SCHEMA_VERSION to skip version check, and only test DB online
 function checkSchemaVersion() {
-    # Ask for the current DB schema version, via Rake
-    DB_SCHEMA_VERSION=$(/srv/gitlab/bin/bundle exec rake ${SCHEMA_RAKE_TASK})
+    # Ask for the current DB schema version, via the schema_migrations table
+    SCHEMA_QUERY="SELECT schema_migrations.version FROM schema_migrations ORDER BY schema_migrations.version DESC LIMIT 1"
+    DB_SCHEMA_VERSION=$(/scripts/rails-pg-env ${DATABASE_FILE} psql -Atc "${SCHEMA_QUERY}")
 
-    # If rake failed, we're not connected to the DB, and DB_SCHEMA_VERSION is empty.
+    # If psql failed, we could not connect to the DB, and DB_SCHEMA_VERSION is empty.
     if [ $? -ne 0 ]; then
       return 1
     fi
 
-    DB_SCHEMA_VERSION=$(echo ${DB_SCHEMA_VERSION} | grep 'Current version: ' | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)/\1/')
+    DB_SCHEMA_VERSION=${DB_SCHEMA_VERSION:-0}
 
     # Output the current schema version
     echo "Database Schema - current: ${DB_SCHEMA_VERSION}, codebase: ${SCHEMA_VERSION}"
@@ -65,13 +67,38 @@ function checkSchemaVersion() {
     return $?
 }
 
+function checkRedisConnectivity() {
+  echo "Checking Redis connectivity"
+  redis_files=(
+      resque.yml
+      redis.cache.yml
+      redis.queues.yml
+      redis.shared_state.yml
+  )
+  for x in $redis_files ; do
+    if [ -f /srv/gitlab/config/$x ]; then
+      echo "  - checking $x"
+      /scripts/rails-redis-ping $x
+      if [ $? -ne 0 ]; then
+        return 1
+      else
+        echo "    GOOD"
+      fi
+    fi
+  done
+  return 0
+}
+
+
 for i in $(seq 1 $WAIT_FOR_TIMEOUT); do
   echo "Checking database connection and schema version"
   if checkSchemaVersion ; then
-    if [ "$@" ]; then
-      exec "$@"
-    else
-      exit 0
+    if checkRedisConnectivity ; then
+      if [ "$@" ]; then
+        exec "$@"
+      else
+        exit 0
+      fi
     fi
   fi
   sleep 1
