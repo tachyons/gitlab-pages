@@ -154,7 +154,7 @@ function backup(){
     fi
     echo "[DONE] Backup can be found at s3://$BACKUP_BUCKET_NAME/${backup_name}.tar"
   elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
-    if [ -n "${STORAGE_CLASS}" ]; then
+    if [ -z "${STORAGE_CLASS}" ]; then
       gsutil cp -n ${backup_tars_path}/${backup_name}.tar gs://$BACKUP_BUCKET_NAME > /dev/null
     else
       gsutil cp -s "${STORAGE_CLASS}" -n ${backup_tars_path}/${backup_name}.tar gs://$BACKUP_BUCKET_NAME > /dev/null
