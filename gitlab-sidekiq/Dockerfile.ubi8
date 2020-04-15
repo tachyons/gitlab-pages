@@ -22,7 +22,7 @@ COPY scripts/ /scripts/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps openssh-clients \
+    && dnf ${DNF_OPTS} install -by --nodocs procps openssh-clients \
     && rm /usr/libexec/openssh/ssh-keysign \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
 

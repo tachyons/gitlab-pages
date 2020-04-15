@@ -24,7 +24,7 @@ COPY gitconfig /usr/local/etc/gitconfig
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps net-tools libicu openssh-clients \
+    && dnf ${DNF_OPTS} install -by --nodocs procps net-tools libicu openssh-clients \
     && rm -f /usr/local/tmp/openssh-server-*.rpm /usr/libexec/openssh/ssh-keysign \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories \

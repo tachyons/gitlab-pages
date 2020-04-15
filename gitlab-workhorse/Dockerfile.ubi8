@@ -24,7 +24,7 @@ COPY scripts/ /scripts/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs perl \
+    && dnf ${DNF_OPTS} install -by --nodocs perl \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} \
