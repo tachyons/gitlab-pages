@@ -44,7 +44,7 @@ ENV UPGRADE_STATUS_DIR=${GITLAB_DATA}/.upgrade-status
 RUN echo "Generating bootsnap cache"; \
     cd /srv/gitlab && \
     su ${GITLAB_USER} -c "mkdir /srv/gitlab/tmp/"  && \
-    su ${GITLAB_USER} -c "ENABLE_BOOTSNAP=1 bin/rails runner 'exit 0'" && \
+    su ${GITLAB_USER} -c "ENABLE_BOOTSNAP=1 bin/rake about" && \
     du -hs /srv/gitlab/tmp/cache/bootsnap-* ;
 # exit code of this command will be that of `du`
 
