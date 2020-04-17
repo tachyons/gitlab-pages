@@ -16,14 +16,6 @@ http_settings:
 # File used as authorized_keys for gitlab user
 auth_file: "/home/git/.ssh/authorized_keys"
 
-# Redis settings used for pushing commit notices to gitlab
-redis:
-  host: omnibus
-  port: 6379
-  pass: redis-meercat
-  database: nil
-  namespace: resque:gitlab
-
 # Log file.
 # Default is gitlab-shell.log in the root directory.
 log_file: "/var/log/gitlab-shell/gitlab-shell.log"
