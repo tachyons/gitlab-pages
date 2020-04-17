@@ -26,7 +26,7 @@ ENV GITALY_FEATURE_DEFAULT_ON=1
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps \
+    && dnf ${DNF_OPTS} install -by --nodocs procps \
     && cd /srv/gitlab \
     && mkdir -p public/uploads \
     && chmod 0700 public/uploads \

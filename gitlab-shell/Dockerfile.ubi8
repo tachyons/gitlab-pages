@@ -22,7 +22,7 @@ COPY sshd_config /etc/ssh/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps openssh \
+    && dnf ${DNF_OPTS} install -by --nodocs procps openssh \
     && dnf ${DNF_OPTS} install -by --disablerepo="*" --nogpgcheck --nodocs /usr/local/tmp/openssh-server-*.rpm \
     && rm -r /usr/local/tmp /usr/libexec/openssh/ssh-keysign \
     && adduser -m ${GITLAB_USER} \

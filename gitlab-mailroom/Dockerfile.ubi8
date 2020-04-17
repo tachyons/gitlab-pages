@@ -21,7 +21,7 @@ COPY scripts/ /scripts/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs procps libicu tzdata \
+    && dnf ${DNF_OPTS} install -by --nodocs procps libicu tzdata \
     && adduser -m ${GITLAB_USER}
 
 USER ${GITLAB_USER}:${GITLAB_USER}

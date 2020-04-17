@@ -12,7 +12,7 @@ ENV CONFIG_TEMPLATE_DIRECTORY=/etc
 
 RUN dnf clean all \
     && rm -rf /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --disablerepo="*" --enablerepo="*ubi-8*" --nodocs ncurses libedit
+    && dnf ${DNF_OPTS} install -by --nodocs ncurses libedit
 
 ENTRYPOINT ["/scripts/entrypoint.sh"]
 
