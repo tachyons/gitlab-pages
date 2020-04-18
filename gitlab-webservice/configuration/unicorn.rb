@@ -6,9 +6,10 @@
 #
 # ENV['RAILS_RELATIVE_URL_ROOT'] = "/gitlab"
 
-worker_processes 2
+worker_processes (ENV['WORKER_PROCESSES'] ||= '3').to_i
 working_directory "/srv/gitlab"
-listen "0.0.0.0:8080", :tcp_nopush => true
+listen "0.0.0.0:#{ENV['INTERNAL_PORT'] ||= '8080'}", :tcp_nopush => true
+
 
 # nuke workers after 30 seconds instead of 60 seconds (the default)
 #
@@ -25,7 +26,7 @@ listen "0.0.0.0:8080", :tcp_nopush => true
 #
 # For more information see http://stackoverflow.com/a/21682112/752049
 #
-timeout 60
+timeout (ENV['WORKER_TIMEOUT'] ||= '60').to_i
 
 # feel free to point this anywhere accessible on the filesystem
 pid "#{ENV['HOME']}/unicorn.pid"
@@ -103,3 +104,6 @@ end
 # Configure the default logger to use a custom formatter that formats the
 # timestamps to be in UTC and in ISO8601.3 format
 Configurator::DEFAULTS[:logger].formatter = Gitlab::LogTimestampFormatter.new
+
+ENV['GITLAB_UNICORN_MEMORY_MIN'] = ((ENV['UNICORN_MEMORY_MIN'] ||= '1024').to_i * 1 << 20).to_s
+ENV['GITLAB_UNICORN_MEMORY_MAX'] = ((ENV['UNICORN_MEMORY_MAX'] ||= '1280').to_i * 1 << 20).to_s

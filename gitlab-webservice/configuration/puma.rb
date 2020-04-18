@@ -17,7 +17,7 @@ stdout_redirect '/srv/gitlab/log/puma.stdout.log',
 #
 # The default is "0, 16".
 #
-threads 1, 16
+threads (ENV['PUMA_THREADS_MIN'] ||= '1').to_i , (ENV['PUMA_THREADS_MAX'] ||= '16').to_i
 
 # By default, workers accept all requests and queue them to pass to handlers.
 # When false, workers accept the number of simultaneous requests configured.
@@ -31,9 +31,9 @@ queue_requests false
 
 # Bind the server to "url". "tcp://", "unix://" and "ssl://" are the only
 # accepted protocols.
-bind 'tcp://0.0.0.0:8080'
+bind "tcp://0.0.0.0:#{ENV['INTERNAL_PORT'] ||= '8080'}"
 
-workers 2
+workers (ENV['WORKER_PROCESSES'] ||= '3').to_i
 
 require_relative "/srv/gitlab/lib/gitlab/cluster/lifecycle_events"
 require_relative "/srv/gitlab/lib/gitlab/cluster/puma_worker_killer_initializer"
@@ -45,7 +45,10 @@ end
 
 before_fork do
   # Signal to the puma killer
-  Gitlab::Cluster::PumaWorkerKillerInitializer.start @config.options unless ENV['DISABLE_PUMA_WORKER_KILLER']
+  Gitlab::Cluster::PumaWorkerKillerInitializer.start(
+      @config.options,
+      puma_per_worker_max_memory_mb: (ENV['PUMA_WORKER_MAX_MEMORY'] ||= '1024').to_i
+  ) unless ENV['DISABLE_PUMA_WORKER_KILLER']
 
   # Signal application hooks that we're about to fork
   Gitlab::Cluster::LifecycleEvents.do_before_fork
@@ -67,7 +70,7 @@ tag 'gitlab-puma-worker'
 # the given timeout. If not the worker process will be restarted. Default
 # value is 60 seconds.
 #
-worker_timeout 60
+worker_timeout (ENV['WORKER_TIMEOUT'] ||= '60').to_i
 
 # Use json formatter
 require_relative "/srv/gitlab/lib/gitlab/puma_logging/json_formatter"
