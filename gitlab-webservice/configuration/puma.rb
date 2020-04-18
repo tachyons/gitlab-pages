@@ -47,8 +47,8 @@ before_fork do
   # Signal to the puma killer
   Gitlab::Cluster::PumaWorkerKillerInitializer.start(
       @config.options,
-      puma_per_worker_max_memory_mb: (ENV['PUMA_WORKER_MAX_MEMORY'] ||= '1024').to_i)
-      unless ENV['DISABLE_PUMA_WORKER_KILLER']
+      puma_per_worker_max_memory_mb: (ENV['PUMA_WORKER_MAX_MEMORY'] ||= '1024').to_i
+  ) unless ENV['DISABLE_PUMA_WORKER_KILLER']
 
   # Signal application hooks that we're about to fork
   Gitlab::Cluster::LifecycleEvents.do_before_fork
