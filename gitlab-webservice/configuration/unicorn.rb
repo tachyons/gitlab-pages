@@ -106,4 +106,4 @@ end
 Configurator::DEFAULTS[:logger].formatter = Gitlab::LogTimestampFormatter.new
 
 ENV['GITLAB_UNICORN_MEMORY_MIN'] = ((ENV['UNICORN_MEMORY_MIN'] ||= '1024').to_i * 1 << 20).to_s
-ENV['GITLAB_UNICORN_MEMORY_MAX'] = ((ENV['UNICORN_MEMORY_MAX'] ||= 1280) * 1 << 20).to_s
+ENV['GITLAB_UNICORN_MEMORY_MAX'] = ((ENV['UNICORN_MEMORY_MAX'] ||= '1280').to_i * 1 << 20).to_s
