@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"mime"
 	"net"
 	"net/http"
@@ -20,6 +21,7 @@ import (
 )
 
 var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to the gitlab-pages binary")
+var accessControlConfigFile string
 
 // TODO: Use TCP port 0 everywhere to avoid conflicts. The binary could output
 // the actual port (and type of listener) for us to read in place of the
@@ -66,6 +68,16 @@ func skipUnlessEnabled(t *testing.T, conditions ...string) {
 	}
 }
 
+func TestMain(m *testing.M) {
+	var err error
+	accessControlConfigFile, err = accessControlConfig("clientID", "clientSecret", "authSecret")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.Remove(accessControlConfigFile)
+
+	os.Exit(m.Run())
+}
 func TestUnknownHostReturnsNotFound(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
@@ -682,12 +694,10 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 				listeners,
 				"",
 				certFile,
+				"-config="+accessControlConfigFile,
 				"-artifacts-server="+artifactServerURL,
-				"-auth-client-id=1",
-				"-auth-client-secret=1",
 				"-auth-server="+testServer.URL,
 				"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
-				"-auth-secret=something-very-secret",
 				tt.binaryOption,
 			)
 			defer teardown()
@@ -856,7 +866,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	require.Equal(t, "https", url.Scheme)
 	require.Equal(t, "gitlab-auth.com", url.Host)
 	require.Equal(t, "/oauth/authorize", url.Path)
-	require.Equal(t, "1", url.Query().Get("client_id"))
+	require.Equal(t, "clientID", url.Query().Get("client_id"))
 	require.Equal(t, "https://projects.gitlab-example.com/auth", url.Query().Get("redirect_uri"))
 	require.NotEqual(t, "", url.Query().Get("state"))
 }

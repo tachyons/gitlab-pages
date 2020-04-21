@@ -183,28 +183,25 @@ func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesPath string, listener
 	return runPagesProcess(t, wait, pagesPath, listeners, promPort, envs, extraArgs...)
 }
 
-func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) (teardown func()) {
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, "-auth-client-id=1",
-		"-auth-client-secret=1",
+func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) func() {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil,
+		"-config="+accessControlConfigFile,
 		"-auth-server=https://gitlab-auth.com",
-		"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+		"-auth-redirect-uri=https://projects.gitlab-example.com/auth")
 }
 
-func RunPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, authServer string) (teardown func()) {
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, "-auth-client-id=1",
-		"-auth-client-secret=1",
+func RunPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, authServer string) func() {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil,
+		"-config="+accessControlConfigFile,
 		"-auth-server="+authServer,
-		"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+		"-auth-redirect-uri=https://projects.gitlab-example.com/auth")
 }
 
-func RunPagesProcessWithAuthServerWithSSL(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) (teardown func()) {
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, "-auth-client-id=1",
-		"-auth-client-secret=1",
+func RunPagesProcessWithAuthServerWithSSL(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile},
+		"-config="+accessControlConfigFile,
 		"-auth-server="+authServer,
-		"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
-		"-auth-secret=something-very-secret")
+		"-auth-redirect-uri=https://projects.gitlab-example.com/auth")
 }
 
 func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (teardown func()) {
@@ -439,4 +436,26 @@ func NewGitlabDomainsSourceStub(t *testing.T) *httptest.Server {
 	})
 
 	return httptest.NewServer(handler)
+}
+
+func accessControlConfig(clientID, clientSecret, authSecret string) (string, error) {
+	f, err := ioutil.TempFile(os.TempDir(), "gitlab-pages-config")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	config := fmt.Sprintf(`
+auth-client-id=%s
+auth-client-secret=%s
+auth-secret=%s
+`, clientID, clientSecret, authSecret)
+
+	_, err = f.Write([]byte(config))
+	if err != nil {
+		return "", err
+	}
+
+	return f.Name(), nil
+
 }

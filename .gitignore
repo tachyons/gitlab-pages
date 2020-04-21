@@ -2,6 +2,7 @@
 shared/pages/.update
 /gitlab-pages
 /vendor
+/gitlab-pages-config
 
 # Used by the makefile
 /.GOPATH
