@@ -22,6 +22,8 @@ func TestInvalidParms(t *testing.T) {
 		"Auth secret passed":   []string{"gitlab-pages", "-auth-secret", "abc123"},
 		"Sentry DSN passed":    []string{"gitlab-pages", "-sentry-dsn", "abc123"},
 		"Multiple keys passed": []string{"gitlab-pages", "-auth-client-id", "abc123", "-auth-client-secret", "abc123"},
+		"key=value":            []string{"gitlab-pages", "-auth-client-id=abc123"},
+		"multiple key=value":   []string{"gitlab-pages", "-auth-client-id=abc123", "-auth-client-secret=abc123"},
 	}
 
 	for name, args := range tests {

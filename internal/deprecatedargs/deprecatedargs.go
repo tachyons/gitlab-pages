@@ -13,7 +13,12 @@ func Validate(args []string) error {
 	argMap := make(map[string]bool)
 
 	for _, arg := range args {
-		argMap[arg] = true
+		keyValue := strings.Split(arg, "=")
+		if len(keyValue) >= 1 {
+			argMap[keyValue[0]] = true
+		} else {
+			argMap[arg] = true
+		}
 	}
 
 	for _, deprecatedArg := range deprecatedArgs {

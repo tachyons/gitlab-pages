@@ -58,14 +58,14 @@ var (
 	_                       = flag.String("admin-https-listener", "", "DEPRECATED")
 	_                       = flag.String("admin-https-cert", "", "DEPRECATED")
 	_                       = flag.String("admin-https-key", "", "DEPRECATED")
-	secret                  = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long.")
+	secret                  = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long; will be deprecated soon")
 	gitLabAuthServer        = flag.String("auth-server", "", "DEPRECATED, use gitlab-server instead. GitLab server, for example https://www.gitlab.com")
 	gitLabServer            = flag.String("gitlab-server", "", "GitLab server, for example https://www.gitlab.com")
 	gitLabAPISecretKey      = flag.String("api-secret-key", "", "File with secret key used to authenticate with the GitLab API")
 	gitlabClientHTTPTimeout = flag.Duration("gitlab-client-http-timeout", 10*time.Second, "GitLab API HTTP client connection timeout in seconds (default: 10s)")
 	gitlabClientJWTExpiry   = flag.Duration("gitlab-client-jwt-expiry", 30*time.Second, "JWT Token expiry time in seconds (default: 30s)")
-	clientID                = flag.String("auth-client-id", "", "GitLab application Client ID")
-	clientSecret            = flag.String("auth-client-secret", "", "GitLab application Client Secret")
+	clientID                = flag.String("auth-client-id", "", "GitLab application Client ID; will be deprecated soon")
+	clientSecret            = flag.String("auth-client-secret", "", "GitLab application Client Secret; will be deprecated soon")
 	redirectURI             = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
 	maxConns                = flag.Uint("max-conns", 5000, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners")
 	insecureCiphers         = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
@@ -231,7 +231,7 @@ func initErrorReporting(sentryDSN, sentryEnvironment string) {
 
 func loadConfig() appConfig {
 	if err := deprecatedargs.Validate(os.Args[1:]); err != nil {
-		log.WithError(err)
+		log.WithError(err).Warn("Using deprecated arguments")
 	}
 
 	config := configFromFlags()
