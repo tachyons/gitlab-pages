@@ -21,7 +21,7 @@ import (
 )
 
 var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to the gitlab-pages binary")
-var accessControlConfigFile string
+var configFile string
 
 // TODO: Use TCP port 0 everywhere to avoid conflicts. The binary could output
 // the actual port (and type of listener) for us to read in place of the
@@ -70,11 +70,11 @@ func skipUnlessEnabled(t *testing.T, conditions ...string) {
 
 func TestMain(m *testing.M) {
 	var err error
-	accessControlConfigFile, err = accessControlConfig("clientID", "clientSecret", "authSecret")
+	configFile, err = accessControlConfig("clientID", "clientSecret", "authSecret")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.Remove(accessControlConfigFile)
+	defer os.Remove(configFile)
 
 	os.Exit(m.Run())
 }
@@ -695,7 +695,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 				listeners,
 				"",
 				certFile,
-				"-config="+accessControlConfigFile,
+				"-config="+configFile,
 				"-artifacts-server="+artifactServerURL,
 				"-auth-server="+testServer.URL,
 				"-auth-redirect-uri=https://projects.gitlab-example.com/auth",

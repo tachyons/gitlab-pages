@@ -185,21 +185,21 @@ func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesPath string, listener
 
 func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) func() {
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil,
-		"-config="+accessControlConfigFile,
+		"-config="+configFile,
 		"-auth-server=https://gitlab-auth.com",
 		"-auth-redirect-uri=https://projects.gitlab-example.com/auth")
 }
 
 func RunPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, authServer string) func() {
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil,
-		"-config="+accessControlConfigFile,
+		"-config="+configFile,
 		"-auth-server="+authServer,
 		"-auth-redirect-uri=https://projects.gitlab-example.com/auth")
 }
 
 func RunPagesProcessWithAuthServerWithSSL(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile},
-		"-config="+accessControlConfigFile,
+		"-config="+configFile,
 		"-auth-server="+authServer,
 		"-auth-redirect-uri=https://projects.gitlab-example.com/auth")
 }
