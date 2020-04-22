@@ -5,39 +5,36 @@ import (
 	"strings"
 )
 
+const (
+	deprecatedMessage = "command line options have been deprecated:"
+	notAllowedMsg     = "invalid command line arguments:"
+)
+
 var deprecatedArgs = []string{"-sentry-dsn"}
 var notAllowedArgs = []string{"-auth-client-id", "-auth-client-secret", "-auth-secret"}
 
 // Deprecated checks if deprecated params have been used
 func Deprecated(args []string) error {
-	var foundDeprecatedArgs []string
-
-	argsStr := strings.Join(args, " ")
-	for _, deprecatedArg := range deprecatedArgs {
-		if strings.Contains(argsStr, deprecatedArg) {
-			foundDeprecatedArgs = append(foundDeprecatedArgs, deprecatedArg)
-		}
-	}
-
-	if len(foundDeprecatedArgs) > 0 {
-		return fmt.Errorf("deprecation message: %s should not be passed as a command line arguments", strings.Join(foundDeprecatedArgs, ", "))
-	}
-	return nil
+	return validate(args, deprecatedArgs, deprecatedMessage)
 }
 
 // NotAllowed checks if explicitly not allowed params have been used
 func NotAllowed(args []string) error {
-	var foundNotAllowedArgs []string
+	return validate(args, notAllowedArgs, notAllowedMsg)
+}
+
+func validate(args, invalidArgs []string, errMsg string) error {
+	var foundInvalidArgs []string
 
 	argsStr := strings.Join(args, " ")
-	for _, notAllowedArg := range notAllowedArgs {
-		if strings.Contains(argsStr, notAllowedArg) {
-			foundNotAllowedArgs = append(foundNotAllowedArgs, notAllowedArg)
+	for _, invalidArg := range invalidArgs {
+		if strings.Contains(argsStr, invalidArg) {
+			foundInvalidArgs = append(foundInvalidArgs, invalidArg)
 		}
 	}
 
-	if len(foundNotAllowedArgs) > 0 {
-		return fmt.Errorf("%s should not be passed as a command line arguments", strings.Join(foundNotAllowedArgs, ", "))
+	if len(foundInvalidArgs) > 0 {
+		return fmt.Errorf("%s %s", errMsg, strings.Join(foundInvalidArgs, ", "))
 	}
 
 	return nil

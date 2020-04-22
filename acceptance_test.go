@@ -78,6 +78,7 @@ func TestMain(m *testing.M) {
 
 	os.Exit(m.Run())
 }
+
 func TestUnknownHostReturnsNotFound(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")

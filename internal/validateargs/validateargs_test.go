@@ -17,13 +17,15 @@ func TestValidParams(t *testing.T) {
 
 func TestInvalidDeprecatedParms(t *testing.T) {
 	tests := map[string][]string{
-		"Sentry DSN passed": []string{"gitlab-pages", "-sentry-dsn", "abc123"},
+		"Sentry DSN passed":          []string{"gitlab-pages", "-sentry-dsn", "abc123"},
+		"Sentry DSN using key=value": []string{"gitlab-pages", "-sentry-dsn=abc123"},
 	}
 
 	for name, args := range tests {
 		t.Run(name, func(t *testing.T) {
 			err := Deprecated(args)
 			require.Error(t, err)
+			require.Contains(t, err.Error(), deprecatedMessage)
 		})
 	}
 }
@@ -42,6 +44,7 @@ func TestInvalidNotAllowedParams(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			err := NotAllowed(args)
 			require.Error(t, err)
+			require.Contains(t, err.Error(), notAllowedMsg)
 		})
 	}
 }
