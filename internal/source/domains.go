@@ -53,7 +53,7 @@ func NewDomains(config Config) (*Domains, error) {
 	gl, err := gitlab.New(config)
 	if err != nil {
 		if strings.Contains(err.Error(), client.ConnectionErrorMsg) {
-			log.WithError(err).Warn("could not reach /api/v4/internal/pages/status, defaulting to disk source")
+			log.Warn("GitLab API is not configured https://gitlab.com/gitlab-org/gitlab-pages/-/issues/351")
 			return &Domains{disk: disk.New()}, nil
 		}
 		return nil, err
@@ -61,7 +61,6 @@ func NewDomains(config Config) (*Domains, error) {
 
 	return &Domains{
 		gitlab: gl,
-		disk:   disk.New(),
 	}, nil
 }
 
@@ -80,14 +79,16 @@ func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
 // Read starts the disk domain source. It is DEPRECATED, because we want to
 // remove it entirely when disk source gets removed.
 func (d *Domains) Read(rootDomain string) {
-	d.disk.Read(rootDomain)
+	if d.disk != nil {
+		d.disk.Read(rootDomain)
+	}
 }
 
 // IsReady checks if the disk domain source managed to traverse entire pages
 // filesystem and is ready for use. It is DEPRECATED, because we want to remove
 // it entirely when disk source gets removed.
 func (d *Domains) IsReady() bool {
-	return d.disk.IsReady()
+	return d.disk == nil || d.disk.IsReady()
 }
 
 func (d *Domains) source(domain string) Source {
@@ -116,7 +117,7 @@ func (d *Domains) source(domain string) Source {
 		return d.disk
 	}
 
-	if enabled {
+	if enabled || d.disk == nil {
 		return d.gitlab
 	}
 
