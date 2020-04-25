@@ -35,7 +35,7 @@ RELEASE_PATH="${2}"
 SOURCE="${3:-.}"
 
 DOCKERFILE_EXT='.ubi8'
-GITLAB_REPOSITORY='${BASE_REGISTRY}/gitlab/gitlab/'
+NEXUS_UBI_IMAGE='${BASE_REGISTRY}/redhat/ubi/ubi8:8.1'
 ASSET_SHA_FILE="/tmp/deps-${RELEASE_TAG}.tar.sha256"
 ASSET_PUB_KEY_ID='5c7738cc4840f93f6e9170ff5a0e20d5f9706778'
 
@@ -115,6 +115,15 @@ EOF
   fi
 }
 
+replaceBuildArgs() {
+  local DOCKERFILE="${1}"
+  local IMAGE_TAG="${2}"
+  local IMAGE_PATH="${3}"
+  sed -i "s/^ARG BASE_IMAGE.*/ARG BASE_IMAGE=gitlab\/gitlab\/${IMAGE_PATH}/g" "${DOCKERFILE}"
+  sed -i "s/^ARG BASE_TAG.*/ARG BASE_TAG=${IMAGE_TAG}/g" "${DOCKERFILE}"
+  sed -i "s/^ARG UBI_IMAGE.*/ARG UBI_IMAGE=${NEXUS_UBI_IMAGE//\//\\/}/g" "${DOCKERFILE}"
+}
+
 replaceUbiImageArg() {
   local DOCKERFILE="${1}"
   sed -i '/ARG UBI_IMAGE=.*/d' "${DOCKERFILE}"
@@ -124,8 +133,9 @@ replaceRubyImageArg() {
   local DOCKERFILE="${1}"
   local IMAGE_TAG="${2}"
   if grep -sq 'ARG RUBY_IMAGE=' "${DOCKERFILE}"; then
+    replaceBuildArgs "${DOCKERFILE}" "${IMAGE_TAG}" "gitlab-ruby"
     sed -i '/ARG RUBY_IMAGE=.*/d' "${DOCKERFILE}"
-    sed -i "/ARG UBI_IMAGE=.*/a ARG RUBY_IMAGE=${GITLAB_REPOSITORY//\//\\/}gitlab-ruby:${IMAGE_TAG}" "${DOCKERFILE}"
+    sed -i "/ARG UBI_IMAGE=.*/a ARG RUBY_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
   fi
 }
 
@@ -133,8 +143,9 @@ replaceRailsImageArg() {
   local DOCKERFILE="${1}"
   local IMAGE_TAG="${2}"
   if grep -sq 'ARG RAILS_IMAGE=' "${DOCKERFILE}"; then
+    replaceBuildArgs "${DOCKERFILE}" "${IMAGE_TAG}" "gitlab-rails"
     sed -i '/ARG RAILS_IMAGE=.*/d' "${DOCKERFILE}"
-    sed -i "/ARG UBI_IMAGE=.*/a ARG RAILS_IMAGE=${GITLAB_REPOSITORY//\//\\/}gitlab-rails:${IMAGE_TAG}" "${DOCKERFILE}"
+    sed -i "/ARG UBI_IMAGE=.*/a ARG RAILS_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
   fi
 }
 
@@ -142,8 +153,9 @@ replaceGitImageArg() {
   local DOCKERFILE="${1}"; shift
   local IMAGE_TAG="${1}"; shift
   if grep -sq 'ARG GIT_IMAGE=' "${DOCKERFILE}"; then
+    replaceBuildArgs "${DOCKERFILE}" "${IMAGE_TAG}" "git-base"
     sed -i '/ARG GIT_IMAGE=.*/d' "${DOCKERFILE}"
-    sed -i "/ARG UBI_IMAGE=.*/a ARG GIT_IMAGE=${GITLAB_REPOSITORY//\//\\/}git-base:${IMAGE_TAG}" "${DOCKERFILE}"
+    sed -i "/ARG UBI_IMAGE=.*/a ARG GIT_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
   fi
 }
 
