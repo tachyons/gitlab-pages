@@ -23,13 +23,13 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
-	gitlab.com/gitlab-org/labkit v0.0.0-20190902063225-3253d7975ca7
+	gitlab.com/gitlab-org/labkit v0.0.0-20200414155917-f06e28fff6fa
 	gitlab.com/lupine/go-mimedb v0.0.0-20180307000149-e8af1d659877
-	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
-	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
-	golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
-	golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b
-	golang.org/x/tools v0.0.0-20191010201905-e5ffc44a6fee
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f
+	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
+	golang.org/x/sys v0.0.0-20200113162924-86b910548bc1
+	golang.org/x/tools v0.0.0-20200117161641-43d50277825c
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.4
 )
