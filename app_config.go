@@ -38,8 +38,6 @@ type appConfig struct {
 	SentryDSN                string
 	SentryEnvironment        string
 	CustomHeaders            []string
-
-	Version string
 }
 
 // GitlabServerURL returns URL to a GitLab instance.

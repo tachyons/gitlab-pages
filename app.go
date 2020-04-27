@@ -439,7 +439,7 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 		}
 
 		monitoringOpts := []monitoring.Option{
-			monitoring.WithBuildInformation(a.Version, ""),
+			monitoring.WithBuildInformation(VERSION, ""),
 			monitoring.WithListener(l),
 		}
 
