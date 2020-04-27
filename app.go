@@ -3,15 +3,18 @@ package main
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
+	"os"
 	"sync"
 
 	ghandlers "github.com/gorilla/handlers"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"gitlab.com/gitlab-org/labkit/metrics"
+	"gitlab.com/gitlab-org/labkit/monitoring"
 	mimedb "gitlab.com/lupine/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
@@ -430,8 +433,17 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 	go func() {
 		defer wg.Done()
 
-		handler := promhttp.Handler()
-		err := listenAndServe(fd, handler, false, nil, nil)
+		l, err := net.FileListener(os.NewFile(fd, "[socket]"))
+		if err != nil {
+			capturingFatal(fmt.Errorf("failed to listen on FD %d: %v", fd, err), errortracking.WithField("listener", "metrics"))
+		}
+
+		monitoringOpts := []monitoring.Option{
+			monitoring.WithBuildInformation(a.Version, ""),
+			monitoring.WithListener(l),
+		}
+
+		err = monitoring.Start(monitoringOpts...)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", "metrics"))
 		}

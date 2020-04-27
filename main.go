@@ -239,6 +239,8 @@ func loadConfig() appConfig {
 		initErrorReporting(config.SentryDSN, config.SentryEnvironment)
 	}
 
+	config.Version = VERSION
+
 	log.WithFields(log.Fields{
 		"artifacts-server":              *artifactsServer,
 		"artifacts-server-timeout":      *artifactsServerTimeout,
