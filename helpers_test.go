@@ -184,24 +184,34 @@ func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesPath string, listener
 }
 
 func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) func() {
+	configFile, cleanup := defaultConfigFileWith(t,
+		"auth-server=https://gitlab-auth.com",
+		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
+	defer cleanup()
+
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil,
 		"-config="+configFile,
-		"-auth-server=https://gitlab-auth.com",
-		"-auth-redirect-uri=https://projects.gitlab-example.com/auth")
+	)
 }
 
 func RunPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, authServer string) func() {
+	configFile, cleanup := defaultConfigFileWith(t,
+		"auth-server="+authServer,
+		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
+	defer cleanup()
+
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil,
-		"-config="+configFile,
-		"-auth-server="+authServer,
-		"-auth-redirect-uri=https://projects.gitlab-example.com/auth")
+		"-config="+configFile)
 }
 
 func RunPagesProcessWithAuthServerWithSSL(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
+	configFile, cleanup := defaultConfigFileWith(t,
+		"auth-server="+authServer,
+		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
+	defer cleanup()
+
 	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile},
-		"-config="+configFile,
-		"-auth-server="+authServer,
-		"-auth-redirect-uri=https://projects.gitlab-example.com/auth")
+		"-config="+configFile)
 }
 
 func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (teardown func()) {
@@ -438,24 +448,35 @@ func NewGitlabDomainsSourceStub(t *testing.T) *httptest.Server {
 	return httptest.NewServer(handler)
 }
 
-func accessControlConfig(clientID, clientSecret, authSecret string) (string, error) {
+func newConfigFile(configs ...string) (string, error) {
 	f, err := ioutil.TempFile(os.TempDir(), "gitlab-pages-config")
 	if err != nil {
 		return "", err
 	}
 	defer f.Close()
 
-	config := fmt.Sprintf(`
-auth-client-id=%s
-auth-client-secret=%s
-auth-secret=%s
-`, clientID, clientSecret, authSecret)
-
-	_, err = f.Write([]byte(config))
-	if err != nil {
-		return "", err
+	for _, config := range configs {
+		_, err := fmt.Fprintf(f, "%s\n", config)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return f.Name(), nil
+}
 
+func defaultConfigFileWith(t *testing.T, configs ...string) (string, func()) {
+	configs = append(configs, "auth-client-id=clientID",
+		"auth-client-secret=clientSecret",
+		"auth-secret=authSecret")
+
+	name, err := newConfigFile(configs...)
+	require.NoError(t, err)
+
+	cleanup := func() {
+		err := os.Remove(name)
+		require.NoError(t, err)
+	}
+
+	return name, cleanup
 }

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"mime"
 	"net"
 	"net/http"
@@ -21,7 +20,6 @@ import (
 )
 
 var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to the gitlab-pages binary")
-var configFile string
 
 // TODO: Use TCP port 0 everywhere to avoid conflicts. The binary could output
 // the actual port (and type of listener) for us to read in place of the
@@ -66,17 +64,6 @@ func skipUnlessEnabled(t *testing.T, conditions ...string) {
 			t.FailNow()
 		}
 	}
-}
-
-func TestMain(m *testing.M) {
-	var err error
-	configFile, err = accessControlConfig("clientID", "clientSecret", "authSecret")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.Remove(configFile)
-
-	os.Exit(m.Run())
 }
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
@@ -663,7 +650,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			host:         "group.gitlab-example.com",
 			path:         "/-/private/-/jobs/1/artifacts/delayed_200.html",
 			status:       http.StatusBadGateway,
-			binaryOption: "-artifacts-server-timeout=1",
+			binaryOption: "artifacts-server-timeout=1",
 		},
 		{
 			name:         "Proxying 404 from server",
@@ -689,6 +676,13 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	for _, tt := range tests {
 
 		t.Run(tt.name, func(t *testing.T) {
+			configFile, cleanup := defaultConfigFileWith(t,
+				"artifacts-server="+artifactServerURL,
+				"auth-server="+testServer.URL,
+				"auth-redirect-uri=https://projects.gitlab-example.com/auth",
+				tt.binaryOption)
+			defer cleanup()
+
 			teardown := RunPagesProcessWithSSLCertFile(
 				t,
 				*pagesBinary,
@@ -696,10 +690,6 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 				"",
 				certFile,
 				"-config="+configFile,
-				"-artifacts-server="+artifactServerURL,
-				"-auth-server="+testServer.URL,
-				"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
-				tt.binaryOption,
 			)
 			defer teardown()
 
