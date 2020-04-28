@@ -88,9 +88,13 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	lookup := api.Lookup{Name: host}
 	lookup.Error = json.NewDecoder(resp.Body).Decode(&lookup.Domain)
 
+	resp.Body.Close()
+
 	return lookup
 }
 
+// get returns the response object
+// the caller is responsible for closing the response body
 func (gc *Client) get(ctx context.Context, path string, params url.Values) (*http.Response, error) {
 	endpoint, err := gc.endpoint(path, params)
 	if err != nil {
