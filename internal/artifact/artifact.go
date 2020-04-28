@@ -96,6 +96,8 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 		return
 	}
 
+	defer resp.Body.Close()
+
 	if additionalHandler(resp) {
 		return
 	}
