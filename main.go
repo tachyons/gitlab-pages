@@ -61,6 +61,7 @@ var (
 	secret                  = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long.")
 	gitLabAuthServer        = flag.String("auth-server", "", "DEPRECATED, use gitlab-server instead. GitLab server, for example https://www.gitlab.com")
 	gitLabServer            = flag.String("gitlab-server", "", "GitLab server, for example https://www.gitlab.com")
+	internalGitLabServer    = flag.String("internal-gitlab-server", "", "Internal GitLab server for API requests, for example https://www.gitlab.com (defaults to value of gitlab-server)")
 	gitLabAPISecretKey      = flag.String("api-secret-key", "", "File with secret key used to authenticate with the GitLab API")
 	gitlabClientHTTPTimeout = flag.Duration("gitlab-client-http-timeout", 10*time.Second, "GitLab API HTTP client connection timeout in seconds (default: 10s)")
 	gitlabClientJWTExpiry   = flag.Duration("gitlab-client-jwt-expiry", 30*time.Second, "JWT Token expiry time in seconds (default: 30s)")
@@ -105,6 +106,14 @@ func gitlabServerFromFlags() string {
 
 	url, _ := url.Parse(*artifactsServer)
 	return host.FromString(url.Host)
+}
+
+func internalGitlabServerFromFlags() string {
+	if *internalGitLabServer != "" {
+		return *internalGitLabServer
+	}
+
+	return gitlabServerFromFlags()
 }
 
 func setArtifactsServer(artifactsServer string, artifactsServerTimeout int, config *appConfig) {
@@ -181,6 +190,7 @@ func configFromFlags() appConfig {
 	}
 
 	config.GitLabServer = gitlabServerFromFlags()
+	config.InternalGitLabServer = internalGitlabServerFromFlags()
 	config.GitlabClientHTTPTimeout = *gitlabClientHTTPTimeout
 	config.GitlabJWTTokenExpiration = *gitlabClientJWTExpiry
 	config.StoreSecret = *secret
@@ -265,6 +275,7 @@ func loadConfig() appConfig {
 		"tls-max-version":               *tlsMaxVersion,
 		"use-http-2":                    config.HTTP2,
 		"gitlab-server":                 config.GitLabServer,
+		"internal-gitlab-server":        config.InternalGitLabServer,
 		"api-secret-key":                *gitLabAPISecretKey,
 		"auth-redirect-uri":             config.RedirectURI,
 	}).Debug("Start daemon with configuration")
