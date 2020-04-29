@@ -39,6 +39,25 @@ services:
       - ./dev/shell-secret:/var/opt/gitlab/config/secrets
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/srv/gitlab/.gitlab_workhorse_secret
       - uploads:/srv/gitlab/public/uploads
+  actioncable:
+    image: ${GITLAB_ACTIONCABLE_IMAGE}
+    environment:
+      - "GITLAB_HOST=localhost"
+      - "GITLAB_PORT=${NGINX_HOST_PORT}"
+      - "GITLAB_SSH_PORT=${SSH_HOST_PORT}"
+      - "GITALY_FEATURE_DEFAULT_ON=1"
+      - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
+      - "CONFIG_DIRECTORY=/srv/gitlab/config"
+    command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
+    depends_on:
+      - omnibus
+    ports:
+      - "${ACTIONCABLE_HOST_PORT}:8081"
+    volumes:
+      - ./dev/actioncable-config:/var/opt/gitlab/config/templates
+      - ./dev/shell-secret:/var/opt/gitlab/config/secrets
+      - ./dev/workhorse-config/.gitlab_workhorse_secret:/srv/gitlab/.gitlab_workhorse_secret
+      - uploads:/srv/gitlab/public/uploads
   workhorse:
     image: ${GITLAB_WORKHORSE_IMAGE}
     environment:
