@@ -71,7 +71,7 @@ func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 
 func (a *theApp) healthCheck(w http.ResponseWriter, r *http.Request, https bool) {
 	if a.isReady() {
-		w.Write([]byte("success"))
+		w.Write([]byte("success\n"))
 	} else {
 		http.Error(w, "not yet ready", http.StatusServiceUnavailable)
 	}
