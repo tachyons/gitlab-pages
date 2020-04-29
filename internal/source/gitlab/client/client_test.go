@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httptrace"
 	"testing"
 	"time"
 
@@ -19,6 +20,41 @@ const (
 	defaultClientConnTimeout = 10 * time.Second
 	defaultJWTTokenExpiry    = 30 * time.Second
 )
+
+func TestConnectionReuse(t *testing.T) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/api/v4/internal/pages", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+
+		// we want to test for an invalid JSON that is larger than 512 bytes
+		b := make([]byte, 513)
+		for i := range b {
+			b[i] = 'x'
+		}
+
+		w.Write(b)
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client := defaultClient(t, server.URL)
+	reused := make(chan bool, 2)
+
+	trace := &httptrace.ClientTrace{
+		GotConn: func(connInfo httptrace.GotConnInfo) {
+			reused <- connInfo.Reused
+		},
+	}
+
+	ctx := httptrace.WithClientTrace(context.Background(), trace)
+	client.GetLookup(ctx, "group.gitlab.io")
+	client.GetLookup(ctx, "group.gitlab.io")
+
+	require.False(t, <-reused)
+	require.True(t, <-reused)
+}
 
 func TestNewValidBaseURL(t *testing.T) {
 	_, err := NewClient("https://gitlab.com", secretKey(t), defaultClientConnTimeout, defaultJWTTokenExpiry)
