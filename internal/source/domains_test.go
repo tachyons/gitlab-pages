@@ -16,7 +16,7 @@ type sourceConfig struct {
 	secret string
 }
 
-func (c sourceConfig) GitlabAPIServerURL() string {
+func (c sourceConfig) InternalGitLabServerURL() string {
 	return c.api
 }
 

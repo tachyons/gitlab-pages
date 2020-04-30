@@ -61,7 +61,7 @@ var (
 	secret                  = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long.")
 	gitLabAuthServer        = flag.String("auth-server", "", "DEPRECATED, use gitlab-server instead. GitLab server, for example https://www.gitlab.com")
 	gitLabServer            = flag.String("gitlab-server", "", "GitLab server, for example https://www.gitlab.com")
-	gitLabAPIServer         = flag.String("gitlab-api-server", "", "GitLab server used for API requests, for example https://www.gitlab.com, useful if you want to send that traffic over an internal load balancer (defaults to value of gitlab-server)")
+	internalGitLabServer    = flag.String("internal-gitlab-server", "", "Internal GitLab server used for API requests, useful if you want to send that traffic over an internal load balancer, example value https://www.gitlab.com (defaults to value of gitlab-server)")
 	gitLabAPISecretKey      = flag.String("api-secret-key", "", "File with secret key used to authenticate with the GitLab API")
 	gitlabClientHTTPTimeout = flag.Duration("gitlab-client-http-timeout", 10*time.Second, "GitLab API HTTP client connection timeout in seconds (default: 10s)")
 	gitlabClientJWTExpiry   = flag.Duration("gitlab-client-jwt-expiry", 30*time.Second, "JWT Token expiry time in seconds (default: 30s)")
@@ -108,9 +108,9 @@ func gitlabServerFromFlags() string {
 	return host.FromString(url.Host)
 }
 
-func gitlabAPIServerFromFlags() string {
-	if *gitLabAPIServer != "" {
-		return *gitLabAPIServer
+func InternalGitLabServerFromFlags() string {
+	if *internalGitLabServer != "" {
+		return *internalGitLabServer
 	}
 
 	return gitlabServerFromFlags()
@@ -190,7 +190,7 @@ func configFromFlags() appConfig {
 	}
 
 	config.GitLabServer = gitlabServerFromFlags()
-	config.GitLabAPIServer = gitlabAPIServerFromFlags()
+	config.InternalGitLabServer = InternalGitLabServerFromFlags()
 	config.GitlabClientHTTPTimeout = *gitlabClientHTTPTimeout
 	config.GitlabJWTTokenExpiration = *gitlabClientJWTExpiry
 	config.StoreSecret = *secret
@@ -275,7 +275,7 @@ func loadConfig() appConfig {
 		"tls-max-version":               *tlsMaxVersion,
 		"use-http-2":                    config.HTTP2,
 		"gitlab-server":                 config.GitLabServer,
-		"gitlab-api-server":             config.GitLabAPIServer,
+		"internal-gitlab-server":        config.InternalGitLabServer,
 		"api-secret-key":                *gitLabAPISecretKey,
 		"auth-redirect-uri":             config.RedirectURI,
 	}).Debug("Start daemon with configuration")
