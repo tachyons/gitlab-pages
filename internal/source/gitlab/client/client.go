@@ -27,7 +27,7 @@ type Client struct {
 }
 
 // NewClient initializes and returns new Client baseUrl is
-// appConfig.InternalGitLabServer secretKey is appConfig.GitLabAPISecretKey
+// appConfig.GitLabAPIServer secretKey is appConfig.GitLabAPISecretKey
 func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpiry time.Duration) (*Client, error) {
 	if len(baseURL) == 0 || len(secretKey) == 0 {
 		return nil, errors.New("GitLab API URL or API secret has not been provided")
