@@ -108,7 +108,7 @@ func gitlabServerFromFlags() string {
 	return host.FromString(url.Host)
 }
 
-func InternalGitLabServerFromFlags() string {
+func internalGitLabServerFromFlags() string {
 	if *internalGitLabServer != "" {
 		return *internalGitLabServer
 	}
@@ -190,7 +190,7 @@ func configFromFlags() appConfig {
 	}
 
 	config.GitLabServer = gitlabServerFromFlags()
-	config.InternalGitLabServer = InternalGitLabServerFromFlags()
+	config.InternalGitLabServer = internalGitLabServerFromFlags()
 	config.GitlabClientHTTPTimeout = *gitlabClientHTTPTimeout
 	config.GitlabJWTTokenExpiration = *gitlabClientJWTExpiry
 	config.StoreSecret = *secret
