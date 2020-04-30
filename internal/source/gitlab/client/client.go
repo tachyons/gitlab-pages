@@ -27,7 +27,7 @@ type Client struct {
 }
 
 // NewClient initializes and returns new Client baseUrl is
-// appConfig.GitLabServer secretKey is appConfig.GitLabAPISecretKey
+// appConfig.InternalGitLabServer secretKey is appConfig.GitLabAPISecretKey
 func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpiry time.Duration) (*Client, error) {
 	if len(baseURL) == 0 || len(secretKey) == 0 {
 		return nil, errors.New("GitLab API URL or API secret has not been provided")
@@ -59,7 +59,7 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 
 // NewFromConfig creates a new client from Config struct
 func NewFromConfig(config Config) (*Client, error) {
-	return NewClient(config.GitlabServerURL(), config.GitlabAPISecret(), config.GitlabClientConnectionTimeout(), config.GitlabJWTTokenExpiry())
+	return NewClient(config.InternalGitLabServerURL(), config.GitlabAPISecret(), config.GitlabClientConnectionTimeout(), config.GitlabJWTTokenExpiry())
 }
 
 // Resolve returns a VirtualDomain configuration wrapped into a Lookup for a

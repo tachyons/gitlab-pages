@@ -29,6 +29,7 @@ type appConfig struct {
 
 	StoreSecret              string
 	GitLabServer             string
+	InternalGitLabServer     string
 	GitLabAPISecretKey       []byte
 	GitlabClientHTTPTimeout  time.Duration
 	GitlabJWTTokenExpiration time.Duration
@@ -40,9 +41,9 @@ type appConfig struct {
 	CustomHeaders            []string
 }
 
-// GitlabServerURL returns URL to a GitLab instance.
-func (config appConfig) GitlabServerURL() string {
-	return config.GitLabServer
+// InternalGitLabServerURL returns URL to a GitLab instance.
+func (config appConfig) InternalGitLabServerURL() string {
+	return config.InternalGitLabServer
 }
 
 // GitlabClientSecret returns GitLab server access token.
