@@ -59,7 +59,7 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 
 // NewFromConfig creates a new client from Config struct
 func NewFromConfig(config Config) (*Client, error) {
-	return NewClient(config.GitlabServerURL(), config.GitlabAPISecret(), config.GitlabClientConnectionTimeout(), config.GitlabJWTTokenExpiry())
+	return NewClient(config.GitlabAPIServerURL(), config.GitlabAPISecret(), config.GitlabClientConnectionTimeout(), config.GitlabJWTTokenExpiry())
 }
 
 // Resolve returns a VirtualDomain configuration wrapped into a Lookup for a

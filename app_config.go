@@ -41,8 +41,8 @@ type appConfig struct {
 	CustomHeaders            []string
 }
 
-// GitlabServerURL returns URL to a GitLab instance.
-func (config appConfig) GitlabServerURL() string {
+// GitlabAPIServerURL returns URL to a GitLab instance.
+func (config appConfig) GitlabAPIServerURL() string {
 	return config.GitLabAPIServer
 }
 
