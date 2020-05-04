@@ -2,6 +2,7 @@ package acceptance_test
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -14,14 +15,18 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	proxyproto "github.com/pires/go-proxyproto"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
+// The HTTPS certificate isn't signed by anyone. This http client is set up
+// so it can talk to servers using it.
 var (
 	// The HTTPS certificate isn't signed by anyone. This http client is set up
 	// so it can talk to servers using it.
@@ -40,7 +45,48 @@ var (
 		},
 	}
 
+	// Proxyv2 client
+	TestProxyv2Client = &http.Client{
+		Transport: &http.Transport{
+			DialContext:     Proxyv2DialContext,
+			TLSClientConfig: &tls.Config{RootCAs: TestCertPool},
+		},
+	}
+
+	QuickTimeoutProxyv2Client = &http.Client{
+		Transport: &http.Transport{
+			DialContext:           Proxyv2DialContext,
+			TLSClientConfig:       &tls.Config{RootCAs: TestCertPool},
+			ResponseHeaderTimeout: 100 * time.Millisecond,
+		},
+	}
+
 	TestCertPool = x509.NewCertPool()
+
+	// Proxyv2 will create a dummy request with src 10.1.1.1:1000
+	// and dst 20.2.2.2:2000
+	Proxyv2DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		var d net.Dialer
+
+		conn, err := d.DialContext(ctx, network, addr)
+		if err != nil {
+			return nil, err
+		}
+
+		header := &proxyproto.Header{
+			Version:            2,
+			Command:            proxyproto.PROXY,
+			TransportProtocol:  proxyproto.TCPv4,
+			SourceAddress:      net.ParseIP("10.1.1.1"),
+			SourcePort:         1000,
+			DestinationAddress: net.ParseIP("20.2.2.2"),
+			DestinationPort:    2000,
+		}
+
+		_, err = header.WriteTo(conn)
+
+		return conn, err
+	}
 
 	existingAcmeTokenPath    = "/.well-known/acme-challenge/existingtoken"
 	notExistingAcmeTokenPath = "/.well-known/acme-challenge/notexistingtoken"
@@ -56,6 +102,36 @@ func (t *tWriter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+type LogCaptureBuffer struct {
+	b bytes.Buffer
+	m sync.Mutex
+}
+
+func (b *LogCaptureBuffer) Read(p []byte) (n int, err error) {
+	b.m.Lock()
+	defer b.m.Unlock()
+
+	return b.b.Read(p)
+}
+func (b *LogCaptureBuffer) Write(p []byte) (n int, err error) {
+	b.m.Lock()
+	defer b.m.Unlock()
+
+	return b.b.Write(p)
+}
+func (b *LogCaptureBuffer) String() string {
+	b.m.Lock()
+	defer b.m.Unlock()
+
+	return b.b.String()
+}
+func (b *LogCaptureBuffer) Reset() {
+	b.m.Lock()
+	defer b.m.Unlock()
+
+	b.b.Reset()
+}
+
 // ListenSpec is used to point at a gitlab-pages http server, preserving the
 // type of port it is (http, https, proxy)
 type ListenSpec struct {
@@ -66,7 +142,7 @@ type ListenSpec struct {
 
 func (l ListenSpec) URL(suffix string) string {
 	scheme := request.SchemeHTTP
-	if l.Type == request.SchemeHTTPS {
+	if l.Type == request.SchemeHTTPS || l.Type == "https-proxyv2" {
 		scheme = request.SchemeHTTPS
 	}
 
@@ -90,7 +166,12 @@ func (l ListenSpec) WaitUntilRequestSucceeds(done chan struct{}) error {
 			return err
 		}
 
-		response, err := QuickTimeoutHTTPSClient.Transport.RoundTrip(req)
+		client := QuickTimeoutHTTPSClient
+		if l.Type == "https-proxyv2" {
+			client = QuickTimeoutProxyv2Client
+		}
+
+		response, err := client.Transport.RoundTrip(req)
 		if err != nil {
 			time.Sleep(100 * time.Millisecond)
 			continue
@@ -117,19 +198,27 @@ func (l ListenSpec) JoinHostPort() string {
 //
 // If run as root via sudo, the gitlab-pages process will drop privileges
 func RunPagesProcess(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
+	_, cleanup := runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
+	return cleanup
 }
 
 func RunPagesProcessWithoutWait(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, false, pagesBinary, listeners, promPort, nil, extraArgs...)
+	_, cleanup := runPagesProcess(t, false, pagesBinary, listeners, promPort, nil, extraArgs...)
+	return cleanup
 }
 
 func RunPagesProcessWithSSLCertFile(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, true, pagesBinary, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
+	_, cleanup := runPagesProcess(t, true, pagesBinary, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
+	return cleanup
 }
 
 func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, extraArgs...)
+	_, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, extraArgs...)
+	return cleanup
+}
+
+func RunPagesProcessWithOutput(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (out *LogCaptureBuffer, teardown func()) {
+	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
 }
 
 func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
@@ -139,7 +228,7 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary st
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	pagesArgs := append([]string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
 
-	cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, pagesArgs...)
+	_, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, pagesArgs...)
 
 	return func() {
 		source.Close()
@@ -153,9 +242,10 @@ func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []Liste
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
 	defer cleanup()
 
-	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil,
+	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, promPort, nil,
 		"-config="+configFile,
 	)
+	return cleanup2
 }
 
 func RunPagesProcessWithAuthServer(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, authServer string) func() {
@@ -191,21 +281,25 @@ func runPagesProcessWithAuthServer(t *testing.T, pagesBinary string, listeners [
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
 	defer cleanup()
 
-	return runPagesProcess(t, true, pagesBinary, listeners, promPort, extraEnv,
+	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, promPort, extraEnv,
 		"-config="+configFile)
+	return cleanup2
 }
 
-func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (teardown func()) {
+func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
 	t.Helper()
 
 	_, err := os.Stat(pagesBinary)
 	require.NoError(t, err)
 
+	logBuf := &LogCaptureBuffer{}
+	out := io.MultiWriter(&tWriter{t}, logBuf)
+
 	args, tempfiles := getPagesArgs(t, listeners, promPort, extraArgs)
 	cmd := exec.Command(pagesBinary, args...)
 	cmd.Env = append(os.Environ(), extraEnv...)
-	cmd.Stdout = &tWriter{t}
-	cmd.Stderr = &tWriter{t}
+	cmd.Stdout = out
+	cmd.Stderr = out
 	require.NoError(t, cmd.Start())
 	t.Logf("Running %s %v", pagesBinary, args)
 
@@ -232,7 +326,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 		}
 	}
 
-	return cleanup
+	return logBuf, cleanup
 }
 
 func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraArgs []string) (args, tempfiles []string) {
@@ -329,7 +423,7 @@ func GetPageFromListenerWithCookie(t *testing.T, spec ListenSpec, host, urlsuffi
 
 	req.Host = host
 
-	return DoPagesRequest(t, req)
+	return DoPagesRequest(t, spec, req)
 }
 
 func GetCompressedPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string, encoding string) (*http.Response, error) {
@@ -341,7 +435,7 @@ func GetCompressedPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffi
 	req.Host = host
 	req.Header.Set("Accept-Encoding", encoding)
 
-	return DoPagesRequest(t, req)
+	return DoPagesRequest(t, spec, req)
 }
 
 func GetProxiedPageFromListener(t *testing.T, spec ListenSpec, host, xForwardedHost, urlsuffix string) (*http.Response, error) {
@@ -354,11 +448,15 @@ func GetProxiedPageFromListener(t *testing.T, spec ListenSpec, host, xForwardedH
 	req.Host = host
 	req.Header.Set("X-Forwarded-Host", xForwardedHost)
 
-	return DoPagesRequest(t, req)
+	return DoPagesRequest(t, spec, req)
 }
 
-func DoPagesRequest(t *testing.T, req *http.Request) (*http.Response, error) {
+func DoPagesRequest(t *testing.T, spec ListenSpec, req *http.Request) (*http.Response, error) {
 	t.Logf("curl -X %s -H'Host: %s' %s", req.Method, req.Host, req.URL)
+
+	if spec.Type == "https-proxyv2" {
+		return TestProxyv2Client.Do(req)
+	}
 
 	return TestHTTPSClient.Do(req)
 }
@@ -395,6 +493,10 @@ func GetRedirectPageWithHeaders(t *testing.T, spec ListenSpec, host, urlsuffix s
 
 	req.Host = host
 
+	if spec.Type == "https-proxyv2" {
+		return TestProxyv2Client.Transport.RoundTrip(req)
+	}
+
 	return TestHTTPSClient.Transport.RoundTrip(req)
 }
 
@@ -416,7 +518,12 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 				t.Fatal(err)
 			}
 
-			if response, err := QuickTimeoutHTTPSClient.Transport.RoundTrip(req); err == nil {
+			client := QuickTimeoutHTTPSClient
+			if spec.Type == "https-proxyv2" {
+				client = QuickTimeoutProxyv2Client
+			}
+
+			if response, err := client.Transport.RoundTrip(req); err == nil {
 				nListening++
 				response.Body.Close()
 				break

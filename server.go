@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/context"
+	proxyproto "github.com/pires/go-proxyproto"
 	"golang.org/x/net/http2"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -36,7 +37,7 @@ func (ln *keepAliveListener) Accept() (net.Conn, error) {
 	return conn, nil
 }
 
-func listenAndServe(fd uintptr, handler http.Handler, useHTTP2 bool, tlsConfig *tls.Config, limiter *netutil.Limiter) error {
+func listenAndServe(fd uintptr, handler http.Handler, useHTTP2 bool, tlsConfig *tls.Config, limiter *netutil.Limiter, proxyv2 bool) error {
 	// create server
 	server := &http.Server{Handler: context.ClearHandler(handler), TLSConfig: tlsConfig}
 
@@ -56,9 +57,20 @@ func listenAndServe(fd uintptr, handler http.Handler, useHTTP2 bool, tlsConfig *
 		l = netutil.SharedLimitListener(l, limiter)
 	}
 
-	if tlsConfig != nil {
-		tlsListener := tls.NewListener(&keepAliveListener{l}, server.TLSConfig)
-		return server.Serve(tlsListener)
+	l = &keepAliveListener{l}
+
+	if proxyv2 {
+		l = &proxyproto.Listener{
+			Listener: l,
+			Policy: func(upstream net.Addr) (proxyproto.Policy, error) {
+				return proxyproto.REQUIRE, nil
+			},
+		}
 	}
-	return server.Serve(&keepAliveListener{l})
+
+	if tlsConfig != nil {
+		l = tls.NewListener(l, server.TLSConfig)
+	}
+
+	return server.Serve(l)
 }

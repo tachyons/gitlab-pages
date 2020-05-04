@@ -369,6 +369,11 @@ func (a *theApp) Run() {
 		a.listenProxyFD(&wg, fd, proxyHandler, limiter)
 	}
 
+	// Listen for HTTPS PROXYv2 requests
+	for _, fd := range a.ListenHTTPSProxyv2 {
+		a.ListenHTTPSProxyv2FD(&wg, fd, proxyHandler, limiter)
+	}
+
 	// Serve metrics for Prometheus
 	if a.ListenMetrics != 0 {
 		a.listenMetricsFD(&wg, a.ListenMetrics)
@@ -383,7 +388,7 @@ func (a *theApp) listenHTTPFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.H
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter)
+		err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter, false)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTP))
 		}
@@ -399,7 +404,7 @@ func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 
-		err = listenAndServe(fd, httpHandler, a.HTTP2, tlsConfig, limiter)
+		err = listenAndServe(fd, httpHandler, a.HTTP2, tlsConfig, limiter, false)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
@@ -412,11 +417,28 @@ func (a *theApp) listenProxyFD(wg *sync.WaitGroup, fd uintptr, proxyHandler http
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(fd, proxyHandler, a.HTTP2, nil, limiter)
+			err := listenAndServe(fd, proxyHandler, a.HTTP2, nil, limiter, false)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
 			}
 		}(fd)
+	}()
+}
+
+// https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
+func (a *theApp) ListenHTTPSProxyv2FD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, limiter *netutil.Limiter) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		tlsConfig, err := a.TLSConfig()
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
+		}
+
+		err = listenAndServe(fd, httpHandler, a.HTTP2, tlsConfig, limiter, true)
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
+		}
 	}()
 }
 
