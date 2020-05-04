@@ -4,12 +4,12 @@
 #
 # The default is "config.ru".
 #
-rackup '/srv/gitlab/config.ru'
-pidfile "#{ENV['HOME']}/puma.pid"
-state_path "#{ENV['HOME']}/puma.state"
+rackup '/srv/gitlab/cable/config.ru'
+pidfile "#{ENV['HOME']}/puma_actioncable.pid"
+state_path "#{ENV['HOME']}/puma_actioncable.state"
 
-stdout_redirect '/srv/gitlab/log/puma.stdout.log',
-  '/srv/gitlab/log/puma.stderr.log',
+stdout_redirect '/srv/gitlab/log/puma_actioncable.stdout.log',
+  '/srv/gitlab/log/puma_actioncable.stderr.log',
   true
 
 # Configure "min" to be the minimum number of threads to use to answer
@@ -64,7 +64,7 @@ end
 # phased restart feature. (off by default)
 preload_app!
 
-tag 'gitlab-puma-worker'
+tag 'gitlab-actioncable-puma-worker'
 
 # Verifies that all workers have checked in to the master process within
 # the given timeout. If not the worker process will be restarted. Default

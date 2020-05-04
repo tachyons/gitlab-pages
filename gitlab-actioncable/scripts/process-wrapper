@@ -14,7 +14,7 @@ cd /srv/gitlab
 
 echo "Starting Puma"
 /srv/gitlab/bin/bundle exec puma --environment production \
-  --config /srv/gitlab/config/puma.rb /srv/gitlab/config.ru &
+  --config /srv/gitlab/config/puma_actioncable.rb /srv/gitlab/cable/config.ru &
 
 if command -v xtail >/dev/null; then
     xtail /var/log/gitlab
