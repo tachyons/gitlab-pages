@@ -39,21 +39,24 @@ type Domains struct {
 	disk   *disk.Disk // legacy disk source
 }
 
+func useDiskConfigSource(config Config) bool {
+	return config.GitlabDisableAPIConfigurationSource() || len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0
+}
+
 // NewDomains is a factory method for domains initializing a mutex. It should
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
 func NewDomains(config Config) (*Domains, error) {
 	// fallback to disk if these values are empty
-	// TODO communicate disk source deprecation https://gitlab.com/gitlab-org/gitlab-pages/-/issues/351
-	if config.GitlabDisableDomainConfiguration() || len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		log.Warn("disk source will be deprecated soon see https://gitlab.com/gitlab-org/gitlab-pages/-/issues/351")
+	if useDiskConfigSource(config) {
+		log.Warn("disk source will be deprecated soon https://gitlab.com/gitlab-org/gitlab/-/issues/210010")
 		return &Domains{disk: disk.New()}, nil
 	}
 
 	gl, err := gitlab.New(config)
 	if err != nil {
 		if strings.Contains(err.Error(), client.ConnectionErrorMsg) {
-			log.Warn("GitLab API is not configured https://gitlab.com/gitlab-org/gitlab-pages/-/issues/351")
+			log.WithError(err).Warn("GitLab API is not configured https://gitlab.com/gitlab-org/gitlab/-/issues/210010")
 			return &Domains{disk: disk.New()}, nil
 		}
 		return nil, err

@@ -18,8 +18,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-// ConnectionErrorMsg to be returned with `gc.preflightCheck` if pages
-// cannot contact /api/v4/internal/pages either because of a 404 (disabled)
+// ConnectionErrorMsg to be returned with `gc.Status` if pages
+// cannot contact /api/v4/internal/pages/status either because of a 404 (disabled)
 // or a 401 given that the credentials used are wrong
 const ConnectionErrorMsg = "failed to connect to internal pages API"
 

@@ -31,7 +31,7 @@ func (c sourceConfig) GitlabClientConnectionTimeout() time.Duration {
 func (c sourceConfig) GitlabJWTTokenExpiry() time.Duration {
 	return 30 * time.Second
 }
-func (c sourceConfig) GitlabDisableDomainConfiguration() bool {
+func (c sourceConfig) GitlabDisableAPIConfigurationSource() bool {
 	return c.enable
 }
 

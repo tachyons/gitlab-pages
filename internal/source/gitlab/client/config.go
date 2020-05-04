@@ -9,5 +9,5 @@ type Config interface {
 	GitlabAPISecret() []byte
 	GitlabClientConnectionTimeout() time.Duration
 	GitlabJWTTokenExpiry() time.Duration
-	GitlabDisableDomainConfiguration() bool
+	GitlabDisableAPIConfigurationSource() bool
 }
