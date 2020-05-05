@@ -14,8 +14,12 @@ type MockSource struct {
 // GetDomain is a mocked function
 func (m *MockSource) GetDomain(name string) (*domain.Domain, error) {
 	args := m.Called(name)
+	d, ok := args.Get(0).(*domain.Domain)
+	if !ok {
+		return nil, args.Error(1)
+	}
 
-	return args.Get(0).(*domain.Domain), args.Error(1)
+	return d, args.Error(1)
 }
 
 // NewMockSource returns a new Source mock for testing

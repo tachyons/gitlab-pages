@@ -10,6 +10,7 @@ import (
 
 // Disk struct represents a map of all domains supported by pages that are
 // stored on a disk with corresponding `config.json`.
+// TODO remove disk source https://gitlab.com/gitlab-org/gitlab-pages/-/issues/379
 type Disk struct {
 	dm   Map
 	lock *sync.RWMutex

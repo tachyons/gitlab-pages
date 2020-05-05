@@ -22,6 +22,7 @@ type Gitlab struct {
 }
 
 // New returns a new instance of gitlab domain source.
+// It checks that it can reach the API by calling cli.Status.
 func New(config client.Config) (*Gitlab, error) {
 	cli, err := client.NewFromConfig(config)
 	if err != nil {
