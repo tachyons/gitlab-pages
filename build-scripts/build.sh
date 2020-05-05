@@ -1,6 +1,5 @@
 #!/bin/bash
-declare -a nightly_builds=( gitlab-rails-ee gitlab-rails-ce gitlab-webservice-ce
-gitlab-webservice-ee gitlab-actioncable-ce gitlab-actioncable-ee gitaly gitlab-shell gitlab-sidekiq-ee gitlab-sidekiq-ce gitlab-workhorse-ce gitlab-workhorse-ee )
+declare -a nightly_builds=( gitlab-rails-ee gitlab-rails-ce gitlab-webservice-ce gitlab-webservice-ee gitlab-actioncable-ce gitlab-actioncable-ee gitaly gitlab-shell gitlab-sidekiq-ee gitlab-sidekiq-ce gitlab-workhorse-ce gitlab-workhorse-ee )
 
 function _containsElement () {
   local e match="$1"
