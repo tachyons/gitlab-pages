@@ -103,8 +103,6 @@ RUN cd /srv/gitlab && \
     sudo -u ${GITLAB_USER} -H cp config/resque.yml.example config/resque.yml && \
     sudo -u ${GITLAB_USER} -H cp config/secrets.yml.example config/secrets.yml && \
     sudo -u ${GITLAB_USER} -H cp config/database.yml.postgresql config/database.yml && \
-    sudo -u ${GITLAB_USER} -H cp config/initializers/rack_attack.rb.example config/rack_attack.rb && \
-    sudo -u ${GITLAB_USER} -H ln -s /srv/gitlab/config/rack_attack.rb /srv/gitlab/config/initializers/rack_attack.rb && \
     sed --in-place "/host: localhost/d" config/gitlab.yml && \
     sed --in-place "/port: 80/d" config/gitlab.yml && \
     sed --in-place "s/# user:.*/user: ${GITLAB_USER}/" config/gitlab.yml && \
