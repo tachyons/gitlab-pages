@@ -567,6 +567,63 @@ gitlab-webservice-ce:
     - gitlab-rails-ce
   <<: *except-ee
 
+build:gitlab-actioncable-ee:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:gitlab-python
+  script:
+    - import_assets artifacts/ubi/gitlab-python.tar.gz
+    - ruby_version=$(get_version gitlab-ruby)
+    - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
+    - build_if_needed
+    - copy_assets
+
+gitlab-actioncable-ee:
+  <<: *job-base
+  stage: phase-six
+  script:
+    - import_assets artifacts/ubi/gitlab-python.tar.gz
+    - ruby_version=$(get_version gitlab-ruby)
+    - rails_version=$(get_version gitlab-rails)
+    - rails_container=$(cat artifacts/rails_container_ee.txt)
+    - python_version=$(cat artifacts/python_container.txt)
+    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+    - fi
+    - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee"
+                      --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
+                      --build-arg "PYTHON_TAG=${python_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+                      --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
+  dependencies:
+    - gitlab-rails-ee
+    - gitlab-python
+    - build:gitlab-actioncable-ee
+    - build:gitlab-python
+  <<: *except-ce
+
+gitlab-actioncable-ce:
+  <<: *job-base
+  stage: phase-six
+  script:
+    - ruby_version=$(get_version gitlab-ruby)
+    - rails_version=$(get_version gitlab-rails)
+    - rails_container=$(cat artifacts/rails_container_ce.txt)
+    - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
+    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
+    - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
+                      --build-arg "TAG=$rails_container"
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
+  dependencies:
+    - gitlab-rails-ce
+  <<: *except-ee
+
 gitlab-sidekiq-ee:
   <<: *job-base
   stage: phase-six
@@ -993,6 +1050,7 @@ ubi-assets-release:
     - build:gitlab-rails-ee
     - build:gitlab-task-runner-ee
     - build:gitlab-webservice-ee
+    - build:gitlab-actioncable-ee
   when: manual
   only:
     refs:
