@@ -1,6 +1,8 @@
 package source
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -11,9 +13,9 @@ import (
 )
 
 type sourceConfig struct {
-	api    string
-	secret string
-	enable bool
+	api     string
+	secret  string
+	disable bool
 }
 
 func (c sourceConfig) InternalGitLabServerURL() string {
@@ -31,29 +33,78 @@ func (c sourceConfig) GitlabJWTTokenExpiry() time.Duration {
 	return 30 * time.Second
 }
 func (c sourceConfig) GitlabDisableAPIConfigurationSource() bool {
-	return c.enable
+	return c.disable
 }
 
 func TestDomainSources(t *testing.T) {
-	t.Run("when GitLab API URL has been provided but cannot authenticate", func(t *testing.T) {
-		domains, err := NewDomains(sourceConfig{api: "https://gitlab.com", secret: "abc", enable: true})
-		require.NoError(t, err)
+	// TODO refactor test when disk source is removed https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
+	tests := []struct {
+		name         string
+		config       sourceConfig
+		mock         bool
+		status       int
+		expectGitlab bool
+		expectDisk   bool
+	}{
+		{
+			name:         "gitlab_source_on_success",
+			config:       sourceConfig{api: "http://localhost", secret: "abc"},
+			mock:         true,
+			status:       http.StatusNoContent,
+			expectGitlab: true,
+		},
+		{
+			name:       "disk_source_on_unauthorized",
+			config:     sourceConfig{api: "http://localhost", secret: "abc"},
+			mock:       true,
+			status:     http.StatusUnauthorized,
+			expectDisk: true,
+		},
+		{
+			name:       "disk_source_on_api_error",
+			config:     sourceConfig{api: "http://localhost", secret: "abc"},
+			mock:       true,
+			status:     http.StatusServiceUnavailable,
+			expectDisk: true,
+		},
+		{
+			name:       "disk_source_on_disabled_api_source",
+			config:     sourceConfig{api: "http://localhost", secret: "abc", disable: true},
+			expectDisk: true,
+		},
+		{
+			name:       "disk_source_on_incomplete_config",
+			config:     sourceConfig{api: "", secret: "abc"},
+			expectDisk: true,
+		},
+	}
 
-		require.Nil(t, domains.gitlab)
-		require.NotNil(t, domains.disk)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.mock {
+				m := http.NewServeMux()
+				m.HandleFunc("/api/v4/internal/pages/status", func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(tt.status)
+				})
 
-	t.Run("when GitLab API has not been provided", func(t *testing.T) {
-		domains, err := NewDomains(sourceConfig{})
-		require.NoError(t, err)
+				mockServer := httptest.NewServer(m)
+				defer mockServer.Close()
 
-		require.Nil(t, domains.gitlab)
-		require.NotNil(t, domains.disk)
-	})
+				tt.config.api = mockServer.URL
+			}
+
+			domains, err := NewDomains(tt.config)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expectGitlab, domains.gitlab != nil)
+			require.Equal(t, tt.expectDisk, domains.disk != nil)
+		})
+	}
+
 }
 
 func TestGetDomain(t *testing.T) {
-	t.Run("when requesting a test domain", func(t *testing.T) {
+	t.Run("when requesting a domain that exists", func(t *testing.T) {
 		testDomain := "new-source-test.gitlab.io"
 
 		newSource := NewMockSource()
@@ -66,10 +117,13 @@ func TestGetDomain(t *testing.T) {
 			gitlab: newSource,
 		}
 
-		domains.GetDomain(testDomain)
+		d, err := domains.GetDomain(testDomain)
+		require.NoError(t, err)
+		require.NotNil(t, d)
+		require.Equal(t, d.Name, testDomain)
 	})
 
-	t.Run("when requesting a non-test domain", func(t *testing.T) {
+	t.Run("when requesting a domain that doesn't exist", func(t *testing.T) {
 		newSource := NewMockSource()
 		newSource.On("GetDomain", mock.Anything).Return(nil, nil)
 		defer newSource.AssertExpectations(t)
@@ -78,20 +132,8 @@ func TestGetDomain(t *testing.T) {
 			gitlab: newSource,
 		}
 
-		domain, err := domains.GetDomain("domain.test.io")
-
+		d, err := domains.GetDomain("domain.test.io")
 		require.NoError(t, err)
-		require.Nil(t, domain)
+		require.Nil(t, d)
 	})
-
-	t.Run("when requesting a test domain in case of the Source not being fully configured", func(t *testing.T) {
-		domains, err := NewDomains(sourceConfig{})
-		require.NoError(t, err)
-
-		domain, err := domains.GetDomain("new-source-test.gitlab.io")
-
-		require.Nil(t, domain)
-		require.NoError(t, err)
-	})
-
 }

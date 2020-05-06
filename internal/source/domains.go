@@ -14,7 +14,7 @@ import (
 
 var (
 	// errSourceNotConfigured will be returned when neither disk nor gitlab sources are configured
-	errSourceNotConfigured = errors.New("source not configured")
+	errSourceNotConfigured = errors.New("domain source configuration not available")
 )
 
 // Domains struct represents a map of all domains supported by pages. It is
