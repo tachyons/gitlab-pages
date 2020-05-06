@@ -47,6 +47,12 @@ var (
 		Help: "The number of GitLab domains API cache misses",
 	})
 
+	// DomainsSourceFailures is the number of GitLab API calls that failed
+	DomainsSourceFailures = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_domains_source_failures_total",
+		Help: "The number of GitLab API calls that failed",
+	})
+
 	// ServerlessRequests measures the amount of serverless invocations
 	ServerlessRequests = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "gitlab_pages_serverless_requests",
@@ -84,6 +90,7 @@ func MustRegister() {
 		DomainsSourceCacheMiss,
 		DomainsSourceAPIReqTotal,
 		DomainsSourceAPICallDuration,
+		DomainsSourceFailures,
 		ServerlessRequests,
 		ServerlessLatency,
 	)

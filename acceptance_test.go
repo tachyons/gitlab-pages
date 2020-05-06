@@ -403,6 +403,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.Contains(t, string(body), "gitlab_pages_domains_configuration_update_duration gauge")
 	require.Contains(t, string(body), "gitlab_pages_domains_source_cache_hit 0")
 	require.Contains(t, string(body), "gitlab_pages_domains_source_cache_miss 0")
+	require.Contains(t, string(body), "gitlab_pages_domains_source_failures_total 0")
 	require.Contains(t, string(body), "gitlab_pages_serverless_requests 0")
 	require.Contains(t, string(body), "gitlab_pages_serverless_latency_sum 0")
 }

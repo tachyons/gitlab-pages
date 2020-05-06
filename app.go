@@ -11,7 +11,7 @@ import (
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
-	"gitlab.com/gitlab-org/labkit/metrics"
+	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	mimedb "gitlab.com/lupine/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
@@ -25,6 +25,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
@@ -159,6 +160,7 @@ func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
 		// middleware chain and simply respond with 502 after logging this
 		host, domain, err := a.getHostAndDomain(r)
 		if err != nil {
+			metrics.DomainsSourceFailures.Inc()
 			log.WithError(err).Error("could not fetch domain information from a source")
 
 			httperrors.Serve502(w)
@@ -331,7 +333,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	}
 
 	// Metrics
-	metricsMiddleware := metrics.NewHandlerFactory(metrics.WithNamespace("gitlab_pages"))
+	metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
 	handler = metricsMiddleware(handler)
 
 	handler = a.routingMiddleware(handler)
