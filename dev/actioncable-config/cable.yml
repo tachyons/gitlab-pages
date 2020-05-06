@@ -1,0 +1,3 @@
+production:
+  adapter: redis
+  url: redis://:redis-meercat@omnibus:6379
