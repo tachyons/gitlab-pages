@@ -83,6 +83,8 @@ production: &base
   git:
     bin_path: /usr/bin/git
   webpack:
+  actioncable:
+    worker_pool_size: 4
   monitoring:
     ip_whitelist:
       - 127.0.0.0/8
