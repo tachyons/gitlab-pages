@@ -4,6 +4,7 @@ WAIT_FOR_TIMEOUT="${WAIT_FOR_TIMEOUT:-5}"
 
 # Configure for which schema to be verifying
 SCHEMA_FILE=db/structure.sql
+SCHEMA_VERSION_DIR=db/schema_migrations
 SCHEMA_RAKE_TASK=db:version
 SCHEMA_FORMAT=sql
 
@@ -24,8 +25,10 @@ fi
 # fetch the schema desired version directly from the source code
 if [ "${SCHEMA_FORMAT,,}" == "ruby" ]; then
   SCHEMA_VERSION=$(grep '(version: ' ${SCHEMA_FILE} | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)) do/\1/')
-else
+elif [ ! -d ${SCHEMA_VERSION_DIR} ]; then
   SCHEMA_VERSION=$(sed -n '/COPY "schema_migrations" (version) FROM STDIN/,/\\\./p' ${SCHEMA_FILE} | grep -o "[[:digit:]]*" | awk -v max=0 '{if($1>max){max=$1}}END{print max}')
+else
+  SCHEMA_VERSION=$(ls -r -1 ${SCHEMA_VERSION_DIR} | head -1)
 fi
 
 # Stash DB_SCHEMA_VERSION, so we can check it at exit.
