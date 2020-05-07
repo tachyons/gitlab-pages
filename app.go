@@ -13,8 +13,8 @@ import (
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
-	"gitlab.com/gitlab-org/labkit/monitoring"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
+	"gitlab.com/gitlab-org/labkit/monitoring"
 	mimedb "gitlab.com/lupine/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
