@@ -55,7 +55,7 @@ RUN /gitlab-fetch \
     && cd ${PROJECT}-${VERSION} \
     && printf ${GITLAB_EDITION} | cut -d '-' -f 2 > REVISION \
     && printf 'gitlab-cloud-native-image' > INSTALLATION_TYPE \
-    && for cfg in config/{gitlab,resque,secrets,database}.yml; do cp ${cfg}.example ${cfg} ; done \
+    && for cfg in config/{gitlab,resque,secrets}.yml; do cp ${cfg}.example ${cfg} ; done \
     && cp config/database.yml.postgresql config/database.yml \
     && bundle install --deployment --without development test mysql aws kerberos --jobs $(nproc) --retry 5 \
     && yarn install --production --pure-lockfile \
