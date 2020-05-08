@@ -19,13 +19,8 @@ var (
 	sysPoolOnce = &sync.Once{}
 	sysPool     *x509.CertPool
 
-	// Transport can be used with http.Client with TLS and certificates
-	Transport = &http.Transport{
-		DialTLS: func(network, addr string) (net.Conn, error) {
-			return tls.Dial(network, addr, &tls.Config{RootCAs: pool()})
-		},
-		Proxy: http.ProxyFromEnvironment,
-	}
+	// InternalTransport can be used with http.Client with TLS and certificates
+	InternalTransport = newInternalTransport()
 )
 
 type meteredRoundTripper struct {
@@ -34,11 +29,24 @@ type meteredRoundTripper struct {
 	counter   *prometheus.CounterVec
 }
 
+func newInternalTransport() *http.Transport {
+	return &http.Transport{
+		DialTLS: func(network, addr string) (net.Conn, error) {
+			return tls.Dial(network, addr, &tls.Config{RootCAs: pool()})
+		},
+		Proxy: http.ProxyFromEnvironment,
+		// overrides the DefaultMaxIdleConnsPerHost = 2
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 100,
+		IdleConnTimeout:     90 * time.Second,
+	}
+}
+
 // NewTransportWithMetrics will create a custom http.RoundTripper that can be used with an http.Client.
 // The RoundTripper will report metrics based on the collectors passed.
 func NewTransportWithMetrics(gaugeVec *prometheus.GaugeVec, counterVec *prometheus.CounterVec) http.RoundTripper {
 	return &meteredRoundTripper{
-		next:      Transport,
+		next:      InternalTransport,
 		durations: gaugeVec,
 		counter:   counterVec,
 	}
