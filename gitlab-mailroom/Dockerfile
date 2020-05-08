@@ -3,7 +3,7 @@ ARG FROM_IMAGE=registry.gitlab.com/gitlab-org/build/cng/gitlab-ruby
 
 FROM ${FROM_IMAGE}:${TAG}
 
-ARG MAILROOM_VERSION=0.0.3
+ARG MAILROOM_VERSION=0.0.4
 ARG GITLAB_USER=git
 
 RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
