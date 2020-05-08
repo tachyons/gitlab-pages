@@ -35,7 +35,7 @@ RELEASE_PATH="${2}"
 SOURCE="${3:-.}"
 
 DOCKERFILE_EXT='.ubi8'
-GITLAB_REPOSITORY='${BASE_REGISTRY}/gitlab/gitlab/'
+NEXUS_UBI_IMAGE='${BASE_REGISTRY}/redhat/ubi/ubi8:8.1'
 ASSET_SHA_FILE="/tmp/deps-${RELEASE_TAG}.tar.sha256"
 ASSET_PUB_KEY_ID='5c7738cc4840f93f6e9170ff5a0e20d5f9706778'
 
@@ -82,15 +82,14 @@ duplicateImageDir() {
 
 prependBaseArgs() {
   local DOCKERFILE="${1}"
-  local IMAGE_NAME="${2}"
+  local IMAGE_TAG="${2:-8.1}"
+  local BASE_IMAGE_PATH="${3:-redhat/ubi/ubi8}"
   cat - "${DOCKERFILE}" > "${DOCKERFILE}.0" <<-EOF
 ARG GITLAB_VERSION=${RELEASE_TAG}
 
 ARG BASE_REGISTRY=nexus-docker-secure.levelup-nexus.svc.cluster.local:18082
-ARG BASE_IMAGE=redhat/ubi/ubi8
-ARG BASE_TAG=8.1
-
-ARG UBI_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}
+ARG BASE_IMAGE=${BASE_IMAGE_PATH}
+ARG BASE_TAG=${IMAGE_TAG}
 
 EOF
   mv "${DOCKERFILE}.0" "${DOCKERFILE}"
@@ -101,6 +100,8 @@ prependBuildStage() {
   local IMAGE_NAME="${2}"
   if grep -sq 'ADD .*.tar.gz' "${DOCKERFILE}"; then
     cat - "${DOCKERFILE}" > "${DOCKERFILE}.0" <<-EOF
+ARG UBI_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}
+
 FROM \${UBI_IMAGE} AS builder
 
 ARG GITLAB_VERSION
@@ -124,8 +125,9 @@ replaceRubyImageArg() {
   local DOCKERFILE="${1}"
   local IMAGE_TAG="${2}"
   if grep -sq 'ARG RUBY_IMAGE=' "${DOCKERFILE}"; then
+    sed -i "s/^ARG UBI_IMAGE.*/ARG UBI_IMAGE=${NEXUS_UBI_IMAGE//\//\\/}/g" "${DOCKERFILE}"
     sed -i '/ARG RUBY_IMAGE=.*/d' "${DOCKERFILE}"
-    sed -i "/ARG UBI_IMAGE=.*/a ARG RUBY_IMAGE=${GITLAB_REPOSITORY//\//\\/}gitlab-ruby:${IMAGE_TAG}" "${DOCKERFILE}"
+    sed -i "/ARG UBI_IMAGE=.*/a ARG RUBY_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
   fi
 }
 
@@ -133,8 +135,9 @@ replaceRailsImageArg() {
   local DOCKERFILE="${1}"
   local IMAGE_TAG="${2}"
   if grep -sq 'ARG RAILS_IMAGE=' "${DOCKERFILE}"; then
+    sed -i "s/^ARG UBI_IMAGE.*/ARG UBI_IMAGE=${NEXUS_UBI_IMAGE//\//\\/}/g" "${DOCKERFILE}"
     sed -i '/ARG RAILS_IMAGE=.*/d' "${DOCKERFILE}"
-    sed -i "/ARG UBI_IMAGE=.*/a ARG RAILS_IMAGE=${GITLAB_REPOSITORY//\//\\/}gitlab-rails:${IMAGE_TAG}" "${DOCKERFILE}"
+    sed -i "/ARG UBI_IMAGE=.*/a ARG RAILS_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
   fi
 }
 
@@ -142,8 +145,9 @@ replaceGitImageArg() {
   local DOCKERFILE="${1}"; shift
   local IMAGE_TAG="${1}"; shift
   if grep -sq 'ARG GIT_IMAGE=' "${DOCKERFILE}"; then
+    sed -i "s/^ARG UBI_IMAGE.*/ARG UBI_IMAGE=${NEXUS_UBI_IMAGE//\//\\/}/g" "${DOCKERFILE}"
     sed -i '/ARG GIT_IMAGE=.*/d' "${DOCKERFILE}"
-    sed -i "/ARG UBI_IMAGE=.*/a ARG GIT_IMAGE=${GITLAB_REPOSITORY//\//\\/}git-base:${IMAGE_TAG}" "${DOCKERFILE}"
+    sed -i "/ARG UBI_IMAGE=.*/a ARG GIT_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
   fi
 }
 
@@ -195,14 +199,23 @@ cleanupDirectory() {
 
 releaseImage() {
   local IMAGE_NAME="${1%*-ee}"; local FULL_IMAGE_NAME="${1}"; shift
+  local BASE_IMAGE="${1:-}"
   local IMAGE_TAG="${RELEASE_TAG%-*}"
   IMAGE_TAG="${IMAGE_TAG#v*}"
   local IMAGE_ROOT="${RELEASE_PATH}/${IMAGE_NAME}"
   local DOCKERFILE="${IMAGE_ROOT}/Dockerfile"
+  local BASE_TAG=""
+  local BASE_IMAGE_PATH=""
+
+  if [ ! -z $BASE_IMAGE ]; then
+    BASE_TAG=${IMAGE_TAG}
+    BASE_IMAGE_PATH="gitlab/gitlab/${BASE_IMAGE}"
+  fi
+
   duplicateImageDir "${IMAGE_NAME}" "${IMAGE_ROOT}"
   replaceUbiImageArg "${DOCKERFILE}"
   prependBuildStage "${DOCKERFILE}" "${IMAGE_NAME}"
-  prependBaseArgs "${DOCKERFILE}" "${IMAGE_NAME}"
+  prependBaseArgs "${DOCKERFILE}" "${BASE_TAG}" "${BASE_IMAGE_PATH}"
   replaceRubyImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceRailsImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceGitImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
@@ -217,15 +230,15 @@ releaseImage() {
 mkdir -p "${RELEASE_PATH}"
 
 releaseImage kubectl
-releaseImage git-base
+releaseImage git-base "gitlab-ruby"
 releaseImage gitlab-ruby
 releaseImage gitlab-container-registry
-releaseImage gitlab-shell
-releaseImage gitaly gitlab-shell
-releaseImage gitlab-exporter
-releaseImage gitlab-mailroom
-releaseImage gitlab-rails-ee
-releaseImage gitlab-webservice-ee
-releaseImage gitlab-task-runner-ee
-releaseImage gitlab-sidekiq-ee
-releaseImage gitlab-workhorse-ee
+releaseImage gitlab-shell "gitlab-ruby"
+releaseImage gitaly "git-base"
+releaseImage gitlab-exporter "gitlab-ruby"
+releaseImage gitlab-mailroom "gitlab-ruby"
+releaseImage gitlab-rails-ee "gitlab-ruby"
+releaseImage gitlab-webservice-ee "gitlab-rails"
+releaseImage gitlab-task-runner-ee "gitlab-rails"
+releaseImage gitlab-sidekiq-ee "gitlab-rails"
+releaseImage gitlab-workhorse-ee "gitlab-ruby"
