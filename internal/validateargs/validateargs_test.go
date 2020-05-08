@@ -11,8 +11,8 @@ func TestValidParams(t *testing.T) {
 		"-listen-http", ":3010",
 		"-artifacts-server", "http://192.168.1.123:3000/api/v4",
 		"-pages-domain", "127.0.0.1.xip.io"}
-	res := Deprecated(args)
-	require.Nil(t, res)
+	require.NoError(t, Deprecated(args))
+	require.NoError(t, NotAllowed(args))
 }
 
 func TestInvalidDeprecatedParms(t *testing.T) {
