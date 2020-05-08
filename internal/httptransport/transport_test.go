@@ -96,4 +96,5 @@ func TestInternalTransportShouldHaveCustomConnectionPoolSettings(t *testing.T) {
 	require.EqualValues(t, 100, InternalTransport.MaxIdleConnsPerHost)
 	require.EqualValues(t, 0, InternalTransport.MaxConnsPerHost)
 	require.EqualValues(t, 90*time.Second, InternalTransport.IdleConnTimeout)
+	require.EqualValues(t, true, InternalTransport.ForceAttemptHTTP2)
 }

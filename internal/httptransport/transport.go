@@ -39,6 +39,7 @@ func newInternalTransport() *http.Transport {
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 100,
 		IdleConnTimeout:     90 * time.Second,
+		ForceAttemptHTTP2:   true,
 	}
 }
 
