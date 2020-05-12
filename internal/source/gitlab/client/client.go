@@ -85,6 +85,15 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 		return api.Lookup{Name: host}
 	}
 
+	// ensure that entire response body has been read and close it, to make it
+	// possible to reuse HTTP connection. In case of a JSON being invalid and
+	// larger than 512 bytes, the response body will not be closed properly, thus
+	// we need to close it manually in every case.
+	defer func() {
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
+	}()
+
 	lookup := api.Lookup{Name: host}
 	lookup.Error = json.NewDecoder(resp.Body).Decode(&lookup.Domain)
 
