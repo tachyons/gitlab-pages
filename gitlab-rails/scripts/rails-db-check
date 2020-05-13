@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'yaml'
+require 'active_record'
+
+db_config = YAML.load_file("config/#{ARGV[0]}")
+ActiveRecord::Base.establish_connection(db_config['production'])
+begin
+  puts ActiveRecord::Migrator.current_version
+rescue PG::ConnectionBad => e
+  puts "ERROR: #{e.message}"
+  exit 2
+rescue RuntimeError => e
+  exit 1
+end

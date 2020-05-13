@@ -38,15 +38,11 @@ DB_SCHEMA_VERSION="0"
 # Compare desired schema version to active schema version in the database
 # - set BYPASS_SCHEMA_VERSION to skip version check, and only test DB online
 function checkSchemaVersion() {
-    # Ask for the current DB schema version, via the schema_migrations table
-    SCHEMA_QUERY="SELECT schema_migrations.version FROM schema_migrations ORDER BY schema_migrations.version DESC LIMIT 1"
-    DB_SCHEMA_VERSION=$(/scripts/rails-pg-env ${DATABASE_FILE} psql -Atc "${SCHEMA_QUERY}")
+    # Ask for the current DB schema version
+    DB_SCHEMA_VERSION=$(/scripts/rails-db-check ${DATABASE_FILE})
     PG_EXIT=$?
-    # If psql failed: DB_SCHEMA_VERSION will be empty ('')
-    # - 2: could not connect to the DB (host, port, auth, dbname)
-    # - 1: 'schema_migrations' table is not present
-    # - 0: "All is well *enough*"
-    if [ $PG_EXIT -eq 2 ]; then
+    if [ $PG_EXIT -ne 0 ]; then
+      echo "FAILED connecting to database."
       return 2
     fi
 
@@ -71,7 +67,7 @@ function checkSchemaVersion() {
 }
 
 for i in $(seq 1 $WAIT_FOR_TIMEOUT); do
-  echo "Checking database connection and schema version"
+  echo "Checking database connectivity and schema version"
   if checkSchemaVersion ; then
     echo "Checking Redis connectivity"
     if /scripts/rails-redis-ping ; then
