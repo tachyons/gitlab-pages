@@ -15,10 +15,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/deprecatedargs"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/validateargs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -58,7 +58,7 @@ var (
 	_                       = flag.String("admin-https-listener", "", "DEPRECATED")
 	_                       = flag.String("admin-https-cert", "", "DEPRECATED")
 	_                       = flag.String("admin-https-key", "", "DEPRECATED")
-	secret                  = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long.")
+	secret                  = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long")
 	gitLabAuthServer        = flag.String("auth-server", "", "DEPRECATED, use gitlab-server instead. GitLab server, for example https://www.gitlab.com")
 	gitLabServer            = flag.String("gitlab-server", "", "GitLab server, for example https://www.gitlab.com")
 	internalGitLabServer    = flag.String("internal-gitlab-server", "", "Internal GitLab server used for API requests, useful if you want to send that traffic over an internal load balancer, example value https://www.gitlab.com (defaults to value of gitlab-server)")
@@ -240,8 +240,12 @@ func initErrorReporting(sentryDSN, sentryEnvironment string) {
 }
 
 func loadConfig() appConfig {
-	if err := deprecatedargs.Validate(os.Args[1:]); err != nil {
-		log.WithError(err)
+	if err := validateargs.NotAllowed(os.Args[1:]); err != nil {
+		log.WithError(err).Fatal("Using invalid arguments, use -config=gitlab-pages-config file instead")
+	}
+
+	if err := validateargs.Deprecated(os.Args[1:]); err != nil {
+		log.WithError(err).Warn("Using deprecated arguments")
 	}
 
 	config := configFromFlags()
@@ -286,6 +290,7 @@ func loadConfig() appConfig {
 func appMain() {
 	var showVersion = flag.Bool("version", false, "Show version")
 
+	// read from -config=/path/to/gitlab-pages-config
 	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
 	flag.Parse()
 	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {

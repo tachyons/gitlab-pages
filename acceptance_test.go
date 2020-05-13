@@ -650,7 +650,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			host:         "group.gitlab-example.com",
 			path:         "/-/private/-/jobs/1/artifacts/delayed_200.html",
 			status:       http.StatusBadGateway,
-			binaryOption: "-artifacts-server-timeout=1",
+			binaryOption: "artifacts-server-timeout=1",
 		},
 		{
 			name:         "Proxying 404 from server",
@@ -676,19 +676,20 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	for _, tt := range tests {
 
 		t.Run(tt.name, func(t *testing.T) {
+			configFile, cleanup := defaultConfigFileWith(t,
+				"artifacts-server="+artifactServerURL,
+				"auth-server="+testServer.URL,
+				"auth-redirect-uri=https://projects.gitlab-example.com/auth",
+				tt.binaryOption)
+			defer cleanup()
+
 			teardown := RunPagesProcessWithSSLCertFile(
 				t,
 				*pagesBinary,
 				listeners,
 				"",
 				certFile,
-				"-artifacts-server="+artifactServerURL,
-				"-auth-client-id=1",
-				"-auth-client-secret=1",
-				"-auth-server="+testServer.URL,
-				"-auth-redirect-uri=https://projects.gitlab-example.com/auth",
-				"-auth-secret=something-very-secret",
-				tt.binaryOption,
+				"-config="+configFile,
 			)
 			defer teardown()
 
@@ -856,7 +857,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	require.Equal(t, "https", url.Scheme)
 	require.Equal(t, "gitlab-auth.com", url.Host)
 	require.Equal(t, "/oauth/authorize", url.Path)
-	require.Equal(t, "1", url.Query().Get("client_id"))
+	require.Equal(t, "clientID", url.Query().Get("client_id"))
 	require.Equal(t, "https://projects.gitlab-example.com/auth", url.Query().Get("redirect_uri"))
 	require.NotEqual(t, "", url.Query().Get("state"))
 }

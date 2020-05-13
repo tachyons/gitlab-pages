@@ -1,3 +1,11 @@
+v 1.18.0
+
+- Fix proxying artifacts with escaped characters !255
+- Introduce internal-gitlab-server flag to allow using the internal network for communicating to the GitLab server !276
+- Increase maximum idle connections pool size from 2 to 100 !274
+- Disable passing auth-related secret parameters as command line flags !269
+- Fix unused idle API connection bug !275
+
 v 1.17.0
 
 - Extract health check in its own middleware !247

@@ -29,17 +29,12 @@ current requests.
   the generated configuration for virtual hosts. If present, it uses the TLS
   key and certificate in `config.json`, otherwise it falls back to the global
   configuration.
-
 2. When client connects to a HTTP port the GitLab-Pages daemon looks in the
    generated configuration for a matching virtual host.
-
 3. The URL.Path is split into `/<project>/<subpath>` and the daemon tries to
    load: `pages-root/group/project/public/subpath`.
-
 4. If the file is not found, it will try to load `pages-root/group/<host>/public/<URL.Path>`.
-
 5. If requested path is a directory, the `index.html` will be served.
-
 6. If `.../path.gz` exists, it will be served instead of the main file, with
    a `Content-Encoding: gzip` header. This allows compressed versions of the
    files to be precalculated, saving CPU time and network bandwidth.

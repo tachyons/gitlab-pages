@@ -618,7 +618,7 @@ func New(pagesDomain string, storeSecret string, clientID string, clientSecret s
 		gitLabServer: strings.TrimRight(gitLabServer, "/"),
 		apiClient: &http.Client{
 			Timeout:   5 * time.Second,
-			Transport: httptransport.Transport,
+			Transport: httptransport.InternalTransport,
 		},
 		store: createCookieStore(storeSecret),
 	}

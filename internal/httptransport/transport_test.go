@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -88,4 +89,11 @@ type mockRoundTripper struct {
 
 func (mrt *mockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	return mrt.res, mrt.err
+}
+
+func TestInternalTransportShouldHaveCustomConnectionPoolSettings(t *testing.T) {
+	require.EqualValues(t, 100, InternalTransport.MaxIdleConns)
+	require.EqualValues(t, 100, InternalTransport.MaxIdleConnsPerHost)
+	require.EqualValues(t, 0, InternalTransport.MaxConnsPerHost)
+	require.EqualValues(t, 90*time.Second, InternalTransport.IdleConnTimeout)
 }
