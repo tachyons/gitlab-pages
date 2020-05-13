@@ -70,33 +70,11 @@ function checkSchemaVersion() {
     return $?
 }
 
-function checkRedisConnectivity() {
-  echo "Checking Redis connectivity"
-  redis_files=(
-      resque.yml
-      redis.cache.yml
-      redis.queues.yml
-      redis.shared_state.yml
-  )
-  for x in $redis_files ; do
-    if [ -f /srv/gitlab/config/$x ]; then
-      echo "  - checking $x"
-      /scripts/rails-redis-ping $x
-      if [ $? -ne 0 ]; then
-        return 1
-      else
-        echo "    GOOD"
-      fi
-    fi
-  done
-  return 0
-}
-
-
 for i in $(seq 1 $WAIT_FOR_TIMEOUT); do
   echo "Checking database connection and schema version"
   if checkSchemaVersion ; then
-    if checkRedisConnectivity ; then
+    echo "Checking Redis connectivity"
+    if /scripts/rails-redis-ping ; then
       if [ "$@" ]; then
         exec "$@"
       else

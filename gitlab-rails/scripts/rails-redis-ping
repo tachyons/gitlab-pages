@@ -4,33 +4,37 @@ require 'bundler/setup'
 require 'yaml'
 require 'redis'
 
-if ARGV.length != 1
-  puts <<-USAGE
-  Usage: rails-redis-ping resque-file
-  
-    - resque-file: file name of resque configuration file in /srv/gitlab/config
-  USAGE
-  exit 1
+def pingRedis(config)
+  had_error = false
+  begin
+    # configure the Redis client
+    redis = Redis.new(config)
+    print "- Attempting to connect to '#{redis._client.scheme}://#{redis._client.host}:#{redis._client.port}' "
+    # "ping" the server
+    redis.ping
+  rescue RuntimeError => e
+    puts "FAILURE"
+    puts "  ERROR: #{e.message}"
+    had_error = true
+  else
+    # nicely disconnect
+    redis.disconnect!
+    puts "SUCCESS"
+    had_error = false
+  end
 end
 
-# pull & prep the config object
-resque_file = "/srv/gitlab/config/#{ARGV[0]}"
-resque_yaml = YAML.load_file(resque_file)
-config = resque_yaml["production"]
 
-begin
-  # configure the Redis client
-  redis = Redis.new(config)
+checksPassed = 0
+Dir.chdir("/srv/gitlab/config")
+files = Dir.glob(["resque.yml", "redis\..*.yml"])
+files.each { |resque_file|
+  resque_yaml = YAML.load_file(resque_file)
+  puts "Checking '#{resque_file}'"
+  success = pingRedis(resque_yaml["production"])
+  checksPassed += 1 if success
+}
 
-  # "ping" the server
-  redis.ping
-rescue RuntimeError => e
-  puts e.message
-else
-  # nicely disconnect
-  redis.disconnect!
-  # exit 0 if we succeed.
-  exit
-end
-
-exit 1
+# - Ruby treats true as 1, false as 0
+# - Sheel treads 0 as success, 1 as failure.
+exit !(checksPassed == files.count)
