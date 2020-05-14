@@ -12,6 +12,7 @@ RUN buildDeps=' \
     cmake \
     gcc \
     g++ \
+    patch \
     libicu-dev \
     libpcre2-dev \
     libcurl4-gnutls-dev \
@@ -22,10 +23,13 @@ RUN buildDeps=' \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p ${BUILD_DIR}
 
+COPY patches/ ${BUILD_DIR}/patches
+
 RUN cd ${BUILD_DIR} \
     && curl --retry 6 -so git.tar.gz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz" \
     && tar -xf git.tar.gz \
     && cd ${BUILD_DIR}/git-${GIT_VERSION} \
+    && patch ${BUILD_DIR}/patches/v3-0001-upload-pack-clear-filter_options-for-each-v2-fetc.patc \
     && echo "USE_LIBPCRE2=YesPlease \n\
 NO_PERL=YesPlease \n\
 NO_EXPAT=YesPlease \n\
