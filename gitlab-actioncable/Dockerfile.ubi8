@@ -13,8 +13,7 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab" \
       vendor="GitLab" \
       version=${GITLAB_VERSION} \
       release=${GITLAB_VERSION} \
-      summary="GitLab Action Cable Service runs the GitLab Rails application with web-socket
-enabled Puma web server." \
+      summary="GitLab Action Cable Service runs the GitLab Rails application with web-socket enabled Puma web server." \
       description="GitLab Action Cable Service runs the GitLab Rails application with
 websocket-enabled Puma web server."
 
