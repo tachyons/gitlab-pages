@@ -44,22 +44,36 @@ included in the next major or minor release as usual.
 The fix may be cherry-picked into each relevant stable branch, and a new patch
 release made in the same way as defined above.
 
-
-
-When updating `GITLAB_PAGES_VERSION` in the [GitLab](https://gitlab.com/gitlab-org/gitlab-ce)
+When updating `GITLAB_PAGES_VERSION` in the [GitLab](https://gitlab.com/gitlab-org/gitlab)
 repository, you should target the relevant `X-Y-stable` branches there. In
 general, these branches should only ever have the patch version of GitLab pages
 incremented.
 
 ## Security releases
 
-We follow general [security release workflow](https://about.gitlab.com/handbook/engineering/workflow/#security-issues) for pages releases.
-Use [Security Release](.gitlab/merge_request_templates/Security Release.md) template for security related merge requests.
+Pages security releases are built on top of the [GitLab Security Release process]. Engineers follow
+the same steps stated on the [Security Developer] guidelines with some adjustments:
 
-### After security release has been published
+- Apart from the [security merge requests] created on [GitLab Security], merge requests will also be created on [GitLab Pages Security]:
+  - Security merge requests are required to use the [merge request security template].
+  - Merge request targeting `master` is prepared with the GitLab Pages security fix.
+  - Backports are prepared for the last releases corresponding to last 3 GitLab releases.
+- Security merge requests created on [GitLab Security] will bump the `GITLAB_PAGES_VERSION`.
+- Once the merge requests on [GitLab Pages Security] are approved:
+  - Maintainers of GitLab Pages will merge the security merge requests **targeting stable branches** and create a new tag for these branches.
+  - Merge requests on GitLab Security are assigned to `@gitlab-release-tools-bot` so they can be automatically processed by [Release Tools].
 
-Maintainer needs to manually sync tags and branches from dev.gitlab.org to gitlab.com:
+- After the security release is published, maintainers of GitLab Pages:
+  - Merge the merge requests targeting `master`.
+  - Branches and tags across [GitLab Pages Security] and [GitLab Pages] are synced:
+    - `Master` and stable branches.
+    - Affected `v*.*.*` tags.
 
-- [ ] Sync `master` branch
-- [ ] Sync affected `*-*-stable` branches
-- [ ] Sync affected `v*.*.*` tags
+[GitLab Security Release process]: https://gitlab.com/gitlab-org/release/docs/blob/master/general/security/process.md
+[Security Developer]: https://gitlab.com/gitlab-org/release/docs/blob/master/general/security/developer.md
+[GitLab Pages Security]: https://gitlab.com/gitlab-org/security/gitlab-pages/
+[security merge requests]: https://gitlab.com/gitlab-org/release/docs/blob/master/general/security/developer.md#create-merge-requests
+[GitLab Security]: https://gitlab.com/gitlab-org/security/gitlab/
+[merge request security template]: https://gitlab.com/gitlab-org/gitlab-pages/-/blob/master/.gitlab/merge_request_templates/Security%20Release.md
+[Release Tools]: https://gitlab.com/gitlab-org/release-tools/
+[GitLab Pages]: https://gitlab.com/gitlab-org/gitlab-pages
