@@ -35,7 +35,7 @@ RELEASE_PATH="${2}"
 SOURCE="${3:-.}"
 
 DOCKERFILE_EXT='.ubi8'
-NEXUS_UBI_IMAGE='${BASE_REGISTRY}/redhat/ubi/ubi8:8.1'
+NEXUS_UBI_IMAGE='${BASE_REGISTRY}/redhat/ubi/ubi8:8.2'
 ASSET_SHA_FILE="/tmp/deps-${RELEASE_TAG}.tar.sha256"
 ASSET_PUB_KEY_ID='5c7738cc4840f93f6e9170ff5a0e20d5f9706778'
 
@@ -82,7 +82,7 @@ duplicateImageDir() {
 
 prependBaseArgs() {
   local DOCKERFILE="${1}"
-  local IMAGE_TAG="${2:-8.1}"
+  local IMAGE_TAG="${2:-8.2}"
   local BASE_IMAGE_PATH="${3:-redhat/ubi/ubi8}"
   cat - "${DOCKERFILE}" > "${DOCKERFILE}.0" <<-EOF
 ARG GITLAB_VERSION=${RELEASE_TAG}
