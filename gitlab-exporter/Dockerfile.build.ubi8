@@ -12,6 +12,7 @@ RUN mkdir /assets \
     && mv /usr/local/postgresql/lib/* /usr/lib/ \
     && mv /usr/local/postgresql/include/* /usr/include/ \
     && mv /usr/local/postgresql/share/* /usr/share/ \
+    && ldconfig \
     && gem install gitlab-exporter -v ${GITLAB_EXPORTER_VERSION} \
     && cp -R --parents \
         /usr/lib/ruby/gems \

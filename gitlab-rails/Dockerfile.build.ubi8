@@ -27,6 +27,7 @@ RUN mkdir /assets \
     && cp -R /usr/local/postgresql/lib/* /usr/lib/ \
     && cp -R /usr/local/postgresql/include/* /usr/include/ \
     && cp -R /usr/local/postgresql/share/* /usr/share/ \
+    && ldconfig \
     && curl --retry 6 -L https://github.com/google/re2/archive/${LIBRE2_VERSION}.tar.gz | tar -xz \
     && cd re2-${LIBRE2_VERSION} \
     && make \
