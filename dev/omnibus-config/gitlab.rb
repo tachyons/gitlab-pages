@@ -1,6 +1,7 @@
 postgresql['enable'] = true
 redis['enable'] = true
 unicorn['enable'] = false
+puma['enable'] = false
 sidekiq['enable'] = false
 mailroom['enable'] = false
 gitlab_exporter['enable'] = false
