@@ -14,8 +14,7 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab" \
       version=${GITLAB_VERSION} \
       release=${GITLAB_VERSION} \
       summary="GitLab Action Cable Service runs the GitLab Rails application with web-socket enabled Puma web server." \
-      description="GitLab Action Cable Service runs the GitLab Rails application with
-websocket-enabled Puma web server."
+      description="GitLab Action Cable Service runs the GitLab Rails application with websocket-enabled Puma web server."
 
 ADD gitlab-actioncable-ee.tar.gz /
 ADD gitlab-python.tar.gz /

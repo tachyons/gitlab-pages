@@ -31,7 +31,7 @@ queue_requests false
 
 # Bind the server to "url". "tcp://", "unix://" and "ssl://" are the only
 # accepted protocols.
-bind "tcp://0.0.0.0:#{ENV['INTERNAL_PORT'] ||= '8081'}"
+bind "tcp://0.0.0.0:#{ENV['INTERNAL_PORT'] ||= '8280'}"
 
 workers (ENV['WORKER_PROCESSES'] ||= '3').to_i
 
