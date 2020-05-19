@@ -65,13 +65,15 @@ var (
 	gitLabAPISecretKey      = flag.String("api-secret-key", "", "File with secret key used to authenticate with the GitLab API")
 	gitlabClientHTTPTimeout = flag.Duration("gitlab-client-http-timeout", 10*time.Second, "GitLab API HTTP client connection timeout in seconds (default: 10s)")
 	gitlabClientJWTExpiry   = flag.Duration("gitlab-client-jwt-expiry", 30*time.Second, "JWT Token expiry time in seconds (default: 30s)")
-	clientID                = flag.String("auth-client-id", "", "GitLab application Client ID")
-	clientSecret            = flag.String("auth-client-secret", "", "GitLab application Client Secret")
-	redirectURI             = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
-	maxConns                = flag.Uint("max-conns", 5000, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners")
-	insecureCiphers         = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
-	tlsMinVersion           = flag.String("tls-min-version", "tls1.2", tlsconfig.FlagUsage("min"))
-	tlsMaxVersion           = flag.String("tls-max-version", "", tlsconfig.FlagUsage("max"))
+	// TODO: implement functionality for disk, auto and gitlab https://gitlab.com/gitlab-org/gitlab/-/issues/217912
+	domainConfigSource = flag.String("domain-config-source", "disk", "Domain configuration source 'disk', 'auto' or 'gitlab' (default: 'disk')")
+	clientID           = flag.String("auth-client-id", "", "GitLab application Client ID")
+	clientSecret       = flag.String("auth-client-secret", "", "GitLab application Client Secret")
+	redirectURI        = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
+	maxConns           = flag.Uint("max-conns", 5000, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners")
+	insecureCiphers    = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
+	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tlsconfig.FlagUsage("min"))
+	tlsMaxVersion      = flag.String("tls-max-version", "", tlsconfig.FlagUsage("max"))
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
@@ -193,6 +195,7 @@ func configFromFlags() appConfig {
 	config.InternalGitLabServer = internalGitLabServerFromFlags()
 	config.GitlabClientHTTPTimeout = *gitlabClientHTTPTimeout
 	config.GitlabJWTTokenExpiration = *gitlabClientJWTExpiry
+	config.DomainConfigurationSource = *domainConfigSource
 	config.StoreSecret = *secret
 	config.ClientID = *clientID
 	config.ClientSecret = *clientSecret

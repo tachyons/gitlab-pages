@@ -12,8 +12,9 @@ import (
 )
 
 type sourceConfig struct {
-	api    string
-	secret string
+	api          string
+	secret       string
+	domainSource string
 }
 
 func (c sourceConfig) InternalGitLabServerURL() string {
@@ -29,6 +30,10 @@ func (c sourceConfig) GitlabClientConnectionTimeout() time.Duration {
 
 func (c sourceConfig) GitlabJWTTokenExpiry() time.Duration {
 	return 30 * time.Second
+}
+
+func (c sourceConfig) DomainConfigSource() string {
+	return c.domainSource
 }
 
 func TestDomainSources(t *testing.T) {
