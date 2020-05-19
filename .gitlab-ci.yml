@@ -54,9 +54,19 @@ license_scanning:
   stage: prepare
   variables:
     LICENSE_MANAGEMENT_SETUP_CMD: go mod vendor
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == 'master'
+      when: on_success
 
 sast:
   stage: prepare
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == 'master'
+      when: on_success
 
 download deps:
   extends: .go-mod-cache
