@@ -16,7 +16,8 @@ ADD gitlab-rails-ee.tar.gz /
 
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
-RUN mkdir /assets \
+RUN ldconfig \
+    && mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
     && curl --retry 6 https://gitlab.com/gitlab-org/build/omnibus-mirror/exiftool/-/archive/${EXIFTOOL_VERSION}/exiftool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
     && cd exiftool-${EXIFTOOL_VERSION} \

@@ -33,7 +33,8 @@ RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts /srv/gitlab \
     && chown ${GITLAB_USER}:${GITLAB_USER} /home/git/gitlab-shell \
     && ln -s /srv/gitlab/GITLAB_SHELL_VERSION /home/git/gitlab-shell/VERSION \
     && sed -e '/host: localhost/d' -e '/port: 80/d' -i config/gitlab.yml \
-    && sed -e "s/# user:.*/user: ${GITLAB_USER}/" -e "s:/home/git/repositories:${GITLAB_DATA}/repo:" -i config/gitlab.yml
+    && sed -e "s/# user:.*/user: ${GITLAB_USER}/" -e "s:/home/git/repositories:${GITLAB_DATA}/repo:" -i config/gitlab.yml \
+    && ldconfig
 
 ENV RAILS_ENV=production
 ENV EXECJS_RUNTIME=Disabled

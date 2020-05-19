@@ -28,7 +28,8 @@ RUN dnf clean all \
     && dnf ${DNF_OPTS} install -by --nodocs procps uuid \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p /var/log/gitlab ${CONFIG_DIRECTORY} \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab ${CONFIG_DIRECTORY}
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab ${CONFIG_DIRECTORY} \
+    && ldconfig
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
