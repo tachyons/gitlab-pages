@@ -1,5 +1,5 @@
 include:
-  - template: Security/License-Management.gitlab-ci.yml
+  - template: Security/License-Scanning.gitlab-ci.yml
   - template: Security/SAST.gitlab-ci.yml
   - template: Security/Dependency-Scanning.gitlab-ci.yml
 
@@ -50,7 +50,7 @@ default:
     paths:
       - bin/gitlab-pages
 
-license_management:
+license_scanning:
   stage: prepare
   variables:
     LICENSE_MANAGEMENT_SETUP_CMD: go mod vendor
