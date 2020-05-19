@@ -41,7 +41,7 @@ type Domains struct {
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
 func NewDomains(config Config) (*Domains, error) {
-	// TODO: choose domain source config via config.DomainSourceConfig()
+	// TODO: choose domain source config via config.DomainConfigSource()
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/217912
 
 	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {

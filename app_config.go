@@ -27,19 +27,19 @@ type appConfig struct {
 	LogFormat  string
 	LogVerbose bool
 
-	StoreSecret              string
-	GitLabServer             string
-	InternalGitLabServer     string
-	GitLabAPISecretKey       []byte
-	GitlabClientHTTPTimeout  time.Duration
-	GitlabJWTTokenExpiration time.Duration
-	DomainSource             string
-	ClientID                 string
-	ClientSecret             string
-	RedirectURI              string
-	SentryDSN                string
-	SentryEnvironment        string
-	CustomHeaders            []string
+	StoreSecret               string
+	GitLabServer              string
+	InternalGitLabServer      string
+	GitLabAPISecretKey        []byte
+	GitlabClientHTTPTimeout   time.Duration
+	GitlabJWTTokenExpiration  time.Duration
+	DomainConfigurationSource string
+	ClientID                  string
+	ClientSecret              string
+	RedirectURI               string
+	SentryDSN                 string
+	SentryEnvironment         string
+	CustomHeaders             []string
 }
 
 // InternalGitLabServerURL returns URL to a GitLab instance.
@@ -60,6 +60,6 @@ func (config appConfig) GitlabJWTTokenExpiry() time.Duration {
 	return config.GitlabJWTTokenExpiration
 }
 
-func (config appConfig) DomainSourceConfig() string {
-	return config.DomainSource
+func (config appConfig) DomainConfigSource() string {
+	return config.DomainConfigurationSource
 }

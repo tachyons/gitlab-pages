@@ -32,7 +32,7 @@ func (c sourceConfig) GitlabJWTTokenExpiry() time.Duration {
 	return 30 * time.Second
 }
 
-func (c sourceConfig) DomainSourceConfig() string {
+func (c sourceConfig) DomainConfigSource() string {
 	return c.domainSource
 }
 
