@@ -9,7 +9,7 @@ ENV LANG=C.UTF-8
 RUN mkdir /assets \
     && curl --retry 6 -L https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz -o Python-${PYTHON_VERSION}.tgz \
     && curl --retry 6 -L https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz.asc -o Python-${PYTHON_VERSION}.tgz.asc \
-    && gpg2 --list-keys --fingerprint && echo -e "keyserver hkps://keys.openpgp.org\nkeyserver pgp.mit.edu\nkeyserver hkp://keyserver.ubuntu.com:80" > ~/.gnupg/dirmngr.conf" \
+    && gpg2 --list-keys --fingerprint && echo -e "keyserver hkps://keys.openpgp.org\nkeyserver pgp.mit.edu\nkeyserver hkp://keyserver.ubuntu.com:80" > ~/.gnupg/dirmngr.conf \
     && gpg2 --auto-key-retrieve --verify Python-${PYTHON_VERSION}.tgz.asc Python-${PYTHON_VERSION}.tgz \
     && tar -xzf Python-${PYTHON_VERSION}.tgz \
     && cd Python-${PYTHON_VERSION} \
