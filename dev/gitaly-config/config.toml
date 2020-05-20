@@ -50,14 +50,14 @@ dir = "/srv/gitaly-ruby"
 [gitlab-shell]
 # The directory where gitlab-shell is installed
 dir = "/srv/gitlab-shell"
+
+[gitlab]
 # location of shared secret for GitLab Shell / API interaction
 secret_file = "/etc/gitaly/.gitlab_shell_secret"
-# directory containing custom hooks
-custom_hooks_dir = "/home/git/custom_hooks"
 # URL of API
-gitlab_url = "http://webservice:8080/"
+url = "http://webservice:8080/"
 
-[gitlab-shell.http-settings]
+[gitlab.http-settings]
 # read_timeout = 300
 # user = someone
 # password = somepass
@@ -65,6 +65,9 @@ gitlab_url = "http://webservice:8080/"
 # ca_path = /etc/pki/tls/certs
 self_signed_cert = false
 
+[hooks]
+# directory containing custom hooks
+custom_hooks_dir = "/home/git/custom_hooks"
 
 # # You can adjust the concurrency of each RPC endpoint
 # [[concurrency]]
