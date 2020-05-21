@@ -2,7 +2,7 @@ run:
   concurrency: 8
   deadline: 1m
   issues-exit-code: 1
-  modules-download-mode: vendor
+  modules-download-mode: readonly
   tests: true
   skip-dirs:
     - vendor
