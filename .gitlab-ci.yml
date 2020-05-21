@@ -87,8 +87,8 @@ download deps:
       - go.sum
 
 cover:
-  stage: test
   extends: .go-mod-cache
+  stage: test
   needs: ['download deps']
   script:
     - make setup
@@ -101,8 +101,8 @@ cover:
 
 lint:
   extends: .go-mod-cache
-  needs: ['download deps']
   stage: test
+  needs: ['download deps']
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
   script:
     # Write the code coverage report to gl-code-quality-report.json
