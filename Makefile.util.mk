@@ -5,7 +5,6 @@ GOLANGCI_LINT_IMAGE := registry.gitlab.com/gitlab-org/gitlab-build-images:golang
 lint: deps-download
 	docker run -v $(PWD):/app -w /app $(GOLANGCI_LINT_IMAGE) \
 	sh -c "golangci-lint run --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | \"\(.location.path):\(.location.lines.begin) \(.description)\"'"
-#		sh -c "golangci-lint run  $(if $V,-v)"
 
 test: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) $(allpackages)

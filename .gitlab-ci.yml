@@ -91,9 +91,9 @@ cover:
   extends: .go-mod-cache
   needs: ['download deps']
   script:
-      - make setup
-      - make generate-mocks
-      - make cover
+    - make setup
+    - make generate-mocks
+    - make cover
   coverage: '/total:.+\(statements\).+\d+\.\d+/'
   artifacts:
     paths:
@@ -109,10 +109,10 @@ lint:
     # and print linting issues to stdout in the format: path/to/file:line description
     - golangci-lint run --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | "\(.location.path):\(.location.lines.begin) \(.description)"'
   artifacts:
-     reports:
+    reports:
       codequality: gl-code-quality-report.json
-     paths:
-       - gl-code-quality-report.json
+    paths:
+      - gl-code-quality-report.json
 
 test:1.12:
   extends: .tests
