@@ -1,18 +1,11 @@
-.PHONY: verify fmt vet lint complexity test cover list
+GOLANGCI_LINT_IMAGE := registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
 
-verify: list fmt vet lint complexity
+.PHONY: lint test race acceptance bench cover list deps-check deps-download
 
-fmt: bin/goimports .GOPATH/.ok
-	$Q @_support/validate-formatting.sh $(allfiles)
-
-vet: .GOPATH/.ok
-	$Q go vet $(allpackages)
-
-lint: bin/golint
-	$Q ./bin/golint $(allpackages) | tee | ( ! grep -v "^$$" )
-
-complexity: .GOPATH/.ok bin/gocyclo
-	$Q ./bin/gocyclo -over 9 $(allfiles)
+lint: deps-download
+	docker run -v $(PWD):/app -w /app $(GOLANGCI_LINT_IMAGE) \
+	sh -c "golangci-lint run --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | \"\(.location.path):\(.location.lines.begin) \(.description)\"'"
+#		sh -c "golangci-lint run  $(if $V,-v)"
 
 test: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) $(allpackages)

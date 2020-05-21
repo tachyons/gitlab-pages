@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,9 +8,7 @@ import (
 
 func TestMultiStringFlagAppendsOnSet(t *testing.T) {
 	var concrete MultiStringFlag
-	var iface flag.Value
-
-	iface = &concrete
+	iface := &concrete
 
 	require.NoError(t, iface.Set("foo"))
 	require.NoError(t, iface.Set("bar"))

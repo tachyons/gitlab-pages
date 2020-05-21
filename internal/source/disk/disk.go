@@ -31,9 +31,7 @@ func (d *Disk) GetDomain(host string) (*domain.Domain, error) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	domain, _ := d.dm[host]
-
-	return domain, nil
+	return d.dm[host], nil
 }
 
 // IsReady checks if the domains source is ready for work. The disk source is

@@ -16,6 +16,11 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
+const (
+	testAccessToken = "abc"
+	apiPagesAccess  = "/api/v4/projects/1000/pages_access"
+)
+
 func createAuth(t *testing.T) *Auth {
 	return New("pages.gitlab-example.com",
 		"something-very-secret",
@@ -98,7 +103,7 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 			require.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
-		case "/api/v4/projects/1000/pages_access":
+		case apiPagesAccess:
 			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
@@ -150,7 +155,7 @@ func TestTryAuthenticateWithCodeAndStateOverHTTPS(t *testing.T) {
 func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v4/projects/1000/pages_access":
+		case apiPagesAccess:
 			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
 		default:
@@ -178,7 +183,7 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 
 	session, _ := store.Get(r, "gitlab-pages")
-	session.Values["access_token"] = "abc"
+	session.Values["access_token"] = testAccessToken
 	session.Save(r, result)
 
 	require.Equal(t, false, auth.CheckAuthentication(result, r, 1000))
@@ -188,7 +193,7 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v4/projects/1000/pages_access":
+		case apiPagesAccess:
 			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 		default:
@@ -216,7 +221,7 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 
 	session, _ := store.Get(r, "gitlab-pages")
-	session.Values["access_token"] = "abc"
+	session.Values["access_token"] = testAccessToken
 	session.Save(r, result)
 
 	require.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
@@ -226,7 +231,7 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v4/projects/1000/pages_access":
+		case apiPagesAccess:
 			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
@@ -254,7 +259,7 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 
 	session, _ := store.Get(r, "gitlab-pages")
-	session.Values["access_token"] = "abc"
+	session.Values["access_token"] = testAccessToken
 	session.Save(r, result)
 
 	require.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
@@ -292,7 +297,7 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 
 	session, _ := store.Get(r, "gitlab-pages")
-	session.Values["access_token"] = "abc"
+	session.Values["access_token"] = testAccessToken
 	session.Save(r, result)
 
 	require.Equal(t, false, auth.CheckAuthenticationWithoutProject(result, r))
@@ -329,7 +334,7 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
 	session, _ := store.Get(r, "gitlab-pages")
-	session.Values["access_token"] = "abc"
+	session.Values["access_token"] = testAccessToken
 	session.Save(r, result)
 
 	require.Equal(t, true, auth.CheckAuthenticationWithoutProject(result, r))
@@ -358,11 +363,11 @@ func TestGetTokenIfExistsWhenTokenExists(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 
 	session, _ := store.Get(r, "gitlab-pages")
-	session.Values["access_token"] = "abc"
+	session.Values["access_token"] = testAccessToken
 	session.Save(r, result)
 
 	token, err := auth.GetTokenIfExists(result, r)
-	require.Equal(t, "abc", token)
+	require.Equal(t, testAccessToken, token)
 }
 
 func TestGetTokenIfExistsWhenTokenDoesNotExist(t *testing.T) {

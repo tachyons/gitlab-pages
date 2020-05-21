@@ -15,11 +15,7 @@ type Disk struct {
 // ServeFileHTTP serves a file from disk and returns true. It returns false
 // when a file could not been found.
 func (s *Disk) ServeFileHTTP(h serving.Handler) bool {
-	if s.reader.tryFile(h) == nil {
-		return true
-	}
-
-	return false
+	return s.reader.tryFile(h) == nil
 }
 
 // ServeNotFoundHTTP tries to read a custom 404 page

@@ -3,6 +3,8 @@ shared/pages/.update
 /gitlab-pages
 /vendor
 /gitlab-pages-config
+/gl-code-quality-report.json
+/coverage.html
 
 # Used by the makefile
 /.GOPATH

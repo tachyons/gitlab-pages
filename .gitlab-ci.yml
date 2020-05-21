@@ -86,18 +86,32 @@ download deps:
       - go.mod
       - go.sum
 
-verify:
-  extends: .go-mod-cache
+cover:
   stage: test
+  extends: .go-mod-cache
   needs: ['download deps']
   script:
-    - make setup
-    - make generate-mocks
-    - make verify
-    - make cover
+      - make setup
+      - make generate-mocks
+      - make cover
   artifacts:
     paths:
       - coverage.html
+
+lint:
+  extends: .go-mod-cache
+  needs: ['download deps']
+  stage: test
+  image: registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
+  script:
+    # Write the code coverage report to gl-code-quality-report.json
+    # and print linting issues to stdout in the format: path/to/file:line description
+    - golangci-lint run --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | "\(.location.path):\(.location.lines.begin) \(.description)"'
+  artifacts:
+     reports:
+      codequality: gl-code-quality-report.json
+     paths:
+       - gl-code-quality-report.json
 
 test:1.12:
   extends: .tests
