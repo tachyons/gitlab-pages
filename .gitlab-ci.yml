@@ -94,6 +94,7 @@ cover:
       - make setup
       - make generate-mocks
       - make cover
+  coverage: '/total:.+\(statements\).+\d+\.\d+/'
   artifacts:
     paths:
       - coverage.html
