@@ -41,4 +41,4 @@ USER $GITLAB_USER:$GITLAB_USER
 ENV CONFIG_DIRECTORY=/etc/docker/registry
 ENV CONFIG_FILENAME=config.yml
 
-CMD /bin/registry serve ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
+CMD exec /bin/registry serve ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
