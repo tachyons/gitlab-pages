@@ -34,16 +34,12 @@ Q := $(if $V,,@)
 	$Q ln -s ../bin .GOPATH/bin
 	$Q touch $@
 
-.PHONY: bin/gocovmerge bin/goimports bin/gocyclo bin/golint
+.PHONY: bin/gocovmerge bin/golangci-lint
 bin/gocovmerge: .GOPATH/.ok
 	@test -x $@ || \
 	    { echo "Vendored gocovmerge not found, try running 'make setup'..."; exit 1; }
-bin/gocyclo: .GOPATH/.ok
+
+bin/golangci-lint: .GOPATH/.ok
 	@test -x $@ || \
-	    { echo "Vendored gocyclo not found, try running 'make setup'..."; exit 1; }
-bin/goimports: .GOPATH/.ok
-	@test -x $@ || \
-	    { echo "Vendored goimports not found, try running 'make setup'..."; exit 1; }
-bin/golint: .GOPATH/.ok
-	@test -x $@ || \
-	    { echo "Vendored golint not found, try running 'make setup'..."; exit 1; }
+	    { echo "Vendored golangci-lint not found, try running 'make setup'..."; exit 1; }
+

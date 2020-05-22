@@ -23,6 +23,8 @@ linters-settings:
   goconst:
     min-len: 3
     min-occurrences: 3
+  goimports:
+    local-prefixes: gitlab.com/gitlab-org/gitlab-pages
 
 linters:
   disable-all: true
