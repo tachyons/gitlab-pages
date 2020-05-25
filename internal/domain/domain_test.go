@@ -1,11 +1,7 @@
 package domain
 
 import (
-	"compress/gzip"
-	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"os"
 	"testing"
 
@@ -86,33 +82,6 @@ func TestIsHTTPSOnly(t *testing.T) {
 			require.Equal(t, test.expected, test.domain.IsHTTPSOnly(req))
 		})
 	}
-}
-
-func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, acceptEncoding string, str interface{}, contentType string, ungzip bool) {
-	w := httptest.NewRecorder()
-	req, err := http.NewRequest(mode, url+"?"+values.Encode(), nil)
-	require.NoError(t, err)
-	if acceptEncoding != "" {
-		req.Header.Add("Accept-Encoding", acceptEncoding)
-	}
-	handler(w, req)
-
-	if ungzip {
-		reader, err := gzip.NewReader(w.Body)
-		require.NoError(t, err)
-		defer reader.Close()
-
-		contentEncoding := w.Header().Get("Content-Encoding")
-		require.Equal(t, "gzip", contentEncoding, "Content-Encoding")
-
-		bytes, err := ioutil.ReadAll(reader)
-		require.NoError(t, err)
-		require.Contains(t, string(bytes), str)
-	} else {
-		require.Contains(t, w.Body.String(), str)
-	}
-
-	require.Equal(t, contentType, w.Header().Get("Content-Type"))
 }
 
 func TestPredefined404ServeHTTP(t *testing.T) {

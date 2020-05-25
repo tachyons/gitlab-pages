@@ -31,8 +31,8 @@ linters:
   enable:
 # TODO: enable these linters on a separate MR  https://gitlab.com/gitlab-org/gitlab-pages/-/issues/385#linters
 #    - bodyclose
-#    - deadcode
-#    - dogsled
+    - deadcode
+    - dogsled
     - goconst
     - gocyclo
     - goimports

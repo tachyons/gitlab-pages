@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,7 +14,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
-	mimedb "gitlab.com/lupine/go-mimedb"
+	"gitlab.com/lupine/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
@@ -32,18 +31,11 @@ import (
 )
 
 const (
-	xForwardedProto      = "X-Forwarded-Proto"
-	xForwardedHost       = "X-Forwarded-Host"
-	xForwardedProtoHTTPS = "https"
+	xForwardedHost = "X-Forwarded-Host"
 )
 
 var (
 	corsHandler = cors.New(cors.Options{AllowedMethods: []string{"GET"}})
-)
-
-var (
-	errStartListener = errors.New("Could not start listener")
-	errX509KeyPair   = errors.New("Could not initialize KeyPair")
 )
 
 type theApp struct {

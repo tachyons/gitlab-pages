@@ -47,7 +47,6 @@ var (
 	errFailAuth          = errors.New("Failed to authenticate request")
 	errAuthNotConfigured = errors.New("Authentication is not configured")
 	errQueryParameter    = errors.New("Failed to parse domain query parameter")
-	errAuthInvalidToken  = errors.New("Invalid token supplied")
 )
 
 // Auth handles authenticating users with GitLab API
