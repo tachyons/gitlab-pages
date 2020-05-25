@@ -87,7 +87,6 @@ func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 }
 
 func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
-
 	// Create or get session
 	session, errsession := a.getSessionFromStore(r)
 
@@ -148,7 +147,6 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains s
 }
 
 func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
-
 	if !validateState(r, session) {
 		// State is NOT ok
 		logRequest(r).Warn("Authentication state did not match expected")
@@ -483,7 +481,6 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, proje
 
 // CheckAuthenticationWithoutProject checks if user is authenticated and has a valid token
 func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request) bool {
-
 	if a == nil {
 		// No auth supported
 		return false

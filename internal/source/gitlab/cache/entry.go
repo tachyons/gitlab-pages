@@ -25,7 +25,6 @@ type Entry struct {
 }
 
 func newCacheEntry(domain string, refreshTimeout time.Duration, retriever *Retriever) *Entry {
-
 	return &Entry{
 		domain:         domain,
 		created:        time.Now(),

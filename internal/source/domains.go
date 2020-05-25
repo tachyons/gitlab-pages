@@ -18,7 +18,7 @@ var (
 	gitlabSourceConfig gitlabsourceconfig.GitlabSourceConfig
 
 	// serverlessDomainRegex is a regular expression we use to check if a domain
-	// is a serverless domain, to short circut gitlab source rollout. It can be
+	// is a serverless domain, to short circuit gitlab source rollout. It can be
 	// removed after the rollout is done
 	serverlessDomainRegex = regexp.MustCompile(`^[^.]+-[[:xdigit:]]{2}a1[[:xdigit:]]{10}f2[[:xdigit:]]{2}[[:xdigit:]]+-?.*`)
 )

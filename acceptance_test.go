@@ -291,7 +291,6 @@ func TestKnownHostWithPortReturns200(t *testing.T) {
 		rsp.Body.Close()
 		require.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
-
 }
 
 func TestHttpToHttpsRedirectDisabled(t *testing.T) {
@@ -576,7 +575,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 	t.Log("Artifact server URL", artifactServerURL)
 
 	for _, tt := range tests {
-
 		t.Run(tt.name, func(t *testing.T) {
 			teardown := RunPagesProcessWithSSLCertFile(
 				t,
@@ -674,7 +672,6 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	t.Log("Artifact server URL", artifactServerURL)
 
 	for _, tt := range tests {
-
 		t.Run(tt.name, func(t *testing.T) {
 			configFile, cleanup := defaultConfigFileWith(t,
 				"artifacts-server="+artifactServerURL,
@@ -731,6 +728,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 
 			// Request auth callback in project domain
 			authrsp, err = GetRedirectPageWithCookie(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery, cookie)
+			require.NoError(t, err)
 
 			// server returns the ticket, user will be redirected to the project page
 			require.Equal(t, http.StatusFound, authrsp.StatusCode)
@@ -847,6 +845,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	url, err := url.Parse(rsp.Header.Get("Location"))
 	require.NoError(t, err)
 	rsp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
+	require.NoError(t, err)
 
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
 	require.Equal(t, 1, len(rsp.Header["Location"]))
@@ -1074,7 +1073,6 @@ func sleepIfAuthorized(t *testing.T, authorization string, w http.ResponseWriter
 	} else {
 		w.WriteHeader(http.StatusNotFound)
 	}
-
 }
 
 func TestAccessControlUnderCustomDomain(t *testing.T) {
@@ -1139,6 +1137,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 
 	// Fetch page in custom domain
 	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/", cookie)
+	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, authrsp.StatusCode)
 }
 
@@ -1204,6 +1203,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 	// Fetch page in custom domain
 	authrsp, err = GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/",
 		cookie, true)
+	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, authrsp.StatusCode)
 }
 
@@ -1337,7 +1337,6 @@ func TestAccessControl(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-
 		t.Run(tt.name, func(t *testing.T) {
 			teardown := RunPagesProcessWithAuthServerWithSSL(t, *pagesBinary, listeners, "", certFile, testServer.URL)
 			defer teardown()
@@ -1380,6 +1379,7 @@ func TestAccessControl(t *testing.T) {
 
 			// Request auth callback in project domain
 			authrsp, err = GetRedirectPageWithCookie(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery, cookie)
+			require.NoError(t, err)
 
 			// server returns the ticket, user will be redirected to the project page
 			require.Equal(t, http.StatusFound, authrsp.StatusCode)

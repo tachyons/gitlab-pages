@@ -24,9 +24,7 @@ func New(auth internal.Auth, artifact internal.Artifact) *Handlers {
 
 func (a *Handlers) checkIfLoginRequiredOrInvalidToken(w http.ResponseWriter, r *http.Request, token string) func(*http.Response) bool {
 	return func(resp *http.Response) bool {
-
 		if resp.StatusCode == http.StatusNotFound {
-
 			if token == "" {
 				if !a.Auth.IsAuthSupported() {
 					// Auth is not supported, probably means no access or does not exist but we cannot try with auth

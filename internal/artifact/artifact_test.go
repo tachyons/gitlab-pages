@@ -84,7 +84,6 @@ func TestTryMakeRequest(t *testing.T) {
 			require.Equal(t, c.Length, result.Header().Get("Content-Length"))
 			require.Equal(t, c.CacheControl, result.Header().Get("Cache-Control"))
 			require.Equal(t, c.Content, result.Body.String())
-
 		})
 	}
 }

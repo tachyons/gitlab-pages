@@ -7,7 +7,7 @@ import (
 )
 
 // Rollout returns true and no error when during this run something should
-// happen for given actor according to the stickiness and likelyhood passed
+// happen for given actor according to the stickiness and likelihood passed
 // as a percentage value to this function. It returns false rollout and an
 // error if the percentage value is negative or higher than 100.
 func Rollout(actor string, percentage int, stickiness string) (bool, error) {

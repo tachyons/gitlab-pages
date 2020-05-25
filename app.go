@@ -95,10 +95,8 @@ func (a *theApp) domain(host string) (*domain.Domain, error) {
 
 func (a *theApp) checkAuthenticationIfNotExists(domain *domain.Domain, w http.ResponseWriter, r *http.Request) bool {
 	if domain == nil || !domain.HasLookupPath(r) {
-
 		// Only if auth is supported
 		if a.Auth.IsAuthSupported() {
-
 			// To avoid user knowing if pages exist, we will force user to login and authorize pages
 			if a.Auth.CheckAuthenticationWithoutProject(w, r) {
 				return true
@@ -267,7 +265,6 @@ func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 			// because the projects override the paths of the namespace project and they might be private even though
 			// namespace project is public.
 			if domain.IsNamespaceProject(r) {
-
 				if a.Auth.CheckAuthenticationWithoutProject(w, r) {
 					return
 				}
@@ -284,7 +281,6 @@ func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 // httpInitialMiddleware sets up HTTP requests
 func (a *theApp) httpInitialMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		handler.ServeHTTP(w, setRequestScheme(r))
 	})
 }
