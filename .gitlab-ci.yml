@@ -60,7 +60,15 @@ license_scanning:
     - if: $CI_COMMIT_BRANCH == 'master'
       when: on_success
 
-sast:
+secrets-sast:
+  stage: prepare
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == 'master'
+      when: on_success
+
+gosec-sast:
   stage: prepare
   rules:
     - if: $CI_MERGE_REQUEST_ID
