@@ -30,7 +30,7 @@ linters:
   disable-all: true
   enable:
 # TODO: enable these linters on a separate MR  https://gitlab.com/gitlab-org/gitlab-pages/-/issues/385#linters
-#    - bodyclose
+    - bodyclose
     - deadcode
     - dogsled
     - goconst
