@@ -27,5 +27,5 @@ require (
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
 	golang.org/x/sys v0.0.0-20200113162924-86b910548bc1
 	golang.org/x/tools v0.0.0-20200117161641-43d50277825c
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v2 v2.2.8
 )
