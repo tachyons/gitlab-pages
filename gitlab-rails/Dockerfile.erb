@@ -1,7 +1,7 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG=latest
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby"
-ARG PG_VERSION="10.11"
+ARG PG_VERSION="12.3"
 ARG PG_IMAGE="$CI_REGISTRY_IMAGE/postgresql:${PG_VERSION}"
 ARG GEI_IMAGE="$CI_REGISTRY_IMAGE/gitlab-elasticsearch-indexer:1.0.0"
 ARG GITLAB_VERSION=v10.7.0-ee
