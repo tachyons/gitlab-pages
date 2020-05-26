@@ -8,7 +8,7 @@ export BACKUP_BACKEND=${BACKUP_BACKEND-s3}
 rails_dir=/srv/gitlab
 backups_path=$rails_dir/tmp/backups
 backup_tars_path=$rails_dir/tmp/backup_tars
-object_storage_backends=( registry uploads artifacts lfs packages )
+object_storage_backends=( registry uploads artifacts lfs packages external_diffs terraform_state )
 
 skipping_backup_for=()
 
