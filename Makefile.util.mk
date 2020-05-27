@@ -1,14 +1,17 @@
 # Dockerfile https://gitlab.com/gitlab-org/gitlab-build-images/-/blob/master/Dockerfile.golangci-lint-alpine
-GOLANGCI_LINT_IMAGE := registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
+GOLANGCI_LINT_IMAGE := golangci/golangci-lint:$(GOLANGCI_LINT_VERSION)
 
-.PHONY: lint test race acceptance bench cover list deps-check deps-download
+.PHONY: lint lint-docker test race acceptance bench cover list deps-check deps-download
+
+OUT_FORMAT ?= colored-line-number
+LINT_FLAGS ?=  $(if $V,-v)
 
 lint: .GOPATH/.ok bin/golangci-lint
-	$Q ./bin/golangci-lint run $(if $V,-v)
+	$Q ./bin/golangci-lint run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS)
 
 lint-docker:
 	docker run -v $(PWD):/app -w /app $(GOLANGCI_LINT_IMAGE) \
-	sh -c "golangci-lint run --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | \"\(.location.path):\(.location.lines.begin) \(.description)\"'"
+	sh -c "golangci-lint run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS)"
 
 test: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) $(allpackages)

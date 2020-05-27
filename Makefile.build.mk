@@ -1,4 +1,4 @@
-GOLANGCI_LINT_VERSION := v1.25.1 # version used by $GOLANGCI_LINT_IMAGE
+GOLANGCI_LINT_VERSION := v1.27.0 # version used by $GOLANGCI_LINT_IMAGE
 
 .PHONY: all setup generate-mocks build clean
 

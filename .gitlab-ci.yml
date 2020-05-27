@@ -99,20 +99,23 @@ cover:
     paths:
       - coverage.html
 
-lint:
-  extends: .go-mod-cache
+code_quality:
   stage: test
   needs: ['download deps']
-  image: registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
+  extends: .go-mod-cache
+  image: golangci/golangci-lint:v1.27.0
+  variables:
+    REPORT_FILE: gl-code-quality-report.json
+    LINT_FLAGS: "--issues-exit-code 0 --color never --deadline 15m"
+    OUT_FORMAT: code-climate
   script:
-    # Write the code coverage report to gl-code-quality-report.json
-    # and print linting issues to stdout in the format: path/to/file:line description
-    - golangci-lint run --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | "\(.location.path):\(.location.lines.begin) \(.description)"'
+    - make lint | tee ${REPORT_FILE}
+  timeout: 15 minutes
   artifacts:
     reports:
-      codequality: gl-code-quality-report.json
+      codequality: ${REPORT_FILE}
     paths:
-      - gl-code-quality-report.json
+      - ${REPORT_FILE}
 
 test:1.12:
   extends: .tests
