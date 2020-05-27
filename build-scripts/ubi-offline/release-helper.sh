@@ -137,7 +137,12 @@ replaceRailsImageArg() {
   if grep -sq 'ARG RAILS_IMAGE=' "${DOCKERFILE}"; then
     sed -i "s/^ARG UBI_IMAGE.*/ARG UBI_IMAGE=${NEXUS_UBI_IMAGE//\//\\/}/g" "${DOCKERFILE}"
     sed -i '/ARG RAILS_IMAGE=.*/d' "${DOCKERFILE}"
-    sed -i "/ARG UBI_IMAGE=.*/a ARG RAILS_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
+    if grep -sq 'ARG UBI_IMAGE=' "${DOCKERFILE}"; then
+      sed -i "/ARG UBI_IMAGE=.*/a ARG RAILS_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
+    else
+      sed -i "/ARG BASE_TAG=.*/a \\\nARG RAILS_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
+      sed -i "/ARG RAILS_IMAGE=.*/{n;d;}" "${DOCKERFILE}"
+    fi
   fi
 }
 
