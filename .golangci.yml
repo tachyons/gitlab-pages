@@ -57,6 +57,7 @@ issues:
       linters:
         - bodyclose
         - gosec
+        - goconst
     - path: "internal/fixture/fixtures.go"
       linters:
         - gosec
