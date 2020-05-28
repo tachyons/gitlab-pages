@@ -168,3 +168,24 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 
 	request.ServeNotFoundHTTP(w, r)
 }
+
+// ServeNamespaceNotFound will try to find a parent namespace domain for a request
+// that failed authentication so that we serve the custom namespace error page for
+// public namespace domains
+func (d *Domain) ServeNamespaceNotFound(w http.ResponseWriter, r *http.Request) {
+	// override the path nd try to resolve the domain name
+	r.URL.Path = "/"
+	namespaceDomain, err := d.Resolver.Resolve(r)
+	if err != nil {
+		httperrors.Serve404(w)
+		return
+	}
+
+	// for namespace domains that have no access control enabled
+	if namespaceDomain.LookupPath.IsNamespaceProject && !namespaceDomain.LookupPath.HasAccessControl {
+		namespaceDomain.ServeNotFoundHTTP(w, r)
+		return
+	}
+
+	httperrors.Serve404(w)
+}

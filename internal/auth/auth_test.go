@@ -181,7 +181,10 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	require.Equal(t, false, auth.CheckAuthentication(result, r, 1000))
+	contentServed, authFailed := auth.CheckAuthentication(result, r, 1000)
+	require.False(t, contentServed)
+	require.False(t, authFailed)
+	// content wasn't served so the default response from CheckAuthentication should be 200
 	require.Equal(t, 200, result.Code)
 }
 
@@ -219,8 +222,11 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
-	require.Equal(t, 404, result.Code)
+	contentServed, authFailed := auth.CheckAuthentication(result, r, 1000)
+	require.False(t, contentServed)
+	require.True(t, authFailed)
+	// content wasn't served so the default response from CheckAuthentication should be 200
+	require.Equal(t, 200, result.Code)
 }
 
 func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
@@ -257,7 +263,9 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
+	contentServed, authFailed := auth.CheckAuthentication(result, r, 1000)
+	require.True(t, contentServed)
+	require.False(t, authFailed)
 	require.Equal(t, 302, result.Code)
 }
 
@@ -295,7 +303,9 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	require.Equal(t, false, auth.CheckAuthenticationWithoutProject(result, r))
+	contentServed, authFailed := auth.CheckAuthenticationWithoutProject(result, r)
+	require.False(t, contentServed)
+	require.False(t, authFailed)
 	require.Equal(t, 200, result.Code)
 }
 
@@ -332,7 +342,9 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.CheckAuthenticationWithoutProject(result, r))
+	contentServed, authFailed := auth.CheckAuthenticationWithoutProject(result, r)
+	require.True(t, contentServed)
+	require.False(t, authFailed)
 	require.Equal(t, 302, result.Code)
 }
 

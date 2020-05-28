@@ -1,0 +1,5 @@
+{ "domains": [
+  {
+    "Domain": "group.404.gitlab-example.com"
+  }
+], "id": 1000, "access_control": true }
