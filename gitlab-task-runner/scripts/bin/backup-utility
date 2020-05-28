@@ -8,7 +8,7 @@ export BACKUP_BACKEND=${BACKUP_BACKEND-s3}
 rails_dir=/srv/gitlab
 backups_path=$rails_dir/tmp/backups
 backup_tars_path=$rails_dir/tmp/backup_tars
-object_storage_backends=( registry uploads artifacts lfs packages )
+object_storage_backends=( registry uploads artifacts lfs packages external_diffs terraform_state )
 
 skipping_backup_for=()
 
@@ -114,7 +114,10 @@ EOF
 }
 
 function get_skipped(){
-  all=( artifacts.tar.gz uploads.tar.gz builds.tar.gz db repositories lfs.tar.gz registry.tar.gz pages.tar.gz packages.tar.gz )
+  all=( builds.tar.gz db repositories pages.tar.gz )
+  for storage in ${object_storage_backends[@]}; do
+    all+=( "${storage}.tar.gz" );
+  done;
   skipped_string=""
 
   for backup_item in ${all[@]}; do
