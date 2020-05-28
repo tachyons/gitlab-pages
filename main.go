@@ -98,6 +98,8 @@ var (
 )
 
 func gitlabServerFromFlags() string {
+	return "test"
+
 	if *gitLabServer != "" {
 		return *gitLabServer
 	}
