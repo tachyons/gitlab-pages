@@ -18,6 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -511,7 +512,7 @@ func (a *Auth) RequireAuth(w http.ResponseWriter, r *http.Request) bool {
 }
 
 // CheckAuthentication checks if user is authenticated and has access to the project
-func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
+func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, domain *domain.Domain) bool {
 	logRequest(r).Debug("Authenticate request")
 
 	if a == nil {
@@ -522,7 +523,26 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 		return true
 	}
 
-	return a.checkAuthentication(w, r, projectID)
+	if a.checkAuthentication(w, r, domain.GetProjectID(r)) {
+		// if auth fails, try to resolve parent namespace domain
+		r.URL.Path = "/"
+		parent, err := domain.Resolver.Resolve(r)
+		if err != nil {
+			httperrors.Serve404(w)
+			return true
+		}
+
+		// for namespace domains that have no access control enabled
+		if parent.LookupPath.IsNamespaceProject && !parent.LookupPath.HasAccessControl {
+			parent.ServeNotFoundHTTP(w, r)
+			return true
+		}
+
+		httperrors.Serve404(w)
+		return true
+	}
+
+	return false
 }
 
 // CheckResponseForInvalidToken checks response for invalid token and destroys session if it was invalid

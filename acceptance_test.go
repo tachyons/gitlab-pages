@@ -17,7 +17,6 @@ import (
 
 	"github.com/namsral/flag"
 	"github.com/stretchr/testify/require"
-	"gotest.tools/assert"
 )
 
 var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to the gitlab-pages binary")
@@ -251,7 +250,7 @@ func TestCustom404(t *testing.T) {
 
 				require.NoError(t, err)
 				defer rsp.Body.Close()
-				assert.Equal(t, http.StatusNotFound, rsp.StatusCode)
+				require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 
 				page, err := ioutil.ReadAll(rsp.Body)
 				require.NoError(t, err)
