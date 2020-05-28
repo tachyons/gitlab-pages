@@ -109,7 +109,7 @@ code_quality:
     LINT_FLAGS: "--issues-exit-code 0 --color never --deadline 15m"
     OUT_FORMAT: code-climate
   script:
-    - make lint | tee ${REPORT_FILE}
+    - golangci-lint run ./... --out-format ${OUT_FORMAT} ${LINT_FLAGS} | tee ${REPORT_FILE}
   timeout: 15 minutes
   artifacts:
     reports:
