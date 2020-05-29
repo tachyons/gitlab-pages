@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
 type tWriter struct {
@@ -116,9 +117,9 @@ type ListenSpec struct {
 }
 
 func (l ListenSpec) URL(suffix string) string {
-	scheme := "http"
-	if l.Type == "https" {
-		scheme = "https"
+	scheme := request.SchemeHTTP
+	if l.Type == request.SchemeHTTPS {
+		scheme = request.SchemeHTTPS
 	}
 
 	suffix = strings.TrimPrefix(suffix, "/")
@@ -262,7 +263,7 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 	for _, spec := range listeners {
 		args = append(args, "-listen-"+spec.Type, spec.JoinHostPort())
 
-		if spec.Type == "https" {
+		if spec.Type == request.SchemeHTTPS {
 			hasHTTPS = true
 		}
 	}
@@ -362,9 +363,9 @@ func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*ht
 }
 
 func GetProxyRedirectPageWithCookie(t *testing.T, spec ListenSpec, host string, urlsuffix string, cookie string, https bool) (*http.Response, error) {
-	schema := "http"
+	schema := request.SchemeHTTP
 	if https {
-		schema = "https"
+		schema = request.SchemeHTTPS
 	}
 	header := http.Header{
 		"X-Forwarded-Proto": []string{schema},

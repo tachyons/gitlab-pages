@@ -12,20 +12,25 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/karrick/godirwalk v1.10.12
+	github.com/kr/text v0.2.0 // indirect
 	github.com/namsral/flag v1.7.4-pre
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.1.0
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/objx v0.2.0 // indirect
+	github.com/stretchr/testify v1.5.1
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
-	gitlab.com/gitlab-org/labkit v0.0.0-20200414155917-f06e28fff6fa
+	gitlab.com/gitlab-org/labkit v0.0.0-20200520155818-96e583c57891
 	gitlab.com/lupine/go-mimedb v0.0.0-20180307000149-e8af1d659877
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f
-	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sys v0.0.0-20200113162924-86b910548bc1
-	golang.org/x/tools v0.0.0-20200117161641-43d50277825c
+	golang.org/x/tools v0.0.0-20200502202811-ed308ab3e770
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.2.8
+	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )

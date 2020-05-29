@@ -86,18 +86,36 @@ download deps:
       - go.mod
       - go.sum
 
-verify:
+cover:
   extends: .go-mod-cache
   stage: test
   needs: ['download deps']
   script:
     - make setup
     - make generate-mocks
-    - make verify
     - make cover
+  coverage: '/total:.+\(statements\).+\d+\.\d+/'
   artifacts:
     paths:
       - coverage.html
+
+code_quality:
+  stage: test
+  needs: ['download deps']
+  extends: .go-mod-cache
+  image: golangci/golangci-lint:v1.27.0
+  variables:
+    REPORT_FILE: gl-code-quality-report.json
+    LINT_FLAGS: "--color never --deadline 15m"
+    OUT_FORMAT: code-climate
+  script:
+    - golangci-lint run ./... --out-format ${OUT_FORMAT} ${LINT_FLAGS} | tee ${REPORT_FILE}
+  timeout: 15 minutes
+  artifacts:
+    reports:
+      codequality: ${REPORT_FILE}
+    paths:
+      - ${REPORT_FILE}
 
 test:1.12:
   extends: .tests

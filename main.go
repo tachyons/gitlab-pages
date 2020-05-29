@@ -17,6 +17,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/validateargs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -123,8 +124,8 @@ func setArtifactsServer(artifactsServer string, artifactsServerTimeout int, conf
 	if err != nil {
 		log.Fatal(err)
 	}
-	// url.Parse ensures that the Scheme arttribute is always lower case.
-	if u.Scheme != "http" && u.Scheme != "https" {
+	// url.Parse ensures that the Scheme attribute is always lower case.
+	if u.Scheme != request.SchemeHTTP && u.Scheme != request.SchemeHTTPS {
 		errortracking.Capture(err)
 		log.Fatal(errArtifactSchemaUnsupported)
 	}

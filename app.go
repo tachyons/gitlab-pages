@@ -83,7 +83,7 @@ func (a *theApp) healthCheck(w http.ResponseWriter, r *http.Request, https bool)
 
 func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
 	u := *r.URL
-	u.Scheme = "https"
+	u.Scheme = request.SchemeHTTPS
 	u.Host = r.Host
 	u.User = nil
 
@@ -400,7 +400,7 @@ func (a *theApp) listenHTTPFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.H
 		defer wg.Done()
 		err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter)
 		if err != nil {
-			capturingFatal(err, errortracking.WithField("listener", "http"))
+			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTP))
 		}
 	}()
 }
@@ -411,7 +411,7 @@ func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.
 		defer wg.Done()
 		err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
 		if err != nil {
-			capturingFatal(err, errortracking.WithField("listener", "https"))
+			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 	}()
 }

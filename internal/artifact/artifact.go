@@ -121,7 +121,6 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 	w.Header().Set("Content-Length", strconv.FormatInt(resp.ContentLength, 10))
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
-	return
 }
 
 func addCacheHeader(w http.ResponseWriter, resp *http.Response) {

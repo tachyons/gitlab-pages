@@ -26,6 +26,9 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
+// nolint: gosec
+// gosec: G101: Potential hardcoded credentials
+// auth constants, not credentials
 const (
 	apiURLUserTemplate     = "%s/api/v4/user"
 	apiURLProjectTemplate  = "%s/api/v4/projects/%d/pages_access"
@@ -433,10 +436,7 @@ func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Re
 
 // IsAuthSupported checks if pages is running with the authentication support
 func (a *Auth) IsAuthSupported() bool {
-	if a == nil {
-		return false
-	}
-	return true
+	return a != nil
 }
 
 func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
@@ -513,11 +513,7 @@ func (a *Auth) GetTokenIfExists(w http.ResponseWriter, r *http.Request) (string,
 
 // RequireAuth will trigger authentication flow if no token exists
 func (a *Auth) RequireAuth(w http.ResponseWriter, r *http.Request) bool {
-	session := a.checkSessionIsValid(w, r)
-	if session == nil {
-		return true
-	}
-	return false
+	return a.checkSessionIsValid(w, r) == nil
 }
 
 // CheckAuthentication checks if user is authenticated and has access to the project

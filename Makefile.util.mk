@@ -1,18 +1,13 @@
-.PHONY: verify fmt vet lint complexity test cover list
+GOLANGCI_LINT_IMAGE := golangci/golangci-lint:$(GOLANGCI_LINT_VERSION)
 
-verify: list fmt vet lint complexity
+.PHONY: lint test race acceptance bench cover list deps-check deps-download
 
-fmt: bin/goimports .GOPATH/.ok
-	$Q @_support/validate-formatting.sh $(allfiles)
+OUT_FORMAT ?= colored-line-number
+LINT_FLAGS ?=  $(if $V,-v)
+REPORT_FILE ?=
 
-vet: .GOPATH/.ok
-	$Q go vet $(allpackages)
-
-lint: bin/golint
-	$Q ./bin/golint $(allpackages) | tee | ( ! grep -v "^$$" )
-
-complexity: .GOPATH/.ok bin/gocyclo
-	$Q ./bin/gocyclo -over 9 $(allfiles)
+lint: .GOPATH/.ok bin/golangci-lint
+	$Q ./bin/golangci-lint run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
 
 test: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) $(allpackages)

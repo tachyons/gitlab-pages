@@ -1,0 +1,63 @@
+run:
+  concurrency: 8
+  deadline: 1m
+  issues-exit-code: 1
+  modules-download-mode: readonly
+  tests: true
+  skip-dirs:
+    - vendor
+    - internal/httputil # from github.com/golang/gddo
+  skip-files:
+    - mock_*.go
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  gocyclo:
+    min-complexity: 10
+  govet:
+    check-shadowing: false
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  goimports:
+    local-prefixes: gitlab.com/gitlab-org/gitlab-pages
+
+linters:
+  disable-all: true
+  enable:
+# TODO: enable these linters on a separate MR  https://gitlab.com/gitlab-org/gitlab-pages/-/issues/385#linters
+#    - bodyclose
+#    - deadcode
+#    - dogsled
+    - goconst
+    - gocyclo
+    - goimports
+    - golint
+    - gosimple
+    - govet
+    - gosec
+#    - ineffassign
+#    - misspell
+#    - structcheck
+#    - typecheck
+#    - unconvert
+#    - unused
+#    - varcheck
+#    - whitespace
+  fast: false
+
+issues:
+#  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-rules:
+    - path: ".*_test.go"
+      linters:
+        - bodyclose
+        - gosec
+        - goconst
+    - path: "internal/fixture/fixtures.go"
+      linters:
+        - gosec
