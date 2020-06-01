@@ -60,6 +60,11 @@ license_scanning:
     - if: $CI_COMMIT_BRANCH == 'master'
       when: on_success
 
+# disable eslint-sast since html files are fixtures for testing
+eslint-sast:
+  rules:
+    - when: never
+
 secrets-sast:
   stage: prepare
   rules:
