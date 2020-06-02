@@ -1017,10 +1017,11 @@ sync-images:
     - cat artifacts/images/* > image_versions.txt
     - rm -rf artifacts/*
     - sh build-scripts/docker_image_sync.sh image_versions.txt
-    - if [[ "${CI_COMMIT_TAG}" == v*-ubi8 ]]; then
+    - if $(echo $CI_COMMIT_TAG | grep -Eq 'v*-ubi8'); then
+    -   apk add curl
     -   UBI_IMAGES=$(cat artifacts/cng_images.txt | xargs printf ', %s')
-    -   curl -fS 
-          --request POST 
+    -   curl -fS
+          --request POST
           --form ref=master
           --form "variables[IMAGES]=${UBI_IMAGES:2}"
           --form "token=${SCANNING_TRIGGER_TOKEN}"
