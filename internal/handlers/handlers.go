@@ -24,9 +24,7 @@ func New(auth internal.Auth, artifact internal.Artifact) *Handlers {
 
 func (a *Handlers) checkIfLoginRequiredOrInvalidToken(w http.ResponseWriter, r *http.Request, token string) func(*http.Response) bool {
 	return func(resp *http.Response) bool {
-
 		if resp.StatusCode == http.StatusNotFound {
-
 			if token == "" {
 				if !a.Auth.IsAuthSupported() {
 					// Auth is not supported, probably means no access or does not exist but we cannot try with auth
@@ -63,5 +61,8 @@ func (a *Handlers) HandleArtifactRequest(host string, w http.ResponseWriter, r *
 		return true
 	}
 
+	// nolint: bodyclose
+	// a.checkIfLoginRequiredOrInvalidToken returns a response.Body, closing this body is responsibility
+	// of the TryMakeRequest implementation
 	return a.Artifact.TryMakeRequest(host, w, r, token, a.checkIfLoginRequiredOrInvalidToken(w, r, token))
 }

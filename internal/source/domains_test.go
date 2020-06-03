@@ -163,7 +163,6 @@ func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 	type testDomain struct {
 		name   string
 		source string
-		times  int
 	}
 
 	tests := map[string]struct {

@@ -18,9 +18,8 @@ var defaultCacheConfig = cacheConfig{
 
 // Cache is a short and long caching mechanism for GitLab source
 type Cache struct {
-	client      api.Client
-	store       Store
-	cacheConfig *cacheConfig
+	client api.Client
+	store  Store
 }
 
 type cacheConfig struct {

@@ -14,7 +14,6 @@ import (
 )
 
 func Test_withRoundTripper(t *testing.T) {
-
 	tests := []struct {
 		name       string
 		statusCode int

@@ -30,7 +30,6 @@ func AssertHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, val
 // AssertRedirectTo asserts that handler redirects to particular URL
 func AssertRedirectTo(t *testing.T, handler http.HandlerFunc, method string,
 	url string, values url.Values, expectedURL string) {
-
 	require.HTTPRedirect(t, handler, method, url, values)
 
 	recorder := httptest.NewRecorder()
@@ -41,7 +40,6 @@ func AssertRedirectTo(t *testing.T, handler http.HandlerFunc, method string,
 	handler(recorder, req)
 
 	require.Equal(t, expectedURL, recorder.Header().Get("Location"))
-
 }
 
 // AssertLogContains checks that wantLogEntry is contained in at least one of the log entries

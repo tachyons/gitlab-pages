@@ -362,6 +362,7 @@ func TestGetTokenIfExistsWhenTokenExists(t *testing.T) {
 	session.Save(r, result)
 
 	token, err := auth.GetTokenIfExists(result, r)
+	require.NoError(t, err)
 	require.Equal(t, "abc", token)
 }
 
