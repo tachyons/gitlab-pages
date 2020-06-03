@@ -3,9 +3,14 @@ package disk
 import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-var disk *Disk = &Disk{}
+var disk = &Disk{
+	reader: Reader{
+		fileSizeMetrics: metrics.ServingFileSize,
+	},
+}
 
 // Disk describes a disk access serving
 type Disk struct {
@@ -31,9 +36,5 @@ func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
 // New returns a serving instance that is capable of reading files
 // from the disk
 func New() serving.Serving {
-	if disk == nil {
-		disk = &Disk{}
-	}
-
 	return disk
 }
