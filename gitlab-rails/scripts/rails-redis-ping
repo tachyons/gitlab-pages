@@ -4,7 +4,7 @@ require 'bundler/setup'
 require 'yaml'
 require 'redis'
 
-def pingRedis(config)
+def ping_redis(config)
   had_error = false
   begin
     # configure the Redis client
@@ -25,16 +25,14 @@ def pingRedis(config)
 end
 
 
-checksPassed = 0
+checks_passed = 0
 Dir.chdir("/srv/gitlab/config")
 files = Dir.glob(["resque.yml", "redis\..*.yml"])
 files.each { |resque_file|
   resque_yaml = YAML.load_file(resque_file)
   puts "Checking '#{resque_file}'"
-  success = pingRedis(resque_yaml["production"])
-  checksPassed += 1 if success
+  success = ping_redis(resque_yaml["production"])
+  checks_passed += 1 if success
 }
 
-# - Ruby treats true as 1, false as 0
-# - Sheel treads 0 as success, 1 as failure.
-exit !(checksPassed == files.count)
+exit (checks_passed == files.count ? 0 : 1)
