@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/rs/cors"
@@ -257,6 +258,9 @@ func (a *theApp) accessControlMiddleware(handler http.Handler) http.Handler {
 // return a 404 Not Found response
 func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		defer metrics.ServingTime.Set(time.Since(start).Seconds())
+
 		domain := request.GetDomain(r)
 		fileServed := domain.ServeFileHTTP(w, r)
 

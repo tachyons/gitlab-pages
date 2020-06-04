@@ -8,7 +8,7 @@ import (
 
 var disk = &Disk{
 	reader: Reader{
-		fileSizeMetrics: metrics.ServingFileSize,
+		fileSizeMetric: metrics.ServingFileSize,
 	},
 }
 

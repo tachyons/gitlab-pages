@@ -17,7 +17,7 @@ import (
 
 // Reader is a disk access driver
 type Reader struct {
-	fileSizeMetrics *prometheus.GaugeVec
+	fileSizeMetric *prometheus.GaugeVec
 }
 
 func (reader *Reader) tryFile(h serving.Handler) error {
@@ -144,7 +144,7 @@ func (reader *Reader) serveFile(w http.ResponseWriter, r *http.Request, origPath
 		return err
 	}
 
-	reader.fileSizeMetrics.With(prometheus.Labels{"serving_type": "disk", "content_type": contentType}).Set(float64(fi.Size()))
+	reader.fileSizeMetric.With(prometheus.Labels{"serving_type": "disk", "content_type": contentType}).Set(float64(fi.Size()))
 
 	w.Header().Set("Content-Type", contentType)
 	http.ServeContent(w, r, origPath, fi.ModTime(), file)
@@ -172,7 +172,7 @@ func (reader *Reader) serveCustomFile(w http.ResponseWriter, r *http.Request, co
 		return err
 	}
 
-	reader.fileSizeMetrics.With(prometheus.Labels{"serving_type": "disk", "content_type": contentType}).Set(float64(fi.Size()))
+	reader.fileSizeMetric.With(prometheus.Labels{"serving_type": "disk", "content_type": contentType}).Set(float64(fi.Size()))
 
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
