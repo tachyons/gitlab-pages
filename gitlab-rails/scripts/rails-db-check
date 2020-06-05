@@ -4,8 +4,13 @@ require 'bundler/setup'
 require 'yaml'
 require 'active_record'
 
+# change to the application directory
+Dir.chdir("/srv/gitlab/")
+# load configuration file
 db_config = YAML.load_file("config/#{ARGV[0]}")
+# attempt connection
 ActiveRecord::Base.establish_connection(db_config['production'])
+# fetch current migration version
 begin
   puts ActiveRecord::Migrator.current_version
 rescue PG::ConnectionBad => e
