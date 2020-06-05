@@ -6,12 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 func TestDisk_ServeFileHTTP(t *testing.T) {
@@ -38,6 +35,4 @@ func TestDisk_ServeFileHTTP(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Contains(t, string(body), "HTML Document")
-	gaugeValue := testutil.ToFloat64(metrics.ServingFileSize.With(prometheus.Labels{"serving_type": "disk", "content_type": resp.Header.Get("Content-Type")}))
-	require.Greater(t, gaugeValue, float64(0))
 }

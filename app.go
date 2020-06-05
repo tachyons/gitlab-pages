@@ -259,7 +259,7 @@ func (a *theApp) accessControlMiddleware(handler http.Handler) http.Handler {
 func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		defer metrics.ServingTime.Set(time.Since(start).Seconds())
+		defer metrics.ServingTime.Observe(time.Since(start).Seconds())
 
 		domain := request.GetDomain(r)
 		fileServed := domain.ServeFileHTTP(w, r)
