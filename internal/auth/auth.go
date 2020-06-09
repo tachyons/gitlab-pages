@@ -71,6 +71,10 @@ type errorResponse struct {
 	Error            string `json:"error"`
 	ErrorDescription string `json:"error_description"`
 }
+type domain interface {
+	GetProjectID(r *http.Request) uint64
+	ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request)
+}
 
 func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 	session, err := a.store.Get(r, "gitlab-pages")
@@ -436,12 +440,13 @@ func (a *Auth) IsAuthSupported() bool {
 	return a != nil
 }
 
-func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) (contentServed, authFailed bool) {
+func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domain domain) bool {
 	session := a.checkSessionIsValid(w, r)
 	if session == nil {
-		return true, false
+		return true
 	}
 
+	projectID := domain.GetProjectID(r)
 	// Access token exists, authorize request
 	var url string
 	if projectID > 0 {
@@ -456,14 +461,14 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, proje
 		errortracking.Capture(err, errortracking.WithRequest(req))
 
 		httperrors.Serve500(w)
-		return true, false
+		return true
 	}
 
 	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
 	resp, err := a.apiClient.Do(req)
 
 	if err == nil && checkResponseForInvalidToken(resp, session, w, r) {
-		return true, false
+		return true
 	}
 
 	if err != nil || resp.StatusCode != 200 {
@@ -471,20 +476,22 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, proje
 			logRequest(r).WithError(err).Error("Failed to retrieve info with token")
 		}
 
-		return false, true
+		// call serve404 handler when auth fails
+		domain.ServeNotFoundAuthFailed(w, r)
+		return true
 	}
 
-	return false, false
+	return false
 }
 
 // CheckAuthenticationWithoutProject checks if user is authenticated and has a valid token
-func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request) (contentServed, authFailed bool) {
+func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request, domain domain) bool {
 	if a == nil {
 		// No auth supported
-		return false, false
+		return false
 	}
 
-	return a.checkAuthentication(w, r, 0)
+	return a.checkAuthentication(w, r, domain)
 }
 
 // GetTokenIfExists returns the token if it exists
@@ -512,7 +519,7 @@ func (a *Auth) RequireAuth(w http.ResponseWriter, r *http.Request) bool {
 
 // CheckAuthentication checks if user is authenticated and has access to the project
 // will return contentServed = false when authFailed = true
-func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) (contentServed, authFailed bool) {
+func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, domain domain) bool {
 	logRequest(r).Debug("Authenticate request")
 
 	if a == nil {
@@ -520,10 +527,10 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 		errortracking.Capture(errAuthNotConfigured, errortracking.WithRequest(r))
 
 		httperrors.Serve500(w)
-		return true, false
+		return true
 	}
 
-	return a.checkAuthentication(w, r, projectID)
+	return a.checkAuthentication(w, r, domain)
 }
 
 // CheckResponseForInvalidToken checks response for invalid token and destroys session if it was invalid

@@ -234,7 +234,7 @@ func TestCustom404(t *testing.T) {
 		},
 		{
 			host:    "domain.404.com",
-			content: "Custom 404 group page",
+			content: "Custom domain.404 page",
 		},
 		{
 			host:    "group.404.gitlab-example.com",

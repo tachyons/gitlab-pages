@@ -169,14 +169,14 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	request.ServeNotFoundHTTP(w, r)
 }
 
-// ServeNamespaceNotFound will try to find a parent namespace domain for a request
+// serveNamespaceNotFound will try to find a parent namespace domain for a request
 // that failed authentication so that we serve the custom namespace error page for
 // public namespace domains
-func (d *Domain) ServeNamespaceNotFound(w http.ResponseWriter, r *http.Request) {
-	// override the path nd try to resolve the domain name
+func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) {
+	// override the path and try to resolve the domain name
 	r.URL.Path = "/"
 	namespaceDomain, err := d.Resolver.Resolve(r)
-	if err != nil {
+	if err != nil || namespaceDomain.LookupPath == nil {
 		httperrors.Serve404(w)
 		return
 	}
@@ -188,4 +188,19 @@ func (d *Domain) ServeNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 	}
 
 	httperrors.Serve404(w)
+}
+
+// ServeNotFoundAuthFailed handler to be called when auth failed so the correct custom
+// 404 page is served.
+func (d *Domain) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request) {
+	if d.isUnconfigured() || !d.HasLookupPath(r) {
+		httperrors.Serve404(w)
+		return
+	}
+	if d.IsNamespaceProject(r) {
+		d.ServeNotFoundHTTP(w, r)
+		return
+	}
+
+	d.serveNamespaceNotFound(w, r)
 }

@@ -99,25 +99,12 @@ func (a *theApp) checkAuthenticationIfNotExists(domain *domain.Domain, w http.Re
 		// Only if auth is supported
 		if a.Auth.IsAuthSupported() {
 			// To avoid user knowing if pages exist, we will force user to login and authorize pages
-			if contentServed, authFailed := a.Auth.CheckAuthenticationWithoutProject(w, r); contentServed {
-				return true
-			} else if authFailed && domain != nil {
-				// try to serve custom namespace not found if exists and is public
-				domain.ServeNamespaceNotFound(w, r)
-				return true
-			}
-
-			if domain != nil {
-				// User is authenticated, show the 404
-				domain.ServeNotFoundHTTP(w, r)
+			if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
 				return true
 			}
 		}
-	}
 
-	// Without auth, fall back to 404
-	if domain == nil {
-		httperrors.Serve404(w)
+		domain.ServeNotFoundAuthFailed(w, r)
 		return true
 	}
 
@@ -251,10 +238,7 @@ func (a *theApp) accessControlMiddleware(handler http.Handler) http.Handler {
 		// Only for projects that have access control enabled
 		if domain.IsAccessControlEnabled(r) {
 			// accessControlMiddleware
-			if contentServed, authFailed := a.Auth.CheckAuthentication(w, r, domain.GetProjectID(r)); contentServed {
-				return
-			} else if authFailed && domain != nil {
-				domain.ServeNamespaceNotFound(w, r)
+			if a.Auth.CheckAuthentication(w, r, domain) {
 				return
 			}
 		}
@@ -276,16 +260,14 @@ func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 		if !fileServed {
 			// We need to trigger authentication flow here if file does not exist to prevent exposing possibly private project existence,
 			// because the projects override the paths of the namespace project and they might be private even though
-			// namespace project is public.
+			// namespace project is public
 			if domain.IsNamespaceProject(r) {
-				if contentServed, authFailed := a.Auth.CheckAuthenticationWithoutProject(w, r); contentServed {
-					return
-				} else if authFailed {
-					httperrors.Serve404(w)
+				if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
 					return
 				}
 			}
 
+			// domain found and authentication succeeds
 			domain.ServeNotFoundHTTP(w, r)
 		}
 	})

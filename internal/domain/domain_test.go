@@ -209,6 +209,16 @@ func TestDomain_ServeNamespaceNotFound(t *testing.T) {
 			},
 			expectedResponse: "The page you're looking for could not be found.",
 		},
+		{
+			name:   "no_parent_namespace_domain",
+			domain: "group.404.gitlab-example.com",
+			path:   "/unknown",
+			resolver: &stubbedResolver{
+				project: nil,
+				subpath: "/",
+			},
+			expectedResponse: "The page you're looking for could not be found.",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -218,7 +228,7 @@ func TestDomain_ServeNamespaceNotFound(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest("GET", fmt.Sprintf("http://%s%s", tt.domain, tt.path), nil)
-			d.ServeNamespaceNotFound(w, r)
+			d.serveNamespaceNotFound(w, r)
 
 			resp := w.Result()
 			require.Equal(t, http.StatusNotFound, resp.StatusCode)
