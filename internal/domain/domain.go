@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"net/http"
@@ -173,16 +174,18 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 // that failed authentication so that we serve the custom namespace error page for
 // public namespace domains
 func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) {
-	// override the path and try to resolve the domain name
-	r.URL.Path = "/"
-	namespaceDomain, err := d.Resolver.Resolve(r)
+	// clone r and override the path and try to resolve the domain name
+	clonedReq := r.Clone(context.Background())
+	clonedReq.URL.Path = "/"
+
+	namespaceDomain, err := d.Resolver.Resolve(clonedReq)
 	if err != nil || namespaceDomain.LookupPath == nil {
 		httperrors.Serve404(w)
 		return
 	}
 
 	// for namespace domains that have no access control enabled
-	if namespaceDomain.LookupPath.IsNamespaceProject && !namespaceDomain.LookupPath.HasAccessControl {
+	if !namespaceDomain.LookupPath.HasAccessControl {
 		namespaceDomain.ServeNotFoundHTTP(w, r)
 		return
 	}
@@ -197,7 +200,7 @@ func (d *Domain) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request)
 		httperrors.Serve404(w)
 		return
 	}
-	if d.IsNamespaceProject(r) {
+	if d.IsNamespaceProject(r) && !d.GetLookupPath(r).HasAccessControl {
 		d.ServeNotFoundHTTP(w, r)
 		return
 	}

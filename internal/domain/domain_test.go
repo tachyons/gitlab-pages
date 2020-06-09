@@ -157,10 +157,7 @@ func chdirInPath(t require.TestingT, path string) func() {
 	}
 }
 
-func TestDomain_ServeNamespaceNotFound(t *testing.T) {
-	// defaultNotFound := "The page you're looking for could not be found."
-	// customNotFound := "Custom error page"
-
+func TestServeNamespaceNotFound(t *testing.T) {
 	tests := []struct {
 		name             string
 		domain           string
@@ -231,6 +228,8 @@ func TestDomain_ServeNamespaceNotFound(t *testing.T) {
 			d.serveNamespaceNotFound(w, r)
 
 			resp := w.Result()
+			defer resp.Body.Close()
+
 			require.Equal(t, http.StatusNotFound, resp.StatusCode)
 			body, err := ioutil.ReadAll(resp.Body)
 			require.NoError(t, err)

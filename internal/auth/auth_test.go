@@ -30,7 +30,8 @@ func defaultCookieStore() sessions.Store {
 }
 
 type domainMock struct {
-	projectID uint64
+	projectID       uint64
+	notFoundContent string
 }
 
 func (dm *domainMock) GetProjectID(r *http.Request) uint64 {
@@ -39,6 +40,7 @@ func (dm *domainMock) GetProjectID(r *http.Request) uint64 {
 
 func (dm *domainMock) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
+	w.Write([]byte(dm.notFoundContent))
 }
 
 // Gorilla's sessions use request context to save session
@@ -195,7 +197,7 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	contentServed := auth.CheckAuthentication(result, r, &domainMock{projectID: 1000})
 	require.False(t, contentServed)
 
-	// content wasn't served so the default response from CheckAuthentication should be 200
+	// notFoundContent wasn't served so the default response from CheckAuthentication should be 200
 	require.Equal(t, 200, result.Code)
 }
 
@@ -223,7 +225,8 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 		"http://pages.gitlab-example.com/auth",
 		apiServer.URL)
 
-	result := httptest.NewRecorder()
+	w := httptest.NewRecorder()
+
 	reqURL, err := url.Parse("/auth?code=1&state=state")
 	require.NoError(t, err)
 	reqURL.Scheme = request.SchemeHTTPS
@@ -231,12 +234,18 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
-	session.Save(r, result)
+	session.Save(r, w)
 
-	contentServed := auth.CheckAuthentication(result, r, &domainMock{projectID: 1000})
+	contentServed := auth.CheckAuthentication(w, r, &domainMock{projectID: 1000, notFoundContent: "Generic 404"})
 	require.True(t, contentServed)
-	// content wasn't served so the default response from CheckAuthentication should be 200
-	require.Equal(t, 404, result.Code)
+	res := w.Result()
+	defer res.Body.Close()
+
+	require.Equal(t, 404, res.StatusCode)
+
+	body, err := ioutil.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, string(body), "Generic 404")
 }
 
 func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {

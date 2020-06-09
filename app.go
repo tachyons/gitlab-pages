@@ -94,21 +94,18 @@ func (a *theApp) domain(host string) (*domain.Domain, error) {
 	return a.domains.GetDomain(host)
 }
 
-func (a *theApp) checkAuthenticationIfNotExists(domain *domain.Domain, w http.ResponseWriter, r *http.Request) bool {
-	if !domain.HasLookupPath(r) {
-		// Only if auth is supported
-		if a.Auth.IsAuthSupported() {
-			// To avoid user knowing if pages exist, we will force user to login and authorize pages
-			if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
-				return true
-			}
-		}
-
-		domain.ServeNotFoundAuthFailed(w, r)
+// checkAuthAndServeNotFound performs the auth process if domain can't be found
+// the main purpose of this process is to avoid leaking the project existence/not-existence
+// by behaving the same if user has no access to the project or if project simply does not exists
+func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.ResponseWriter, r *http.Request) bool {
+	// To avoid user knowing if pages exist, we will force user to login and authorize pages
+	if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
 		return true
 	}
 
-	return false
+	// auth succeeded try to serve the correct 404 page
+	domain.ServeNotFoundAuthFailed(w, r)
+	return true
 }
 
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
@@ -127,8 +124,11 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if a.checkAuthenticationIfNotExists(domain, w, r) {
-		return true
+	if !domain.HasLookupPath(r) {
+		// redirect to auth and serve not found
+		if a.checkAuthAndServeNotFound(domain, w, r) {
+			return true
+		}
 	}
 
 	if !https && domain.IsHTTPSOnly(r) {

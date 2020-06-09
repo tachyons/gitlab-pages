@@ -1228,17 +1228,29 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 			expectedErrorPage: "Private custom 404 error page",
 		},
 		{
-			name:              "public_namespace_with_private_unauthorized_project",
-			domain:            "group.404.gitlab-example.com",
+			name:   "public_namespace_with_private_unauthorized_project",
+			domain: "group.404.gitlab-example.com",
+			// /private_unauthorized/config.json resolves project ID to 2000 which will cause a 401 from the mock GitLab testServer
 			path:              "/private_unauthorized/unknown",
 			expectedErrorPage: "Custom 404 group page",
+		},
+		{
+			name:              "private_namespace_authorized",
+			domain:            "group.auth.gitlab-example.com",
+			path:              "/unknown",
+			expectedErrorPage: "group.auth.gitlab-example.com namespace custom 404",
+		},
+		{
+			name:   "private_namespace_with_private_project_auth_failed",
+			domain: "group.auth.gitlab-example.com",
+			// project ID is 2000
+			path:              "/private.project.1/unknown",
+			expectedErrorPage: "The page you're looking for could not be found.",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			domain := tt.domain
-			path := tt.path
-			rsp, err := GetRedirectPage(t, httpListener, domain, path)
+			rsp, err := GetRedirectPage(t, httpListener, tt.domain, tt.path)
 			require.NoError(t, err)
 			defer rsp.Body.Close()
 
@@ -1248,7 +1260,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 			require.NoError(t, err)
 
 			state := url.Query().Get("state")
-			require.Equal(t, "http://"+domain, url.Query().Get("domain"))
+			require.Equal(t, "http://"+tt.domain, url.Query().Get("domain"))
 
 			pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
 			require.NoError(t, err)
@@ -1267,12 +1279,12 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 			require.NoError(t, err)
 
 			// Will redirect to custom domain
-			require.Equal(t, domain, url.Host)
+			require.Equal(t, tt.domain, url.Host)
 			require.Equal(t, "1", url.Query().Get("code"))
 			require.Equal(t, state, url.Query().Get("state"))
 
 			// Run auth callback in custom domain
-			authrsp, err = GetRedirectPageWithCookie(t, httpListener, domain, "/auth?code=1&state="+
+			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, "/auth?code=1&state="+
 				state, cookie)
 
 			require.NoError(t, err)
@@ -1286,10 +1298,10 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 			require.NoError(t, err)
 
 			// Will redirect to custom domain error page
-			require.Equal(t, "http://"+domain+path, url.String())
+			require.Equal(t, "http://"+tt.domain+tt.path, url.String())
 
 			// Fetch page in custom domain
-			anotherResp, err := GetRedirectPageWithCookie(t, httpListener, domain, path, groupCookie)
+			anotherResp, err := GetRedirectPageWithCookie(t, httpListener, tt.domain, tt.path, groupCookie)
 			require.NoError(t, err)
 
 			require.Equal(t, http.StatusNotFound, anotherResp.StatusCode)
@@ -1372,7 +1384,7 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
 
-	rsp, err := GetRedirectPage(t, httpListener, "group.auth.gitlab-example.com", "/nonexistent/")
+	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
