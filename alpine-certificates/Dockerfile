@@ -6,7 +6,7 @@
 ARG ALPINE_VERSION=3.10
 FROM alpine:$ALPINE_VERSION
 
-ARG CA_PKG_VERSION=20191127-r0
+ARG CA_PKG_VERSION=20191127-r3
 RUN apk --update --no-cache add ca-certificates=${CA_PKG_VERSION}
 
 COPY scripts/ /scripts/
