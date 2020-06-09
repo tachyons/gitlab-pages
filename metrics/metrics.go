@@ -77,11 +77,11 @@ var (
 		Help: "The time (in seconds) it takes to get a response from the GitLab domains API",
 	}, []string{"status_code"})
 
-	// ServingFileSize metric for file size serving. serving_types: disk and object_storage
-	ServingFileSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "gitlab_pages_serving_file_size",
+	// DiskServingFileSize metric for file size serving. serving_types: disk and object_storage
+	DiskServingFileSize = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "gitlab_pages_disk_serving_file_size",
 		Help: "The size in bytes for each file that has been served",
-	}, []string{"serving_type", "content_type"})
+	})
 
 	// ServingTime metric for time taken to find a file serving it or not found.
 	ServingTime = prometheus.NewHistogram(prometheus.HistogramOpts{
@@ -105,6 +105,7 @@ func MustRegister() {
 		DomainsSourceFailures,
 		ServerlessRequests,
 		ServerlessLatency,
-		ServingFileSize,
+		DiskServingFileSize,
+		ServingTime,
 	)
 }
