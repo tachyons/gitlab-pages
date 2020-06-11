@@ -79,17 +79,17 @@ var (
 
 	// DiskServingFileSize metric for file size serving. serving_types: disk and object_storage
 	DiskServingFileSize = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "gitlab_pages_disk_serving_file_size",
+		Name: "gitlab_pages_disk_serving_file_size_bytes",
 		Help: "The size in bytes for each file that has been served",
-		// From 1B to 100MB in *10 increments (1B 10B 100B 1KB 10KB 100KB 1MB 10MB 100MB)
+		// From 1B to 100MB in *10 increments (1 10 100 1,000 10,000 100,000 1'000,000 10'000,000 100'000,000)
 		Buckets: prometheus.ExponentialBuckets(1.0, 10.0, 9),
 	})
 
 	// ServingTime metric for time taken to find a file serving it or not found.
 	ServingTime = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:    "gitlab_pages_serving_time",
+		Name:    "gitlab_pages_serving_time_seconds",
 		Help:    "The time (in seconds) taken to serve a file",
-		Buckets: []float64{0.1, 0.5, 1.0, 2.5, 5.0, 10.0},
+		Buckets: []float64{0.1, 0.5, 1, 2.5, 5, 10, 60, 180},
 	})
 )
 
