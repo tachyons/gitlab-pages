@@ -626,6 +626,19 @@ gitlab-actioncable-ce:
     - gitlab-rails-ce
   <<: *except-ee
 
+build:gitlab-sidekiq-ee:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  dependencies:
+    - build:gitlab-python
+  script:
+    - import_assets artifacts/ubi/gitlab-python.tar.gz
+    - ruby_version=$(get_version gitlab-ruby)
+    - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
+    - build_if_needed
+    - copy_assets
+
 gitlab-sidekiq-ee:
   <<: *job-base
   stage: phase-six
@@ -650,6 +663,7 @@ gitlab-sidekiq-ee:
     - gitlab-rails-ee
     - gitlab-python
     - build:gitlab-python
+    - build:gitlab-sidekiq-ee
   <<: *except-ce
 
 gitlab-sidekiq-ce:
