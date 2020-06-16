@@ -18,6 +18,8 @@ LABEL source="https://github.com/mperham/sidekiq" \
 ENV SIDEKIQ_CONCURRENCY=25
 ENV SIDEKIQ_TIMEOUT=4
 
+ADD gitlab-python.tar.gz /
+
 COPY scripts/ /scripts/
 
 RUN dnf clean all \
