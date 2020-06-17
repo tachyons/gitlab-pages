@@ -2,6 +2,11 @@
 - [ ] Review the list of changes since the last release and fill below:
     - [ ] **In the changelog**
     - [ ] **Not in the changelog**
+    
+    Hint:
+    ```
+    git --no-pager log --merges --pretty=oneline master...vX.Y.Z
+    ```
 - Decide on the version number by reference to
     the [Versioning](https://gitlab.com/gitlab-org/gitlab-pages/blob/master/PROCESS.md#versioning)
     * Typically if you want to release code from current `master` branch you will update `MINOR` version, e.g. `1.12.0` -> `1.13.0`. In that case you **don't** need to create stable branch
