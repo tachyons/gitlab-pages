@@ -1,3 +1,8 @@
+v 1.19.0
+
+- Add file size metric for disk serving !294
+- Add pprof to metrics endpoint !271
+
 v 1.18.0
 
 - Fix proxying artifacts with escaped characters !255
