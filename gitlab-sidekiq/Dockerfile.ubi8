@@ -12,12 +12,13 @@ LABEL source="https://github.com/mperham/sidekiq" \
       vendor="GitLab" \
       version=${GITLAB_VERSION} \
       release=${GITLAB_VERSION} \
-      summary="Geo Log Cursor daemon." \
-      description="Geo Log Cursor daemon."
+      summary="Sidekiq daemon." \
+      description="Sidekiq daemon."
 
 ENV SIDEKIQ_CONCURRENCY=25
 ENV SIDEKIQ_TIMEOUT=4
 
+ADD gitlab-sidekiq-ee.tar.gz /
 ADD gitlab-python.tar.gz /
 
 COPY scripts/ /scripts/
