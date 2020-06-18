@@ -36,11 +36,10 @@ stages:
 .common:
   - &ce_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
   - &com_ce_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
-  - &ce_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/
   - &ee_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/
   - &com_ee_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
-  - &ee_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ee$/
   - &ee_gitlab_version $GITLAB_VERSION =~ /-ee$/
+  - &stable_ce_gitlab_version $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/ && $GITLAB_VERSION !~ /-ee$/
 
 # except-ce: except when this is a CE pipeline (EE/UBI)
 .except-ce: &except-ce
@@ -49,8 +48,8 @@ stages:
       - $DEPS_PIPELINE
       - $CE_PIPELINE
       - *ce_tag_var
-      - *ce_stable_var
       - *auto_deploy_branch_var
+      - *stable_ce_gitlab_version
     refs:
       - *com_ce_tag_ref
       - *com_ee_tag_ref
@@ -65,7 +64,6 @@ stages:
       - $EE_PIPELINE
       - $UBI_PIPELINE == "true"
       - *ee_tag_var
-      - *ee_stable_var
       - *ee_gitlab_version
       - *ubi_tag_var
       - *ubi_stable_var
