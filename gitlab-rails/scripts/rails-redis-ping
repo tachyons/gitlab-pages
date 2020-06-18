@@ -7,8 +7,7 @@ require 'redis'
 # - allows transparent transformation of Sentinel configuration
 require 'active_support/core_ext/hash/keys'
 
-def ping_redis(config,file)
-  success = false
+def ping_redis(config, file)
   begin
     # configure the Redis client
     redis = Redis.new(config.deep_symbolize_keys)
@@ -19,12 +18,12 @@ def ping_redis(config,file)
   rescue RuntimeError => e
     puts "- FAILED connecting to '#{url}' from #{file}, through #{redis._client.host}"
     puts "  ERROR: #{e.message}"
-    success = false
+    false
   else
     # nicely disconnect
     redis.disconnect!
     puts "+ SUCCESS connecting to '#{url}' from #{file}, through #{redis._client.host}"
-    success = true
+    true
   end
 end
 
