@@ -1,6 +1,6 @@
 #!/bin/bash
 
-WAIT_FOR_TIMEOUT="${WAIT_FOR_TIMEOUT:-5}"
+WAIT_FOR_TIMEOUT="${WAIT_FOR_TIMEOUT:-10}"
 
 # Configure for which schema to be verifying
 SCHEMA_FILE=db/structure.sql
