@@ -1,12 +1,13 @@
 #!/bin/bash
 
-WAIT_FOR_TIMEOUT="${WAIT_FOR_TIMEOUT:-5}"
+WAIT_FOR_TIMEOUT="${WAIT_FOR_TIMEOUT:-10}"
 
 # Configure for which schema to be verifying
 SCHEMA_FILE=db/structure.sql
 SCHEMA_VERSION_DIR=db/schema_migrations
 SCHEMA_RAKE_TASK=db:version
 SCHEMA_FORMAT=sql
+DATABASE_FILE=database.yml
 
 cd /srv/gitlab
 
@@ -18,8 +19,8 @@ fi
 
 if [ "${DB_SCHEMA_TARGET,,}" == "geo" ]; then
   SCHEMA_FILE=ee/db/geo/schema.rb
-  SCHEMA_RAKE_TASK=geo:db:version
   SCHEMA_FORMAT=ruby
+  DATABASE_FILE=database_geo.yml
 fi
 
 # fetch the schema desired version directly from the source code
@@ -37,15 +38,15 @@ DB_SCHEMA_VERSION="0"
 # Compare desired schema version to active schema version in the database
 # - set BYPASS_SCHEMA_VERSION to skip version check, and only test DB online
 function checkSchemaVersion() {
-    # Ask for the current DB schema version, via Rake
-    DB_SCHEMA_VERSION=$(/srv/gitlab/bin/bundle exec rake ${SCHEMA_RAKE_TASK})
-
-    # If rake failed, we're not connected to the DB, and DB_SCHEMA_VERSION is empty.
-    if [ $? -ne 0 ]; then
-      return 1
+    # Ask for the current DB schema version
+    DB_SCHEMA_VERSION=$(/scripts/rails-db-check ${DATABASE_FILE})
+    PG_EXIT=$?
+    if [ $PG_EXIT -ne 0 ]; then
+      echo "FAILED connecting to database."
+      return 2
     fi
 
-    DB_SCHEMA_VERSION=$(echo ${DB_SCHEMA_VERSION} | grep 'Current version: ' | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)/\1/')
+    DB_SCHEMA_VERSION=${DB_SCHEMA_VERSION:-0}
 
     # Output the current schema version
     echo "Database Schema - current: ${DB_SCHEMA_VERSION}, codebase: ${SCHEMA_VERSION}"
@@ -66,12 +67,15 @@ function checkSchemaVersion() {
 }
 
 for i in $(seq 1 $WAIT_FOR_TIMEOUT); do
-  echo "Checking database connection and schema version"
+  echo "Checking database connectivity and schema version"
   if checkSchemaVersion ; then
-    if [ "$@" ]; then
-      exec "$@"
-    else
-      exit 0
+    echo "Checking Redis connectivity"
+    if /scripts/rails-redis-ping ; then
+      if [ "$@" ]; then
+        exec "$@"
+      else
+        exit 0
+      fi
     fi
   fi
   sleep 1

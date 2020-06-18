@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'yaml'
+require 'redis'
+# Get Hash.deep_symbolize_keys from Rails
+# - allows transparent transformation of Sentinel configuration
+require 'active_support/core_ext/hash/keys'
+
+def ping_redis(config, file)
+  begin
+    # configure the Redis client
+    redis = Redis.new(config.deep_symbolize_keys)
+    url = "#{redis._client.scheme}://#{redis._client.host}:#{redis._client.port}"
+    puts "> Connecting to '#{url}' from #{file}"
+    # "ping" the server
+    redis.ping
+  rescue RuntimeError => e
+    puts "- FAILED connecting to '#{url}' from #{file}, through #{redis._client.host}"
+    puts "  ERROR: #{e.message}"
+    false
+  else
+    # nicely disconnect
+    redis.disconnect!
+    puts "+ SUCCESS connecting to '#{url}' from #{file}, through #{redis._client.host}"
+    true
+  end
+end
+
+# change to the config directory
+Dir.chdir("/srv/gitlab/config")
+files = Dir.glob(["resque.yml", "redis\..*.yml", "cable.yml"])
+puts "Checking: #{files.join(", ")}"
+results = files.map do |resque_file|
+  Thread.new do
+    resque_yaml = YAML.load_file(resque_file)
+    success = ping_redis(resque_yaml["production"], resque_file)
+  end
+end.map(&:value)
+
+# Collect the checks that passed.
+checks_passed = results.select {|r| r }
+# Return pass/fail based on all checks passing
+exit (checks_passed.count == files.count ? 0 : 1)
