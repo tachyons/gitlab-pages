@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Get this scripts own path, so we can require
-lib_path, _script_name = File.split(File.expand_path($PROGRAM_NAME))
+lib_path = File.dirname(File.expand_path($PROGRAM_NAME))
 
 # change to the application directory
 Dir.chdir('/srv/gitlab/')
