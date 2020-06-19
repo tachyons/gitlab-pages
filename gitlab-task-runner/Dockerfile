@@ -31,4 +31,4 @@ COPY scripts/lib/* /usr/lib/ruby/vendor_ruby/
 
 USER $GITLAB_USER:$GITLAB_USER
 
-ENTRYPOINT ["/scripts/bin/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
