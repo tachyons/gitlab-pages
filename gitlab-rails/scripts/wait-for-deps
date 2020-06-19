@@ -1,6 +1,7 @@
 #!/bin/bash
 
 WAIT_FOR_TIMEOUT="${WAIT_FOR_TIMEOUT:-10}"
+SLEEP_DURATION="${SLEEP_DURATION:-1}"
 
 # Configure for which schema to be verifying
 SCHEMA_FILE=db/structure.sql
@@ -32,65 +33,12 @@ else
   SCHEMA_VERSION=$(ls -r -1 ${SCHEMA_VERSION_DIR} | head -1)
 fi
 
-# Stash DB_SCHEMA_VERSION, so we can check it at exit.
-DB_SCHEMA_VERSION="0"
+# export variables for dependencies
+export WAIT_FOR_TIMEOUT
+export SLEEP_DURATION
+export SCHEMA_VERSION
+export DB_SCHEMA_TARGET
+export DATABASE_FILE
 
-# Compare desired schema version to active schema version in the database
-# - set BYPASS_SCHEMA_VERSION to skip version check, and only test DB online
-function checkSchemaVersion() {
-    # Ask for the current DB schema version
-    DB_SCHEMA_VERSION=$(/scripts/rails-db-check ${DATABASE_FILE})
-    PG_EXIT=$?
-    if [ $PG_EXIT -ne 0 ]; then
-      echo "FAILED connecting to database."
-      return 2
-    fi
-
-    DB_SCHEMA_VERSION=${DB_SCHEMA_VERSION:-0}
-
-    # Output the current schema version
-    echo "Database Schema - current: ${DB_SCHEMA_VERSION}, codebase: ${SCHEMA_VERSION}"
-
-    # If DB_SCHEMA_VERSION is 0, then the DB has not been initialized. Output message as such.
-    if [ "${DB_SCHEMA_VERSION}" == "0" ]; then
-      echo "NOTICE: Database has not been initialized yet."
-    fi
-
-    # Some uses (migrations) only care if the DB is up
-    if [ -n "${BYPASS_SCHEMA_VERSION}" ]; then
-      return 0
-    fi
-
-    # Compare local to db, pass if local less than or equal to db
-    [ $SCHEMA_VERSION -le $DB_SCHEMA_VERSION ];
-    return $?
-}
-
-for i in $(seq 1 $WAIT_FOR_TIMEOUT); do
-  echo "Checking database connectivity and schema version"
-  if checkSchemaVersion ; then
-    echo "Checking Redis connectivity"
-    if /scripts/rails-redis-ping ; then
-      if [ "$@" ]; then
-        exec "$@"
-      else
-        exit 0
-      fi
-    fi
-  fi
-  sleep 1
-done
-
-# If DB_SCHEMA_VERSION is 0, then the DB has not been initialized.
-# Warn that we're restarting the container whilst we wait.
-if [ "${DB_SCHEMA_VERSION}" == "0" ]; then
-  echo "WARNING: Database has not been initialized yet."
-else
-  echo "WARNING: Waiting for all services to be operational, and data migrations to complete."
-fi
-
-# Output a message as to how to resolve this container failing.
-echo "If this container continues to fail / restart, please see:"
-echo "  https://docs.gitlab.com/charts/troubleshooting/index.html#application-containers-constantly-initializing"
-
-exit 1
+# the called script should `exec` the arguments passed to this script
+exec /scripts/rails-dependencies "$@"
