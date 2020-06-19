@@ -1,10 +1,11 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Get this scripts own path, so we can require
-lib_path, script_name = File.split($0)
+lib_path, _script_name = File.split(File.expand_path($PROGRAM_NAME))
 
 # change to the application directory
-Dir.chdir("/srv/gitlab/")
+Dir.chdir('/srv/gitlab/')
 
 # Setup the use of Bundler installed gems
 require 'bundler/setup'
@@ -13,23 +14,22 @@ require "#{lib_path}/lib/checks/postgresql"
 require "#{lib_path}/lib/checks/redis"
 
 database_thread = Thread.new do
-    Checks::PostgreSQL.run
+  Checks::PostgreSQL.run
 end
 
 redis_thread = Thread.new do
-    Checks::Redis.run
+  Checks::Redis.run
 end
 
 [database_thread, redis_thread].map(&:join)
 
-if redis_thread.value and database_thread.value then
-    exec ARGV.join(" ") if ARGV.length > 0
+if redis_thread.value && database_thread.value
+  exec ARGV.join(' ') unless ARGV.empty?
 else
-    puts "WARNING: Waiting for all services to be operational, and data migrations to complete."
+  puts 'WARNING: Not all services were operational, with data migrations completed.'
 
-    # Output a message as to how to resolve this container failing.
-    puts "If this container continues to fail / restart, please see:"
-    puts "  https://docs.gitlab.com/charts/troubleshooting/index.html#application-containers-constantly-initializing"
+  # Output a message as to how to resolve this container failing.
+  puts 'If this container continues to fail, please see: https://docs.gitlab.com/charts/troubleshooting/index.html#application-containers-constantly-initializing'
 
-    exit 1
+  exit 1
 end
