@@ -1070,6 +1070,7 @@ ubi-assets-release:
     - build:gitlab-rails-ee
     - build:gitlab-task-runner-ee
     - build:gitlab-webservice-ee
+    - build:gitlab-sidekiq-ee
     - build:gitlab-actioncable-ee
   when: manual
   only:
