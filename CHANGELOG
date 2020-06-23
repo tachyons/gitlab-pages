@@ -1,3 +1,7 @@
+v 1.20.0
+
+- Enable continuous profiling !297
+
 v 1.19.0
 
 - Add file size metric for disk serving !294
