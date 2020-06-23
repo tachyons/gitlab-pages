@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -196,22 +197,39 @@ func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenS
 }
 
 func RunPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, authServer string) func() {
-	configFile, cleanup := defaultConfigFileWith(t,
-		"auth-server="+authServer,
-		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
-	defer cleanup()
-
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil,
-		"-config="+configFile)
+	return runPagesProcessWithAuthServer(t, pagesPath, listeners, promPort, nil, authServer)
 }
 
-func RunPagesProcessWithAuthServerWithSSL(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
+func RunPagesProcessWithAuthServerWithSSLCertFile(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
+	return runPagesProcessWithAuthServer(t, pagesPath, listeners, promPort,
+		[]string{"SSL_CERT_FILE=" + sslCertFile}, authServer)
+}
+
+func RunPagesProcessWithAuthServerWithSSLCertDir(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
+	// Create temporary cert dir
+	sslCertDir, err := ioutil.TempDir("", "pages-test-SSL_CERT_DIR")
+	require.NoError(t, err)
+
+	// Copy sslCertFile into temp cert dir
+	err = copyFile(sslCertDir+"/"+path.Base(sslCertFile), sslCertFile)
+	require.NoError(t, err)
+
+	innerCleanup := runPagesProcessWithAuthServer(t, pagesPath, listeners, promPort,
+		[]string{"SSL_CERT_DIR=" + sslCertDir}, authServer)
+
+	return func() {
+		innerCleanup()
+		os.RemoveAll(sslCertDir)
+	}
+}
+
+func runPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraEnv []string, authServer string) func() {
 	configFile, cleanup := defaultConfigFileWith(t,
 		"auth-server="+authServer,
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
 	defer cleanup()
 
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile},
+	return runPagesProcess(t, true, pagesPath, listeners, promPort, extraEnv,
 		"-config="+configFile)
 }
 
@@ -480,4 +498,26 @@ func defaultConfigFileWith(t *testing.T, configs ...string) (string, func()) {
 	}
 
 	return name, cleanup
+}
+
+func copyFile(dest, src string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	srcInfo, err := srcFile.Stat()
+	if err != nil {
+		return err
+	}
+
+	destFile, err := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE|os.O_EXCL, srcInfo.Mode())
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, srcFile)
+	return err
 }
