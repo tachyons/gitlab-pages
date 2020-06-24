@@ -50,6 +50,7 @@ func daemonReexec(uid, gid uint, args ...string) (cmd *exec.Cmd, err error) {
 	cmd = &exec.Cmd{
 		Path:   path,
 		Args:   args,
+		Env:    os.Environ(),
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -184,7 +185,7 @@ func jailDaemonCerts(cmd *exec.Cmd, cage *jail.Jail) error {
 		if err != nil {
 			return fmt.Errorf("failed to copy SSL_CERT_FILE: %+v", err)
 		}
-		cmd.Env = append(os.Environ(), "SSL_CERT_FILE="+jailCertsFile)
+		cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+jailCertsFile)
 	}
 
 	// Copy all files and symlinks from SSL_CERT_DIR into the jail
@@ -195,7 +196,7 @@ func jailDaemonCerts(cmd *exec.Cmd, cage *jail.Jail) error {
 		if err != nil {
 			return err
 		}
-		cmd.Env = append(os.Environ(), "SSL_CERT_DIR="+jailCertsDir)
+		cmd.Env = append(cmd.Env, "SSL_CERT_DIR="+jailCertsDir)
 	}
 
 	return nil
