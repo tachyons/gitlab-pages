@@ -75,9 +75,42 @@ func (gc *Client) Resolve(ctx context.Context, host string) *api.Lookup {
 	return &lookup
 }
 
+var an = map[string]int{}
+
 // GetLookup returns a VirtualDomain configuration wrapped into a Lookup for a
 // given host
 func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
+	an[host]++
+	fmt.Printf("request to the API for %q - %d\n", host, an[host])
+	if host == "objectstorage.pages.test" {
+		return api.Lookup{
+			Name:  host,
+			Error: nil,
+			Domain: &api.VirtualDomain{
+				LookupPaths: []api.LookupPath{
+					{
+						ProjectID:     42,
+						AccessControl: false,
+						HTTPSOnly:     false,
+						Prefix:        "",
+						Source: api.Source{
+							Type: "object_storage",
+							/*
+								     mc config host add gdk http://127.0.0.1:9000 minio gdk-minio
+								     mc mb gdk/pages
+									 mc cp --recursive public/ gdk/pages/objectstorage
+									 mc cp --recursive public.zip  gdk/pages/objectstorage/
+									 mc cp --recursive public/ gdk/pages/objectstorage/public/
+									 mc share download gdk/pages/objectstorage/public.zip # generates a pre-signed URL
+							*/
+							// expires on WED 2020-07-01 17:00 UTC+10
+							Path: "http://127.0.0.1:9000/pages/objectstorage/public.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20200624%2Fgdk%2Fs3%2Faws4_request&X-Amz-Date=20200624T070923Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=9fb32ec8c5a9743a876dde192a11771c30ea17837b9f10bf1f22cde1ff7c7b73",
+						},
+					},
+				},
+			},
+		}
+	}
 	params := url.Values{}
 	params.Set("host", host)
 

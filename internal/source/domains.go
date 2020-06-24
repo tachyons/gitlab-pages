@@ -3,6 +3,7 @@ package source
 import (
 	"errors"
 	"regexp"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -85,10 +86,14 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
+
 	if d.gitlab == nil {
 		return d.disk
 	}
 
+	if strings.Contains(domain, "objectstorage.pages.test") {
+		return d.gitlab
+	}
 	// This check is only needed until we enable `d.gitlab` source in all
 	// environments (including on-premises installations) followed by removal of
 	// `d.disk` source. This can be safely removed afterwards.
