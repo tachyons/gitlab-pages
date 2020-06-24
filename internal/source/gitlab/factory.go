@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/objectstorage"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/serverless"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -32,6 +33,8 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 	switch source.Type {
 	case "file":
 		return disk.New()
+	case "object_storage":
+		return objectstorage.New()
 	case "serverless":
 		serving, err := serverless.NewFromAPISource(source.Serverless)
 		if err != nil {
