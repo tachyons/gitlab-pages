@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -e
 
@@ -11,33 +11,58 @@ gpg --batch --quiet --yes --armor --export --output gpg
 
 links=()
 
+joinBy() {
+  local IFS="${1}"
+  shift
+  echo "$*"
+}
+
 addLink() {
   local urlPrefix="${1}"
-  local asset="${2}"
-  assets+=("$(printf '{"name":"%s","url":"%s"}' "${urlPrefix}/${asset}" "${asset}")")
+  shift
+  for asset in "$@"
+  do
+    links+=("$(printf '{"name":"%s","url":"%s"}' "${asset}" "${urlPrefix}/${asset}" )")
+  done
+}
+
+signAsset() {
+  gpg --passphrase "${GPG_KEY_PASSPHRASE}" --batch --quiet --yes --armor --pinentry-mode loopback --detach-sign ${1}
+}
+
+sumAsset() {
+  local asset="${1}"
+  sha256sum ${asset} | awk '{print $1}' > "${asset}.sha256"
+}
+
+s3Copy() {
+  local asset="${1}"
+  local path="${2}"
+  local type="${3:-text/plain}"
+  aws s3 cp --quiet --acl public-read --content-type ${type} $asset "s3://${UBI_ASSETS_AWS_BUCKET}/${path}"
+}
+
+releaseAsset() {
+  local asset="${1}"
+  local path="${2}"
+  local type="${3:-text/plain}"
+  signAsset ${asset}
+  sumAsset ${asset}
+  s3Copy "${asset}.asc" "${path}.asc" "application/x-pem-file"
+  s3Copy "${asset}.sha256" "${path}.sha256"
+  s3Copy $asset $path $type
 }
 
 tar -cvf ${ASSETS_PACK} -C ubi .
-gpg --passphrase "${GPG_KEY_PASSPHRASE}" --batch --quiet --yes --armor --pinentry-mode loopback --detach-sign ${ASSETS_PACK}
-sha256sum ${ASSETS_PACK} | awk '{print $1}' > "${ASSETS_PACK}.sha256"
-aws s3 cp --quiet --acl public-read --content-type application/x-pem-file gpg "s3://${UBI_ASSETS_AWS_BUCKET}/gpg"
-aws s3 cp --quiet --acl public-read --content-type application/x-pem-file ${ASSETS_PACK}.asc "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}.asc"
-aws s3 cp --quiet --acl public-read ${ASSETS_PACK}.sha256 "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}.sha256"
-aws s3 cp --quiet --acl public-read --content-type application/x-tar ${ASSETS_PACK} "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_PACK}"
-addLink $ASSETS_URL_PREFIX $ASSETS_PACK
-addLink $ASSETS_URL_PREFIX "${ASSETS_PACK}.asc"
-addLink $ASSETS_URL_PREFIX "${ASSETS_PACK}.sha256"
+s3Copy 'gpg' 'gpg' 'application/x-pem-file'
+releaseAsset "${ASSETS_PACK}" "${ASSETS_PACK}" "application/x-tar"
+addLink $ASSETS_URL_PREFIX $ASSETS_PACK "${ASSETS_PACK}.asc" "${ASSETS_PACK}.sha256"
 
 for asset in ubi/*.tar.gz
 do
-  gpg --passphrase "${GPG_KEY_PASSPHRASE}" --batch --quiet --yes --armor --pinentry-mode loopback --detach-sign ${asset}
-  sha256sum ${asset} | awk '{print $1}' > "${asset}.sha256"
-  aws s3 cp --quiet --acl public-read --content-type application/x-pem-file ${asset}.asc "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_DIR/}${asset}.asc"
-  aws s3 cp --quiet --acl public-read ${asset}.sha256 "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_DIR/}${asset}.sha256"
-  aws s3 cp --quiet --acl public-read --content-type application/gzip ${asset} "s3://${UBI_ASSETS_AWS_BUCKET}/${ASSETS_DIR}/${asset}"
-  addLink "${ASSETS_URL_PREFIX}/${ASSETS_DIR}" $asset
-  addLink "${ASSETS_URL_PREFIX}/${ASSETS_DIR}" "${asset}.asc"
-  addLink "${ASSETS_URL_PREFIX}/${ASSETS_DIR}"  "${asset}.sha256"
+  asset_name=${asset##*/}
+  releaseAsset "${asset}" "${ASSETS_DIR}/${asset_name}" "application/gzip"
+  addLink "${ASSETS_URL_PREFIX}/${ASSETS_DIR}" $asset_name "${asset_name}.asc" "${asset_name}.sha256"
 done
 
 curl --retry 6 -f -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:application/json' --data \
@@ -47,7 +72,7 @@ curl --retry 6 -f -H "PRIVATE-TOKEN:${UBI_RELEASE_PAT}" -H 'Content-Type:applica
       "${UBI_RELEASE_TAG}" \
       "Release ${UBI_RELEASE_TAG}" \
       "Binary dependencies for building UBI-based images for Cloud-Native GitLab." \
-      "$(printf '$s,' "${links[@]}")" \
+      "$(joinBy ',' "${links[@]}")" \
     )" \
     "${RELEASE_API}"
 
