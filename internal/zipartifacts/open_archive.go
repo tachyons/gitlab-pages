@@ -72,6 +72,8 @@ func openHTTPArchive(ctx context.Context, archivePath string) (*archive, error) 
 	}
 	req = req.WithContext(ctx)
 
+	// nolint: bodyclose
+	// false positive, closing when the ctx is done
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("HTTP GET %q: %v", scrubbedArchivePath, err)
@@ -115,7 +117,6 @@ func openFileArchive(ctx context.Context, archivePath string) (*archive, error) 
 }
 
 func openZipReader(archive io.ReaderAt, size int64) (*reader.Reader, error) {
-
 	reader, err := reader.New(archive, size)
 	if err != nil {
 		return nil, ErrorCode[CodeNotZip]

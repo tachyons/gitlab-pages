@@ -29,16 +29,16 @@ func newInMemoryCache() *inMemory {
 		archive: &archive{},
 	}
 }
-func (i *inMemory) Set(ctx context.Context, reader *reader.Reader) {
+func (i *inMemory) Set(ctx context.Context, cancel func(), reader *reader.Reader) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
 	i.archive = &archive{
 		reader: reader,
 	}
-	go i.clear(ctx)
 
-	return
+	// clears the reader when the ctx is done or cancelled
+	go i.clear(ctx, cancel)
 }
 func (i *inMemory) Reader() (*reader.Reader, error) {
 	i.mu.Lock()
@@ -51,8 +51,9 @@ func (i *inMemory) Reader() (*reader.Reader, error) {
 	return i.archive.reader, nil
 }
 
-func (i *inMemory) clear(ctx context.Context) {
+func (i *inMemory) clear(ctx context.Context, cancel func()) {
 	<-ctx.Done()
+	cancel()
 
 	i.mu.Lock()
 	defer i.mu.Unlock()

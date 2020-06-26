@@ -86,7 +86,6 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
-
 	if d.gitlab == nil {
 		return d.disk
 	}
