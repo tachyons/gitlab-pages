@@ -19,15 +19,14 @@ import (
 )
 
 type cache interface {
-	Set(ctx context.Context, reader *reader.Reader)
+	Set(ctx context.Context, cancel func(), reader *reader.Reader)
 	Reader() (*reader.Reader, error)
 }
 
 // ObjecStorage implements the serving.Serving interface.
-// Contains a cache to store zip.Readers per domain
+// Contains a cache to store zip.Reader
 type ObjectStorage struct {
-	domain string
-	cache  cache
+	cache cache
 }
 
 // New gets called 6+ times per request so need to just init once.
@@ -96,13 +95,14 @@ func (os *ObjectStorage) getOrSetReader(handler serving.Handler) (*reader.Reader
 		// let the context be canceled on the timeout so that the zipReader stays open for a while
 		// this context is used by the os.cache and zipartifacts.OpenArchive
 		// TODO configure this timeout
-		ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
 		zipReader, err = zipartifacts.OpenArchive(ctx, handler.LookupPath.Path)
 		if err != nil {
+			cancel()
 			return nil, fmt.Errorf("failed to open zip archive: %v", err)
 		}
-		go os.cache.Set(ctx, zipReader)
+		go os.cache.Set(ctx, cancel, zipReader)
 	}
 
 	return zipReader, nil
