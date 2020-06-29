@@ -91,6 +91,11 @@ func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, erro
 }
 
 func (a *theApp) domain(host string) (*domain.Domain, error) {
+	// TODO https://gitlab.com/gitlab-org/gitlab-pages/-/issues/419
+	if host == a.Domain {
+		return nil, nil
+	}
+
 	return a.domains.GetDomain(host)
 }
 

@@ -1,4 +1,4 @@
-package zipartifacts
+package zip
 
 import (
 	"errors"

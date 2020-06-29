@@ -32,6 +32,10 @@ func New(readerAt io.ReaderAt, size int64) (*Reader, error) {
 }
 
 func (r *Reader) find(path string) *zip.File {
+	if r.archive == nil {
+		return nil
+	}
+
 	// This is O(n) search, very, very, very slow
 	for _, file := range r.archive.File {
 		if file.Name == path || file.Name == path+"/" {

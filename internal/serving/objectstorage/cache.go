@@ -7,7 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/zipartifacts/reader"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/zip/reader"
 )
 
 var (
@@ -15,27 +15,22 @@ var (
 )
 
 type archive struct {
-	reader *reader.Reader
 }
 type inMemory struct {
-	mu *sync.Mutex
-	// TODO reuse per domain
-	archive *archive
+	mu     *sync.Mutex
+	reader *reader.Reader
 }
 
 func newInMemoryCache() *inMemory {
 	return &inMemory{
-		mu:      new(sync.Mutex),
-		archive: &archive{},
+		mu: new(sync.Mutex),
 	}
 }
 func (i *inMemory) Set(ctx context.Context, cancel func(), reader *reader.Reader) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	i.archive = &archive{
-		reader: reader,
-	}
+	i.reader = reader
 
 	// clears the reader when the ctx is done or cancelled
 	go i.clear(ctx, cancel)
@@ -44,11 +39,11 @@ func (i *inMemory) Reader() (*reader.Reader, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	if i.archive == nil || i.archive.reader == nil {
+	if i.reader == nil {
 		return nil, errNotExists
 	}
 
-	return i.archive.reader, nil
+	return i.reader, nil
 }
 
 func (i *inMemory) clear(ctx context.Context, cancel func()) {
@@ -59,5 +54,5 @@ func (i *inMemory) clear(ctx context.Context, cancel func()) {
 	defer i.mu.Unlock()
 
 	logrus.Debug("removing expired reader")
-	i.archive.reader = nil
+	i.reader = nil
 }
