@@ -1718,6 +1718,7 @@ func TestGitlabDomainsSource(t *testing.T) {
 domains:
   enabled:
     - new-source-test.gitlab.io
+    - zip.gitlab.io
   broken: pages-broken-poc.gitlab.io
 `
 	gitlabSourceConfigFile, cleanupGitlabSourceConfigFile := CreateGitlabSourceConfigFixtureFile(t, gitlabSourceConfig)
@@ -1758,5 +1759,29 @@ domains:
 		defer response.Body.Close()
 
 		require.Equal(t, http.StatusBadGateway, response.StatusCode)
+	})
+
+	t.Run("zip source", func(t *testing.T) {
+		response, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", "/my/pages/zip/project/")
+		require.NoError(t, err)
+
+		defer response.Body.Close()
+		body, err := ioutil.ReadAll(response.Body)
+		require.NoError(t, err)
+
+		require.Equal(t, http.StatusOK, response.StatusCode)
+		require.Equal(t, "zip/index.html\n", string(body))
+	})
+
+	t.Run("zip source custom not found", func(t *testing.T) {
+		response, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", "/my/pages/zip/project/unknown")
+		require.NoError(t, err)
+
+		defer response.Body.Close()
+		body, err := ioutil.ReadAll(response.Body)
+		require.NoError(t, err)
+
+		require.Equal(t, http.StatusNotFound, response.StatusCode)
+		require.Equal(t, "zip custom not found\n", string(body))
 	})
 }
