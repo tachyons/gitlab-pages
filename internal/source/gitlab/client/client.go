@@ -70,13 +70,9 @@ func (gc *Client) Resolve(ctx context.Context, host string) *api.Lookup {
 	return &lookup
 }
 
-var an = map[string]int{}
-
 // GetLookup returns a VirtualDomain configuration wrapped into a Lookup for a
 // given host
 func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
-	an[host]++
-	fmt.Printf("request to the API for %q - %d\n", host, an[host])
 	if host == "objectstorage.pages.test" {
 		return api.Lookup{
 			Name:  host,
