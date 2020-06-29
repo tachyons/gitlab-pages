@@ -28,5 +28,4 @@ func TestNewReader(t *testing.T) {
 
 	_, _, err = reader.Open("unknown.html")
 	require.EqualError(t, err, "\"public/unknown.html\": not found")
-
 }

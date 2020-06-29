@@ -45,7 +45,6 @@ func (os *ObjectStorage) ServeFileHTTP(handler serving.Handler) bool {
 	zipReader, err := os.getOrSetReader(handler)
 	if err != nil {
 		logrus.WithError(err).Error("failed so serve from zip file")
-		// os.ServeNotFoundHTTP(handler)
 		return false
 	}
 
@@ -93,8 +92,9 @@ func (os *ObjectStorage) getOrSetReader(handler serving.Handler) (*reader.Reader
 	if err != nil {
 		// let the context be canceled on the timeout so that the zipReader stays open for a while
 		// this context is used by the os.cache and zipartifacts.OpenArchive
-		// TODO configure this timeout
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		// Setting to the same value as the internal/source/gitlab/cache entryRefreshTimeout:  60 * time.Second,
+		// TODO make it configurable
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 
 		zipReader, err = zip.OpenArchive(ctx, handler.LookupPath.Path)
 		if err != nil {

@@ -14,8 +14,6 @@ var (
 	errNotExists = errors.New("domain does not exist")
 )
 
-type archive struct {
-}
 type inMemory struct {
 	mu     *sync.Mutex
 	reader *reader.Reader

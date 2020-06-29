@@ -23,7 +23,7 @@ func TestOpenHTTPArchive(t *testing.T) {
 
 	zr, err := OpenArchive(context.Background(), srv.URL+"/"+zipFile)
 	require.NoError(t, err, "call OpenArchive")
-	require.Len(t, zr.Archive().File, 2)
+	require.Len(t, zr.Archive().File, 3)
 
 	zf := zr.Archive().File[1]
 	require.Equal(t, entryName, zf.Name, "zip entry name")
@@ -45,7 +45,7 @@ func TestOpenFileArchive(t *testing.T) {
 	)
 	zr, err := OpenArchive(context.Background(), testRoot)
 	require.NoError(t, err, "call OpenArchive")
-	require.Len(t, zr.Archive().File, 2)
+	require.Len(t, zr.Archive().File, 3)
 
 	zf := zr.Archive().File[1]
 	require.Equal(t, entryName, zf.Name, "zip entry name")
