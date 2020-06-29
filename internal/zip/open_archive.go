@@ -1,4 +1,4 @@
-package zipartifacts
+package zip
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/mask"
 	"gitlab.com/gitlab-org/labkit/tracing"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/zipartifacts/reader"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/zip/reader"
 )
 
 var httpClient = &http.Client{
@@ -31,7 +31,7 @@ var httpClient = &http.Client{
 		ExpectContinueTimeout: 10 * time.Second,
 		ResponseHeaderTimeout: 30 * time.Second,
 		DisableCompression:    true,
-	})),
+	}, correlation.WithClientName("gitlab-pages-zip-artifacts"))),
 }
 
 type archive struct {

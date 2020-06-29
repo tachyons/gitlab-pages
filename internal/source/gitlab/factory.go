@@ -33,7 +33,7 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 	switch source.Type {
 	case "file":
 		return disk.New()
-	case "object_storage":
+	case "zip":
 		return objectstorage.New()
 	case "serverless":
 		serving, err := serverless.NewFromAPISource(source.Serverless)

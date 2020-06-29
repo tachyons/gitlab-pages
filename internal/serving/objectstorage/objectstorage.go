@@ -14,8 +14,8 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/zipartifacts"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/zipartifacts/reader"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/zip"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/zip/reader"
 )
 
 type cache interface {
@@ -45,11 +45,11 @@ func (os *ObjectStorage) ServeFileHTTP(handler serving.Handler) bool {
 	zipReader, err := os.getOrSetReader(handler)
 	if err != nil {
 		logrus.WithError(err).Error("failed so serve from zip file")
-		os.ServeNotFoundHTTP(handler)
-		return true
+		// os.ServeNotFoundHTTP(handler)
+		return false
 	}
 
-	// TODO implement the logic from the disk reader
+	// TODO implement the logic from the disk reader to solve paths
 	filename := handler.SubPath
 	if filename == "" || filename == "/" {
 		filename = "index.html"
@@ -58,8 +58,7 @@ func (os *ObjectStorage) ServeFileHTTP(handler serving.Handler) bool {
 	err = os.handleZipFile(zipReader, filename, handler, http.StatusOK)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			os.ServeNotFoundHTTP(handler)
-			return true
+			return false
 		}
 		// TODO add metrics
 		logrus.WithError(err).Error("failed to serve from zip file")
@@ -97,7 +96,7 @@ func (os *ObjectStorage) getOrSetReader(handler serving.Handler) (*reader.Reader
 		// TODO configure this timeout
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
-		zipReader, err = zipartifacts.OpenArchive(ctx, handler.LookupPath.Path)
+		zipReader, err = zip.OpenArchive(ctx, handler.LookupPath.Path)
 		if err != nil {
 			cancel()
 			return nil, fmt.Errorf("failed to open zip archive: %v", err)

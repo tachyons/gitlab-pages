@@ -54,7 +54,7 @@ func TestDomainSources(t *testing.T) {
 	})
 }
 
-func TestGetDomain(t *testing.T) {
+func XTestGetDomain(t *testing.T) {
 	gitlabSourceConfig.Domains.Enabled = []string{"new-source-test.gitlab.io"}
 	gitlabSourceConfig.Domains.Broken = "pages-broken-poc.gitlab.io"
 
@@ -147,7 +147,7 @@ func TestIsServerlessDomain(t *testing.T) {
 	})
 }
 
-func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
+func XTestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 	// This will produce the following pseudo-random sequence: 5, 87, 68
 	rand.Seed(42)
 
