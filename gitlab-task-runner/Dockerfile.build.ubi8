@@ -4,10 +4,12 @@ FROM ${BUILD_IMAGE}
 
 ARG S3CMD_VERSION=2.1.0
 ARG GSUTIL_VERSION=4.42
+ARG DNF_OPTS
 
 ADD gitlab-python.tar.gz /
 
-RUN mkdir /assets \
+RUN dnf ${DNF_OPTS} install -by --nodocs gcc \
+    && mkdir /assets \
     && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
     && cp -R --parents \
         /usr/local/lib/python3.7/site-packages \

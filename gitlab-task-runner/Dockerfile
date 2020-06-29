@@ -16,6 +16,7 @@ COPY --from=python /usr/local/include /usr/local/include/
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
+  gcc \
   ca-certificates \
   openssl \
   tar \
