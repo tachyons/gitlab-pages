@@ -65,7 +65,7 @@ gpg --batch --quiet --yes --armor --export --output gpg
 tar -cvf "${ASSETS_PACK}" -C ubi .
 s3Copy 'gpg' 'gpg' 'application/x-pem-file'
 releaseAsset "${ASSETS_PACK}" "${ASSETS_PACK}" "application/x-tar"
-addLink "${ASSETS_URL_PREFIX}" "${ASSETS_PACK} ""${ASSETS_PACK}.asc" "${ASSETS_PACK}.sha256"
+addLink "${ASSETS_URL_PREFIX}" "${ASSETS_PACK}" "${ASSETS_PACK}.asc" "${ASSETS_PACK}.sha256"
 
 for asset in ubi/*.tar.gz
 do
