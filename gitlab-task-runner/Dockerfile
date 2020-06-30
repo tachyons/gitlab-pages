@@ -26,10 +26,9 @@ RUN apt-get update \
 
 ARG GITLAB_USER=git
 
-COPY scripts/ /scripts
-
-RUN cp scripts/bin/* /usr/local/bin && cp scripts/lib/* /usr/lib/ruby/vendor_ruby
+COPY scripts/bin/* /usr/local/bin/
+COPY scripts/lib/* /usr/lib/ruby/vendor_ruby/
 
 USER $GITLAB_USER:$GITLAB_USER
 
-ENTRYPOINT ["/scripts/bin/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
