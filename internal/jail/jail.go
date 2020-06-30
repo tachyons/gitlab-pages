@@ -115,7 +115,9 @@ func (j *Jail) removeAll() error {
 			}
 		}
 
-		for _, dest := range j.directories {
+		// Iterate directories in reverse to remove children before parents
+		for i := len(j.directories) - 1; i >= 0; i-- {
+			dest := j.directories[i]
 			if err := os.Remove(dest.path); err != nil {
 				return fmt.Errorf("Can't delete directory in jail %q: %s", dest.path, err)
 			}
