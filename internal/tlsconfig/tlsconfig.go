@@ -3,7 +3,6 @@ package tlsconfig
 import (
 	"crypto/tls"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 )
@@ -19,6 +18,9 @@ var (
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_AES_128_GCM_SHA256,
+		tls.TLS_AES_256_GCM_SHA384,
+		tls.TLS_CHACHA20_POLY1305_SHA256,
 	}
 
 	// AllTLSVersions has all supported flag values
@@ -28,6 +30,7 @@ var (
 		"tls1.0": tls.VersionTLS10,
 		"tls1.1": tls.VersionTLS11,
 		"tls1.2": tls.VersionTLS12,
+		"tls1.3": tls.VersionTLS13,
 	}
 )
 
@@ -64,6 +67,8 @@ func Create(cert, key []byte, getCertificate GetCertificateFunc, insecureCiphers
 	return tlsConfig, nil
 }
 
+var validateGoDebug = func() error { return nil }
+
 // ValidateTLSVersions returns error if the provided TLS versions config values are not valid
 func ValidateTLSVersions(min, max string) error {
 	tlsMin, tlsMinOk := AllTLSVersions[min]
@@ -79,10 +84,10 @@ func ValidateTLSVersions(min, max string) error {
 		return fmt.Errorf("Invalid maximum TLS version: %s; Should be at least %s", max, min)
 	}
 
-	// At this point values are validated so if we have tls1.3
-	// accepted we are on Go 1.12+ so let's enable it too.
+	// tls1.3 can be disabled in Go 1.13 https://golang.org/doc/go1.13#tls_1_3
+	// using the GODEBUG env var, validate for go1.13 only
 	if min == "tls1.3" || max == "tls1.3" {
-		os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",tls13=1")
+		return validateGoDebug()
 	}
 
 	return nil
