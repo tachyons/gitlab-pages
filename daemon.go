@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -49,6 +50,7 @@ func daemonReexec(uid, gid uint, args ...string) (cmd *exec.Cmd, err error) {
 	cmd = &exec.Cmd{
 		Path:   path,
 		Args:   args,
+		Env:    os.Environ(),
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -137,6 +139,69 @@ func chrootDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 	return chroot, nil
 }
 
+func jailCopyCertDir(cage *jail.Jail, sslCertDir, jailCertsDir string) error {
+	log.WithFields(log.Fields{
+		"ssl-cert-dir": sslCertDir,
+	}).Debug("Copying certs from SSL_CERT_DIR")
+
+	entries, err := ioutil.ReadDir(sslCertDir)
+	if err != nil {
+		return fmt.Errorf("failed to read SSL_CERT_DIR: %+v", err)
+	}
+
+	for _, fi := range entries {
+		// Copy only regular files and symlinks
+		mode := fi.Mode()
+		if !(mode.IsRegular() || mode&os.ModeSymlink != 0) {
+			continue
+		}
+
+		err = cage.CopyTo(jailCertsDir+"/"+fi.Name(), sslCertDir+"/"+fi.Name())
+		if err != nil {
+			log.WithError(err).Errorf("failed to copy cert: %q", fi.Name())
+			// Go on and try to copy other files. We don't want the whole
+			// startup process to fail due to a single failure here.
+		}
+	}
+
+	return nil
+}
+
+func jailDaemonCerts(cmd *exec.Cmd, cage *jail.Jail) error {
+	sslCertFile := os.Getenv("SSL_CERT_FILE")
+	sslCertDir := os.Getenv("SSL_CERT_DIR")
+	if sslCertFile == "" && sslCertDir == "" {
+		log.Warn("Neither SSL_CERT_FILE nor SSL_CERT_DIR environment variable is set. HTTPS requests will fail.")
+		return nil
+	}
+
+	// This assumes cage.MkDir("/etc") has already been called
+	cage.MkDir("/etc/ssl", 0755)
+
+	// Copy SSL_CERT_FILE inside the jail
+	if sslCertFile != "" {
+		jailCertsFile := "/etc/ssl/ca-bundle.pem"
+		err := cage.CopyTo(jailCertsFile, sslCertFile)
+		if err != nil {
+			return fmt.Errorf("failed to copy SSL_CERT_FILE: %+v", err)
+		}
+		cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+jailCertsFile)
+	}
+
+	// Copy all files and symlinks from SSL_CERT_DIR into the jail
+	if sslCertDir != "" {
+		jailCertsDir := "/etc/ssl/certs"
+		cage.MkDir(jailCertsDir, 0755)
+		err := jailCopyCertDir(cage, sslCertDir, jailCertsDir)
+		if err != nil {
+			return err
+		}
+		cmd.Env = append(cmd.Env, "SSL_CERT_DIR="+jailCertsDir)
+	}
+
+	return nil
+}
+
 func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 	cage := jail.CreateTimestamped("gitlab-pages", 0755)
 
@@ -169,17 +234,10 @@ func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 		return nil, err
 	}
 
-	// Copy SSL_CERT_FILE inside the jail
-	sslCertFile := os.Getenv("SSL_CERT_FILE")
-	if sslCertFile != "" {
-		cage.MkDir("/etc/ssl", 0755)
-		err = cage.CopyTo("/etc/ssl/ca-bundle.pem", sslCertFile)
-		if err != nil {
-			return nil, err
-		}
-		cmd.Env = append(os.Environ(), "SSL_CERT_FILE=/etc/ssl/ca-bundle.pem")
-	} else {
-		log.Print("Missing SSL_CERT_FILE environment variable. HTTPS requests will fail")
+	// Add certificates inside the jail
+	err = jailDaemonCerts(cmd, cage)
+	if err != nil {
+		return nil, err
 	}
 
 	// Bind mount shared folder

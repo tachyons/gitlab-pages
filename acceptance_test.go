@@ -1243,7 +1243,9 @@ func setupTransport(t *testing.T) {
 	transport.ResponseHeaderTimeout = 5 * time.Second
 }
 
-func TestAccessControl(t *testing.T) {
+type runPagesFunc func(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func()
+
+func testAccessControl(t *testing.T, runPages runPagesFunc) {
 	skipUnlessEnabled(t, "not-inplace-chroot")
 
 	setupTransport(t)
@@ -1340,7 +1342,7 @@ func TestAccessControl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			teardown := RunPagesProcessWithAuthServerWithSSL(t, *pagesBinary, listeners, "", certFile, testServer.URL)
+			teardown := runPages(t, *pagesBinary, listeners, "", certFile, testServer.URL)
 			defer teardown()
 
 			rsp, err := GetRedirectPage(t, httpsListener, tt.host, tt.path)
@@ -1404,6 +1406,14 @@ func TestAccessControl(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAccessControlWithSSLCertFile(t *testing.T) {
+	testAccessControl(t, RunPagesProcessWithAuthServerWithSSLCertFile)
+}
+
+func TestAccessControlWithSSLCertDir(t *testing.T) {
+	testAccessControl(t, RunPagesProcessWithAuthServerWithSSLCertDir)
 }
 
 func TestAcceptsSupportedCiphers(t *testing.T) {

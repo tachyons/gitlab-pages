@@ -62,15 +62,20 @@ func pool() *x509.CertPool {
 }
 
 func loadPool() {
-	sslCertFile := os.Getenv("SSL_CERT_FILE")
-	if sslCertFile == "" {
+	var err error
+
+	// Always load the system cert pool
+	sysPool, err = x509.SystemCertPool()
+	if err != nil {
+		log.WithError(err).Error("failed to load system cert pool for http client")
 		return
 	}
 
-	var err error
-	sysPool, err = x509.SystemCertPool()
-	if err != nil {
-		log.WithError(err).Error("failed to load system cert pool for artifacts client")
+	// Try to load from SSL_CERT_FILE
+	// TODO: Handle SSL_CERT_DIR?
+	// See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/415
+	sslCertFile := os.Getenv("SSL_CERT_FILE")
+	if sslCertFile == "" {
 		return
 	}
 

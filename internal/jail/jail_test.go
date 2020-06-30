@@ -316,3 +316,31 @@ func TestJailIntoOnlyCleansSubpaths(t *testing.T) {
 	_, err = os.Stat(jailPath)
 	require.NoError(t, err, "/ in jail (corresponding to external directory) was removed")
 }
+
+func TestJailIntoCleansNestedDirs(t *testing.T) {
+	jailPath := tmpJailPath()
+	require.NoError(t, os.MkdirAll(jailPath, 0755))
+	defer os.RemoveAll(jailPath)
+
+	chroot := jail.Into(jailPath)
+
+	// These need to be cleaned up in reverse order
+	chroot.MkDir("/way", 0755)
+	chroot.MkDir("/way/down", 0755)
+	chroot.MkDir("/way/down/here", 0755)
+
+	require.NoError(t, chroot.Build())
+	require.NoError(t, chroot.Dispose())
+
+	verify := func(inPath string) {
+		_, err := os.Stat(path.Join(jailPath, inPath))
+		require.True(t, os.IsNotExist(err), "{} in jail was not removed", inPath)
+	}
+
+	verify("/way")
+	verify("/way/down")
+	verify("/way/down/here")
+
+	_, err := os.Stat(jailPath)
+	require.NoError(t, err, "/ in jail (corresponding to external directory) was removed")
+}
