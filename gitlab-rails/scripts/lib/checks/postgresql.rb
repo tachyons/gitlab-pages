@@ -69,9 +69,9 @@ module Checks
 
       puts 'NOTICE: Database has not been initialized yet.' unless @@database_version.to_i.positive?
 
-      return true unless ENV['BYPASS_SCHEMA_VERSION'].nil? && success
+      return true if (ENV['BYPASS_SCHEMA_VERSION'] && success)
 
-      (@@database_version <= codebase_schema_version)
+      (success && @@database_version >= codebase_schema_version)
     end
   end
 end
