@@ -16,6 +16,7 @@ RUN mkdir /assets \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install \
     && ldconfig \
+    && pip3 install --upgrade pip setuptools \
     && rm -rf /usr/local/lib/python3.7/test \
     && find /usr/local/lib/python3.7 -name '__pycache__' -type d -exec rm -r {} + \
     && cp -R  --parents /usr/local/{bin,lib,include} /assets

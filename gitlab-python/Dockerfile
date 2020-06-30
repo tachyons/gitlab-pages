@@ -22,6 +22,7 @@ RUN buildDeps=' \
   ./configure --enable-shared --with-readline=editline --with-dbmliborder= && make && \
   make install && \
   ldconfig && \
+  pip3 install --upgrade pip setuptools && \
   rm -rf /usr/local/lib/python/3.7/lib-dynload/dbm.* && \
   rm -rf /usr/local/lib/python/3.7/lib-dynload/_sqlite3.* && \
   rm -rf /usr/local/lib/python/3.7/test && \
