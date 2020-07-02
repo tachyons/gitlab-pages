@@ -15,7 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
@@ -107,8 +106,13 @@ func gitlabServerFromFlags() string {
 		return *gitLabAuthServer
 	}
 
-	url, _ := url.Parse(*artifactsServer)
-	return host.FromString(url.Host)
+	u, err := url.Parse(*artifactsServer)
+	if err != nil {
+		return ""
+	}
+
+	u.Path = ""
+	return u.String()
 }
 
 func internalGitLabServerFromFlags() string {
