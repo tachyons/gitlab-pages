@@ -16,31 +16,31 @@ func TestGitLabServerFromFlags(t *testing.T) {
 	}{
 		{
 			name:             "When gitLabServer is set",
-			gitLabServer:     "gitlabserver.com",
-			gitLabAuthServer: "authserver.com",
+			gitLabServer:     "https://gitlabserver.com",
+			gitLabAuthServer: "https://authserver.com",
 			artifactsServer:  "https://artifactsserver.com",
-			expected:         "gitlabserver.com",
+			expected:         "https://gitlabserver.com",
 		},
 		{
 			name:             "When auth server is set",
 			gitLabServer:     "",
-			gitLabAuthServer: "authserver.com",
+			gitLabAuthServer: "https://authserver.com",
 			artifactsServer:  "https://artifactsserver.com",
-			expected:         "authserver.com",
+			expected:         "https://authserver.com",
 		},
 		{
 			name:             "When only artifacts server is set",
 			gitLabServer:     "",
 			gitLabAuthServer: "",
 			artifactsServer:  "https://artifactsserver.com",
-			expected:         "artifactsserver.com",
+			expected:         "https://artifactsserver.com",
 		},
 		{
 			name:             "When only artifacts server includes path",
 			gitLabServer:     "",
 			gitLabAuthServer: "",
 			artifactsServer:  "https://artifactsserver.com:8080/api/path",
-			expected:         "artifactsserver.com",
+			expected:         "https://artifactsserver.com:8080",
 		}}
 
 	for _, test := range tests {
