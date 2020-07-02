@@ -55,9 +55,10 @@ Pages security releases are built on top of the [GitLab Security Release process
 the same steps stated on the [Security Developer] guidelines with some adjustments:
 
 - Apart from the [security merge requests] created on [GitLab Security], merge requests will also be created on [GitLab Pages Security]:
-  - Security merge requests are required to use the [merge request security template].
   - Merge request targeting `master` is prepared with the GitLab Pages security fix.
   - Backports are prepared for the last releases corresponding to last 3 GitLab releases.
+  - Security merge requests are required to use the [merge request security template].
+  - **It's important for these merge requests to not be associated with the Security Implementation Issue created on [GitLab Security], otherwise the security issue won't be considered by [Release Tools].**
 - Security merge requests created on [GitLab Security] will bump the `GITLAB_PAGES_VERSION`.
 - Once the merge requests on [GitLab Pages Security] are approved:
   - Maintainers of GitLab Pages will merge the security merge requests **targeting stable branches** and create a new tag for these branches.

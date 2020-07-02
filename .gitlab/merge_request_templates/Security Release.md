@@ -15,7 +15,7 @@ When submitting a merge request for gitlab-pages, CE and EE merge requests for u
 
 ## Developer checklist
 
-- [ ] Link to the developer security workflow issue on https://gitlab.com/gitlab-org/security/gitlab
+- [ ] Link to the original confidential issue on https://gitlab.com/gitlab-org/gitlab-pages. **Warning don't associate this MR with the security implementation issue on GitLab Security**
 - [ ] MR targets `master`, or `X-Y-stable` for backports
 - [ ] Milestone is set for the version this MR applies to
 - [ ] Title of this MR is the same as for all backports
