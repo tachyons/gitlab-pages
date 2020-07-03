@@ -20,7 +20,7 @@ workflow:
     - if: '$CI_COMMIT_BRANCH =~ /^security\//'
 
 default:
-  image: golang:1.12
+  image: golang:1.13
   tags:
     - gitlab-org
 
@@ -121,10 +121,6 @@ code_quality:
       codequality: ${REPORT_FILE}
     paths:
       - ${REPORT_FILE}
-
-test:1.12:
-  extends: .tests
-  image: golang:1.12
 
 test:1.13:
   extends: .tests
