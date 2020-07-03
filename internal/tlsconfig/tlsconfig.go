@@ -67,8 +67,6 @@ func Create(cert, key []byte, getCertificate GetCertificateFunc, insecureCiphers
 	return tlsConfig, nil
 }
 
-var validateGoDebug = func() error { return nil }
-
 // ValidateTLSVersions returns error if the provided TLS versions config values are not valid
 func ValidateTLSVersions(min, max string) error {
 	tlsMin, tlsMinOk := AllTLSVersions[min]
@@ -82,12 +80,6 @@ func ValidateTLSVersions(min, max string) error {
 	}
 	if tlsMin > tlsMax && tlsMax > 0 {
 		return fmt.Errorf("Invalid maximum TLS version: %s; Should be at least %s", max, min)
-	}
-
-	// tls1.3 can be disabled in Go 1.13 https://golang.org/doc/go1.13#tls_1_3
-	// using the GODEBUG env var, validate for go1.13 only
-	if min == "tls1.3" || max == "tls1.3" {
-		return validateGoDebug()
 	}
 
 	return nil
