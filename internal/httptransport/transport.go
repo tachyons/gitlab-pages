@@ -53,10 +53,10 @@ func NewTransportWithMetrics(gaugeVec *prometheus.GaugeVec, counterVec *promethe
 	}
 }
 
-// This is here because macOS does not support the SSL_CERT_FILE
-// environment variable. We have arrange things to read SSL_CERT_FILE as
-// late as possible to avoid conflicts with file descriptor passing at
-// startup.
+// This is here because macOS does not support the SSL_CERT_FILE and
+// SSL_CERT_DIR environment variables. We have arranged things to read
+// SSL_CERT_FILE and SSL_CERT_DIR  as late as possible to avoid conflicts
+// with file descriptor passing at startup.
 func pool() *x509.CertPool {
 	sysPoolOnce.Do(loadPool)
 	return sysPool
@@ -72,26 +72,34 @@ func loadPool() {
 		return
 	}
 
-	// Try to load from SSL_CERT_FILE
-	// TODO: Handle SSL_CERT_DIR?
-	// See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/415
-	sslCertFile := os.Getenv("SSL_CERT_FILE")
-	if sslCertFile != "" {
-		certPem, err := ioutil.ReadFile(sslCertFile)
-		if err != nil {
-			log.WithError(err).Error("failed to read SSL_CERT_FILE")
-			return
-		}
-		sysPool.AppendCertsFromPEM(certPem)
+	if err := loadSSLCertFile(); err != nil {
+		log.WithError(err).Error("failed to read SSL_CERT_FILE")
+		return
 	}
 
-	if err := loadCertDir(); err != nil {
+	// SSL_CERT_DIR is not respected by OSX, need to load this manually
+	if err := loadSSLCertDir(); err != nil {
 		log.WithError(err).Warn("failed to load SSL_CERT_DIR")
+		return
 	}
-
 }
 
-func loadCertDir() error {
+func loadSSLCertFile() error {
+	sslCertFile := os.Getenv("SSL_CERT_FILE")
+	if sslCertFile == "" {
+		return nil
+	}
+
+	certPem, err := ioutil.ReadFile(sslCertFile)
+	if err != nil {
+		return err
+	}
+
+	sysPool.AppendCertsFromPEM(certPem)
+	return nil
+}
+
+func loadSSLCertDir() error {
 	sslCertDir := os.Getenv("SSL_CERT_DIR")
 	if sslCertDir == "" {
 		return nil
@@ -108,18 +116,17 @@ func loadCertDir() error {
 		if !(mode.IsRegular() || mode&os.ModeSymlink != 0) {
 			continue
 		}
-		fmt.Printf("the fi: %q thee dir: %q\n\n\n\n", fi.Name(), sslCertDir)
+
 		cert, err := ioutil.ReadFile(sslCertDir + "/" + fi.Name())
 		if err != nil {
 			log.WithError(err).Warnf("failed to open cert, skipping: %q", fi.Name())
-			panic(2)
 			continue
 		}
 
 		ok := sysPool.AppendCertsFromPEM(cert)
 		if !ok {
-			panic("didnet???/")
 			log.Warnf("failed to append to sysPool, skipping: %q", fi.Name())
+			continue
 		}
 	}
 

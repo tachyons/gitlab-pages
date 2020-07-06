@@ -507,12 +507,12 @@ func copyFile(dest, src string) error {
 	}
 	defer srcFile.Close()
 
-	// srcInfo, err := srcFile.Stat()
-	// if err != nil {
-	// 	return err
-	// }
+	srcInfo, err := srcFile.Stat()
+	if err != nil {
+		return err
+	}
 
-	destFile, err := os.Create(dest)
+	destFile, err := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE|os.O_EXCL, srcInfo.Mode())
 	if err != nil {
 		return err
 	}

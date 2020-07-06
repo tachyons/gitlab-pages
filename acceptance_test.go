@@ -1269,7 +1269,7 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 		name         string
 	}{
 		{
-			name:         "project_with_access",
+			name:         "project with access",
 			host:         "group.auth.gitlab-example.com",
 			path:         "/private.project/",
 			status:       http.StatusOK,
@@ -1304,7 +1304,7 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 			redirectBack: false,
 		}, // subgroups
 		{
-			name:         "[subgroup] project - access",
+			name:         "[subgroup] project with access",
 			host:         "group.auth.gitlab-example.com",
 			path:         "/subgroup/private.project/",
 			status:       http.StatusOK,
@@ -1342,7 +1342,6 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Logf("pagesBinary: %q  \n certFile: %q \n serverURL: %q\n", *pagesBinary, certFile, testServer.URL)
 			teardown := runPages(t, *pagesBinary, listeners, "", certFile, testServer.URL)
 			defer teardown()
 
