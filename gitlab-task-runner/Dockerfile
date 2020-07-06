@@ -16,12 +16,14 @@ COPY --from=python /usr/local/include /usr/local/include/
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
+  gcc \
   ca-certificates \
   openssl \
   tar \
   && ldconfig \
   && pip3 install --upgrade s3cmd==${S3CMD_VERSION} \
   && pip3 install gsutil==${GSUTIL_VERSION} crcmod \
+  && apt-get purge -y --auto-remove gcc \
   && rm -rf /var/lib/apt/lists/*
 
 ARG GITLAB_USER=git
