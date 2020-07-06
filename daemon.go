@@ -148,7 +148,6 @@ func jailCopyCertDir(cage *jail.Jail, sslCertDir, jailCertsDir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read SSL_CERT_DIR: %+v", err)
 	}
-
 	for _, fi := range entries {
 		// Copy only regular files and symlinks
 		mode := fi.Mode()

@@ -3,6 +3,7 @@ package httptransport
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -75,17 +76,54 @@ func loadPool() {
 	// TODO: Handle SSL_CERT_DIR?
 	// See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/415
 	sslCertFile := os.Getenv("SSL_CERT_FILE")
-	if sslCertFile == "" {
-		return
+	if sslCertFile != "" {
+		certPem, err := ioutil.ReadFile(sslCertFile)
+		if err != nil {
+			log.WithError(err).Error("failed to read SSL_CERT_FILE")
+			return
+		}
+		sysPool.AppendCertsFromPEM(certPem)
 	}
 
-	certPem, err := ioutil.ReadFile(sslCertFile)
+	if err := loadCertDir(); err != nil {
+		log.WithError(err).Warn("failed to load SSL_CERT_DIR")
+	}
+
+}
+
+func loadCertDir() error {
+	sslCertDir := os.Getenv("SSL_CERT_DIR")
+	if sslCertDir == "" {
+		return nil
+	}
+
+	entries, err := ioutil.ReadDir(sslCertDir)
 	if err != nil {
-		log.WithError(err).Error("failed to read SSL_CERT_FILE")
-		return
+		return fmt.Errorf("failed to read SSL_CERT_DIR: %w", err)
 	}
 
-	sysPool.AppendCertsFromPEM(certPem)
+	for _, fi := range entries {
+		// Copy only regular files and symlinks
+		mode := fi.Mode()
+		if !(mode.IsRegular() || mode&os.ModeSymlink != 0) {
+			continue
+		}
+		fmt.Printf("the fi: %q thee dir: %q\n\n\n\n", fi.Name(), sslCertDir)
+		cert, err := ioutil.ReadFile(sslCertDir + "/" + fi.Name())
+		if err != nil {
+			log.WithError(err).Warnf("failed to open cert, skipping: %q", fi.Name())
+			panic(2)
+			continue
+		}
+
+		ok := sysPool.AppendCertsFromPEM(cert)
+		if !ok {
+			panic("didnet???/")
+			log.Warnf("failed to append to sysPool, skipping: %q", fi.Name())
+		}
+	}
+
+	return nil
 }
 
 // withRoundTripper takes an original RoundTripper, reports metrics based on the
