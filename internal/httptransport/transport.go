@@ -72,15 +72,14 @@ func loadPool() {
 		return
 	}
 
+	// SSL_CERT_FILE is not respected by OSX, need to load this manually
 	if err := loadSSLCertFile(); err != nil {
 		log.WithError(err).Error("failed to read SSL_CERT_FILE")
-		return
 	}
 
 	// SSL_CERT_DIR is not respected by OSX, need to load this manually
 	if err := loadSSLCertDir(); err != nil {
-		log.WithError(err).Warn("failed to load SSL_CERT_DIR")
-		return
+		log.WithError(err).Error("failed to load SSL_CERT_DIR")
 	}
 }
 
