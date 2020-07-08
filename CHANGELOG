@@ -1,3 +1,7 @@
+v 1.21.0
+
+- Copy certs from SSL_CERT_DIR into chroot jail !291
+
 v 1.20.0
 
 - Enable continuous profiling !297
