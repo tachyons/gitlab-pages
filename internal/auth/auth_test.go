@@ -29,6 +29,20 @@ func defaultCookieStore() sessions.Store {
 	return createCookieStore("something-very-secret")
 }
 
+type domainMock struct {
+	projectID       uint64
+	notFoundContent string
+}
+
+func (dm *domainMock) GetProjectID(r *http.Request) uint64 {
+	return dm.projectID
+}
+
+func (dm *domainMock) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+	w.Write([]byte(dm.notFoundContent))
+}
+
 // Gorilla's sessions use request context to save session
 // Which makes session sharable between test code and actually manipulating session
 // Which leads to negative side effects: we can't test encryption, and cookie params
@@ -180,8 +194,10 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
+	contentServed := auth.CheckAuthentication(result, r, &domainMock{projectID: 1000})
+	require.False(t, contentServed)
 
-	require.Equal(t, false, auth.CheckAuthentication(result, r, 1000))
+	// notFoundContent wasn't served so the default response from CheckAuthentication should be 200
 	require.Equal(t, 200, result.Code)
 }
 
@@ -209,7 +225,8 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 		"http://pages.gitlab-example.com/auth",
 		apiServer.URL)
 
-	result := httptest.NewRecorder()
+	w := httptest.NewRecorder()
+
 	reqURL, err := url.Parse("/auth?code=1&state=state")
 	require.NoError(t, err)
 	reqURL.Scheme = request.SchemeHTTPS
@@ -217,10 +234,18 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 
 	session, _ := store.Get(r, "gitlab-pages")
 	session.Values["access_token"] = "abc"
-	session.Save(r, result)
+	session.Save(r, w)
 
-	require.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
-	require.Equal(t, 404, result.Code)
+	contentServed := auth.CheckAuthentication(w, r, &domainMock{projectID: 1000, notFoundContent: "Generic 404"})
+	require.True(t, contentServed)
+	res := w.Result()
+	defer res.Body.Close()
+
+	require.Equal(t, 404, res.StatusCode)
+
+	body, err := ioutil.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, string(body), "Generic 404")
 }
 
 func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
@@ -257,7 +282,8 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.CheckAuthentication(result, r, 1000))
+	contentServed := auth.CheckAuthentication(result, r, &domainMock{projectID: 1000})
+	require.True(t, contentServed)
 	require.Equal(t, 302, result.Code)
 }
 
@@ -295,7 +321,8 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	require.Equal(t, false, auth.CheckAuthenticationWithoutProject(result, r))
+	contentServed := auth.CheckAuthenticationWithoutProject(result, r, &domainMock{projectID: 0})
+	require.False(t, contentServed)
 	require.Equal(t, 200, result.Code)
 }
 
@@ -332,7 +359,8 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	session.Values["access_token"] = "abc"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.CheckAuthenticationWithoutProject(result, r))
+	contentServed := auth.CheckAuthenticationWithoutProject(result, r, &domainMock{projectID: 0})
+	require.True(t, contentServed)
 	require.Equal(t, 302, result.Code)
 }
 

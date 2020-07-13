@@ -197,6 +197,69 @@ func TestNestedSubgroups(t *testing.T) {
 		})
 	}
 }
+
+func TestCustom404(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	tests := []struct {
+		host    string
+		path    string
+		content string
+	}{
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "project.404/not/existing-file",
+			content: "Custom 404 project page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "project.404/",
+			content: "Custom 404 project page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "not/existing-file",
+			content: "Custom 404 group page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "not-existing-file",
+			content: "Custom 404 group page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			content: "Custom 404 group page",
+		},
+		{
+			host:    "domain.404.com",
+			content: "Custom domain.404 page",
+		},
+		{
+			host:    "group.404.gitlab-example.com",
+			path:    "project.no.404/not/existing-file",
+			content: "The page you're looking for could not be found.",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s/%s", test.host, test.path), func(t *testing.T) {
+			for _, spec := range listeners {
+				rsp, err := GetPageFromListener(t, spec, test.host, test.path)
+
+				require.NoError(t, err)
+				defer rsp.Body.Close()
+				require.Equal(t, http.StatusNotFound, rsp.StatusCode)
+
+				page, err := ioutil.ReadAll(rsp.Body)
+				require.NoError(t, err)
+				require.Contains(t, string(page), test.content)
+			}
+		})
+	}
+}
+
 func TestCORSWhenDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-disable-cross-origin-requests")
@@ -1141,6 +1204,113 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/", cookie)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, authrsp.StatusCode)
+}
+
+func TestCustomErrorPageWithAuth(t *testing.T) {
+	skipUnlessEnabled(t, "not-inplace-chroot")
+	testServer := makeGitLabPagesAccessStub(t)
+	testServer.Start()
+	defer testServer.Close()
+
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
+	defer teardown()
+
+	tests := []struct {
+		name              string
+		domain            string
+		path              string
+		expectedErrorPage string
+	}{
+		{
+			name:              "private_project_authorized",
+			domain:            "group.404.gitlab-example.com",
+			path:              "/private_project/unknown",
+			expectedErrorPage: "Private custom 404 error page",
+		},
+		{
+			name:   "public_namespace_with_private_unauthorized_project",
+			domain: "group.404.gitlab-example.com",
+			// /private_unauthorized/config.json resolves project ID to 2000 which will cause a 401 from the mock GitLab testServer
+			path:              "/private_unauthorized/unknown",
+			expectedErrorPage: "Custom 404 group page",
+		},
+		{
+			name:              "private_namespace_authorized",
+			domain:            "group.auth.gitlab-example.com",
+			path:              "/unknown",
+			expectedErrorPage: "group.auth.gitlab-example.com namespace custom 404",
+		},
+		{
+			name:   "private_namespace_with_private_project_auth_failed",
+			domain: "group.auth.gitlab-example.com",
+			// project ID is 2000
+			path:              "/private.project.1/unknown",
+			expectedErrorPage: "The page you're looking for could not be found.",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rsp, err := GetRedirectPage(t, httpListener, tt.domain, tt.path)
+			require.NoError(t, err)
+			defer rsp.Body.Close()
+
+			cookie := rsp.Header.Get("Set-Cookie")
+
+			url, err := url.Parse(rsp.Header.Get("Location"))
+			require.NoError(t, err)
+
+			state := url.Query().Get("state")
+			require.Equal(t, "http://"+tt.domain, url.Query().Get("domain"))
+
+			pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
+			require.NoError(t, err)
+			defer pagesrsp.Body.Close()
+
+			pagescookie := pagesrsp.Header.Get("Set-Cookie")
+
+			// Go to auth page with correct state will cause fetching the token
+			authrsp, err := GetRedirectPageWithCookie(t, httpListener, "projects.gitlab-example.com", "/auth?code=1&state="+
+				state, pagescookie)
+
+			require.NoError(t, err)
+			defer authrsp.Body.Close()
+
+			url, err = url.Parse(authrsp.Header.Get("Location"))
+			require.NoError(t, err)
+
+			// Will redirect to custom domain
+			require.Equal(t, tt.domain, url.Host)
+			require.Equal(t, "1", url.Query().Get("code"))
+			require.Equal(t, state, url.Query().Get("state"))
+
+			// Run auth callback in custom domain
+			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, "/auth?code=1&state="+
+				state, cookie)
+
+			require.NoError(t, err)
+			defer authrsp.Body.Close()
+
+			// Will redirect to the page
+			groupCookie := authrsp.Header.Get("Set-Cookie")
+			require.Equal(t, http.StatusFound, authrsp.StatusCode)
+
+			url, err = url.Parse(authrsp.Header.Get("Location"))
+			require.NoError(t, err)
+
+			// Will redirect to custom domain error page
+			require.Equal(t, "http://"+tt.domain+tt.path, url.String())
+
+			// Fetch page in custom domain
+			anotherResp, err := GetRedirectPageWithCookie(t, httpListener, tt.domain, tt.path, groupCookie)
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusNotFound, anotherResp.StatusCode)
+
+			page, err := ioutil.ReadAll(anotherResp.Body)
+			require.NoError(t, err)
+			require.Contains(t, string(page), tt.expectedErrorPage)
+		})
+	}
 }
 
 func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {

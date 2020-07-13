@@ -1,7 +1,10 @@
 package domain
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -151,5 +154,87 @@ func chdirInPath(t require.TestingT, path string) func() {
 		require.NoError(t, err, "Cannot Chdir in cleanup")
 
 		chdirSet = false
+	}
+}
+
+func TestServeNamespaceNotFound(t *testing.T) {
+	tests := []struct {
+		name             string
+		domain           string
+		path             string
+		resolver         *stubbedResolver
+		expectedResponse string
+	}{
+		{
+			name:   "public_namespace_domain",
+			domain: "group.404.gitlab-example.com",
+			path:   "/unknown",
+			resolver: &stubbedResolver{
+				project: &serving.LookupPath{
+					Path:               "../../shared/pages/group.404/group.404.gitlab-example.com/public",
+					IsNamespaceProject: true,
+				},
+				subpath: "/unknown",
+			},
+			expectedResponse: "Custom 404 group page",
+		},
+		{
+			name:   "private_project_under_public_namespace_domain",
+			domain: "group.404.gitlab-example.com",
+			path:   "/private_project/unknown",
+			resolver: &stubbedResolver{
+				project: &serving.LookupPath{
+					Path:               "../../shared/pages/group.404/group.404.gitlab-example.com/public",
+					IsNamespaceProject: true,
+					HasAccessControl:   false,
+				},
+				subpath: "/",
+			},
+			expectedResponse: "Custom 404 group page",
+		},
+		{
+			name:   "private_namespace_domain",
+			domain: "group.404.gitlab-example.com",
+			path:   "/unknown",
+			resolver: &stubbedResolver{
+				project: &serving.LookupPath{
+					Path:               "../../shared/pages/group.404/group.404.gitlab-example.com/public",
+					IsNamespaceProject: true,
+					HasAccessControl:   true,
+				},
+				subpath: "/",
+			},
+			expectedResponse: "The page you're looking for could not be found.",
+		},
+		{
+			name:   "no_parent_namespace_domain",
+			domain: "group.404.gitlab-example.com",
+			path:   "/unknown",
+			resolver: &stubbedResolver{
+				project: nil,
+				subpath: "/",
+			},
+			expectedResponse: "The page you're looking for could not be found.",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &Domain{
+				Name:     tt.domain,
+				Resolver: tt.resolver,
+			}
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", fmt.Sprintf("http://%s%s", tt.domain, tt.path), nil)
+			d.serveNamespaceNotFound(w, r)
+
+			resp := w.Result()
+			defer resp.Body.Close()
+
+			require.Equal(t, http.StatusNotFound, resp.StatusCode)
+			body, err := ioutil.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			require.Contains(t, string(body), tt.expectedResponse)
+		})
 	}
 }

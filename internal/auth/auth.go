@@ -71,6 +71,10 @@ type errorResponse struct {
 	Error            string `json:"error"`
 	ErrorDescription string `json:"error_description"`
 }
+type domain interface {
+	GetProjectID(r *http.Request) uint64
+	ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request)
+}
 
 func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
 	session, err := a.store.Get(r, "gitlab-pages")
@@ -436,12 +440,13 @@ func (a *Auth) IsAuthSupported() bool {
 	return a != nil
 }
 
-func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
+func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domain domain) bool {
 	session := a.checkSessionIsValid(w, r)
 	if session == nil {
 		return true
 	}
 
+	projectID := domain.GetProjectID(r)
 	// Access token exists, authorize request
 	var url string
 	if projectID > 0 {
@@ -471,8 +476,8 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, proje
 			logRequest(r).WithError(err).Error("Failed to retrieve info with token")
 		}
 
-		// We return 404 if for some reason token is not valid to avoid (not) existence leak
-		httperrors.Serve404(w)
+		// call serve404 handler when auth fails
+		domain.ServeNotFoundAuthFailed(w, r)
 		return true
 	}
 
@@ -480,13 +485,13 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, proje
 }
 
 // CheckAuthenticationWithoutProject checks if user is authenticated and has a valid token
-func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request) bool {
+func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request, domain domain) bool {
 	if a == nil {
 		// No auth supported
 		return false
 	}
 
-	return a.checkAuthentication(w, r, 0)
+	return a.checkAuthentication(w, r, domain)
 }
 
 // GetTokenIfExists returns the token if it exists
@@ -513,7 +518,8 @@ func (a *Auth) RequireAuth(w http.ResponseWriter, r *http.Request) bool {
 }
 
 // CheckAuthentication checks if user is authenticated and has access to the project
-func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, projectID uint64) bool {
+// will return contentServed = false when authFailed = true
+func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, domain domain) bool {
 	logRequest(r).Debug("Authenticate request")
 
 	if a == nil {
@@ -524,7 +530,7 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, proje
 		return true
 	}
 
-	return a.checkAuthentication(w, r, projectID)
+	return a.checkAuthentication(w, r, domain)
 }
 
 // CheckResponseForInvalidToken checks response for invalid token and destroys session if it was invalid
