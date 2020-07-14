@@ -36,8 +36,6 @@ SOURCE="${3:-.}"
 
 DOCKERFILE_EXT='.ubi8'
 NEXUS_UBI_IMAGE='${BASE_REGISTRY}/redhat/ubi/ubi8:8.2'
-ASSET_SHA_FILE="/tmp/deps-${RELEASE_TAG}.tar.sha256"
-ASSET_PUB_KEY_ID='5c7738cc4840f93f6e9170ff5a0e20d5f9706778'
 
 declare -A LABELED_VERSIONS=(
   [REGISTRY_VERSION]=
@@ -56,16 +54,16 @@ for _KEY in "${!LABELED_VERSIONS[@]}"; do
   )
 done
 
-# TODO move sha calculation to a signed asset
-if [ ! -f "${ASSET_SHA_FILE}" ]; then
-  gpg --batch --keyserver "keyserver.ubuntu.com" --recv-keys $ASSET_PUB_KEY_ID
+fetchAssetsSHA() {
+  local ASSET_NAME="${1}"
+  local ASSET_SHA_FILE="/tmp/deps-${RELEASE_TAG}-${ASSET_NAME}.sha256"
 
-  rm -f "/tmp/deps-${RELEASE_TAG}.tar" "/tmp/deps-${RELEASE_TAG}.tar.asc"
-  curl --create-dirs "https://gitlab-ubi.s3.us-east-2.amazonaws.com/ubi8-build-dependencies-${RELEASE_TAG}.tar" -o "/tmp/deps-${RELEASE_TAG}.tar"
-  curl --create-dirs "https://gitlab-ubi.s3.us-east-2.amazonaws.com/ubi8-build-dependencies-${RELEASE_TAG}.tar.asc" -o "/tmp/deps-${RELEASE_TAG}.tar.asc"
-  gpg --verify "/tmp/deps-${RELEASE_TAG}.tar.asc" "/tmp/deps-${RELEASE_TAG}.tar"
-  sha256sum "/tmp/deps-${RELEASE_TAG}.tar" | awk '{print $1}' > "${ASSET_SHA_FILE}"
-fi
+  if [ ! -f "${ASSET_SHA_FILE}" ]; then
+    rm -f "${ASSET_SHA_FILE}"
+    curl --create-dirs "https://gitlab-ubi.s3.us-east-2.amazonaws.com/ubi8-build-dependencies-${RELEASE_TAG}/${ASSET_NAME}.sha256" -o "${ASSET_SHA_FILE}"
+  fi
+  cat "${ASSET_SHA_FILE}"
+}
 
 duplicateImageDir() {
   local IMAGE_NAME="${1}"
@@ -95,30 +93,15 @@ EOF
   mv "${DOCKERFILE}.0" "${DOCKERFILE}"
 }
 
-prependBuildStage() {
+replaceUbiImageArg() {
   local DOCKERFILE="${1}"
-  local IMAGE_NAME="${2}"
-  if grep -sq 'ADD .*.tar.gz' "${DOCKERFILE}"; then
+  if grep -sq 'ARG UBI_IMAGE=' "${DOCKERFILE}"; then
+    sed -i '/ARG UBI_IMAGE=.*/d' "${DOCKERFILE}"
     cat - "${DOCKERFILE}" > "${DOCKERFILE}.0" <<-EOF
 ARG UBI_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}
-
-FROM \${UBI_IMAGE} AS builder
-
-ARG GITLAB_VERSION
-ARG PACKAGE_NAME=ubi8-build-dependencies-\${GITLAB_VERSION}.tar
-
-COPY \${PACKAGE_NAME} /opt/
-ADD build-scripts/ /build-scripts/
-
-RUN /build-scripts/prepare.sh "/opt/\${PACKAGE_NAME}"
 EOF
     mv "${DOCKERFILE}.0" "${DOCKERFILE}"
   fi
-}
-
-replaceUbiImageArg() {
-  local DOCKERFILE="${1}"
-  sed -i '/ARG UBI_IMAGE=.*/d' "${DOCKERFILE}"
 }
 
 replaceRubyImageArg() {
@@ -126,8 +109,7 @@ replaceRubyImageArg() {
   local IMAGE_TAG="${2}"
   if grep -sq 'ARG RUBY_IMAGE=' "${DOCKERFILE}"; then
     sed -i "s/^ARG UBI_IMAGE.*/ARG UBI_IMAGE=${NEXUS_UBI_IMAGE//\//\\/}/g" "${DOCKERFILE}"
-    sed -i '/ARG RUBY_IMAGE=.*/d' "${DOCKERFILE}"
-    sed -i "/ARG UBI_IMAGE=.*/a ARG RUBY_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
+    sed -i "s/^ARG RUBY_IMAGE=.*/ARG RUBY_IMAGE=\${BASE_REGISTRY}\/\${BASE_IMAGE}:\${BASE_TAG}/g" "${DOCKERFILE}"
   fi
 }
 
@@ -151,15 +133,8 @@ replaceGitImageArg() {
   local IMAGE_TAG="${1}"; shift
   if grep -sq 'ARG GIT_IMAGE=' "${DOCKERFILE}"; then
     sed -i "s/^ARG UBI_IMAGE.*/ARG UBI_IMAGE=${NEXUS_UBI_IMAGE//\//\\/}/g" "${DOCKERFILE}"
-    sed -i '/ARG GIT_IMAGE=.*/d' "${DOCKERFILE}"
-    sed -i "/ARG UBI_IMAGE=.*/a ARG GIT_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}" "${DOCKERFILE}"
+    sed -i "s/^ARG GIT_IMAGE=.*/ARG GIT_IMAGE=\${BASE_REGISTRY}\/\${BASE_IMAGE}:\${BASE_TAG}/g" "${DOCKERFILE}"
   fi
-}
-
-replaceAddDependencies() {
-  local DOCKERFILE="${1}"
-  sed -i '0,/ADD .*\.tar\.gz/ s/ADD .*\.tar\.gz/COPY --from=builder \/prepare\/dependencies/' "${DOCKERFILE}"
-  sed -i '/ADD .*\.tar\.gz/d' "${DOCKERFILE}"
 }
 
 replaceLabeledVersions() {
@@ -180,26 +155,44 @@ updateBuildScripts() {
 updateJenkinsfile() {
   local IMAGE_TAG="${1}"
   local IMAGE_ROOT="${2}"
-  sed -i "s/version: \".*\"/version: \"${IMAGE_TAG}\"/g" "${IMAGE_ROOT}/Jenkinsfile"
+  sed -i "s/version: \"[0-9]\+\.[0-9]\+\.[0-9]\+/version: \"${IMAGE_TAG}/g" "${IMAGE_ROOT}/Jenkinsfile"
 }
 
-updateDownload() {
+appendResource() {
+  local RESOURCE_NAME="${1}"
+  local IMAGE_ROOT="${2}"
+  local ASSET_SHA
+  ASSET_SHA=$(fetchAssetsSHA "${RESOURCE_NAME}")
+
+  cat <<EOF >> "${IMAGE_ROOT}/download.yaml"
+  - url: "http://gitlab-ubi.s3.amazonaws.com/ubi8-build-dependencies-${RELEASE_TAG}/${RESOURCE_NAME}"
+    filename: "${RESOURCE_NAME}"
+    validation:
+      type: "sha256"
+      value: "${ASSET_SHA}"
+EOF
+}
+
+createDownload() {
   local IMAGE_ROOT="${1}"
-  local ASSET_SHA=$(cat "${ASSET_SHA_FILE}")
 
-  if [ -f "${IMAGE_ROOT}/download.yaml" ]; then
-    sed -i "s/ubi8-build-dependencies-.*.tar/ubi8-build-dependencies-${RELEASE_TAG}.tar/g" "${IMAGE_ROOT}/download.yaml"
-    sed -i "s/value: \".*\"/value: \"${ASSET_SHA}\"/g" "${IMAGE_ROOT}/download.yaml"
-  fi
+  echo "resources:" > "${IMAGE_ROOT}/download.yaml"
 
-  if [ -f "${IMAGE_ROOT}/download.json" ]; then
-    sed -i "s/ubi8-build-dependencies-.*.tar/ubi8-build-dependencies-${RELEASE_TAG}.tar/g" "${IMAGE_ROOT}/download.json"
-    sed -i "s/\"value\": \".*\"/\"value\": \"${ASSET_SHA}\"/g" "${IMAGE_ROOT}/download.json"
-  fi
+  local resources=($(sed -rn 's/^ADD (.*.tar.gz).*$/\1/p' "${IMAGE_ROOT}/Dockerfile"))
+  for resource in "${resources[@]}"
+  do
+     appendResource "${resource}" "${IMAGE_ROOT}"
+  done
+
+  # standardize on the yaml, remove any json download file
+  rm -rf "${IMAGE_ROOT}/download.json"
 }
 
 cleanupDirectory() {
   rm -rf "${IMAGE_ROOT}"/{patches,vendor,renderDockerfile,Dockerfile.erb,centos-8-base.repo}
+
+  # remove old prepare scripts
+  rm -f "${IMAGE_ROOT}/build-scripts/prepare.sh"
 }
 
 releaseImage() {
@@ -219,15 +212,13 @@ releaseImage() {
 
   duplicateImageDir "${IMAGE_NAME}" "${IMAGE_ROOT}"
   replaceUbiImageArg "${DOCKERFILE}"
-  prependBuildStage "${DOCKERFILE}" "${IMAGE_NAME}"
   prependBaseArgs "${DOCKERFILE}" "${BASE_TAG}" "${BASE_IMAGE_PATH}"
   replaceRubyImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceRailsImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceGitImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
-  replaceAddDependencies "${DOCKERFILE}"
   updateBuildScripts "${IMAGE_TAG}" "${IMAGE_ROOT}"
   updateJenkinsfile "${IMAGE_TAG}" "${IMAGE_ROOT}"
-  updateDownload "${IMAGE_ROOT}"
+  createDownload "${IMAGE_ROOT}"
   replaceLabeledVersions "${DOCKERFILE}"
   cleanupDirectory
 }
