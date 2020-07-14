@@ -3,11 +3,8 @@ package httptransport
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -20,6 +17,8 @@ var (
 	sysPoolOnce = &sync.Once{}
 	sysPool     *x509.CertPool
 
+	// only overridden by transport_darwin.go
+	loadExtraCerts = func() {}
 	// InternalTransport can be used with http.Client with TLS and certificates
 	InternalTransport = newInternalTransport()
 )
@@ -72,64 +71,9 @@ func loadPool() {
 		return
 	}
 
-	// SSL_CERT_FILE is not respected by OSX, need to load this manually
-	if err := loadSSLCertFile(); err != nil {
-		log.WithError(err).Error("failed to read SSL_CERT_FILE")
-	}
-
-	// SSL_CERT_DIR is not respected by OSX, need to load this manually
-	if err := loadSSLCertDir(); err != nil {
-		log.WithError(err).Error("failed to load SSL_CERT_DIR")
-	}
-}
-
-func loadSSLCertFile() error {
-	sslCertFile := os.Getenv("SSL_CERT_FILE")
-	if sslCertFile == "" {
-		return nil
-	}
-
-	certPem, err := ioutil.ReadFile(sslCertFile)
-	if err != nil {
-		return err
-	}
-
-	sysPool.AppendCertsFromPEM(certPem)
-	return nil
-}
-
-func loadSSLCertDir() error {
-	sslCertDir := os.Getenv("SSL_CERT_DIR")
-	if sslCertDir == "" {
-		return nil
-	}
-
-	entries, err := ioutil.ReadDir(sslCertDir)
-	if err != nil {
-		return fmt.Errorf("failed to read SSL_CERT_DIR: %w", err)
-	}
-
-	for _, fi := range entries {
-		// Copy only regular files and symlinks
-		mode := fi.Mode()
-		if !(mode.IsRegular() || mode&os.ModeSymlink != 0) {
-			continue
-		}
-
-		cert, err := ioutil.ReadFile(sslCertDir + "/" + fi.Name())
-		if err != nil {
-			log.WithError(err).Warnf("failed to open cert, skipping: %q", fi.Name())
-			continue
-		}
-
-		ok := sysPool.AppendCertsFromPEM(cert)
-		if !ok {
-			log.Warnf("failed to append to sysPool, skipping: %q", fi.Name())
-			continue
-		}
-	}
-
-	return nil
+	// Go does not load SSL_CERT_FILE and SSL_CERT_DIR on darwin systems so we need to
+	// load them manually in OSX. See https://golang.org/src/crypto/x509/root_unix.go
+	loadExtraCerts()
 }
 
 // withRoundTripper takes an original RoundTripper, reports metrics based on the
