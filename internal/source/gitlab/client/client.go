@@ -109,11 +109,12 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 // for source domain configuration.
 // Timeout is the same as -gitlab-client-http-timeout
 func (gc *Client) Status() error {
-	resp, err := gc.get(context.Background(), "/api/v4/internal/pages/status", url.Values{})
+	// nolint: bodyclose
+	// this endpoint returns a http.StatusNoContent response
+	_, err := gc.get(context.Background(), "/api/v4/internal/pages/status", url.Values{})
 	if err != nil {
 		return fmt.Errorf("%s: %v", ConnectionErrorMsg, err)
 	}
-	defer resp.Body.Close()
 
 	return nil
 }
