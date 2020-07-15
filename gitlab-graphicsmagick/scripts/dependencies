@@ -1,0 +1,12 @@
+#!/bin/bash
+DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+
+utilities="ca-certificates curl gpg xz-utils"
+tools="build-essential"
+dependencies="libpng-dev libturbojpeg0-dev zlib1g-dev"
+
+# Install tools and libaries needed for compilation
+apt-get install -q -y --no-install-recommends \
+  ${utilities} ${tools} ${dependencies}

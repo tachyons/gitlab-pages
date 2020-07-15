@@ -1,0 +1,24 @@
+#!/bin/bash
+# This script designed to download and verify the sources of GraphicsMagick
+# Items from environment:
+# - GM_SOURCE_URL - complete URL of the source tarball
+# - GM_SIGNATURE_URL - complete URL of the detatched signature
+# - _SIGNATURE_KEY - The key fingerprint to have created the signature
+# - _SIGNATURE_ENFORCE - Enable tarball signature verification
+
+set -exo pipefail
+
+pushd /build
+# Downloads sources
+curl -JLO $GM_SOURCE_URL
+
+# Download & verify signature
+if [ -z $_SIGNATURE_ENFORCE ] && [ -z $_SIGNATURE_KEY ] ; then
+  curl -JLO $GM_SIGNATURE_URL
+  gpg --recv-key $_SIGNATURE_KEY
+  gpg $(basename $GM_SIGNATURE_URL)
+fi
+
+tar xf $(basename $GM_SOURCE_URL)
+
+popd # from /build
