@@ -3,6 +3,7 @@ ARG TAG=latest
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby"
 ARG PG_VERSION="12.3"
 ARG PG_IMAGE="$CI_REGISTRY_IMAGE/postgresql:${PG_VERSION}"
+ARG GM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-graphicsmagick:${GM_VERSION}"
 ARG GEI_IMAGE="$CI_REGISTRY_IMAGE/gitlab-elasticsearch-indexer:1.0.0"
 ARG GITLAB_VERSION=v10.7.0-ee
 ARG GITLAB_EDITION=gitlab-ee
@@ -12,7 +13,7 @@ ARG ASSETS_IMAGE="registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee:${GI
 FROM ${ASSETS_IMAGE} as assets
 <% end %>
 FROM ${PG_IMAGE} as pg_image
-
+FROM ${GM_IMAGE} as graphicsmagick_image
 <% if ee? %>
 FROM ${GEI_IMAGE} as gei_image
 <% end %>
@@ -38,6 +39,9 @@ COPY --from=pg_image /usr/local/psql/bin/ /usr/bin/
 COPY --from=pg_image /usr/local/psql/lib/ /usr/lib/
 COPY --from=pg_image /usr/local/psql/include/ /usr/include/
 COPY --from=pg_image /usr/local/psql/share/ /usr/share/
+
+# Include GraphicsMagick (bin,include,lib,share)
+COPY --from=graphicsmagick_image /usr/local/ /usr/local/
 
 RUN buildDeps=' \
     make \
@@ -157,7 +161,9 @@ ARG GITLAB_USER=git
 # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=866729
 RUN mkdir -p /usr/share/man/man7 \
     && apt-get update \
-    && apt-get install -y --no-install-recommends libicu57 libre2-3 tzdata xtail
+    && apt-get install -q -y --no-install-recommends \
+         libicu57 libre2-3 tzdata xtail  \
+    && rm -rf /var/lib/apt/lists/*
 
 <% if ee? %>
 # Include the gitlab-elasticsearch-indexer
@@ -168,6 +174,11 @@ COPY --from=gei_image /usr/local/bin/gitlab-elasticsearch-indexer /usr/bin/
 COPY --from=pg_image /usr/local/psql/bin/pg_* /usr/bin/
 COPY --from=pg_image /usr/local/psql/bin/psql /usr/bin/
 COPY --from=pg_image /usr/local/psql/lib/libpq.so* /usr/lib/
+
+# Include GraphicsMagick (skipping /usr/local/include)
+COPY --from=graphicsmagick_image /usr/local/bin/ /usr/local/bin/
+COPY --from=graphicsmagick_image /usr/local/lib/ /usr/local/lib/
+COPY --from=graphicsmagick_image /usr/local/share/ /usr/local/share/
 
 RUN buildDeps=' \
     libicu-dev \
