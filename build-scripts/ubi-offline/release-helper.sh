@@ -91,16 +91,9 @@ ARG BASE_TAG=${IMAGE_TAG}
 
 EOF
   mv "${DOCKERFILE}.0" "${DOCKERFILE}"
-}
 
-replaceUbiImageArg() {
-  local DOCKERFILE="${1}"
   if grep -sq 'ARG UBI_IMAGE=' "${DOCKERFILE}"; then
-    sed -i '/ARG UBI_IMAGE=.*/d' "${DOCKERFILE}"
-    cat - "${DOCKERFILE}" > "${DOCKERFILE}.0" <<-EOF
-ARG UBI_IMAGE=\${BASE_REGISTRY}/\${BASE_IMAGE}:\${BASE_TAG}
-EOF
-    mv "${DOCKERFILE}.0" "${DOCKERFILE}"
+    sed -i "s/^ARG UBI_IMAGE=.*/ARG UBI_IMAGE=\${BASE_REGISTRY}\/\${BASE_IMAGE}:\${BASE_TAG}/g" "${DOCKERFILE}"
   fi
 }
 
@@ -155,7 +148,9 @@ updateBuildScripts() {
 updateJenkinsfile() {
   local IMAGE_TAG="${1}"
   local IMAGE_ROOT="${2}"
-  sed -i "s/version: \"[0-9]\+\.[0-9]\+\.[0-9]\+/version: \"${IMAGE_TAG}/g" "${IMAGE_ROOT}/Jenkinsfile"
+  if [ -f "${IMAGE_ROOT}/Jenkinsfile" ]; then
+    sed -i "s/version: \"[0-9]\+\.[0-9]\+\.[0-9]\+/version: \"${IMAGE_TAG}/g" "${IMAGE_ROOT}/Jenkinsfile"
+  fi
 }
 
 appendResource() {
@@ -211,7 +206,6 @@ releaseImage() {
   fi
 
   duplicateImageDir "${IMAGE_NAME}" "${IMAGE_ROOT}"
-  replaceUbiImageArg "${DOCKERFILE}"
   prependBaseArgs "${DOCKERFILE}" "${BASE_TAG}" "${BASE_IMAGE_PATH}"
   replaceRubyImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
   replaceRailsImageArg "${DOCKERFILE}" "${IMAGE_TAG}"
