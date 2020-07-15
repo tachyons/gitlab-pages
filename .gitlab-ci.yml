@@ -362,6 +362,7 @@ gitlab-rails-ee:
     - build:gitlab-rails-ee
     - git-base
     - postgresql
+    - gitlab-graphicsmagick
   variables:
     ee: "true"
   script:
@@ -418,6 +419,7 @@ gitlab-rails-ce:
   stage: phase-five
   dependencies:
     - postgresql
+    - gitlab-graphicsmagick
   script:
     - ruby_version=$(get_version gitlab-ruby)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
