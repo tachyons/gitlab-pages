@@ -74,7 +74,6 @@ func TestClient_Poll(t *testing.T) {
 
 			go client.Poll(tt.retries, tt.interval, errCh)
 
-			// go func() {
 			select {
 			case err := <-errCh:
 				if tt.wantErr {
@@ -88,7 +87,6 @@ func TestClient_Poll(t *testing.T) {
 				t.Logf("%s timed out", tt.name)
 				t.FailNow()
 			}
-			// }()
 		})
 	}
 }

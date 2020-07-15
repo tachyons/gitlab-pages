@@ -3,6 +3,7 @@ package source
 import (
 	"errors"
 	"regexp"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/domains/gitlabsourceconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
 var (
@@ -33,6 +35,7 @@ func init() {
 // currently using two sources during the transition to the new GitLab domains
 // source.
 type Domains struct {
+	mu     *sync.RWMutex
 	gitlab Source
 	disk   *disk.Disk // legacy disk source
 }
@@ -44,19 +47,47 @@ func NewDomains(config Config) (*Domains, error) {
 	// TODO: choose domain source config via config.DomainConfigSource()
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/217912
 
-	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		return &Domains{disk: disk.New()}, nil
+	domains := &Domains{
+		mu:   &sync.RWMutex{},
+		disk: disk.New(),
 	}
 
-	gitlab, err := gitlab.New(config)
+	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
+		return domains, nil
+	}
+
+	gitlabClient, err := gitlab.New(config)
 	if err != nil {
 		return nil, err
 	}
+	gitlabErr := make(chan error)
+	gitlabClient.Poll(client.DefaultPollingMaxRetries, client.DefaultPollingInterval, gitlabErr)
 
-	return &Domains{
-		gitlab: gitlab,
-		disk:   disk.New(),
-	}, nil
+	domains.enableGitLabSource(gitlabClient)
+
+	go func() {
+		err := <-gitlabErr
+		if err != nil {
+			log.WithError(err).Error("failed to connect to the GitLab API")
+			domains.disableGitLabSource()
+		}
+	}()
+
+	return domains, nil
+}
+
+func (d *Domains) enableGitLabSource(gitlabClient *gitlab.Gitlab) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.gitlab = gitlabClient
+}
+
+func (d *Domains) disableGitLabSource() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.gitlab = nil
 }
 
 // GetDomain retrieves a domain information from a source. We are using two
@@ -85,6 +116,9 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
 	if d.gitlab == nil {
 		return d.disk
 	}

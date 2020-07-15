@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -34,4 +35,8 @@ func (c StubClient) GetLookup(ctx context.Context, host string) api.Lookup {
 	lookup.Error = json.NewDecoder(f).Decode(&lookup.Domain)
 
 	return lookup
+}
+
+func (c StubClient) Poll(r int, i time.Duration, errCh chan error) {
+	errCh <- nil
 }
