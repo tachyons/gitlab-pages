@@ -1,10 +1,7 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG=latest
-ARG SHELL_CONTAINER=latest
-ARG FROM_SHELL_IMAGE="$CI_REGISTRY_IMAGE/gitlab-shell"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
 
-FROM ${FROM_SHELL_IMAGE}:${SHELL_CONTAINER} as shell
 FROM ${FROM_IMAGE}:${TAG}
 
 ARG GITLAB_USER=git
@@ -49,11 +46,6 @@ RUN cd ${BUILD_DIR} && \
     mkdir -p /etc/gitaly && \
     rm -rf ${BUILD_DIR} /srv/gitaly-ruby/spec  /srv/gitaly-ruby/features && \
     /build-scripts/cleanup-gems /usr/lib/ruby/gems
-
-# Include Shell
-COPY --from=shell --chown=git /srv/gitlab-shell /srv/gitlab-shell
-
-RUN cp /srv/gitlab-shell/config.yml.example /etc/gitaly/shell-config.yml && ln -s /etc/gitaly/shell-config.yml /srv/gitlab-shell/config.yml
 
 RUN mkdir -p /var/log/gitaly && \
     touch /var/log/gitaly/gitaly.log && \
