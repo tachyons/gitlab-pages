@@ -1,5 +1,5 @@
 # ARGS for entire build
-ARG KUBECTL_VERSION="1.13.12"
+ARG KUBECTL_VERSION="1.14.10"
 
 FROM debian:stretch-slim
 # ARG must be redeclared after each FROM
