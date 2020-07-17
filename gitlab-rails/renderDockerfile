@@ -8,7 +8,7 @@ def compile_assets
 end
 
 def ee?
-  ENV['ee'].eql?('true')
+  ENV['RAILS_EE'].eql?('true')
 end
 
 puts "Rendering Dockerfile"
