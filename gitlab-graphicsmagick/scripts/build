@@ -1,0 +1,47 @@
+#!/bin/bash
+set -exo pipefail
+
+pushd "/build/GraphicsMagick-${GM_VERSION}"
+
+# See options at http://www.graphicsmagick.org/INSTALL-unix.html#optional-packages-options
+./configure \
+  --disable-openmp \
+  --without-magick-plus-plus \
+  --with-perl=no \
+  --without-bzlib \
+  --without-dps \
+  --without-fpx \
+  --without-gslib \
+  --without-jbig \
+  --without-webp \
+  --without-jp2 \
+  --without-lcms2 \
+  --without-trio \
+  --without-ttf \
+  --without-umem \
+  --without-wmf \
+  --without-xml \
+  --without-x \
+  --with-tiff=yes \
+  --with-lzma=yes \
+  --with-jpeg=yes \
+  --with-zlib=yes \
+  --with-png=yes
+
+make -j $(nproc)
+
+make -j $(nproc) check
+
+make DESTDIR=/target install
+
+make distclean
+
+popd # from /build/GraphicsMagick-VERSION/
+
+pushd /target
+
+# cleanup excess docs we'll never use
+rm -rf usr/local/share/man # 343 kB
+rm -rf usr/local/share/doc/GraphicsMagick/www # 6.2MB
+
+popd # from /target

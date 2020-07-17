@@ -239,6 +239,25 @@ gitlab-ruby:
     - build_if_needed
     - push_if_master_or_stable_or_tag
 
+# build:gitlab-graphicsmagick:
+#   <<: *build-job-base
+#   stage: prepare:phase-one
+#   script:
+#     - build_if_needed
+#     - copy_assets
+
+gitlab-graphicsmagick:
+  <<: *job-base
+  stage: phase-one
+  # dependencies:
+  #   - build:gitlab-graphicsmagick
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${GM_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "GM_VERSION=$GM_VERSION"
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag $GM_VERSION${IMAGE_TAG_EXT}
+    - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-graphicsmagick_container.txt
+
 build:postgresql:
   <<: *build-job-base
   stage: prepare:phase-one
@@ -380,6 +399,7 @@ gitlab-rails-ee:
     - build:gitlab-rails-ee
     - git-base
     - postgresql
+    - gitlab-graphicsmagick
   variables:
     RAILS_EE: "true"
   script:
@@ -397,6 +417,8 @@ gitlab-rails-ee:
     - gei_dir_version=$(get_version gitlab-elasticsearch-indexer)
     - gei_version=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$gei_dir_version" | sha1sum))
     - gei_image="${CI_REGISTRY_IMAGE}/gitlab-elasticsearch-indexer:${gei_version}${IMAGE_TAG_EXT}"
+    - gm_version=$(cat artifacts/gitlab-graphicsmagick_container.txt)
+    - gm_image="${CI_REGISTRY_IMAGE}/gitlab-graphicsmagick:${gm_version}"
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
     - fetch_assets
@@ -412,6 +434,7 @@ gitlab-rails-ee:
                       --build-arg "GEI_IMAGE=${gei_image}"
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
+                      --build-arg "GM_IMAGE=${gm_image}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
@@ -433,6 +456,7 @@ gitlab-rails-ce:
   stage: phase-five
   dependencies:
     - postgresql
+    - gitlab-graphicsmagick
   script:
     - ruby_version=$(get_version gitlab-ruby)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
@@ -440,6 +464,8 @@ gitlab-rails-ce:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version"
     - pg_version=$(cat artifacts/postgresql_container.txt)
     - pg_image="${CI_REGISTRY_IMAGE}/postgresql:${pg_version}"
+    - gm_version=$(cat artifacts/gitlab-graphicsmagick_container.txt)
+    - gm_image="${CI_REGISTRY_IMAGE}/gitlab-graphicsmagick:${gm_version}"
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${CE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ce:${GITLAB_ASSETS_TAG}"
     - fetch_assets
@@ -453,6 +479,7 @@ gitlab-rails-ce:
                       --build-arg "TAG=$ruby_version"
                       --build-arg "PG_IMAGE=$pg_image"
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
+                      --build-arg "GM_IMAGE=${gm_image}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
