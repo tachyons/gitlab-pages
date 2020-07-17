@@ -23,57 +23,110 @@ stages:
   - phase-six
   - release
 
-.auto_deploy_items:
-  - &auto_deploy_branch_var $CI_COMMIT_REF_NAME =~ /^[0-9]+-[0-9]+-auto-deploy-[0-9]+$/
-  - &auto_deploy_tag_var $CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/
-  - &com_auto_deploy_tag_ref /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/@gitlab-org/build/CNG
+workflow:
+  rules:
+    # No pipeline on auto-deploy branches as a tag will definitely follow
+    - if: '$CI_COMMIT_BRANCH =~ /^[0-9]+-[0-9]+-auto-deploy-[0-9]+$/'
+      when: never
+    # For all other branches, create a pipeline. We are explicitly specifying
+    # this so that this rule gets matched earlier before MR pipelines gets
+    # triggered, thus causing two pipelines for a branch push - a regular one
+    # and a detached one. If we ever decide not to run pipelines on branch
+    # pushes that doesn't cause an MR, we can change the following to
+    # $CI_MERGE_REQUEST_IID
+    - if: '$CI_COMMIT_BRANCH'
+    # No pipeline on tag pushes to com. We build them in dev and sync to com
+    - if: '$CI_PROJECT_PATH == "gitlab-org/build/CNG" && $CI_COMMIT_TAG'
+      when: never
+    # For all other tags, create a pipeline.
+    - if: '$CI_COMMIT_TAG'
 
-.ubi_items:
-  - &ubi_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/
-  - &com_ubi_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab-org/build/CNG
-  - &ubi_stable_var $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable-ubi8$/
+.if_ee_var: &if_ee_var
+  if: '$ee == "true"'
 
-.common:
-  - &ce_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
-  - &com_ce_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?$/@gitlab-org/build/CNG
-  - &ee_tag_var $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/
-  - &com_ee_tag_ref /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/@gitlab-org/build/CNG
-  - &ee_gitlab_version $GITLAB_VERSION =~ /-ee$/
-  - &stable_ce_gitlab_version $CI_COMMIT_REF_NAME =~ /^\d+-\d+-stable$/ && $GITLAB_VERSION !~ /-ee$/
+.if_ee_gitlab_version: &if_ee_gitlab_version
+  if: '$GITLAB_VERSION =~ /-ee$/'
 
-# except-ce: except when this is a CE pipeline (EE/UBI)
-.except-ce: &except-ce
-  except:
-    variables:
-      - $DEPS_PIPELINE
-      - $CE_PIPELINE
-      - *ce_tag_var
-      - *auto_deploy_branch_var
-      - *stable_ce_gitlab_version
-    refs:
-      - *com_ce_tag_ref
-      - *com_ee_tag_ref
-      - *com_ubi_tag_ref
-      - *com_auto_deploy_tag_ref
+.if_ce_gitlab_version: &if_ce_gitlab_version
+  if: '$GITLAB_VERSION !~ /-ee$/'
 
-# except-ee: except when this is an EE pipeline (CE)
+.if_ee_tag: &if_ee_tag
+  if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ee$/'
+
+.if_ce_tag: &if_ce_tag
+  if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/'
+
+.if_auto_deploy_tag: &if_auto_deploy_tag
+  if: '$CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$/'
+
+.if_ubi_pipeline: &if_ubi_pipeline
+  if: '$UBI_PIPELINE == "true" '
+
+.if_ubi_tag: &if_ubi_tag
+  if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/'
+
+.if_deps_pipeline: &if_deps_pipeline
+  if: '$DEPS_PIPELINE'
+
+.if_ce_pipeline: &if_ce_pipeline
+  if: '$CE_PIPELINE'
+
+.if_ee_pipeline: &if_ee_pipeline
+  if: '$EE_PIPELINE'
+
+.if_gitlab_master: &if_gitlab_master
+  if: '$GITLAB_VERSION == "master"'
+
+.except-deps: &except-deps
+  rules:
+    - <<: *if_deps_pipeline
+      when: never
+    - when: always
+
+.only-ee: &only-ee
+  rules:
+    - <<: *if_deps_pipeline
+      when: never
+    - <<: *if_ce_pipeline
+      when: never
+    - <<: *if_ee_pipeline
+    - <<: *if_gitlab_master
+    - <<: *if_ee_var
+    - <<: *if_ee_gitlab_version
+    - <<: *if_ee_tag
+    - <<: *if_auto_deploy_tag
+    - <<: *if_ubi_pipeline
+    - <<: *if_ubi_tag
+
 .except-ee: &except-ee
-  except:
-    variables:
-      - $DEPS_PIPELINE
-      - $EE_PIPELINE
-      - $UBI_PIPELINE == "true"
-      - *ee_tag_var
-      - *ee_gitlab_version
-      - *ubi_tag_var
-      - *ubi_stable_var
-      - *auto_deploy_branch_var
-      - *auto_deploy_tag_var
-    refs:
-      - *com_ce_tag_ref
-      - *com_ee_tag_ref
-      - *com_ubi_tag_ref
-      - *com_auto_deploy_tag_ref
+  rules:
+    - <<: *if_deps_pipeline
+      when: never
+    - <<: *if_ee_pipeline
+      when: never
+    - <<: *if_ee_var
+      when: never
+    - <<: *if_ee_gitlab_version
+      when: never
+    - <<: *if_ee_tag
+      when: never
+    - <<: *if_auto_deploy_tag
+      when: never
+    - <<: *if_ubi_pipeline
+      when: never
+    - <<: *if_ubi_tag
+      when: never
+    - <<: *if_ce_pipeline
+    - <<: *if_gitlab_master
+    - <<: *if_ce_gitlab_version
+    - <<: *if_ce_tag
+
+.only-ubi: &only-ubi
+  rules:
+    - <<: *if_deps_pipeline
+      when: never
+    - <<: *if_ubi_pipeline
+    - <<: *if_ubi_tag
 
 .job-base: &job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -107,15 +160,6 @@ stages:
   artifacts:
     paths:
       - artifacts/
-  except:
-    refs:
-      - *com_ce_tag_ref
-      - *com_ee_tag_ref
-      - *com_ubi_tag_ref
-      - *com_auto_deploy_tag_ref
-    variables:
-      - $DEPS_PIPELINE
-      - *auto_deploy_branch_var
 
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
@@ -147,18 +191,7 @@ stages:
   artifacts:
     paths:
       - artifacts/
-  only:
-    variables:
-      - $UBI_PIPELINE == "true"
-      - *ubi_tag_var
-      - *ubi_stable_var
-  except:
-    refs:
-      - *com_ubi_tag_ref
-      - *com_auto_deploy_tag_ref
-    variables:
-      - $DEPS_PIPELINE
-      - *auto_deploy_branch_var
+  <<: *only-ubi
 
 dependency_update:
   image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:0.0.41
@@ -166,9 +199,8 @@ dependency_update:
   script:
     - curl --retry 6 https://deps.app/install.sh | bash -s -- -b $HOME/bin
     - $HOME/bin/deps ci
-  only:
-    variables:
-      - $DEPS_PIPELINE
+  rules:
+    - <<: *if_deps_pipeline
 
 gitlab-ubi-builder:
   <<: *build-job-base
@@ -184,9 +216,9 @@ danger-review:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:danger
   stage: prepare
   cache: {}
-  only:
-    variables:
-      - $DANGER_GITLAB_API_TOKEN
+  rules:
+    - if: '$DANGER_GITLAB_API_TOKEN'
+    - when: never
   script:
     - danger --fail-on-errors=true
 
@@ -199,6 +231,7 @@ build:gitlab-ruby:
 
 gitlab-ruby:
   <<: *job-base
+  <<: *except-deps
   stage: phase-one
   dependencies:
     - build:gitlab-ruby
@@ -216,6 +249,7 @@ build:postgresql:
 
 postgresql:
   <<: *job-base
+  <<: *except-deps
   stage: phase-one
   dependencies:
     - build:postgresql
@@ -228,6 +262,7 @@ postgresql:
 
 cfssl-self-sign:
   <<: *job-base
+  <<: *except-deps
   stage: phase-one
   script:
     - export DOCKERFILE_EXT=
@@ -247,6 +282,7 @@ build:kubectl:
 
 kubectl:
   <<: *job-base
+  <<: *except-deps
   stage: phase-one
   dependencies:
     - build:kubectl
@@ -258,6 +294,7 @@ kubectl:
 
 alpine-certificates:
   <<: *job-base
+  <<: *except-deps
   stage: phase-one
   script:
     - export DOCKERFILE_EXT=
@@ -279,6 +316,7 @@ build:gitlab-python:
 
 gitlab-python:
   <<: *job-base
+  <<: *except-deps
   stage: phase-one
   dependencies:
     - build:gitlab-python
@@ -299,6 +337,7 @@ build:gitlab-go:
 
 gitlab-go:
   <<: *job-base
+  <<: *except-deps
   stage: phase-two
   script:
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$TARGET_VERSION$GO_VERSION" | sha1sum))
@@ -335,14 +374,14 @@ build:gitlab-rails-ee:
 
 gitlab-rails-ee:
   <<: *job-base
-  <<: *except-ce
+  <<: *only-ee
   stage: phase-five
   dependencies:
     - build:gitlab-rails-ee
     - git-base
     - postgresql
   variables:
-    ee: "true"
+    RAILS_EE: "true"
   script:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
@@ -444,6 +483,7 @@ build:gitlab-task-runner-ee:
 
 gitlab-task-runner-ee:
   <<: *job-base
+  <<: *only-ee
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
@@ -468,10 +508,10 @@ gitlab-task-runner-ee:
     - gitlab-python
     - build:gitlab-task-runner-ee
     - build:gitlab-python
-  <<: *except-ce
 
 gitlab-task-runner-ce:
   <<: *job-base
+  <<: *except-ee
   stage: phase-six
   script:
     - ruby_version=$(get_version gitlab-ruby)
@@ -489,10 +529,10 @@ gitlab-task-runner-ce:
   dependencies:
     - gitlab-rails-ce
     - gitlab-python
-  <<: *except-ee
 
 gitlab-geo-logcursor:
   <<: *job-base
+  <<: *only-ee
   stage: phase-six
   script:
     - ruby_version=$(get_version gitlab-ruby)
@@ -508,7 +548,6 @@ gitlab-geo-logcursor:
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
-  <<: *except-ce
 
 build:gitlab-webservice-ee:
   <<: *build-job-base
@@ -525,6 +564,7 @@ build:gitlab-webservice-ee:
 
 gitlab-webservice-ee:
   <<: *job-base
+  <<: *only-ee
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
@@ -548,10 +588,10 @@ gitlab-webservice-ee:
     - gitlab-python
     - build:gitlab-webservice-ee
     - build:gitlab-python
-  <<: *except-ce
 
 gitlab-webservice-ce:
   <<: *job-base
+  <<: *except-ee
   stage: phase-six
   script:
     - ruby_version=$(get_version gitlab-ruby)
@@ -565,7 +605,6 @@ gitlab-webservice-ce:
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
-  <<: *except-ee
 
 build:gitlab-actioncable-ee:
   <<: *build-job-base
@@ -582,6 +621,7 @@ build:gitlab-actioncable-ee:
 
 gitlab-actioncable-ee:
   <<: *job-base
+  <<: *only-ee
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
@@ -605,10 +645,10 @@ gitlab-actioncable-ee:
     - gitlab-python
     - build:gitlab-actioncable-ee
     - build:gitlab-python
-  <<: *except-ce
 
 gitlab-actioncable-ce:
   <<: *job-base
+  <<: *except-ee
   stage: phase-six
   script:
     - ruby_version=$(get_version gitlab-ruby)
@@ -622,7 +662,6 @@ gitlab-actioncable-ce:
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
-  <<: *except-ee
 
 build:gitlab-sidekiq-ee:
   <<: *build-job-base
@@ -639,6 +678,7 @@ build:gitlab-sidekiq-ee:
 
 gitlab-sidekiq-ee:
   <<: *job-base
+  <<: *only-ee
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
@@ -662,10 +702,10 @@ gitlab-sidekiq-ee:
     - gitlab-python
     - build:gitlab-python
     - build:gitlab-sidekiq-ee
-  <<: *except-ce
 
 gitlab-sidekiq-ce:
   <<: *job-base
+  <<: *except-ee
   stage: phase-six
   script:
     - ruby_version=$(get_version gitlab-ruby)
@@ -679,7 +719,6 @@ gitlab-sidekiq-ce:
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
-  <<: *except-ee
 
 build:gitlab-exporter:
   <<: *build-job-base
@@ -697,6 +736,7 @@ build:gitlab-exporter:
 
 gitlab-exporter:
   <<: *job-base
+  <<: *except-deps
   stage: phase-two
   script:
     - ruby_version=$(get_version gitlab-ruby)
@@ -725,6 +765,7 @@ build:gitlab-mailroom:
 
 gitlab-mailroom:
   <<: *job-base
+  <<: *except-deps
   stage: phase-two
   script:
     - ruby_version=$(get_version gitlab-ruby)
@@ -760,6 +801,7 @@ build:gitlab-shell:
 
 gitlab-shell:
   <<: *job-base
+  <<: *except-deps
   stage: phase-four
   script:
     - ruby_version=$(get_version gitlab-ruby)
@@ -799,6 +841,7 @@ build:git-base:
 
 git-base:
   <<: *job-base
+  <<: *except-deps
   stage: phase-three
   dependencies:
     - build:git-base
@@ -834,6 +877,7 @@ build:gitlab-elasticsearch-indexer:
 
 gitlab-elasticsearch-indexer:
   <<: *job-base
+  <<: *only-ee
   stage: phase-four
   dependencies:
     - git-base
@@ -851,7 +895,6 @@ gitlab-elasticsearch-indexer:
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_ELASTICSEARCH_INDEXER_VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
     - push_if_master_or_stable_or_tag "$GITLAB_ELASTICSEARCH_INDEXER_VERSION${IMAGE_TAG_EXT}"
-  <<: *except-ce
 
 build:gitaly:
   <<: *build-job-base
@@ -875,6 +918,7 @@ build:gitaly:
 
 gitaly:
   <<: *job-base
+  <<: *except-deps
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-shell.tar.gz
@@ -922,6 +966,7 @@ build:gitlab-container-registry:
 
 gitlab-container-registry:
   <<: *job-base
+  <<: *except-deps
   stage: phase-four
   script:
     - go_dir_version=$(get_version gitlab-go)
@@ -964,6 +1009,7 @@ build:gitlab-workhorse-ee:
 
 gitlab-workhorse-ee:
   <<: *job-base
+  <<: *only-ee
   stage: phase-six
   script:
     - rails_version=$(get_version gitlab-rails)
@@ -987,7 +1033,6 @@ gitlab-workhorse-ee:
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
-  <<: *except-ce
   dependencies:
     - git-base
     - gitlab-rails-ee
@@ -995,6 +1040,7 @@ gitlab-workhorse-ee:
 
 gitlab-workhorse-ce:
   <<: *job-base
+  <<: *except-ee
   stage: phase-six
   script:
     - rails_version=$(get_version gitlab-rails)
@@ -1015,7 +1061,6 @@ gitlab-workhorse-ce:
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ce"
     - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
-  <<: *except-ee
   dependencies:
     - git-base
     - gitlab-rails-ce
@@ -1028,7 +1073,6 @@ sync-images:
   services:
     - docker:dind
   stage: release
-  when: manual
   allow_failure: false
   script:
     - cat artifacts/images/* > image_versions.txt
@@ -1047,8 +1091,9 @@ sync-images:
   artifacts:
     paths:
       - artifacts/
-  only:
-    - tags@gitlab/charts/components/images
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
+      when: manual
 
 ubi-assets-release:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:ubi-release
@@ -1072,10 +1117,9 @@ ubi-assets-release:
     - build:gitlab-webservice-ee
     - build:gitlab-sidekiq-ee
     - build:gitlab-actioncable-ee
-  when: manual
-  only:
-    refs:
-      - /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/@gitlab/charts/components/images
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/ && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
+      when: manual
   before_script:
     - export UBI_RELEASE_TAG=${CI_COMMIT_TAG:-latest}
     - export AWS_ACCESS_KEY_ID="${GPG_KEY_AWS_ACCESS_KEY_ID}"
