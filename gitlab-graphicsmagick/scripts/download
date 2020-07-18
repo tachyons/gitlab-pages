@@ -10,7 +10,7 @@ set -exo pipefail
 
 pushd /build
 # Downloads sources
-curl -JLO $GM_SOURCE_URL
+curl --retry 6 -JLOsS $GM_SOURCE_URL
 
 # Download & verify signature
 if [ -z $_SIGNATURE_ENFORCE ] && [ -z $_SIGNATURE_KEY ] ; then
