@@ -74,11 +74,17 @@ func loadCertDir() error {
 			}
 			continue
 		}
+
+		rootsAdded := false
 		for _, fi := range fis {
 			data, err := ioutil.ReadFile(directory + "/" + fi.Name())
-			if err == nil {
-				sysPool.AppendCertsFromPEM(data)
+			if err == nil && sysPool.AppendCertsFromPEM(data) {
+				rootsAdded = true
 			}
+		}
+
+		if rootsAdded {
+			return nil
 		}
 	}
 
