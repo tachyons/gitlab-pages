@@ -3,10 +3,8 @@ package httptransport
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -19,6 +17,8 @@ var (
 	sysPoolOnce = &sync.Once{}
 	sysPool     *x509.CertPool
 
+	// only overridden by transport_darwin.go
+	loadExtraCerts = func() {}
 	// InternalTransport can be used with http.Client with TLS and certificates
 	InternalTransport = newInternalTransport()
 )
@@ -52,10 +52,10 @@ func NewTransportWithMetrics(gaugeVec *prometheus.GaugeVec, counterVec *promethe
 	}
 }
 
-// This is here because macOS does not support the SSL_CERT_FILE
-// environment variable. We have arrange things to read SSL_CERT_FILE as
-// late as possible to avoid conflicts with file descriptor passing at
-// startup.
+// This is here because macOS does not support the SSL_CERT_FILE and
+// SSL_CERT_DIR environment variables. We have arranged things to read
+// SSL_CERT_FILE and SSL_CERT_DIR  as late as possible to avoid conflicts
+// with file descriptor passing at startup.
 func pool() *x509.CertPool {
 	sysPoolOnce.Do(loadPool)
 	return sysPool
@@ -71,21 +71,9 @@ func loadPool() {
 		return
 	}
 
-	// Try to load from SSL_CERT_FILE
-	// TODO: Handle SSL_CERT_DIR?
-	// See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/415
-	sslCertFile := os.Getenv("SSL_CERT_FILE")
-	if sslCertFile == "" {
-		return
-	}
-
-	certPem, err := ioutil.ReadFile(sslCertFile)
-	if err != nil {
-		log.WithError(err).Error("failed to read SSL_CERT_FILE")
-		return
-	}
-
-	sysPool.AppendCertsFromPEM(certPem)
+	// Go does not load SSL_CERT_FILE and SSL_CERT_DIR on darwin systems so we need to
+	// load them manually in OSX. See https://golang.org/src/crypto/x509/root_unix.go
+	loadExtraCerts()
 }
 
 // withRoundTripper takes an original RoundTripper, reports metrics based on the
