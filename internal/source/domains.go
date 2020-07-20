@@ -13,7 +13,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/domains/gitlabsourceconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
 var (
@@ -47,33 +46,36 @@ func NewDomains(config Config) (*Domains, error) {
 	// TODO: choose domain source config via config.DomainConfigSource()
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/217912
 
-	domains := &Domains{
+	d := &Domains{
 		mu:   &sync.RWMutex{},
 		disk: disk.New(),
 	}
 
 	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		return domains, nil
+		return d, nil
 	}
 
 	gitlabClient, err := gitlab.New(config)
 	if err != nil {
 		return nil, err
 	}
-	gitlabErr := make(chan error)
-	gitlabClient.Poll(client.DefaultPollingMaxRetries, client.DefaultPollingInterval, gitlabErr)
 
-	domains.enableGitLabSource(gitlabClient)
+	d.enableGitLabSource(gitlabClient)
+
+	return d, nil
+}
+
+func (d *Domains) pollGitLabAPI(gitlabClient *gitlab.Gitlab) {
+	gitlabErr := make(chan error)
+	go gitlabClient.Poll(gitlab.DefaultPollingMaxRetries, gitlab.DefaultPollingInterval, gitlabErr)
 
 	go func() {
 		err := <-gitlabErr
 		if err != nil {
 			log.WithError(err).Error("failed to connect to the GitLab API")
-			domains.disableGitLabSource()
+			d.disableGitLabSource()
 		}
 	}()
-
-	return domains, nil
 }
 
 func (d *Domains) enableGitLabSource(gitlabClient *gitlab.Gitlab) {
@@ -81,6 +83,8 @@ func (d *Domains) enableGitLabSource(gitlabClient *gitlab.Gitlab) {
 	defer d.mu.Unlock()
 
 	d.gitlab = gitlabClient
+
+	d.pollGitLabAPI(gitlabClient)
 }
 
 func (d *Domains) disableGitLabSource() {

@@ -1,4 +1,4 @@
-package client
+package gitlab
 
 import (
 	"fmt"
@@ -11,20 +11,19 @@ const (
 	// DefaultPollingMaxRetries to be used by Poll
 	DefaultPollingMaxRetries = 10
 	// DefaultPollingInterval to be used by Poll
-	DefaultPollingInterval = 10 * time.Second
+	DefaultPollingInterval = 30 * time.Second
 )
 
 // Poll tries to call the /internal/pages/status API endpoint once plus
 // `retries` every `interval`.
-// TODO: should we consider using an exponential back-off approach?
-// https://pkg.go.dev/github.com/cenkalti/backoff/v4?tab=doc#pkg-examples
-func (gc *Client) Poll(retries int, interval time.Duration, errCh chan error) {
+// TODO: Remove in https://gitlab.com/gitlab-org/gitlab/-/issues/218357
+func (g *Gitlab) Poll(retries int, interval time.Duration, errCh chan error) {
 	defer close(errCh)
 
 	var err error
 	for i := 0; i <= retries; i++ {
 		log.Info("polling GitLab internal pages status API")
-		err = gc.Status()
+		err = g.client.Status()
 		if err == nil {
 			log.Info("GitLab internal pages status API connected successfully")
 

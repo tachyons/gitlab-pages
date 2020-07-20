@@ -110,6 +110,7 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 	return entry.Retrieve(ctx, c.client)
 }
 
-func (c *Cache) Poll(retries int, interval time.Duration, errCh chan error) {
-	c.client.Poll(retries, interval, errCh)
+// Status returns the client Status
+func (c *Cache) Status() error {
+	return c.client.Status()
 }

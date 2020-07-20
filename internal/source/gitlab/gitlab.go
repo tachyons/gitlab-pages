@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -94,8 +93,4 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
 	return &serving.Request{Serving: defaultServing()},
 		errors.New("could not match lookup path")
-}
-
-func (g *Gitlab) Poll(retries int, interval time.Duration, errCh chan error) {
-	go g.client.Poll(retries, interval, errCh)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -12,6 +11,7 @@ import (
 // StubClient is a stubbed client used for testing
 type StubClient struct {
 	File string
+	Err  func() error
 }
 
 // Resolve implements api.Resolver
@@ -37,6 +37,6 @@ func (c StubClient) GetLookup(ctx context.Context, host string) api.Lookup {
 	return lookup
 }
 
-func (c StubClient) Poll(r int, i time.Duration, errCh chan error) {
-	errCh <- nil
+func (c StubClient) Status() error {
+	return c.Err()
 }
