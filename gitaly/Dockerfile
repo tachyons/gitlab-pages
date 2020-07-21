@@ -47,7 +47,7 @@ RUN cd ${BUILD_DIR} && \
     rm -rf ${BUILD_DIR} /srv/gitaly-ruby/spec  /srv/gitaly-ruby/features && \
     /build-scripts/cleanup-gems /usr/lib/ruby/gems
 
-RUN mkdir -p /var/log/gitaly && \
+RUN mkdir -p /srv/gitlab-shell /var/log/gitaly && \
     touch /var/log/gitaly/gitaly.log && \
     touch /var/log/gitaly/gitlab-shell.log && chown -R ${GITLAB_USER} /var/log/gitaly
 
