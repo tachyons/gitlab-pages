@@ -11,7 +11,6 @@ pushd "/build/GraphicsMagick-${GM_VERSION}"
   --without-bzlib \
   --without-dps \
   --without-fpx \
-  --without-gslib \
   --without-jbig \
   --without-webp \
   --without-jp2 \
