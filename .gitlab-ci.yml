@@ -253,7 +253,8 @@ gitlab-graphicsmagick:
   #   - build:gitlab-graphicsmagick
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${GM_VERSION}" | sha1sum))
-    - build_if_needed --build-arg "GM_VERSION=$GM_VERSION"
+    - export GM_VERSION_MINOR=$(expr match $GM_VERSION '\(^[0-9]\+.[0-9]\+\)')
+    - build_if_needed --build-arg "GM_VERSION=$GM_VERSION" --build-arg "GM_VERSION_MINOR=$GM_VERSION_MINOR"
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag $GM_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-graphicsmagick_container.txt
