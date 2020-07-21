@@ -11,7 +11,7 @@ ENV GM_SOURCE_URL="https://downloads.sourceforge.net/project/graphicsmagick/grap
 ENV GM_SIGNATURE_URL="${SOURCE_URL}.sig"
 
 RUN mkdir -p /build /target
-COPY scripts/ scripts
+COPY scripts/ /scripts
 
 RUN /scripts/dependencies
 RUN /scripts/download

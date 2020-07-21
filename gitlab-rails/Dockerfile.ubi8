@@ -8,7 +8,9 @@ ARG DNF_OPTS
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs libicu tzdata uuid \
+    && dnf ${DNF_OPTS} install -by --nodocs \
+            libicu tzdata uuid \
+            libpng libjpeg-turbo zlib libtiff \
     && adduser -m ${GITLAB_USER} \
     && mkdir -p ${GITLAB_DATA}/{.upgrade-status,data,repo,config} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} ${GITLAB_DATA} \

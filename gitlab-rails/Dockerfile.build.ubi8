@@ -19,6 +19,7 @@ ARG GITLAB_USER=git
 ADD gitlab-ruby.tar.gz /
 ADD postgresql.tar.gz /
 ADD gitlab-elasticsearch-indexer.tar.gz /
+ADD gitlab-graphicsmagick.tar.gz /
 
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
