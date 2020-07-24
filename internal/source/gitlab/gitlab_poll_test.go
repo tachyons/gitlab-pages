@@ -45,7 +45,7 @@ func TestClient_Poll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var counter int
-			clientMock := client.StubClient{Err: func() error {
+			clientMock := client.StubClient{StatusErr: func() error {
 				if tt.wantErr {
 					return fmt.Errorf(client.ConnectionErrorMsg)
 				}
@@ -58,24 +58,17 @@ func TestClient_Poll(t *testing.T) {
 				return nil
 			}}
 
-			errCh := make(chan error)
-			glClient := Gitlab{client: clientMock}
+			glClient := Gitlab{checker: clientMock}
 
-			go glClient.Poll(tt.retries, tt.interval, errCh)
-
-			select {
-			case err := <-errCh:
-				if tt.wantErr {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), "polling failed after")
-					require.Contains(t, err.Error(), client.ConnectionErrorMsg)
-					return
-				}
-				require.NoError(t, err)
-			case <-time.After(100 * time.Millisecond):
-				t.Logf("%s timed out", tt.name)
-				t.FailNow()
+			err := glClient.Poll(tt.retries, tt.interval)
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "polling failed after")
+				require.Contains(t, err.Error(), client.ConnectionErrorMsg)
+				return
 			}
+
+			require.NoError(t, err)
 		})
 	}
 }

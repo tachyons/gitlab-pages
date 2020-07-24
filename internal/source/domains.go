@@ -3,7 +3,6 @@ package source
 import (
 	"errors"
 	"regexp"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -34,7 +33,6 @@ func init() {
 // currently using two sources during the transition to the new GitLab domains
 // source.
 type Domains struct {
-	mu     *sync.RWMutex
 	gitlab Source
 	disk   *disk.Disk // legacy disk source
 }
@@ -46,52 +44,19 @@ func NewDomains(config Config) (*Domains, error) {
 	// TODO: choose domain source config via config.DomainConfigSource()
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/217912
 
-	d := &Domains{
-		mu:   &sync.RWMutex{},
-		disk: disk.New(),
-	}
-
 	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		return d, nil
+		return &Domains{disk: disk.New()}, nil
 	}
 
-	gitlabClient, err := gitlab.New(config)
+	gitlab, err := gitlab.New(config)
 	if err != nil {
 		return nil, err
 	}
 
-	d.enableGitLabSource(gitlabClient)
-
-	return d, nil
-}
-
-func (d *Domains) pollGitLabAPI(gitlabClient *gitlab.Gitlab) {
-	gitlabErr := make(chan error)
-	go gitlabClient.Poll(gitlab.DefaultPollingMaxRetries, gitlab.DefaultPollingInterval, gitlabErr)
-
-	go func() {
-		err := <-gitlabErr
-		if err != nil {
-			log.WithError(err).Error("failed to connect to the GitLab API")
-			d.disableGitLabSource()
-		}
-	}()
-}
-
-func (d *Domains) enableGitLabSource(gitlabClient *gitlab.Gitlab) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	d.gitlab = gitlabClient
-
-	d.pollGitLabAPI(gitlabClient)
-}
-
-func (d *Domains) disableGitLabSource() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	d.gitlab = nil
+	return &Domains{
+		gitlab: gitlab,
+		disk:   disk.New(),
+	}, nil
 }
 
 // GetDomain retrieves a domain information from a source. We are using two
@@ -120,9 +85,6 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
 	if d.gitlab == nil {
 		return d.disk
 	}

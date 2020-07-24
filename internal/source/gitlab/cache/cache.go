@@ -109,8 +109,3 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 	metrics.DomainsSourceCacheMiss.Inc()
 	return entry.Retrieve(ctx, c.client)
 }
-
-// Status returns the client Status
-func (c *Cache) Status() error {
-	return c.client.Status()
-}
