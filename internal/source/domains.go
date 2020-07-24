@@ -44,8 +44,12 @@ func NewDomains(config Config) (*Domains, error) {
 	// TODO: choose domain source config via config.DomainConfigSource()
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/217912
 
-	domains := &Domains{
-		disk: disk.New(),
+	domains := &Domains{}
+
+	if config.DomainConfigSource() == "disk" {
+		domains.disk = disk.New()
+		// TODO: start polling
+		return domains, nil
 	}
 
 	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
