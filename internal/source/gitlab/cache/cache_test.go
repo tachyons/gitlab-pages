@@ -69,8 +69,6 @@ func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
 	return lookup
 }
 
-func (c *client) Status() error { return nil }
-
 func withTestCache(config resolverConfig, cacheConfig *cacheConfig, block func(*Cache, *client)) {
 	var chanSize int
 

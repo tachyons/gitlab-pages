@@ -45,7 +45,7 @@ func TestClient_Poll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var counter int
-			clientMock := client.StubClient{StatusErr: func() error {
+			checkerMock := checkerMock{StatusErr: func() error {
 				if tt.wantErr {
 					return fmt.Errorf(client.ConnectionErrorMsg)
 				}
@@ -58,7 +58,7 @@ func TestClient_Poll(t *testing.T) {
 				return nil
 			}}
 
-			glClient := Gitlab{checker: clientMock}
+			glClient := Gitlab{checker: checkerMock}
 
 			err := glClient.Poll(tt.retries, tt.interval)
 			if tt.wantErr {
@@ -71,4 +71,12 @@ func TestClient_Poll(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+type checkerMock struct {
+	StatusErr func() error
+}
+
+func (c checkerMock) Status() error {
+	return c.StatusErr()
 }
