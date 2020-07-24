@@ -2,7 +2,9 @@ package source
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -33,6 +35,7 @@ func init() {
 // currently using two sources during the transition to the new GitLab domains
 // source.
 type Domains struct {
+	mu     *sync.RWMutex
 	gitlab Source
 	disk   *disk.Disk // legacy disk source
 }
@@ -44,19 +47,63 @@ func NewDomains(config Config) (*Domains, error) {
 	// TODO: choose domain source config via config.DomainConfigSource()
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/217912
 
+	domains := &Domains{
+		mu:   &sync.RWMutex{},
+		disk: disk.New(),
+	}
+
+	if err := domains.setGitlabSource(config); err != nil {
+		log.WithError(err).Error("failed to set GitLab domains source")
+		return domains, nil
+	}
+
+	return domains, nil
+}
+
+func (d *Domains) setGitlabSource(config Config) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		return &Domains{disk: disk.New()}, nil
+		return nil
 	}
 
-	gitlab, err := gitlab.New(config)
+	gitlabClient, err := gitlab.New(config)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to set GitLab client: %w", err)
 	}
 
-	return &Domains{
-		gitlab: gitlab,
-		disk:   disk.New(),
-	}, nil
+	d.gitlab = gitlabClient
+
+	d.checkGitLabStatus(gitlabClient)
+
+	return nil
+}
+
+func (d *Domains) checkGitLabStatus(gitlabClient *gitlab.Gitlab) {
+	gitlabErr := make(chan error)
+	go func() {
+		defer close(gitlabErr)
+		err := gitlabClient.Poll(gitlab.DefaultPollingMaxRetries, gitlab.DefaultPollingInterval)
+		if err != nil {
+			gitlabErr <- err
+		}
+	}()
+
+	go func() {
+		err := <-gitlabErr
+		if err != nil {
+			log.WithError(err).Error("failed to connect to the GitLab API")
+			d.disableGitlabSource()
+		}
+	}()
+}
+
+func (d *Domains) disableGitlabSource() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.gitlab = nil
 }
 
 // GetDomain retrieves a domain information from a source. We are using two
@@ -85,6 +132,9 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
 	if d.gitlab == nil {
 		return d.disk
 	}
