@@ -2,7 +2,6 @@ package source
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"sync"
 	"time"
@@ -52,58 +51,18 @@ func NewDomains(config Config) (*Domains, error) {
 		disk: disk.New(),
 	}
 
-	if err := domains.setGitlabSource(config); err != nil {
-		log.WithError(err).Error("failed to set GitLab domains source")
+	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
 		return domains, nil
 	}
 
-	return domains, nil
-}
-
-func (d *Domains) setGitlabSource(config Config) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		return nil
-	}
-
-	gitlabClient, err := gitlab.New(config)
+	glClient, err := gitlab.New(config)
 	if err != nil {
-		return fmt.Errorf("failed to set GitLab client: %w", err)
+		return nil, err
 	}
 
-	d.gitlab = gitlabClient
+	domains.gitlab = glClient
 
-	d.checkGitLabStatus(gitlabClient)
-
-	return nil
-}
-
-func (d *Domains) checkGitLabStatus(gitlabClient *gitlab.Gitlab) {
-	gitlabErr := make(chan error)
-	go func() {
-		defer close(gitlabErr)
-		err := gitlabClient.Poll(gitlab.DefaultPollingMaxRetries, gitlab.DefaultPollingInterval)
-		if err != nil {
-			gitlabErr <- err
-		}
-	}()
-
-	go func() {
-		err := <-gitlabErr
-		if err != nil {
-			log.WithError(err).Error("failed to connect to the GitLab API")
-			d.disableGitlabSource()
-		}
-	}()
-}
-
-func (d *Domains) disableGitlabSource() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	d.gitlab = nil
+	return domains, nil
 }
 
 // GetDomain retrieves a domain information from a source. We are using two
@@ -132,10 +91,7 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	if d.gitlab == nil {
+	if d.gitlab == nil || !d.gitlab.IsReady() {
 		return d.disk
 	}
 

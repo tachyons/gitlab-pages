@@ -66,6 +66,7 @@ func TestGetDomain(t *testing.T) {
 		newSource.On("GetDomain", testDomain).
 			Return(&domain.Domain{Name: testDomain}, nil).
 			Once()
+		newSource.On("IsReady").Return(true).Once()
 		defer newSource.AssertExpectations(t)
 
 		domains := newTestDomains(t, newSource)
@@ -75,6 +76,8 @@ func TestGetDomain(t *testing.T) {
 
 	t.Run("when requesting a non-test domain", func(t *testing.T) {
 		newSource := NewMockSource()
+		newSource.On("IsReady").Return(true).Once()
+
 		defer newSource.AssertExpectations(t)
 
 		domains := newTestDomains(t, newSource)
@@ -114,6 +117,8 @@ func TestGetDomain(t *testing.T) {
 		newSource.On("GetDomain", testDomain).
 			Return(&domain.Domain{Name: testDomain}, nil).
 			Once()
+		newSource.On("IsReady").Return(true).Once()
+
 		defer newSource.AssertExpectations(t)
 
 		domains := newTestDomains(t, newSource)
@@ -188,6 +193,7 @@ func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 						Once()
 				}
 			}
+			gitlabSource.On("IsReady").Return(true)
 			defer gitlabSource.AssertExpectations(t)
 
 			domains := newTestDomains(t, gitlabSource)
