@@ -74,7 +74,6 @@ func TestClient_Poll(t *testing.T) {
 
 			require.True(t, glClient.isReady)
 			require.Equal(t, "GitLab internal pages status API connected successfully", hook.LastEntry().Message)
-
 		})
 	}
 }
