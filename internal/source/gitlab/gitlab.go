@@ -20,13 +20,8 @@ import (
 // information about domains from GitLab instance.
 type Gitlab struct {
 	client  api.Resolver
-	checker checker
 	mu      *sync.RWMutex
 	isReady bool
-}
-
-type checker interface {
-	Status() error
 }
 
 // New returns a new instance of gitlab domain source.
@@ -35,13 +30,13 @@ func New(config client.Config) (*Gitlab, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	g := &Gitlab{
-		client:  cache.NewCache(client, nil),
-		mu:      &sync.RWMutex{},
-		checker: client,
+		client: cache.NewCache(client, nil),
+		mu:     &sync.RWMutex{},
 	}
 
-	go g.Poll(defaultPollingMaxRetries, defaultPollingInterval)
+	go g.poll(defaultPollingMaxRetries, defaultPollingInterval)
 
 	// using nil for cache config will use the default values specified in internal/source/gitlab/cache/cache.go#12
 	return g, nil

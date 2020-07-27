@@ -7,20 +7,20 @@ import (
 )
 
 const (
-	// defaultPollingMaxRetries to be used by Poll
+	// defaultPollingMaxRetries to be used by poll
 	defaultPollingMaxRetries = 30
-	// defaultPollingInterval to be used by Poll
+	// defaultPollingInterval to be used by poll
 	defaultPollingInterval = time.Minute
 )
 
-// Poll tries to call the /internal/pages/status API endpoint once plus
+// poll tries to call the /internal/pages/status API endpoint once plus
 // `retries` every `interval`.
 // TODO: Remove in https://gitlab.com/gitlab-org/gitlab/-/issues/218357
-func (g *Gitlab) Poll(retries int, interval time.Duration) {
+func (g *Gitlab) poll(retries int, interval time.Duration) {
 	var err error
 	for i := 0; i <= retries; i++ {
-		log.Info("polling GitLab internal pages status API")
-		err = g.checker.Status()
+		log.Info("Checking GitLab internal API availability")
+		err = g.client.Status()
 		if err == nil {
 			log.Info("GitLab internal pages status API connected successfully")
 			g.mu.Lock()
@@ -34,5 +34,5 @@ func (g *Gitlab) Poll(retries int, interval time.Duration) {
 		time.Sleep(interval)
 	}
 
-	log.WithError(err).Errorf("polling failed after %d tries every %.2fs", retries+1, interval.Seconds())
+	log.WithError(err).Errorf("Failed to connect to the internal GitLab API after %d tries every %.2fs", retries+1, interval.Seconds())
 }

@@ -49,7 +49,7 @@ func TestClient_Poll(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			defer hook.Reset()
 			var counter int
-			checkerMock := checkerMock{StatusErr: func() error {
+			client := client.StubClient{StatusErr: func() error {
 				if tt.expectedFail {
 					return fmt.Errorf(client.ConnectionErrorMsg)
 				}
@@ -62,12 +62,12 @@ func TestClient_Poll(t *testing.T) {
 				return nil
 			}}
 
-			glClient := Gitlab{checker: checkerMock, mu: &sync.RWMutex{}}
+			glClient := Gitlab{client: client, mu: &sync.RWMutex{}}
 
-			glClient.Poll(tt.retries, tt.interval)
+			glClient.poll(tt.retries, tt.interval)
 			if tt.expectedFail {
 				require.False(t, glClient.isReady)
-				s := fmt.Sprintf("polling failed after %d tries every %.2fs", tt.retries+1, tt.interval.Seconds())
+				s := fmt.Sprintf("Failed to connect to the internal GitLab API after %d tries every %.2fs", tt.retries+1, tt.interval.Seconds())
 				require.Equal(t, s, hook.LastEntry().Message)
 				return
 			}
@@ -76,12 +76,4 @@ func TestClient_Poll(t *testing.T) {
 			require.Equal(t, "GitLab internal pages status API connected successfully", hook.LastEntry().Message)
 		})
 	}
-}
-
-type checkerMock struct {
-	StatusErr func() error
-}
-
-func (c checkerMock) Status() error {
-	return c.StatusErr()
 }
