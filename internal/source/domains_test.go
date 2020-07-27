@@ -2,7 +2,6 @@ package source
 
 import (
 	"math/rand"
-	"sync"
 	"testing"
 	"time"
 
@@ -212,7 +211,6 @@ func newTestDomains(t *testing.T, gitlabSource *MockSource) *Domains {
 	t.Helper()
 
 	return &Domains{
-		mu:     &sync.RWMutex{},
 		disk:   disk.New(),
 		gitlab: gitlabSource,
 	}

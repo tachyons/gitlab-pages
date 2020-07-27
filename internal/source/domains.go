@@ -3,7 +3,6 @@ package source
 import (
 	"errors"
 	"regexp"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -34,7 +33,6 @@ func init() {
 // currently using two sources during the transition to the new GitLab domains
 // source.
 type Domains struct {
-	mu     *sync.RWMutex
 	gitlab Source
 	disk   *disk.Disk // legacy disk source
 }
@@ -47,7 +45,6 @@ func NewDomains(config Config) (*Domains, error) {
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/217912
 
 	domains := &Domains{
-		mu:   &sync.RWMutex{},
 		disk: disk.New(),
 	}
 
