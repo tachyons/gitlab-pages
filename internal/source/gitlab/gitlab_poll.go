@@ -10,7 +10,7 @@ const (
 	// defaultPollingMaxRetries to be used by Poll
 	defaultPollingMaxRetries = 30
 	// defaultPollingInterval to be used by Poll
-	defaultPollingInterval = 10 * time.Second
+	defaultPollingInterval = time.Minute
 )
 
 // Poll tries to call the /internal/pages/status API endpoint once plus
