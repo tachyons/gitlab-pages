@@ -30,6 +30,12 @@ func (m *MockSource) IsReady() bool {
 	return args.Get(0).(bool)
 }
 
+func (m *MockSource) IsReady() bool {
+	args := m.Called()
+
+	return args.Get(0).(bool)
+}
+
 // NewMockSource returns a new Source mock for testing
 func NewMockSource() *MockSource {
 	return &MockSource{}
