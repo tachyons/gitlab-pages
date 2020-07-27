@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -20,10 +21,11 @@ import (
 type Gitlab struct {
 	client  api.Resolver
 	checker checker
+	mu      *sync.RWMutex
+	isReady bool
 }
 
 type checker interface {
-	// Status checks that Pages can reach the rails internal Pages API for source domain configuration.
 	Status() error
 }
 
@@ -33,9 +35,16 @@ func New(config client.Config) (*Gitlab, error) {
 	if err != nil {
 		return nil, err
 	}
+	g := &Gitlab{
+		client:  cache.NewCache(client, nil),
+		mu:      &sync.RWMutex{},
+		checker: client,
+	}
+
+	go g.Poll(defaultPollingMaxRetries, defaultPollingInterval)
 
 	// using nil for cache config will use the default values specified in internal/source/gitlab/cache/cache.go#12
-	return &Gitlab{client: cache.NewCache(client, nil), checker: client}, nil
+	return g, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from
