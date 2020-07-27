@@ -1727,7 +1727,7 @@ domains:
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", ""}
 
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{gitlabSourceConfigFile}, pagesArgs...)
 	defer teardown()

@@ -47,22 +47,22 @@ func NewDomains(config Config) (*Domains, error) {
 
 	// Creating a glClient will start polling connectivity in the background
 	glClient, glErr := newGitlabClient(config)
-	if glErr != nil {
-		log.WithError(glErr).Warn("failed to create GitLab domains source")
-	}
 
-	switch config.DomainConfigSource() {
 	// TODO: handle DomainConfigSource == "gitlab" || "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
+	switch config.DomainConfigSource() {
 	case "disk":
 		return domains, nil
 	}
 
 	// return glErr when no domain config source is specified
 	if glErr != nil {
+		log.WithError(glErr).Warn("failed to create GitLab domains source")
 		return nil, glErr
 	}
 
-	domains.gitlab = glClient
+	if glClient != nil {
+		domains.gitlab = glClient
+	}
 
 	return domains, nil
 }
