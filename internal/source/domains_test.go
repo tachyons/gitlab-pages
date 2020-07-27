@@ -52,6 +52,16 @@ func TestDomainSources(t *testing.T) {
 		require.Nil(t, domains.gitlab)
 		require.NotNil(t, domains.disk)
 	})
+
+	t.Run("when source is set to disk", func(t *testing.T) {
+		domains, err := NewDomains(sourceConfig{
+			domainSource: "disk",
+		})
+		require.NoError(t, err)
+
+		require.Nil(t, domains.gitlab)
+		require.NotNil(t, domains.disk)
+	})
 }
 
 func TestGetDomain(t *testing.T) {

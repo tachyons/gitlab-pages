@@ -41,29 +41,34 @@ type Domains struct {
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
 func NewDomains(config Config) (*Domains, error) {
-	// TODO: choose domain source config via config.DomainConfigSource()
-	// https://gitlab.com/gitlab-org/gitlab/-/issues/217912
+	domains := &Domains{
+		disk: disk.New(),
+	}
 
-	domains := &Domains{}
+	// Creating a glClient will start polling connectivity in the background
+	glClient, glErr := newGitlabClient(config)
 
-	if config.DomainConfigSource() == "disk" {
-		domains.disk = disk.New()
-		// TODO: start polling
+	switch config.DomainConfigSource() {
+	// TODO: handle DomainConfigSource == "gitlab" || "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
+	case "disk":
 		return domains, nil
 	}
 
-	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		return domains, nil
+	if glErr == nil {
+		domains.gitlab = glClient
+	} else {
+		log.WithError(glErr).Warn("failed to create GitLab domains source")
 	}
-
-	glClient, err := gitlab.New(config)
-	if err != nil {
-		return nil, err
-	}
-
-	domains.gitlab = glClient
 
 	return domains, nil
+}
+
+func newGitlabClient(config Config) (*gitlab.Gitlab, error) {
+	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
+		return nil, nil
+	}
+
+	return gitlab.New(config)
 }
 
 // GetDomain retrieves a domain information from a source. We are using two
