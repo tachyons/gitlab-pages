@@ -1,40 +1,36 @@
 package source
 
 import (
-	"errors"
+	"fmt"
 	"regexp"
-	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/rollout"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/domains/gitlabsourceconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 )
 
 var (
-	gitlabSourceConfig gitlabsourceconfig.GitlabSourceConfig
-
 	// serverlessDomainRegex is a regular expression we use to check if a domain
 	// is a serverless domain, to short circuit gitlab source rollout. It can be
 	// removed after the rollout is done
 	serverlessDomainRegex = regexp.MustCompile(`^[^.]+-[[:xdigit:]]{2}a1[[:xdigit:]]{10}f2[[:xdigit:]]{2}[[:xdigit:]]+-?.*`)
 )
 
-func init() {
-	// Start watching the config file for domains that will use the new `gitlab` source,
-	// to be removed once we switch completely to using it.
-	go gitlabsourceconfig.WatchForGitlabSourceConfigChange(&gitlabSourceConfig, 1*time.Minute)
-}
+type configSource int
+
+const (
+	sourceGitlab configSource = iota
+	sourceDisk
+	sourceAuto
+)
 
 // Domains struct represents a map of all domains supported by pages. It is
 // currently using two sources during the transition to the new GitLab domains
 // source.
 type Domains struct {
-	gitlab Source
-	disk   *disk.Disk // legacy disk source
+	configSource configSource
+	gitlab       Source
+	disk         *disk.Disk // legacy disk source
 }
 
 // NewDomains is a factory method for domains initializing a mutex. It should
@@ -42,34 +38,46 @@ type Domains struct {
 // nil value.
 func NewDomains(config Config) (*Domains, error) {
 	domains := &Domains{
+		// TODO: disable domains.disk https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 		disk: disk.New(),
 	}
 
+	domains.setConfigSource(config)
+
 	// Creating a glClient will start polling connectivity in the background
-	glClient, glErr := newGitlabClient(config)
-
-	// TODO: handle DomainConfigSource == "gitlab" || "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
-	switch config.DomainConfigSource() {
-	case "disk":
-		return domains, nil
+	glClient, err := newGitlabClient(config)
+	if err != nil && domains.configSource != sourceDisk {
+		return nil, err
 	}
 
-	// return glErr when no domain config source is specified
-	if glErr != nil {
-		log.WithError(glErr).Warn("failed to create GitLab domains source")
-		return nil, glErr
-	}
-
-	if glClient != nil {
+	// TODO: handle DomainConfigSource == "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
+	// attach gitlab by default when source is not disk (auto, gitlab)
+	if domains.configSource != sourceDisk {
 		domains.gitlab = glClient
 	}
 
 	return domains, nil
 }
 
+// defaults to disk
+func (d *Domains) setConfigSource(config Config) {
+	switch config.DomainConfigSource() {
+	case "gitlab":
+		// TODO:  https://gitlab.com/gitlab-org/gitlab/-/issues/218357
+		d.configSource = sourceGitlab
+	case "auto":
+		// TODO: https://gitlab.com/gitlab-org/gitlab/-/issues/218358
+		d.configSource = sourceAuto
+	case "disk":
+		fallthrough
+	default:
+		d.configSource = sourceDisk
+	}
+}
+
 func newGitlabClient(config Config) (*gitlab.Gitlab, error) {
 	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		return nil, nil
+		return nil, fmt.Errorf("missing -internal-gitlab-server and/or -api-secret-key")
 	}
 
 	return gitlab.New(config)
@@ -80,10 +88,6 @@ func newGitlabClient(config Config) (*gitlab.Gitlab, error) {
 // for some subset of domains, to test / PoC the new GitLab Domains Source that
 // we plan to use to replace the disk source.
 func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
-	if name == gitlabSourceConfig.Domains.Broken {
-		return nil, errors.New("broken test domain used")
-	}
-
 	return d.source(name).GetDomain(name)
 }
 
@@ -101,7 +105,7 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
-	if d.gitlab == nil || !d.gitlab.IsReady() {
+	if d.gitlab == nil {
 		return d.disk
 	}
 
@@ -112,21 +116,11 @@ func (d *Domains) source(domain string) Source {
 		return d.gitlab
 	}
 
-	for _, name := range gitlabSourceConfig.Domains.Enabled {
-		if domain == name {
-			return d.gitlab
-		}
-	}
-
-	r := gitlabSourceConfig.Domains.Rollout
-
-	enabled, err := rollout.Rollout(domain, r.Percentage, r.Stickiness)
-	if err != nil {
-		log.WithError(err).Error("Rollout error")
+	if d.configSource == sourceDisk {
 		return d.disk
 	}
 
-	if enabled {
+	if d.gitlab.IsReady() {
 		return d.gitlab
 	}
 
