@@ -1714,22 +1714,11 @@ func TestGitlabDomainsSource(t *testing.T) {
 	source := NewGitlabDomainsSourceStub(t)
 	defer source.Close()
 
-	gitlabSourceConfig := `
-domains:
-  enabled:
-    - new-source-test.gitlab.io
-  broken: pages-broken-poc.gitlab.io
-`
-	gitlabSourceConfigFile, cleanupGitlabSourceConfigFile := CreateGitlabSourceConfigFixtureFile(t, gitlabSourceConfig)
-	defer cleanupGitlabSourceConfigFile()
-
-	gitlabSourceConfigFile = "GITLAB_SOURCE_CONFIG_FILE=" + gitlabSourceConfigFile
-
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", ""}
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
 
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{gitlabSourceConfigFile}, pagesArgs...)
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
 	defer teardown()
 
 	t.Run("when a domain exists", func(t *testing.T) {
@@ -1737,7 +1726,8 @@ domains:
 		require.NoError(t, err)
 
 		defer response.Body.Close()
-		body, _ := ioutil.ReadAll(response.Body)
+		body, err := ioutil.ReadAll(response.Body)
+		require.NoError(t, err)
 
 		require.Equal(t, http.StatusOK, response.StatusCode)
 		require.Equal(t, "New Pages GitLab Source TEST OK\n", string(body))
@@ -1749,14 +1739,5 @@ domains:
 		require.NoError(t, err)
 
 		require.Equal(t, http.StatusNotFound, response.StatusCode)
-	})
-
-	t.Run("broken domain is requested", func(t *testing.T) {
-		response, err := GetPageFromListener(t, httpListener, "pages-broken-poc.gitlab.io", "index.html")
-		require.NoError(t, err)
-
-		defer response.Body.Close()
-
-		require.Equal(t, http.StatusBadGateway, response.StatusCode)
 	})
 }
