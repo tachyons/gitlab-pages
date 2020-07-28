@@ -10,7 +10,8 @@ import (
 
 // StubClient is a stubbed client used for testing
 type StubClient struct {
-	File string
+	File      string
+	StatusErr func() error
 }
 
 // Resolve implements api.Resolver
@@ -34,4 +35,8 @@ func (c StubClient) GetLookup(ctx context.Context, host string) api.Lookup {
 	lookup.Error = json.NewDecoder(f).Decode(&lookup.Domain)
 
 	return lookup
+}
+
+func (c StubClient) Status() error {
+	return c.StatusErr()
 }

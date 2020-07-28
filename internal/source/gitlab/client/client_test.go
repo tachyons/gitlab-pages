@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
@@ -229,6 +229,86 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 
 	require.Equal(t, "file", lookupPath.Source.Type)
 	require.Equal(t, "mygroup/myproject/public/", lookupPath.Source.Path)
+}
+
+func TestClientStatus(t *testing.T) {
+	tests := []struct {
+		name    string
+		status  int
+		wantErr bool
+	}{
+		{
+			name:   "api_enabled",
+			status: http.StatusNoContent,
+		},
+		{
+			name:    "api_unauthorized",
+			status:  http.StatusUnauthorized,
+			wantErr: true,
+		},
+		{
+			name:    "server_error",
+			status:  http.StatusInternalServerError,
+			wantErr: true,
+		},
+		{
+			name:    "gateway_timeout",
+			status:  http.StatusGatewayTimeout,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux := http.NewServeMux()
+			mux.HandleFunc("/api/v4/internal/pages/status", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.status)
+			})
+
+			server := httptest.NewServer(mux)
+			defer server.Close()
+
+			client := defaultClient(t, server.URL)
+
+			err := client.Status()
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), ConnectionErrorMsg)
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestClientStatusClientTimeout(t *testing.T) {
+	timeout := 3 * time.Millisecond
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v4/internal/pages/status", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(timeout * 3)
+
+		w.WriteHeader(http.StatusOK)
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client := defaultClient(t, server.URL)
+	client.httpClient.Timeout = timeout
+
+	err := client.Status()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Client.Timeout")
+}
+
+func TestClientStatusConnectionRefused(t *testing.T) {
+	client := defaultClient(t, "http://localhost:1234")
+
+	err := client.Status()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "connection refused")
 }
 
 func validateToken(t *testing.T, tokenString string) {

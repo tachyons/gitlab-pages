@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -18,7 +19,9 @@ import (
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
-	client api.Resolver
+	client  api.Resolver
+	mu      *sync.RWMutex
+	isReady bool
 }
 
 // New returns a new instance of gitlab domain source.
@@ -28,8 +31,15 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
+	g := &Gitlab{
+		client: cache.NewCache(client, nil),
+		mu:     &sync.RWMutex{},
+	}
+
+	go g.poll(defaultPollingMaxRetries, defaultPollingInterval)
+
 	// using nil for cache config will use the default values specified in internal/source/gitlab/cache/cache.go#12
-	return &Gitlab{client: cache.NewCache(client, nil)}, nil
+	return g, nil
 }
 
 // GetDomain return a representation of a domain that we have fetched from

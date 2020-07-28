@@ -109,3 +109,8 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 	metrics.DomainsSourceCacheMiss.Inc()
 	return entry.Retrieve(ctx, c.client)
 }
+
+// Status calls the client Status to check connectivity with the API
+func (c *Cache) Status() error {
+	return c.client.Status()
+}

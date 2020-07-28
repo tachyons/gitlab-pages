@@ -18,6 +18,11 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
+// ConnectionErrorMsg to be returned with `gc.Status` if Pages
+// fails to connect to the internal GitLab API, times out
+// or a 401 given that the credentials used are wrong
+const ConnectionErrorMsg = "failed to connect to internal Pages API"
+
 // Client is a HTTP client to access Pages internal API
 type Client struct {
 	secretKey      []byte
@@ -98,6 +103,22 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	lookup.Error = json.NewDecoder(resp.Body).Decode(&lookup.Domain)
 
 	return lookup
+}
+
+// Status checks that Pages can reach the rails internal Pages API
+// for source domain configuration.
+// Timeout is the same as -gitlab-client-http-timeout
+func (gc *Client) Status() error {
+	res, err := gc.get(context.Background(), "/api/v4/internal/pages/status", url.Values{})
+	if err != nil {
+		return fmt.Errorf("%s: %v", ConnectionErrorMsg, err)
+	}
+
+	if res != nil && res.Body != nil {
+		res.Body.Close()
+	}
+
+	return nil
 }
 
 func (gc *Client) get(ctx context.Context, path string, params url.Values) (*http.Response, error) {

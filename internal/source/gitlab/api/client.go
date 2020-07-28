@@ -6,6 +6,9 @@ import (
 
 // Client represents an interface we use to retrieve information from GitLab
 type Client interface {
-	// GetLookup retrives an VirtualDomain from GitLab API and wraps it into Lookup
+	// Resolve retrieves an VirtualDomain from the GitLab API and wraps it into a Lookup
 	GetLookup(ctx context.Context, domain string) Lookup
+
+	// Status checks the connectivity with the GitLab API
+	Status() error
 }
