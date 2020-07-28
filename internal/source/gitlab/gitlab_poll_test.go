@@ -68,8 +68,7 @@ func TestClient_Poll(t *testing.T) {
 			if tt.expectedFail {
 				require.False(t, glClient.isReady)
 
-				s := fmt.Sprintf("\"Failed to connect to the internal GitLab API after %.2fs", tt.maxTime.Seconds())
-				require.Equal(t, s, hook.LastEntry().Message)
+				require.Contains(t, hook.LastEntry().Message, "Failed to connect to the internal GitLab API after")
 				return
 			}
 
