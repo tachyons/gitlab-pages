@@ -73,11 +73,11 @@ class ObjectStorageBackup
   end
 
   def upload_to_object_storage(source_path)
+    dir_name = File.basename(source_path)
     if @backend == "s3"
-      dir_name = File.basename(source_path)
       cmd = %W(s3cmd --stop-on-error sync #{source_path}/ s3://#{@remote_bucket_name}/#{dir_name}/)
     elsif @backend == "gcs"
-      cmd = %W(gsutil -m rsync -r #{source_path}/ gs://#{@remote_bucket_name})
+      cmd = %W(gsutil -m rsync -r #{source_path}/ gs://#{@remote_bucket_name}/#{dir_name})
     end
 
     output, status = run_cmd(cmd)
