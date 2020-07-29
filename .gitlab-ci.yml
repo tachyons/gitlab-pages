@@ -949,16 +949,13 @@ gitaly:
   <<: *except-deps
   stage: phase-six
   script:
-    - import_assets artifacts/ubi/gitlab-shell.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - shell_version=$(get_version gitlab-shell)
     - git_version=$(cat artifacts/git_container.txt)
-    - export shell_container=$(cat artifacts/shell_container.txt)
-    - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_SERVER_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITALY_SERVER_VERSION$git_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
-    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-shell:$shell_container${IMAGE_TAG_EXT}"
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
     - fi
     - build_if_needed --build-arg "GITALY_SERVER_VERSION=${GITALY_SERVER_VERSION}"
                       --build-arg "TAG=${git_version}${IMAGE_TAG_EXT}"
@@ -967,14 +964,11 @@ gitaly:
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
-                      --build-arg "SHELL_CONTAINER=$shell_container${IMAGE_TAG_EXT}"
                       --build-arg "CACHE_BUSTER=$GITALY_SERVER_VERSION$(date -uI)"
                       --build-arg "GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${git_version}${IMAGE_TAG_EXT}"
     - push_if_master_or_stable_or_tag $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - git-base
-    - gitlab-shell
-    - build:gitlab-shell
     - build:gitaly
 
 build:gitlab-container-registry:
