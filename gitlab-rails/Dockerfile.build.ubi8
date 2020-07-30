@@ -73,4 +73,6 @@ RUN mkdir -p /assets/usr/{bin,lib} \
     && cp -R --parents \
         /usr/local/lib/libre2.* \
         /srv/gitlab \
+        /usr/local/bin/gm \
+        /usr/local/share/doc/GraphicsMagick/Copyright.txt \
         /assets

@@ -1,6 +1,6 @@
 ARG BUILD_IMAGE=
 
-FROM ${BUILD_IMAGE} as compile
+FROM ${BUILD_IMAGE}
 
 ENV LANG=C.UTF-8
 
@@ -18,8 +18,5 @@ RUN /scripts/dependencies.ubi8
 RUN /scripts/download
 RUN /scripts/build
 
-FROM scratch
-COPY --from=compile /target/ /assets/
-# This line MUST exist due to `docker create` of copy_assets
-# Without it, you will get `No command specified` from daemon
-CMD ""
+# The contents of /assets will be extracted by copy_assets in build.sh
+RUN mv /target /assets
