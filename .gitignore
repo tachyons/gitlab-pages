@@ -2,7 +2,7 @@
 shared/pages/.update
 /gitlab-pages
 /vendor
-/gitlab-pages-config
+/gitlab-pages.conf
 /gl-code-quality-report.json
 /coverage.html
 
