@@ -239,15 +239,17 @@ gitlab-ruby:
     - build_if_needed
     - push_if_master_or_stable_or_tag
 
-# build:gitlab-graphicsmagick:
-#   <<: *build-job-base
-#   stage: prepare:phase-one
-#   script:
-#     - build_if_needed
-#     - copy_assets
+build:gitlab-graphicsmagick:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${GM_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "GM_VERSION=$GM_VERSION"
+    - copy_assets
 
 gitlab-graphicsmagick:
   <<: *job-base
+  <<: *except-deps
   stage: phase-one
   # dependencies:
   #   - build:gitlab-graphicsmagick
@@ -377,8 +379,9 @@ build:gitlab-rails-ee:
     - build:gitlab-ruby
     - build:postgresql
     - build:gitlab-elasticsearch-indexer
+    - build:gitlab-graphicsmagick
   script:
-    - import_assets artifacts/ubi/{gitlab-ruby,postgresql,gitlab-elasticsearch-indexer}.tar.gz
+    - import_assets artifacts/ubi/{gitlab-ruby,postgresql,gitlab-elasticsearch-indexer,gitlab-graphicsmagick}.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"

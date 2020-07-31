@@ -12,7 +12,7 @@ ENV GM_SOURCE_URL="https://ftp.icm.edu.pl/pub/unix/graphics/GraphicsMagick/${GM_
 ENV GM_SIGNATURE_URL="${SOURCE_URL}.sig"
 
 RUN mkdir -p /build /target
-COPY scripts/ scripts
+COPY scripts/ /scripts
 
 RUN /scripts/dependencies
 RUN /scripts/download

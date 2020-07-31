@@ -1,0 +1,8 @@
+#!/bin/bash
+
+utilities="ca-certificates curl gpg xz"
+tools="make automake gcc gcc-c++ diffutils file"
+dependencies="libpng-devel libpng libjpeg-turbo-devel libjpeg-turbo zlib-devel zlib libtiff-devel libtiff"
+
+# Install tools and libaries needed for compilation
+dnf install -q -y ${utilities} ${tools} ${dependencies}
