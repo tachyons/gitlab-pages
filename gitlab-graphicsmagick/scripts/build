@@ -39,8 +39,13 @@ popd # from /build/GraphicsMagick-VERSION/
 
 pushd /target
 
-# cleanup excess docs we'll never use
-rm -rf usr/local/share/man # 343 kB
-rm -rf usr/local/share/doc/GraphicsMagick/www # 6.2MB
+# cleanup excess we'll never use
+rm -rf usr/local/share/man                                  # man pages, 343 K
+rm -rf usr/local/share/doc/GraphicsMagick/www               # HTML documentation, 6.2 M
+rm -rf usr/local/share/doc/GraphicsMagick/{NEWS,ChangeLog}* # various changelogs, 1.1 M
+rm -rf usr/local/include                                    # development headers, 480 K
+rm -rf usr/local/lib                                        # development libraries, 19 M
+rm -rf usr/local/share/GraphicsMagick-*                     # unused module configs, 3.5 K
+rm -rf usr/local/bin/GraphicsMagick-*                       # unused development scripts, 2.4K
 
 popd # from /target
