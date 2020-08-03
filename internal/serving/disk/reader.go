@@ -26,17 +26,17 @@ type Reader struct {
 }
 
 type responder struct {
-	ctx    context.Context
-	bucket *blob.Bucket
-	disk   bool
-	reader *Reader
+	ctx                       context.Context
+	bucket                    *blob.Bucket
+	extraDiskPermissionChecks bool
+	reader                    *Reader
 }
 
 func (reader *Reader) newResponder(h serving.Handler) (*responder, error) {
 	resp := &responder{
-		ctx:    h.Request.Context(),
-		disk:   true,
-		reader: reader,
+		ctx:                       h.Request.Context(),
+		extraDiskPermissionChecks: true,
+		reader:                    reader,
 	}
 	var err error
 	resp.bucket, err = blob.OpenBucket(resp.ctx, "file://.")
@@ -139,7 +139,7 @@ func (resp *responder) resolvePath(publicPath string, subPath ...string) (string
 		}
 	}
 
-	if resp.disk {
+	if resp.extraDiskPermissionChecks {
 		fi, err := os.Lstat(fullPath)
 		// The file exists, but is not a supported type to serve. Perhaps a block
 		// special device or something else that may be a security risk.
@@ -152,7 +152,7 @@ func (resp *responder) resolvePath(publicPath string, subPath ...string) (string
 }
 
 func (resp *responder) evalSymlink(testPath string) (string, error) {
-	if !resp.disk {
+	if !resp.extraDiskPermissionChecks {
 		return filepath.Clean(testPath), nil
 	}
 
