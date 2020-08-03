@@ -158,6 +158,8 @@ func chdirInPath(t require.TestingT, path string) func() {
 }
 
 func TestServeNamespaceNotFound(t *testing.T) {
+	defer setUpTests(t)()
+
 	tests := []struct {
 		name             string
 		domain           string
@@ -171,7 +173,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 			path:   "/unknown",
 			resolver: &stubbedResolver{
 				project: &serving.LookupPath{
-					Path:               "../../shared/pages/group.404/group.404.gitlab-example.com/public",
+					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 				},
 				subpath: "/unknown",
@@ -184,7 +186,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 			path:   "/private_project/unknown",
 			resolver: &stubbedResolver{
 				project: &serving.LookupPath{
-					Path:               "../../shared/pages/group.404/group.404.gitlab-example.com/public",
+					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 					HasAccessControl:   false,
 				},
@@ -198,7 +200,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 			path:   "/unknown",
 			resolver: &stubbedResolver{
 				project: &serving.LookupPath{
-					Path:               "../../shared/pages/group.404/group.404.gitlab-example.com/public",
+					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 					HasAccessControl:   true,
 				},

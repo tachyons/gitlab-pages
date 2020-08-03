@@ -264,8 +264,10 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	}
 
 	for _, tt := range testSet {
-		URL := "http://group.test.io" + tt.url
-		testHTTPGzip(t, serveFileOrNotFound(testGroup), tt.mode, URL, nil, tt.acceptEncoding, tt.body, tt.contentType, tt.ungzip)
+		t.Run(tt.url, func(t *testing.T) {
+			URL := "http://group.test.io" + tt.url
+			testHTTPGzip(t, serveFileOrNotFound(testGroup), tt.mode, URL, nil, tt.acceptEncoding, tt.body, tt.contentType, tt.ungzip)
+		})
 	}
 }
 
