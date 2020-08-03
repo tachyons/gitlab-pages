@@ -14,7 +14,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gocloud.dev/blob"
-	_ "gocloud.dev/blob/fileblob"
+	_ "gocloud.dev/blob/fileblob" // Enable local file backend
 	"gocloud.dev/gcerrors"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -121,26 +121,9 @@ func (resp *responder) resolvePath(publicPath string, subPath ...string) (string
 	// where we want to traverse full path as supplied by user
 	// (including ..)
 	testPath := publicPath + strings.Join(subPath, "/")
-
-	var fullPath string
-	if resp.disk {
-		// This may be a legacy upload where do we want to respsect symlinks, but
-		// do not want to follow them outside the deployment.
-		var err error
-		fullPath, err = filepath.EvalSymlinks(testPath)
-
-		if err != nil {
-			if endsWithoutHTMLExtension(testPath) {
-				return "", &locationFileNoExtensionError{
-					FullPath: fullPath,
-				}
-			}
-
-			return "", err
-		}
-	} else {
-		// Object storage does not support symlinks.
-		fullPath = filepath.Clean(testPath)
+	fullPath, err := resp.evalSymlink(testPath)
+	if err != nil {
+		return "", err
 	}
 
 	// The requested path resolved to somewhere outside of the public/ directory
@@ -166,6 +149,24 @@ func (resp *responder) resolvePath(publicPath string, subPath ...string) (string
 	}
 
 	return fullPath, nil
+}
+
+func (resp *responder) evalSymlink(testPath string) (string, error) {
+	if !resp.disk {
+		return filepath.Clean(testPath), nil
+	}
+
+	// This may be a legacy upload where do we want to respect symlinks, but
+	// do not want to follow them outside the deployment.
+	fullPath, err := filepath.EvalSymlinks(testPath)
+
+	if err != nil && endsWithoutHTMLExtension(testPath) {
+		err = &locationFileNoExtensionError{
+			FullPath: fullPath,
+		}
+	}
+
+	return fullPath, err
 }
 
 func (resp *responder) isDir(key string) bool {
