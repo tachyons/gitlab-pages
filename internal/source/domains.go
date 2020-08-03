@@ -3,13 +3,9 @@ package source
 import (
 	"errors"
 	"regexp"
-	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/rollout"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/domains/gitlabsourceconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
@@ -86,39 +82,7 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
-	if d.gitlab == nil {
-		return d.disk
-	}
-
-	if strings.Contains(domain, "objectstorage.pages.test") {
-		return d.gitlab
-	}
-	// This check is only needed until we enable `d.gitlab` source in all
-	// environments (including on-premises installations) followed by removal of
-	// `d.disk` source. This can be safely removed afterwards.
-	if IsServerlessDomain(domain) {
-		return d.gitlab
-	}
-
-	for _, name := range gitlabSourceConfig.Domains.Enabled {
-		if domain == name {
-			return d.gitlab
-		}
-	}
-
-	r := gitlabSourceConfig.Domains.Rollout
-
-	enabled, err := rollout.Rollout(domain, r.Percentage, r.Stickiness)
-	if err != nil {
-		log.WithError(err).Error("Rollout error")
-		return d.disk
-	}
-
-	if enabled {
-		return d.gitlab
-	}
-
-	return d.disk
+	return d.gitlab
 }
 
 // IsServerlessDomain checks if a domain requested is a serverless domain we
