@@ -97,7 +97,7 @@ func passSignals(cmd *exec.Cmd) {
 	}
 
 	s := make(chan os.Signal)
-	signal.Notify(s, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(s, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 
 	go func() {
 		for cmd.Process != nil {
@@ -296,12 +296,6 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
 	// Start the process
 	if err := cmd.Start(); err != nil {
 		log.WithError(err).Error("start failed")
-		return err
-	}
-
-	// Proactively detach any bind-mounts so they can't be left dangling
-	if err := wrapper.LazyUnbind(); err != nil {
-		log.WithError(err).Print("jail lazy umount failed")
 		return err
 	}
 
