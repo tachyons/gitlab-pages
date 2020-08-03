@@ -220,14 +220,6 @@ func (resp *responder) serveCustomFile(w http.ResponseWriter, r *http.Request, c
 		return err
 	}
 
-	brs := &blobReadSeeker{
-		bucket: resp.bucket,
-		ctx:    resp.ctx,
-		key:    fullPath,
-		size:   attrs.Size,
-	}
-	defer brs.Close()
-
 	contentType, err := resp.detectContentType(origPath)
 	if err != nil {
 		return err
@@ -240,7 +232,13 @@ func (resp *responder) serveCustomFile(w http.ResponseWriter, r *http.Request, c
 	w.WriteHeader(code)
 
 	if r.Method != "HEAD" {
-		_, err := io.CopyN(w, brs, attrs.Size)
+		blobReader, err := resp.bucket.NewReader(resp.ctx, fullPath, nil)
+		if err != nil {
+			return err
+		}
+		defer blobReader.Close()
+
+		_, err = io.CopyN(w, blobReader, attrs.Size)
 		return err
 	}
 
