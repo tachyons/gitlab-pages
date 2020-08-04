@@ -1,9 +1,15 @@
 package disk
 
 import (
+	"context"
+	"log"
+	"sync"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
+
+	"gocloud.dev/blob"
 )
 
 var disk = &Disk{
@@ -11,6 +17,8 @@ var disk = &Disk{
 		fileSizeMetric: metrics.DiskServingFileSize,
 	},
 }
+
+var bucketOnce sync.Once
 
 // Disk describes a disk access serving
 type Disk struct {
@@ -20,7 +28,12 @@ type Disk struct {
 // ServeFileHTTP serves a file from disk and returns true. It returns false
 // when a file could not been found.
 func (s *Disk) ServeFileHTTP(h serving.Handler) bool {
-	return s.reader.tryFile(h) == nil
+	if err := s.reader.tryFile(h); err != nil {
+		log.Print(err)
+		return false
+	}
+
+	return true
 }
 
 // ServeNotFoundHTTP tries to read a custom 404 page
@@ -36,5 +49,14 @@ func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
 // New returns a serving instance that is capable of reading files
 // from the disk
 func New() serving.Serving {
+	bucketOnce.Do(func() {
+		var err error
+		disk.reader.bucket, err = blob.OpenBucket(context.Background(), bucketURL())
+		if err != nil {
+			panic(err)
+		}
+	})
+
 	return disk
+
 }

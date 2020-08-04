@@ -2,6 +2,7 @@ package source
 
 import (
 	"errors"
+	"os"
 	"regexp"
 	"time"
 
@@ -85,6 +86,10 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
+	if d.gitlab != nil && os.Getenv("GITLAB_PAGES_BUCKET_URL") != "" {
+		return d.gitlab
+	}
+
 	if d.gitlab == nil {
 		return d.disk
 	}

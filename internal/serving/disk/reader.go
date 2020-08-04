@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/fileblob" // Enable local file backend
+	_ "gocloud.dev/blob/gcsblob"  // Enable Google Cloud Storage backend
 	"gocloud.dev/gcerrors"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -23,6 +24,7 @@ import (
 // Reader is a disk access driver
 type Reader struct {
 	fileSizeMetric prometheus.Histogram
+	bucket         *blob.Bucket
 }
 
 type responder struct {
@@ -35,21 +37,21 @@ type responder struct {
 func (reader *Reader) newResponder(h serving.Handler) (*responder, error) {
 	resp := &responder{
 		ctx:                       h.Request.Context(),
-		extraDiskPermissionChecks: true,
+		extraDiskPermissionChecks: strings.HasPrefix(bucketURL(), "file:"),
 		reader:                    reader,
+		bucket:                    reader.bucket,
 	}
-	var err error
-	resp.bucket, err = blob.OpenBucket(resp.ctx, "file://.")
-	if err != nil {
-		return nil, fmt.Errorf("OpenBucket: %v", err)
-	}
-
-	go func() {
-		<-resp.ctx.Done()
-		resp.bucket.Close()
-	}()
 
 	return resp, nil
+}
+
+func bucketURL() string {
+	u := os.Getenv("GITLAB_PAGES_BUCKET_URL")
+	if u != "" && !strings.HasPrefix(u, "file:") {
+		return u
+	}
+
+	return "file://."
 }
 
 func (reader *Reader) tryFile(h serving.Handler) error {
