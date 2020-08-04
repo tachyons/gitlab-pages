@@ -9,3 +9,4 @@ shared/pages/.update
 # Used by the makefile
 /.GOPATH
 /bin
+/gitlab-pages-storage

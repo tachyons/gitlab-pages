@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,20 +9,45 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/gocloud"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 )
 
 // Reader is a disk access driver
 type Reader struct {
 	fileSizeMetric prometheus.Histogram
+
+	_vfs    vfs.VFS
+	vfsOnce sync.Once
+}
+
+func (reader *Reader) vfs() vfs.VFS {
+	reader.vfsOnce.Do(func() {
+		if url := os.Getenv("GITLAB_PAGES_BUCKET_URL"); url != "" {
+			var err error
+			reader._vfs, err = gocloud.New(context.Background(), url, "")
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			reader._vfs = local.VFS{Root: "."}
+		}
+	})
+
+	return reader._vfs
 }
 
 func (reader *Reader) tryFile(h serving.Handler) error {
-	fullPath, err := reader.resolvePath(h.LookupPath.Path, h.SubPath)
+	ctx := h.Request.Context()
+	fullPath, err := reader.resolvePath(ctx, h.LookupPath.Path, h.SubPath)
 
 	request := h.Request
 	host := request.Host
@@ -29,7 +55,7 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(urlPath) {
-			fullPath, err = reader.resolvePath(h.LookupPath.Path, h.SubPath, "index.html")
+			fullPath, err = reader.resolvePath(ctx, h.LookupPath.Path, h.SubPath, "index.html")
 		} else {
 			// TODO why are we doing that? In tests it redirects to HTTPS. This seems wrong,
 			// issue about this: https://gitlab.com/gitlab-org/gitlab-pages/issues/273
@@ -46,7 +72,7 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 	}
 
 	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
-		fullPath, err = reader.resolvePath(h.LookupPath.Path, strings.TrimSuffix(h.SubPath, "/")+".html")
+		fullPath, err = reader.resolvePath(ctx, h.LookupPath.Path, strings.TrimSuffix(h.SubPath, "/")+".html")
 	}
 
 	if err != nil {
@@ -57,7 +83,7 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 }
 
 func (reader *Reader) tryNotFound(h serving.Handler) error {
-	page404, err := reader.resolvePath(h.LookupPath.Path, "404.html")
+	page404, err := reader.resolvePath(h.Request.Context(), h.LookupPath.Path, "404.html")
 	if err != nil {
 		return err
 	}
@@ -71,7 +97,7 @@ func (reader *Reader) tryNotFound(h serving.Handler) error {
 
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string, error) {
+func (reader *Reader) resolvePath(ctx context.Context, publicPath string, subPath ...string) (string, error) {
 	// Ensure that publicPath always ends with "/"
 	publicPath = strings.TrimSuffix(publicPath, "/") + "/"
 
@@ -79,7 +105,7 @@ func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string,
 	// where we want to traverse full path as supplied by user
 	// (including ..)
 	testPath := publicPath + strings.Join(subPath, "/")
-	fullPath, err := filepath.EvalSymlinks(testPath)
+	fullPath, err := symlink.EvalSymlinks(ctx, reader.vfs(), testPath)
 
 	if err != nil {
 		if endsWithoutHTMLExtension(testPath) {
@@ -96,7 +122,7 @@ func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string,
 		return "", fmt.Errorf("%q should be in %q", fullPath, publicPath)
 	}
 
-	fi, err := os.Lstat(fullPath)
+	fi, err := reader.vfs().Lstat(ctx, fullPath)
 	if err != nil {
 		return "", err
 	}
@@ -119,16 +145,17 @@ func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string,
 }
 
 func (reader *Reader) serveFile(w http.ResponseWriter, r *http.Request, origPath string, accessControl bool) error {
-	fullPath := handleGZip(w, r, origPath)
+	fullPath := reader.handleGZip(w, r, origPath)
 
-	file, err := openNoFollow(fullPath)
+	ctx := r.Context()
+	file, err := reader.vfs().Open(ctx, fullPath)
 	if err != nil {
 		return err
 	}
 
 	defer file.Close()
 
-	fi, err := file.Stat()
+	fi, err := reader.vfs().Lstat(ctx, fullPath)
 	if err != nil {
 		return err
 	}
@@ -139,7 +166,7 @@ func (reader *Reader) serveFile(w http.ResponseWriter, r *http.Request, origPath
 		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 	}
 
-	contentType, err := detectContentType(origPath)
+	contentType, err := reader.detectContentType(ctx, origPath)
 	if err != nil {
 		return err
 	}
@@ -153,21 +180,22 @@ func (reader *Reader) serveFile(w http.ResponseWriter, r *http.Request, origPath
 }
 
 func (reader *Reader) serveCustomFile(w http.ResponseWriter, r *http.Request, code int, origPath string) error {
-	fullPath := handleGZip(w, r, origPath)
+	ctx := r.Context()
+	fullPath := reader.handleGZip(w, r, origPath)
 
 	// Open and serve content of file
-	file, err := openNoFollow(fullPath)
+	file, err := reader.vfs().Open(ctx, fullPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	fi, err := file.Stat()
+	fi, err := reader.vfs().Lstat(ctx, fullPath)
 	if err != nil {
 		return err
 	}
 
-	contentType, err := detectContentType(origPath)
+	contentType, err := reader.detectContentType(ctx, origPath)
 	if err != nil {
 		return err
 	}
