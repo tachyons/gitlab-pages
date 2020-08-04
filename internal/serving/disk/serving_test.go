@@ -9,9 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestDisk_ServeFileHTTP(t *testing.T) {
+	defer setUpTests(t)()
+
 	s := New()
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "http://group.gitlab-example.com/serving/index.html", nil)
@@ -20,7 +23,7 @@ func TestDisk_ServeFileHTTP(t *testing.T) {
 		Request: r,
 		LookupPath: &serving.LookupPath{
 			Prefix: "/serving",
-			Path:   "../../../shared/pages/group/serving/public",
+			Path:   "group/serving/public",
 		},
 		SubPath: "/index.html",
 	}
@@ -35,4 +38,11 @@ func TestDisk_ServeFileHTTP(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Contains(t, string(body), "HTML Document")
+}
+
+var chdirSet = false
+
+func setUpTests(t testing.TB) func() {
+	t.Helper()
+	return testhelpers.ChdirInPath(t, "../../../shared/pages", &chdirSet)
 }

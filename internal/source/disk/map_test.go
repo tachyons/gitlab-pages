@@ -11,6 +11,8 @@ import (
 
 	"github.com/karrick/godirwalk"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func getEntries(t require.TestingT) godirwalk.Dirents {
@@ -179,7 +181,7 @@ func recvTimeout(t *testing.T, ch <-chan Map) Map {
 	}
 }
 
-func buildFakeDomainsDirectory(t require.TestingT, nGroups, levels int) func() {
+func buildFakeDomainsDirectory(t testing.TB, nGroups, levels int) func() {
 	testRoot, err := ioutil.TempDir("", "gitlab-pages-test")
 	require.NoError(t, err)
 
@@ -197,7 +199,7 @@ func buildFakeDomainsDirectory(t require.TestingT, nGroups, levels int) func() {
 		}
 	}
 
-	cleanup := chdirInPath(t, testRoot)
+	cleanup := testhelpers.ChdirInPath(t, testRoot, &chdirSet)
 
 	return func() {
 		defer cleanup()

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -398,27 +397,7 @@ func TestCacheControlHeaders(t *testing.T) {
 
 var chdirSet = false
 
-func setUpTests(t require.TestingT) func() {
-	return chdirInPath(t, "../../../shared/pages")
-}
-
-func chdirInPath(t require.TestingT, path string) func() {
-	noOp := func() {}
-	if chdirSet {
-		return noOp
-	}
-
-	cwd, err := os.Getwd()
-	require.NoError(t, err, "Cannot Getwd")
-
-	err = os.Chdir(path)
-	require.NoError(t, err, "Cannot Chdir")
-
-	chdirSet = true
-	return func() {
-		err := os.Chdir(cwd)
-		require.NoError(t, err, "Cannot Chdir in cleanup")
-
-		chdirSet = false
-	}
+func setUpTests(t *testing.T) func() {
+	t.Helper()
+	return testhelpers.ChdirInPath(t, "../../../shared/pages", &chdirSet)
 }
