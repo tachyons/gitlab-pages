@@ -15,7 +15,6 @@ const (
 
 // poll tries to call the /internal/pages/status API endpoint once plus
 // `retries` every `interval`.
-// It updates the `isReady` value when successful.
 // TODO: Remove in https://gitlab.com/gitlab-org/gitlab/-/issues/218357
 func (g *Gitlab) poll(retries int, interval time.Duration) {
 	var err error

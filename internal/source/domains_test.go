@@ -65,21 +65,24 @@ func TestGetDomain(t *testing.T) {
 		newSource.On("GetDomain", testDomain).
 			Return(&domain.Domain{Name: testDomain}, nil).
 			Once()
-		newSource.On("IsReady").Return(true).Once()
 		defer newSource.AssertExpectations(t)
 
-		domains := newTestDomains(t, newSource)
+		domains := &Domains{
+			disk:   disk.New(),
+			gitlab: newSource,
+		}
 
 		domains.GetDomain(testDomain)
 	})
 
 	t.Run("when requesting a non-test domain", func(t *testing.T) {
 		newSource := NewMockSource()
-		newSource.On("IsReady").Return(true).Once()
-
 		defer newSource.AssertExpectations(t)
 
-		domains := newTestDomains(t, newSource)
+		domains := &Domains{
+			disk:   disk.New(),
+			gitlab: newSource,
+		}
 
 		domain, err := domains.GetDomain("domain.test.io")
 
@@ -91,7 +94,10 @@ func TestGetDomain(t *testing.T) {
 		newSource := NewMockSource()
 		defer newSource.AssertExpectations(t)
 
-		domains := newTestDomains(t, newSource)
+		domains := &Domains{
+			disk:   disk.New(),
+			gitlab: newSource,
+		}
 
 		domain, err := domains.GetDomain("pages-broken-poc.gitlab.io")
 
@@ -116,11 +122,12 @@ func TestGetDomain(t *testing.T) {
 		newSource.On("GetDomain", testDomain).
 			Return(&domain.Domain{Name: testDomain}, nil).
 			Once()
-		newSource.On("IsReady").Return(true).Once()
-
 		defer newSource.AssertExpectations(t)
 
-		domains := newTestDomains(t, newSource)
+		domains := &Domains{
+			disk:   disk.New(),
+			gitlab: newSource,
+		}
 
 		domains.GetDomain(testDomain)
 	})
@@ -148,6 +155,8 @@ func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 	domain05 := "test-domain-a.com"
 	// Generates FNV 2643293380, 2643293380 % 100 = 80
 	domain80 := "test-domain-b.com"
+
+	diskSource := disk.New()
 
 	gitlabSourceConfig.Domains.Rollout.Percentage = 80
 
@@ -192,10 +201,12 @@ func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 						Once()
 				}
 			}
-			gitlabSource.On("IsReady").Return(true)
 			defer gitlabSource.AssertExpectations(t)
 
-			domains := newTestDomains(t, gitlabSource)
+			domains := &Domains{
+				disk:   diskSource,
+				gitlab: gitlabSource,
+			}
 
 			gitlabSourceConfig.Domains.Rollout.Stickiness = tc.stickiness
 
@@ -204,14 +215,5 @@ func TestGetDomainWithIncrementalrolloutOfGitLabSource(t *testing.T) {
 				require.NoError(t, err)
 			}
 		})
-	}
-}
-
-func newTestDomains(t *testing.T, gitlabSource *MockSource) *Domains {
-	t.Helper()
-
-	return &Domains{
-		disk:   disk.New(),
-		gitlab: gitlabSource,
 	}
 }

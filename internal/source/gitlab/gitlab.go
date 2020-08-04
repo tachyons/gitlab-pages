@@ -104,11 +104,3 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 	return &serving.Request{Serving: defaultServing()},
 		errors.New("could not match lookup path")
 }
-
-// IsReady returns the value of Gitlab `isReady` which is updated by `Poll`.
-func (g *Gitlab) IsReady() bool {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	return g.isReady
-}
