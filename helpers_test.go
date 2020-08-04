@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -85,6 +86,27 @@ func CreateGitLabAPISecretKeyFixtureFile(t *testing.T) (filepath string) {
 	require.NoError(t, ioutil.WriteFile(secretfile.Name(), []byte(fixture.GitLabAPISecretKey), 0644))
 
 	return secretfile.Name()
+}
+
+func CreateGitlabSourceConfigFixtureFile(t *testing.T, domains string) (filename string, cleanup func()) {
+	configfile, err := ioutil.TempFile("shared/pages", "gitlab-source-config-*")
+	require.NoError(t, err)
+	configfile.Close()
+
+	cleanup = func() {
+		os.RemoveAll(configfile.Name())
+	}
+
+	require.NoError(t, ioutil.WriteFile(configfile.Name(), []byte(domains), 0644))
+
+	filename, err = filepath.Abs(configfile.Name())
+	require.NoError(t, err)
+
+	if os.Getenv("TEST_DAEMONIZE") != "" {
+		filename = filepath.Base(filename)
+	}
+
+	return filename, cleanup
 }
 
 // ListenSpec is used to point at a gitlab-pages http server, preserving the
@@ -421,12 +443,7 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 }
 
 func NewGitlabDomainsSourceStub(t *testing.T) *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v4/internal/pages/status", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
-	})
-
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		domain := r.URL.Query().Get("host")
 		path := "shared/lookups/" + domain + ".json"
 
@@ -445,10 +462,9 @@ func NewGitlabDomainsSourceStub(t *testing.T) *httptest.Server {
 		require.NoError(t, err)
 
 		t.Logf("GitLab domain %s source stub served lookup", domain)
-	}
-	mux.HandleFunc("/api/v4/internal/pages", handler)
+	})
 
-	return httptest.NewServer(mux)
+	return httptest.NewServer(handler)
 }
 
 func newConfigFile(configs ...string) (string, error) {

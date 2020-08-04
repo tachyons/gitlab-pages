@@ -85,8 +85,7 @@ func TestHealthCheckMiddleware(t *testing.T) {
 
 	app := theApp{
 		appConfig: appConfig{
-			StatusPath:                "/-/healthcheck",
-			DomainConfigurationSource: "auto",
+			StatusPath: "/-/healthcheck",
 		},
 	}
 

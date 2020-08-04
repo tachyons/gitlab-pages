@@ -31,6 +31,6 @@ require (
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
 	golang.org/x/tools v0.0.0-20200502202811-ed308ab3e770
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
+	gopkg.in/yaml.v2 v2.2.8
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )
