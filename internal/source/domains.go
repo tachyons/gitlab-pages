@@ -44,19 +44,22 @@ func NewDomains(config Config) (*Domains, error) {
 	// TODO: choose domain source config via config.DomainConfigSource()
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/217912
 
-	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		return &Domains{disk: disk.New()}, nil
+	domains := &Domains{
+		disk: disk.New(),
 	}
 
-	gitlab, err := gitlab.New(config)
+	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
+		return domains, nil
+	}
+
+	glClient, err := gitlab.New(config)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Domains{
-		gitlab: gitlab,
-		disk:   disk.New(),
-	}, nil
+	domains.gitlab = glClient
+
+	return domains, nil
 }
 
 // GetDomain retrieves a domain information from a source. We are using two
@@ -85,7 +88,7 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
-	if d.gitlab == nil {
+	if d.gitlab == nil || !d.gitlab.IsReady() {
 		return d.disk
 	}
 
