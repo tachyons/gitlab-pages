@@ -177,7 +177,7 @@ COPY --from=pg_image /usr/local/psql/bin/psql /usr/bin/
 COPY --from=pg_image /usr/local/psql/lib/libpq.so* /usr/lib/
 
 # Include GraphicsMagick (binary and license)
-COPY --from=graphicsmagick_image /usr/local/* /usr/local/
+COPY --from=graphicsmagick_image /usr/local /usr/local
 
 RUN buildDeps=' \
     libicu-dev \

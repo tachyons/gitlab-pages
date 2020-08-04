@@ -46,6 +46,6 @@ rm -rf usr/local/share/doc/GraphicsMagick/{NEWS,ChangeLog}* # various changelogs
 rm -rf usr/local/include                                    # development headers, 480 K
 rm -rf usr/local/lib                                        # development libraries, 19 M
 rm -rf usr/local/share/GraphicsMagick-*                     # unused module configs, 3.5 K
-rm -rf usr/local/bin/GraphicsMagick-*                       # unused development scripts, 2.4K
+rm -rf usr/local/bin/GraphicsMagick*                        # unused development scripts, 2.4K
 
 popd # from /target
