@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"gitlab.com/gitlab-org/labkit/log"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
@@ -42,45 +44,56 @@ func NewDomains(config Config) (*Domains, error) {
 		disk: disk.New(),
 	}
 
-	domains.setConfigSource(config)
-
-	// Creating a glClient will start polling connectivity in the background
-	glClient, err := newGitlabClient(config)
-	if err != nil && domains.configSource != sourceDisk {
+	if err := domains.setConfigSource(config); err != nil {
 		return nil, err
-	}
-
-	// TODO: handle DomainConfigSource == "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
-	// attach gitlab by default when source is not disk (auto, gitlab)
-	if domains.configSource != sourceDisk {
-		domains.gitlab = glClient
 	}
 
 	return domains, nil
 }
 
-// defaults to disk
-func (d *Domains) setConfigSource(config Config) {
+// setConfigSource and initialize gitlab source
+// returns error if -domain-config-source is not valid
+// returns error if -domain-config-source=gitlab and init fails
+func (d *Domains) setConfigSource(config Config) error {
+	// TODO: Handle domain-config-source=auto https://gitlab.com/gitlab-org/gitlab/-/issues/218358
+	// attach gitlab by default when source is not disk (auto, gitlab)
 	switch config.DomainConfigSource() {
 	case "gitlab":
 		// TODO:  https://gitlab.com/gitlab-org/gitlab/-/issues/218357
 		d.configSource = sourceGitlab
+		return d.setGitLabClient(config)
 	case "auto":
-		// TODO: https://gitlab.com/gitlab-org/gitlab/-/issues/218358
+		// TODO: handle DomainConfigSource == "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
 		d.configSource = sourceAuto
+		return d.setGitLabClient(config)
 	case "disk":
-		fallthrough
-	default:
 		d.configSource = sourceDisk
+	default:
+		return fmt.Errorf("invalid option for -domain-config-source: %q", config.DomainConfigSource())
 	}
+
+	return nil
 }
 
-func newGitlabClient(config Config) (*gitlab.Gitlab, error) {
-	if len(config.InternalGitLabServerURL()) == 0 || len(config.GitlabAPISecret()) == 0 {
-		return nil, fmt.Errorf("missing -internal-gitlab-server and/or -api-secret-key")
+// setGitLabClient when domain-config-source is `gitlab` or `auto`, only return error for `gitlab` source
+func (d *Domains) setGitLabClient(config Config) error {
+	// We want to notify users about any API issues
+	// Creating a glClient will start polling connectivity in the background
+	// and spam errors in log
+	glClient, err := gitlab.New(config)
+	if err != nil {
+		if d.configSource == sourceGitlab {
+			return err
+		}
+
+		log.WithError(err).Warn("failed to initialize GitLab client for `-domain-config-source=auto`")
+
+		return nil
 	}
 
-	return gitlab.New(config)
+	d.gitlab = glClient
+
+	return nil
 }
 
 // GetDomain retrieves a domain information from a source. We are using two
@@ -120,7 +133,9 @@ func (d *Domains) source(domain string) Source {
 		return d.disk
 	}
 
-	if d.gitlab.IsReady() {
+	// TODO: handle sourceAuto https://gitlab.com/gitlab-org/gitlab/-/issues/218358
+	// check IsReady for sourceAuto for now
+	if d.configSource == sourceGitlab || d.gitlab.IsReady() {
 		return d.gitlab
 	}
 

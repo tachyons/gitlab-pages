@@ -35,47 +35,59 @@ func (c sourceConfig) DomainConfigSource() string {
 	return c.domainSource
 }
 
-func TestDomainSources(t *testing.T) {
+func TestNewDomains(t *testing.T) {
 	tests := []struct {
 		name            string
 		sourceConfig    sourceConfig
-		wantErr         bool
+		expectedErr     string
 		expectGitlabNil bool
 	}{
 		{
-			name:            "no_source_config",
-			sourceConfig:    sourceConfig{},
-			wantErr:         false,
-			expectGitlabNil: true,
+			name:         "no_source_config",
+			sourceConfig: sourceConfig{},
+			expectedErr:  "invalid option for -domain-config-source: \"\"",
+		},
+		{
+			name:         "invalid_source_config",
+			sourceConfig: sourceConfig{domainSource: "invalid"},
+			expectedErr:  "invalid option for -domain-config-source: \"invalid\"",
 		},
 		{
 			name:            "disk_source",
 			sourceConfig:    sourceConfig{domainSource: "disk"},
-			wantErr:         false,
 			expectGitlabNil: true,
+		},
+		{
+			name:            "auto_without_api_config",
+			sourceConfig:    sourceConfig{domainSource: "auto"},
+			expectGitlabNil: true,
+		},
+		{
+			name:            "auto_with_api_config",
+			sourceConfig:    sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "auto"},
+			expectGitlabNil: false,
 		},
 		{
 			name:         "gitlab_source_success",
 			sourceConfig: sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "gitlab"},
-			wantErr:      false,
 		},
 		{
 			name:         "gitlab_source_no_url",
 			sourceConfig: sourceConfig{api: "", secret: "abc", domainSource: "gitlab"},
-			wantErr:      true,
+			expectedErr:  "GitLab API URL or API secret has not been provided",
 		},
 		{
 			name:         "gitlab_source_no_secret",
 			sourceConfig: sourceConfig{api: "https://gitlab.com", secret: "", domainSource: "gitlab"},
-			wantErr:      true,
+			expectedErr:  "GitLab API URL or API secret has not been provided",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			domains, err := NewDomains(tt.sourceConfig)
-			if tt.wantErr {
-				require.EqualError(t, err, "missing -internal-gitlab-server and/or -api-secret-key")
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
 				return
 			}
 			require.NoError(t, err)
@@ -87,14 +99,13 @@ func TestDomainSources(t *testing.T) {
 }
 
 func TestGetDomain(t *testing.T) {
-	t.Run("when requesting an existing domain", func(t *testing.T) {
+	t.Run("when requesting an existing domain for gitlab source", func(t *testing.T) {
 		testDomain := "new-source-test.gitlab.io"
 
 		newSource := NewMockSource()
 		newSource.On("GetDomain", testDomain).
 			Return(&domain.Domain{Name: testDomain}, nil).
 			Once()
-		newSource.On("IsReady").Return(true).Once()
 		defer newSource.AssertExpectations(t)
 
 		domains := newTestDomains(t, newSource, sourceGitlab)
@@ -104,12 +115,28 @@ func TestGetDomain(t *testing.T) {
 		require.NotNil(t, domain)
 	})
 
-	t.Run("when requesting a domain that doesn't exist", func(t *testing.T) {
+	t.Run("when requesting an existing domain for auto source", func(t *testing.T) {
+		testDomain := "new-source-test.gitlab.io"
+
+		newSource := NewMockSource()
+		newSource.On("GetDomain", testDomain).
+			Return(&domain.Domain{Name: testDomain}, nil).
+			Once()
+		newSource.On("IsReady").Return(true).Once()
+		defer newSource.AssertExpectations(t)
+
+		domains := newTestDomains(t, newSource, sourceAuto)
+
+		domain, err := domains.GetDomain(testDomain)
+		require.NoError(t, err)
+		require.NotNil(t, domain)
+	})
+
+	t.Run("when requesting a domain that doesn't exist for gitlab source", func(t *testing.T) {
 		newSource := NewMockSource()
 		newSource.On("GetDomain", "does-not-exist.test.io").
 			Return(nil, nil).
 			Once()
-		newSource.On("IsReady").Return(true).Once()
 
 		defer newSource.AssertExpectations(t)
 
