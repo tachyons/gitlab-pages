@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"golang.org/x/sys/unix"
@@ -68,11 +69,15 @@ func handleGZip(w http.ResponseWriter, r *http.Request, fullPath string) string 
 	gzipPath := fullPath + ".gz"
 
 	// Ensure the .gz file is not a symlink
-	if fi, err := os.Lstat(gzipPath); err != nil || !fi.Mode().IsRegular() {
+	fi, err := os.Lstat(gzipPath)
+	if err != nil || !fi.Mode().IsRegular() {
 		return fullPath
 	}
 
 	w.Header().Set("Content-Encoding", "gzip")
+
+	// http.ServeContent doesn't set Content-Length if Content-Encoding is set
+	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
 
 	return gzipPath
 }
