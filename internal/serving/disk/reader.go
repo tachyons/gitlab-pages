@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/fileresolver"
 )
 
 // Reader is a disk access driver
@@ -22,33 +23,6 @@ type Reader struct {
 
 func (reader *Reader) tryFile(h serving.Handler) error {
 	fullPath, err := reader.resolvePath(h.LookupPath.Path, h.SubPath)
-
-	request := h.Request
-	host := request.Host
-	urlPath := request.URL.Path
-
-	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
-		if endsWithSlash(urlPath) {
-			fullPath, err = reader.resolvePath(h.LookupPath.Path, h.SubPath, "index.html")
-		} else {
-			// TODO why are we doing that? In tests it redirects to HTTPS. This seems wrong,
-			// issue about this: https://gitlab.com/gitlab-org/gitlab-pages/issues/273
-
-			// Concat Host with URL.Path
-			redirectPath := "//" + host + "/"
-			redirectPath += strings.TrimPrefix(urlPath, "/")
-
-			// Ensure that there's always "/" at end
-			redirectPath = strings.TrimSuffix(redirectPath, "/") + "/"
-			http.Redirect(h.Writer, h.Request, redirectPath, 302)
-			return nil
-		}
-	}
-
-	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
-		fullPath, err = reader.resolvePath(h.LookupPath.Path, strings.TrimSuffix(h.SubPath, "/")+".html")
-	}
-
 	if err != nil {
 		return err
 	}
@@ -71,29 +45,10 @@ func (reader *Reader) tryNotFound(h serving.Handler) error {
 
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (reader *Reader) resolvePath(publicPath string, subPath ...string) (string, error) {
-	// Ensure that publicPath always ends with "/"
-	publicPath = strings.TrimSuffix(publicPath, "/") + "/"
-
-	// Don't use filepath.Join as cleans the path,
-	// where we want to traverse full path as supplied by user
-	// (including ..)
-	testPath := publicPath + strings.Join(subPath, "/")
-	fullPath, err := filepath.EvalSymlinks(testPath)
-
+func (reader *Reader) resolvePath(publicPath, subPath string) (string, error) {
+	fullPath, err := fileresolver.ResolveFilePath(publicPath, subPath, filepath.EvalSymlinks)
 	if err != nil {
-		if endsWithoutHTMLExtension(testPath) {
-			return "", &locationFileNoExtensionError{
-				FullPath: fullPath,
-			}
-		}
-
 		return "", err
-	}
-
-	// The requested path resolved to somewhere outside of the public/ directory
-	if !strings.HasPrefix(fullPath, publicPath) && fullPath != filepath.Clean(publicPath) {
-		return "", fmt.Errorf("%q should be in %q", fullPath, publicPath)
 	}
 
 	fi, err := os.Lstat(fullPath)

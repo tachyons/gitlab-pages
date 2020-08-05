@@ -48,12 +48,14 @@ func testGroupServeHTTPHost(t *testing.T, host string) {
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/"), nil, "main-dir")
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/index"), nil, "main-dir")
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/index.html"), nil, "main-dir")
-	testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project"), nil, "//"+host+"/project/")
+	// testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project"), nil, "//"+host+"/project/")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project"), nil, "project-subdir")
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/"), nil, "project-subdir")
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/index"), nil, "project-subdir")
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/index/"), nil, "project-subdir")
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/index.html"), nil, "project-subdir")
-	testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project/subdir"), nil, "//"+host+"/project/subdir/")
+	// testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project/subdir"), nil, "//"+host+"/project/subdir/")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/subdir"), nil, "project-subsubdir")
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/subdir/"), nil, "project-subsubdir")
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/project2/"), nil, "project2-main")
 	require.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index"), nil, "project2-main")
@@ -90,9 +92,8 @@ func TestDomainServeHTTP(t *testing.T) {
 
 	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/", nil, "project2-main")
 	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/index.html", nil, "project2-main")
-	require.HTTPRedirect(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil)
-	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil,
-		`<a href="/subdir/">Found</a>`)
+	// require.HTTPRedirect(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil)
+	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir", nil, "project2-subdir")
 	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir/", nil, "project2-subdir")
 	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/subdir/index.html", nil, "project2-subdir")
 	require.HTTPError(t, serveFileOrNotFound(testDomain), "GET", "//about.gitlab.com/%2e%2e", nil)
@@ -268,8 +269,10 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	}
 
 	for _, tt := range testSet {
-		URL := "http://group.test.io" + tt.url
-		testHTTPGzip(t, serveFileOrNotFound(testGroup), tt.mode, URL, nil, tt.acceptEncoding, tt.body, tt.contentType, tt.ungzip)
+		t.Run(tt.url, func(t *testing.T) {
+			URL := "http://group.test.io" + tt.url
+			testHTTPGzip(t, serveFileOrNotFound(testGroup), tt.mode, URL, nil, tt.acceptEncoding, tt.body, tt.contentType, tt.ungzip)
+		})
 	}
 }
 
