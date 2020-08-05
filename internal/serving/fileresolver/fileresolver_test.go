@@ -1,7 +1,7 @@
 package fileresolver
 
 import (
-	"archive/zip"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestResolveFilePathFromDisk(t *testing.T) {
+func TestOpenFileFromDisk(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
@@ -18,7 +18,6 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 		name             string
 		lookupPath       string
 		subPath          string
-		urlPath          string
 		expectedFullPath string
 		expectedContent  string
 		expectedErr      error
@@ -27,7 +26,6 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:             "file_exists_with_subpath_and_extension",
 			lookupPath:       "group/group.test.io/public/",
 			subPath:          "index.html",
-			urlPath:          "/index.html",
 			expectedFullPath: "group/group.test.io/public/index.html",
 			expectedContent:  "main-dir\n",
 		},
@@ -35,7 +33,6 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:             "file_exists_without_extension",
 			lookupPath:       "group/group.test.io/public/",
 			subPath:          "index",
-			urlPath:          "/index",
 			expectedFullPath: "group/group.test.io/public/index.html",
 			expectedContent:  "main-dir\n",
 		},
@@ -43,7 +40,6 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:             "file_exists_without_subpath",
 			lookupPath:       "group/group.test.io/public/",
 			subPath:          "",
-			urlPath:          "/",
 			expectedFullPath: "group/group.test.io/public/index.html",
 			expectedContent:  "main-dir\n",
 		},
@@ -51,21 +47,18 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:        "file_does_not_exist_without_subpath",
 			lookupPath:  "group.no.projects/",
 			subPath:     "",
-			urlPath:     "/",
 			expectedErr: errFileNotFound,
 		},
 		{
 			name:        "file_does_not_exist",
 			lookupPath:  "group/group.test.io/public/",
 			subPath:     "unknown_file.html",
-			urlPath:     "/group.test.io/unknown_file.html",
 			expectedErr: errFileNotFound,
 		},
 		{
 			name:             "symlink_inside_public",
 			lookupPath:       "group/symlink/public/",
 			subPath:          "index.html",
-			urlPath:          "/symlink/index.html",
 			expectedFullPath: "group/symlink/public/content/index.html",
 			expectedContent:  "group/symlink/public/content/index.html\n",
 		},
@@ -73,24 +66,18 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:        "symlink_outside_of_public_dir",
 			lookupPath:  "group/symlink/public/",
 			subPath:     "outside.html",
-			urlPath:     "/symlink/outside.html",
 			expectedErr: errFileNotInPublicDir,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fullPath, err := ResolveFilePath(tt.lookupPath, tt.subPath, tt.urlPath, filepath.EvalSymlinks)
+			file, err := OpenFile(tt.lookupPath, tt.subPath, filepath.EvalSymlinks, openFSFile)
 			if tt.expectedErr != nil {
 				require.Equal(t, tt.expectedErr, err)
 				return
 			}
-
-			require.Equal(t, tt.expectedFullPath, fullPath)
-
-			file, err := openFSFile(fullPath)
 			require.NoError(t, err)
-			defer file.Close()
 
 			content, err := ioutil.ReadAll(file)
 			require.NoError(t, err)
@@ -120,12 +107,7 @@ func chdirInPath(t *testing.T, path string) func() {
 	}
 }
 
-func openZipFile(t *testing.T, fullPath string, archive *zip.Reader) (*zip.File, error) {
-	t.Helper()
-
-	return nil, nil
-}
-func openFSFile(fullPath string) (*os.File, error) {
+func openFSFile(fullPath string) (io.ReadCloser, error) {
 	fi, err := os.Lstat(fullPath)
 	if err != nil {
 		return nil, errFileNotFound
