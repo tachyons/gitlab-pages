@@ -18,7 +18,6 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 		name             string
 		lookupPath       string
 		subPath          string
-		urlPath          string
 		expectedFullPath string
 		expectedContent  string
 		expectedErr      error
@@ -27,7 +26,6 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:             "file_exists_with_subpath_and_extension",
 			lookupPath:       "group/group.test.io/public/",
 			subPath:          "index.html",
-			urlPath:          "/index.html",
 			expectedFullPath: "group/group.test.io/public/index.html",
 			expectedContent:  "main-dir\n",
 		},
@@ -35,7 +33,6 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:             "file_exists_without_extension",
 			lookupPath:       "group/group.test.io/public/",
 			subPath:          "index",
-			urlPath:          "/index",
 			expectedFullPath: "group/group.test.io/public/index.html",
 			expectedContent:  "main-dir\n",
 		},
@@ -43,7 +40,6 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:             "file_exists_without_subpath",
 			lookupPath:       "group/group.test.io/public/",
 			subPath:          "",
-			urlPath:          "/",
 			expectedFullPath: "group/group.test.io/public/index.html",
 			expectedContent:  "main-dir\n",
 		},
@@ -51,21 +47,18 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:        "file_does_not_exist_without_subpath",
 			lookupPath:  "group.no.projects/",
 			subPath:     "",
-			urlPath:     "/",
 			expectedErr: errFileNotFound,
 		},
 		{
 			name:        "file_does_not_exist",
 			lookupPath:  "group/group.test.io/public/",
 			subPath:     "unknown_file.html",
-			urlPath:     "/group.test.io/unknown_file.html",
 			expectedErr: errFileNotFound,
 		},
 		{
 			name:             "symlink_inside_public",
 			lookupPath:       "group/symlink/public/",
 			subPath:          "index.html",
-			urlPath:          "/symlink/index.html",
 			expectedFullPath: "group/symlink/public/content/index.html",
 			expectedContent:  "group/symlink/public/content/index.html\n",
 		},
@@ -73,14 +66,13 @@ func TestResolveFilePathFromDisk(t *testing.T) {
 			name:        "symlink_outside_of_public_dir",
 			lookupPath:  "group/symlink/public/",
 			subPath:     "outside.html",
-			urlPath:     "/symlink/outside.html",
 			expectedErr: errFileNotInPublicDir,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fullPath, err := ResolveFilePath(tt.lookupPath, tt.subPath, tt.urlPath, filepath.EvalSymlinks)
+			fullPath, err := ResolveFilePath(tt.lookupPath, tt.subPath, filepath.EvalSymlinks)
 			if tt.expectedErr != nil {
 				require.Equal(t, tt.expectedErr, err)
 				return
