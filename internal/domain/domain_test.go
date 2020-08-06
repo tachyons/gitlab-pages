@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -132,32 +131,14 @@ func BenchmarkEnsureCertificate(b *testing.B) {
 
 var chdirSet = false
 
-func setUpTests(t require.TestingT) func() {
-	return chdirInPath(t, "../../shared/pages")
-}
-
-func chdirInPath(t require.TestingT, path string) func() {
-	noOp := func() {}
-	if chdirSet {
-		return noOp
-	}
-
-	cwd, err := os.Getwd()
-	require.NoError(t, err, "Cannot Getwd")
-
-	err = os.Chdir(path)
-	require.NoError(t, err, "Cannot Chdir")
-
-	chdirSet = true
-	return func() {
-		err := os.Chdir(cwd)
-		require.NoError(t, err, "Cannot Chdir in cleanup")
-
-		chdirSet = false
-	}
+func setUpTests(t testing.TB) func() {
+	t.Helper()
+	return testhelpers.ChdirInPath(t, "../../shared/pages", &chdirSet)
 }
 
 func TestServeNamespaceNotFound(t *testing.T) {
+	defer setUpTests(t)()
+
 	tests := []struct {
 		name             string
 		domain           string
@@ -171,7 +152,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 			path:   "/unknown",
 			resolver: &stubbedResolver{
 				project: &serving.LookupPath{
-					Path:               "../../shared/pages/group.404/group.404.gitlab-example.com/public",
+					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 				},
 				subpath: "/unknown",
@@ -184,7 +165,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 			path:   "/private_project/unknown",
 			resolver: &stubbedResolver{
 				project: &serving.LookupPath{
-					Path:               "../../shared/pages/group.404/group.404.gitlab-example.com/public",
+					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 					HasAccessControl:   false,
 				},
@@ -198,7 +179,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 			path:   "/unknown",
 			resolver: &stubbedResolver{
 				project: &serving.LookupPath{
-					Path:               "../../shared/pages/group.404/group.404.gitlab-example.com/public",
+					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 					HasAccessControl:   true,
 				},
