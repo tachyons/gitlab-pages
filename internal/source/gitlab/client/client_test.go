@@ -283,7 +283,7 @@ func TestClientStatus(t *testing.T) {
 }
 
 func TestClientStatusClientTimeout(t *testing.T) {
-	timeout := 3 * time.Millisecond
+	timeout := 20 * time.Millisecond
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v4/internal/pages/status", func(w http.ResponseWriter, r *http.Request) {
