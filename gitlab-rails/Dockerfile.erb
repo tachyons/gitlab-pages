@@ -138,15 +138,13 @@ RUN cd /srv/gitlab && \
     rm -rf node_modules/ tmp/ spec/ && \
     /build-scripts/cleanup-gems
 
-# Set the path that bootsnap will use for cache
-ENV BOOTSNAP_CACHE_DIR=bootsnap
 # Generate bootsnap cache
 RUN echo "Generating bootsnap cache"; \
     cd /srv/gitlab && \
     sudo -u ${GITLAB_USER} mkdir tmp/ && \
-    sudo -u ${GITLAB_USER} -H $COMPILE_ASSETS_ENV ENABLE_BOOTSNAP=1 BOOTSNAP_CACHE_DIR=${BOOTSNAP_CACHE_DIR} \
+    sudo -u ${GITLAB_USER} -H $COMPILE_ASSETS_ENV ENABLE_BOOTSNAP=1 \
          busybox time bin/rake about 2>/dev/null && \
-    du -hs /srv/gitlab/${BOOTSNAP_CACHE_DIR} ;
+    du -hs /srv/gitlab/tmp/cache/bootsnap-* ;
 # exit code of this command will be that of `du`
 
 <% if !compile_assets %>
@@ -219,7 +217,6 @@ COPY scripts/ /scripts
 RUN chown -R ${GITLAB_USER} /scripts
 
 ENV RAILS_ENV=production \
-    BOOTSNAP_CACHE_DIR=bootsnap \
     EXECJS_RUNTIME=Disabled \
     CONFIG_TEMPLATE_DIRECTORY=${CONFIG} \
     UPGRADE_STATUS_DIR=${DATADIR}/.upgrade-status
