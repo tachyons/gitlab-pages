@@ -18,6 +18,12 @@ func (m *MockSource) GetDomain(name string) (*domain.Domain, error) {
 	return args.Get(0).(*domain.Domain), args.Error(1)
 }
 
+func (m *MockSource) IsReady() bool {
+	args := m.Called()
+
+	return args.Get(0).(bool)
+}
+
 // NewMockSource returns a new Source mock for testing
 func NewMockSource() *MockSource {
 	return &MockSource{}
