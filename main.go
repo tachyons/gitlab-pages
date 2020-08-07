@@ -289,6 +289,7 @@ func loadConfig() appConfig {
 		"gitlab-server":                 config.GitLabServer,
 		"internal-gitlab-server":        config.InternalGitLabServer,
 		"api-secret-key":                *gitLabAPISecretKey,
+		"domain-config-source":          config.DomainConfigurationSource,
 		"auth-redirect-uri":             config.RedirectURI,
 	}).Debug("Start daemon with configuration")
 
