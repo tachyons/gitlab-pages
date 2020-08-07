@@ -1,7 +1,6 @@
 package fileresolver
 
 import (
-	"archive/zip"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -112,11 +111,6 @@ func chdirInPath(t *testing.T, path string) func() {
 	}
 }
 
-func openZipFile(t *testing.T, fullPath string, archive *zip.Reader) (*zip.File, error) {
-	t.Helper()
-
-	return nil, nil
-}
 func openFSFile(fullPath string) (*os.File, error) {
 	fi, err := os.Lstat(fullPath)
 	if err != nil {

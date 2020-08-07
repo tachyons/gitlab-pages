@@ -22,7 +22,7 @@ type Reader struct {
 }
 
 func (reader *Reader) tryFile(h serving.Handler) error {
-	fullPath, err := reader.resolvePath(h.LookupPath.Path, h.SubPath)
+	fullPath, err := reader.resolvePath(h.LookupPath.Path, h.SubPath, h.Request.URL.Path)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 }
 
 func (reader *Reader) tryNotFound(h serving.Handler) error {
-	page404, err := reader.resolvePath(h.LookupPath.Path, "404.html")
+	page404, err := reader.resolvePath(h.LookupPath.Path, "", "404.html")
 	if err != nil {
 		return err
 	}
@@ -43,10 +43,13 @@ func (reader *Reader) tryNotFound(h serving.Handler) error {
 	return nil
 }
 
+// redirect for css files  root.gitlab.io/mywebsite
+// if dir serve from there, it's trick
+
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (reader *Reader) resolvePath(publicPath, subPath string) (string, error) {
-	fullPath, err := fileresolver.ResolveFilePath(publicPath, subPath, filepath.EvalSymlinks)
+func (reader *Reader) resolvePath(publicPath, subPath, urlPath string) (string, error) {
+	fullPath, err := fileresolver.ResolveFilePath(publicPath, subPath, urlPath, filepath.EvalSymlinks)
 	if err != nil {
 		return "", err
 	}

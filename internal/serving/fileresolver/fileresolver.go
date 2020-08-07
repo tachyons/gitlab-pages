@@ -2,6 +2,7 @@ package fileresolver
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 )
@@ -19,12 +20,17 @@ type evalSymlinkFunc func(string) (string, error)
 // ResolveFilePath takes a archivePath and any subPath to determine the file location.
 // Requires the original requestURLPath to try to resolve index.html
 // Requires an evalSymlinkFunc to determine if the file exists or not. Useful for resolving files in disk
-func ResolveFilePath(lookupPath, subPath string, evalSymLink evalSymlinkFunc) (string, error) {
+func ResolveFilePath(lookupPath, subPath, urlPath string, evalSymLink evalSymlinkFunc) (string, error) {
+	fmt.Printf("THIS IS IT!:\nlookup.path: %q\nsubPath:%q\nurlPath:%q\n", lookupPath, subPath, urlPath)
+
 	fullPath, err := resolvePath(evalSymLink, lookupPath, subPath)
 	if err != nil {
 		if err == errIsDirectory {
 			// try to resolve index.html from the path we're currently in
-			return resolvePath(evalSymLink, lookupPath, subPath, "index.html")
+			if endsWithSlash(urlPath) {
+				return resolvePath(evalSymLink, lookupPath, subPath, "index.html")
+			}
+			return "", err
 		} else if err == errNoExtension {
 			// assume .html extension and try to resolve
 			return resolvePath(evalSymLink, lookupPath, strings.TrimSuffix(subPath, "/")+".html")
@@ -50,12 +56,15 @@ func resolvePath(evalSymLink evalSymlinkFunc, publicPath string, subPath ...stri
 	testPath := publicPath + strings.Join(cleanEmpty(subPath), "/")
 	if endsWithSlash(testPath) {
 		return "", errIsDirectory
-	} else if endsWithoutHTMLExtension(testPath) {
-		return "", errNoExtension
 	}
 
 	fullPath, err := evalSymLink(testPath)
 	if err != nil {
+		// if file doesn't exist and ends without extension
+		if endsWithoutHTMLExtension(testPath) {
+			return "", errNoExtension
+		}
+
 		return "", errFileNotFound
 	}
 

@@ -7,20 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"golang.org/x/sys/unix"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 )
-
-func endsWithSlash(path string) bool {
-	return strings.HasSuffix(path, "/")
-}
-
-func endsWithoutHTMLExtension(path string) bool {
-	return !strings.HasSuffix(path, ".html")
-}
 
 func openNoFollow(path string) (*os.File, error) {
 	return os.OpenFile(path, os.O_RDONLY|unix.O_NOFOLLOW, 0)
