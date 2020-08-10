@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/cenkalti/backoff/v4"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -36,7 +38,7 @@ func New(config client.Config) (*Gitlab, error) {
 		mu:     &sync.RWMutex{},
 	}
 
-	go g.poll(defaultPollingMaxRetries, defaultPollingInterval)
+	go g.poll(backoff.DefaultInitialInterval, maxPollingTime)
 
 	// using nil for cache config will use the default values specified in internal/source/gitlab/cache/cache.go#12
 	return g, nil

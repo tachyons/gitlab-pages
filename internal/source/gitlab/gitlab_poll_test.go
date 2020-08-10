@@ -17,31 +17,31 @@ func TestClient_Poll(t *testing.T) {
 	tests := []struct {
 		name         string
 		retries      int
-		interval     time.Duration
+		maxTime      time.Duration
 		expectedFail bool
 	}{
 		{
 			name:         "success_with_no_retry",
 			retries:      0,
-			interval:     5 * time.Millisecond,
+			maxTime:      10 * time.Millisecond,
 			expectedFail: false,
 		},
 		{
 			name:         "success_after_N_retries",
 			retries:      3,
-			interval:     10 * time.Millisecond,
+			maxTime:      30 * time.Millisecond,
 			expectedFail: false,
 		},
 		{
 			name:         "fail_with_no_retries",
 			retries:      0,
-			interval:     5 * time.Millisecond,
+			maxTime:      10 * time.Millisecond,
 			expectedFail: true,
 		},
 		{
 			name:         "fail_after_N_retries",
 			retries:      3,
-			interval:     5 * time.Millisecond,
+			maxTime:      30 * time.Millisecond,
 			expectedFail: true,
 		},
 	}
@@ -64,10 +64,11 @@ func TestClient_Poll(t *testing.T) {
 
 			glClient := Gitlab{client: client, mu: &sync.RWMutex{}}
 
-			glClient.poll(tt.retries, tt.interval)
+			glClient.poll(3*time.Millisecond, tt.maxTime)
 			if tt.expectedFail {
 				require.False(t, glClient.isReady)
-				s := fmt.Sprintf("Failed to connect to the internal GitLab API after %d tries every %.2fs", tt.retries+1, tt.interval.Seconds())
+
+				s := fmt.Sprintf("Failed to connect to the internal GitLab API after %.2fs", tt.maxTime.Seconds())
 				require.Equal(t, s, hook.LastEntry().Message)
 				return
 			}
