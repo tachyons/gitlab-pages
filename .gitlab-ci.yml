@@ -60,6 +60,12 @@ license_scanning:
     - if: $CI_COMMIT_BRANCH == 'master'
       when: on_success
 
+dependency_scanning:
+  stage: prepare
+  rules:
+    - if: '$CI_MERGE_REQUEST_ID'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
 # disable eslint-sast since html files are fixtures for testing
 eslint-sast:
   rules:
