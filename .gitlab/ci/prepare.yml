@@ -1,0 +1,48 @@
+include:
+  - template: Security/License-Scanning.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+
+# workflow rules are not extended by scanner jobs
+# TODO: remove when https://gitlab.com/gitlab-org/gitlab/-/issues/218444 is done
+.rules-for-scanners:
+  stage: prepare
+  rules:
+    # For merge requests, create a pipeline.
+    - if: '$CI_MERGE_REQUEST_IID'
+    # For `master` branch, create a pipeline (this includes on schedules, pushes, merges, etc.).
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    # For tags, create a pipeline.
+    - if: '$CI_COMMIT_TAG'
+    # For stable, and security branches, create a pipeline.
+    - if: '$CI_COMMIT_BRANCH =~ /^[\d-]+-stable(-ee)?$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^security\//'
+
+license_scanning:
+  variables:
+    LICENSE_MANAGEMENT_SETUP_CMD: go mod vendor
+  extends: .rules-for-scanners
+
+dependency_scanning:
+  extends: .rules-for-scanners
+
+# disable eslint-sast since html files are fixtures for testing
+eslint-sast:
+  rules:
+    - when: never
+
+secrets-sast:
+  extends: .rules-for-scanners
+
+gosec-sast:
+  extends: .rules-for-scanners
+
+download deps:
+  extends: .go-mod-cache
+  stage: prepare
+  script:
+    - make deps-download
+  artifacts:
+    paths:
+      - go.mod
+      - go.sum

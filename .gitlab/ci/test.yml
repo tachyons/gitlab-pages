@@ -1,0 +1,72 @@
+.tests:
+  extends: .go-mod-cache
+  stage: test
+  tags:
+    - gitlab-org-docker
+  needs: ['download deps']
+  script:
+    - echo "Running all tests without daemonizing..."
+    - make test
+    - echo "Running just the acceptance tests daemonized (tmpdir)...."
+    - TEST_DAEMONIZE=tmpdir make acceptance
+    - echo "Running just the acceptance tests daemonized (inplace)...."
+    - TEST_DAEMONIZE=inplace make acceptance
+  artifacts:
+    paths:
+      - bin/gitlab-pages
+
+test:1.13:
+  extends: .tests
+  image: golang:1.13
+
+test:1.14:
+  extends: .tests
+  image: golang:1.14
+
+race:
+  extends: .go-mod-cache
+  stage: test
+  needs: ['download deps']
+  tags:
+    - gitlab-org-docker
+  script:
+    - echo "Running race detector"
+    - make race
+
+cover:
+  stage: test
+  extends: .go-mod-cache
+  needs: ['download deps']
+  script:
+    - make setup
+    - make generate-mocks
+    - make cover
+  coverage: '/total:.+\(statements\).+\d+\.\d+/'
+  artifacts:
+    paths:
+      - coverage.html
+
+code_quality:
+  stage: test
+  extends: .go-mod-cache
+  needs: ['download deps']
+  image: golangci/golangci-lint:v1.27.0
+  variables:
+    REPORT_FILE: gl-code-quality-report.json
+    LINT_FLAGS: "--color never --deadline 15m"
+    OUT_FORMAT: code-climate
+  script:
+    - golangci-lint run ./... --out-format ${OUT_FORMAT} ${LINT_FLAGS} | tee ${REPORT_FILE}
+  timeout: 15 minutes
+  artifacts:
+    reports:
+      codequality: ${REPORT_FILE}
+    paths:
+      - ${REPORT_FILE}
+
+check deps:
+  stage: test
+  extends: .go-mod-cache
+  needs: ['download deps']
+  script:
+    - make deps-check
