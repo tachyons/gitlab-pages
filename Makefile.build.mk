@@ -15,7 +15,7 @@ generate-mocks: .GOPATH/.ok
 	$Q bin/mockgen -source=internal/interface.go -destination=internal/mocks/mocks.go -package=mocks
 
 build: .GOPATH/.ok
-	$Q go install $(if $V,-v) $(VERSION_FLAGS) -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
+	$Q GOBIN=$(CURDIR)/bin go install $(if $V,-v) $(VERSION_FLAGS) -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
 
 clean:
 	$Q rm -rf bin .GOPATH gitlab-pages
