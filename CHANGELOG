@@ -1,3 +1,10 @@
+v 1.22.0
+
+- Serve custom 404.html file for namespace domains !263
+- Poll internal status API !304 !306
+- Enable `domain-config-source=disk` by default Use domain config source disk !305
+- Set Content-Length when Content-Encoding is set !227
+
 v 1.21.0
 
 - Copy certs from SSL_CERT_DIR into chroot jail !291
