@@ -7,6 +7,7 @@ run:
   skip-dirs:
     - vendor
     - internal/httputil # from github.com/golang/gddo
+    - internal/serving/disk/symlink
   skip-files:
     - mock_*.go
 
