@@ -117,7 +117,7 @@ graph TD;
 
   gitlab-rails-->postgresql;
 
-  gitlab-ruby;
+  gitlab-ruby-->debian:stretch-slim;
   gitlab-go-->gitlab-ruby;
   git-base-->gitlab-go;
   gitlab-shell-->git-base;
