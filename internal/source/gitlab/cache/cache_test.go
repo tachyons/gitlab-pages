@@ -23,7 +23,6 @@ type client struct {
 	bootup  chan uint64
 	domain  chan string
 	failure error
-	sleep   time.Duration
 }
 
 func (s *stats) bumpStarted() uint64 {
@@ -62,7 +61,6 @@ func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
 
 	lookup := api.Lookup{}
 	if c.failure == nil {
-		time.Sleep(c.sleep)
 		lookup.Name = <-c.domain
 	} else {
 		lookup.Error = c.failure
@@ -85,7 +83,6 @@ func withTestCache(config resolverConfig, cacheConfig *cacheConfig, block func(*
 	}
 
 	resolver := &client{
-		sleep:   config.sleep,
 		domain:  make(chan string, chanSize),
 		bootup:  make(chan uint64, 100),
 		failure: config.failure,
@@ -117,7 +114,6 @@ func (cache *Cache) withTestEntry(config entryConfig, block func(*Entry)) {
 }
 
 type resolverConfig struct {
-	sleep    time.Duration
 	buffered bool
 	failure  error
 }
@@ -253,13 +249,14 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when retrieval failed because of resolution context being canceled", func(t *testing.T) {
-		withTestCache(resolverConfig{sleep: 20 * time.Millisecond}, nil, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(entry *Entry) {
 				ctx, cancel := context.WithCancel(context.Background())
-				cancel()
 
 				response := make(chan *api.Lookup, 1)
 				go func() { response <- cache.Resolve(ctx, "my.gitlab.com") }()
+
+				cancel()
 
 				resolver.domain <- "my.gitlab.com"
 				lookup := <-response

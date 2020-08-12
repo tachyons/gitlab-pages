@@ -65,7 +65,14 @@ func (e *Entry) Lookup() *api.Lookup {
 
 // Retrieve perform a blocking retrieval of the cache entry response.
 func (e *Entry) Retrieve(ctx context.Context, client api.Client) (lookup *api.Lookup) {
-	e.retrieve.Do(func() { go e.setResponse(e.retriever.Retrieve(e.domain)) })
+	e.retrieve.Do(func() {
+		go func() {
+			// `e.setResponse` closes the `e.retrieved` channel when done.
+			// allocating a new anonymous function gives the runtime enough time to process the context.Cancel
+			// for TestResolve/when_retrieval_failed_because_of_resolution_context_being_canceled
+			e.setResponse(e.retriever.Retrieve(e.domain))
+		}()
+	})
 
 	select {
 	case <-ctx.Done():
