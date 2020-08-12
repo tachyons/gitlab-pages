@@ -102,39 +102,41 @@ script from any location.
 
 We use a layered build process to speed up build time, and reduce the size of our images. This does result in a complicated set of relationships between the images we build during build time.
 
+### Intermediate images
+
+```mermaid
+graph TD;
+  git-base-->gitlab-go;
+  gitlab-elasticsearch-indexer-->git-base;
+  gitlab-go-->gitlab-ruby;
+  gitlab-python-->debian:stretch-slim;
+  gitlab-rails-->gitlab-elasticsearch-indexer;
+  gitlab-rails-->postgresql;
+  gitlab-ruby-->debian:stretch-slim;
+  kubectl-->debian:stretch-slim;
+  postgresql-->debian:stretch-slim;
+  gitlab-rails-->gitlab-ruby;
+  gitlab-rails-->registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee
+```
+
+### Final images
+
 ```mermaid
 graph TD;
   alpine-certificates-->alpine;
   cfssl-self-sign-->alpine;
-  gitlab-container-registry-->debian:stretch-slim;
-  gitlab-python-->debian:stretch-slim;
-  postgresql-->debian:stretch-slim;
-  kubectl-->debian:stretch-slim;
-
-  gitlab-sidekiq-->gitlab-python;
-  gitlab-task-runner-->gitlab-python;
-  gitlab-webservice-->gitlab-python;
-
-  gitlab-rails-->postgresql;
-
-  gitlab-ruby-->debian:stretch-slim;
-  gitlab-go-->gitlab-ruby;
-  git-base-->gitlab-go;
-  gitlab-shell-->git-base;
   gitaly-->gitlab-shell;
-
+  gitlab-container-registry-->debian:stretch-slim;
   gitlab-container-registry-->git-base;
-  gitlab-elasticsearch-indexer-->git-base;
-  gitlab-rails-->gitlab-elasticsearch-indexer;
-  gitlab-workhorse-->git-base;
   gitlab-exporter-->gitlab-ruby;
   gitlab-mailroom-->gitlab-ruby;
-  gitlab-rails-->gitlab-ruby;
-
+  gitlab-shell-->git-base;
+  gitlab-sidekiq-->gitlab-python;
   gitlab-sidekiq-->gitlab-rails;
   gitlab-task-runner-->gitlab-rails;
+  gitlab-task-runner-->gitlab-python;
+  gitlab-webservice-->gitlab-python;
   gitlab-webservice-->gitlab-rails;
   gitlab-workhorse-->gitlab-rails;
-
-  gitlab-rails-->registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee
+  gitlab-workhorse-->git-base;
 ```
