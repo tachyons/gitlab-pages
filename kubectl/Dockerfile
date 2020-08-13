@@ -1,7 +1,8 @@
 # ARGS for entire build
 ARG KUBECTL_VERSION="1.14.10"
+ARG FROM_IMAGE="debian"
+FROM ${FROM_IMAGE}:stretch-slim
 
-FROM debian:stretch-slim
 # ARG must be redeclared after each FROM
 ARG KUBECTL_VERSION
 ARG YQ_VERSION="2.4.1"

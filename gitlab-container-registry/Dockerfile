@@ -10,6 +10,7 @@ ARG REGISTRY_NAMESPACE=gitlab-org
 ARG REGISTRY_PROJECT=container-registry
 ARG GOPATH=/go
 ARG REGISTRY_SOURCE_PATH=${GOPATH}/src/github.com/docker/distribution
+ARG DEPENDENCY_PROXY
 
 RUN buildDeps=' \
   make' \
@@ -24,7 +25,7 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
-FROM debian:stretch-slim
+FROM ${DEPENDENCY_PROXY}debian:stretch-slim
 
 ARG GITLAB_USER=git
 
