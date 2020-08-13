@@ -2,16 +2,19 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package filepath
+package symlink
 
 import (
+	"context"
 	"errors"
 	"os"
 	"runtime"
 	"syscall"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
-func walkSymlinks(path string) (string, error) {
+func walkSymlinks(ctx context.Context, fs vfs.VFS, path string) (string, error) {
 	volLen := volumeNameLen(path)
 	pathSeparator := string(os.PathSeparator)
 
@@ -80,7 +83,7 @@ func walkSymlinks(path string) (string, error) {
 
 		// Resolve symlink.
 
-		fi, err := os.Lstat(dest)
+		fi, err := fs.Lstat(ctx, dest)
 		if err != nil {
 			return "", err
 		}
@@ -99,7 +102,7 @@ func walkSymlinks(path string) (string, error) {
 			return "", errors.New("EvalSymlinks: too many links")
 		}
 
-		link, err := os.Readlink(dest)
+		link, err := fs.Readlink(ctx, dest)
 		if err != nil {
 			return "", err
 		}
