@@ -8,18 +8,15 @@ touch /var/log/gitlab/workhorse.log
 export TMPDIR=/tmp/gitlab
 mkdir -p -m 3770 $TMPDIR
 
+export GITLAB_WORKHORSE_LOG_FILE=${GITLAB_WORKHORSE_LOG_FILE:-stdout}
+export GITLAB_WORKHORSE_LOG_FORMAT=${GITLAB_WORKHORSE_LOG_FORMAT:-json}
+
 gitlab-workhorse \
+  -logFile ${GITLAB_WORKHORSE_LOG_FILE} \
+  -logFormat ${GITLAB_WORKHORSE_LOG_FORMAT} \
   ${GITLAB_WORKHORSE_EXTRA_ARGS} \
   -listenAddr 0.0.0.0:${GITLAB_WORKHORSE_LISTEN_PORT:-8181} \
   -documentRoot "/srv/gitlab/public" \
   -secretPath "/etc/gitlab/gitlab-workhorse/secret" \
   -config "/srv/gitlab/config/workhorse-config.toml" \
->> /var/log/gitlab/workhorse.log 2>&1 &
-
-if command -v xtail >/dev/null; then
-    xtail /var/log/gitlab
-else
-    tail -f /var/log/gitlab/*
-fi
-
-wait
+  2>&1
