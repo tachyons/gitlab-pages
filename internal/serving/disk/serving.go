@@ -3,12 +3,15 @@ package disk
 import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 var disk = &Disk{
 	reader: Reader{
 		fileSizeMetric: metrics.DiskServingFileSize,
+		vfs:            vfs.Instrumented(local.VFS{}, "disk"),
 	},
 }
 

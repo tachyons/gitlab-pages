@@ -91,6 +91,12 @@ var (
 		Help:    "The time (in seconds) taken to serve a file",
 		Buckets: []float64{0.1, 0.5, 1, 2.5, 5, 10, 60, 180},
 	})
+
+	// VFSOperations metric for VFS operations (lstat, readlink, open)
+	VFSOperations = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "gitlab_pages_vfs_operations_total",
+		Help: "The number of VFS operations",
+	}, []string{"vfs_name", "operation", "success"})
 )
 
 // MustRegister collectors with the Prometheus client
@@ -110,5 +116,6 @@ func MustRegister() {
 		ServerlessLatency,
 		DiskServingFileSize,
 		ServingTime,
+		VFSOperations,
 	)
 }

@@ -2,16 +2,21 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package filepath_test
+package symlink_test
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 
-	filepath "gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 )
+
+var fs = local.VFS{}
 
 func chtmpdir(t *testing.T) (restore func()) {
 	oldwd, err := os.Getwd()
@@ -81,7 +86,7 @@ func simpleJoin(dir, path string) string {
 }
 
 func testEvalSymlinks(t *testing.T, path, want string) {
-	have, err := filepath.EvalSymlinks(path)
+	have, err := symlink.EvalSymlinks(context.Background(), fs, path)
 	if err != nil {
 		t.Errorf("EvalSymlinks(%q) error: %v", path, err)
 		return
@@ -108,7 +113,7 @@ func testEvalSymlinksAfterChdir(t *testing.T, wd, path, want string) {
 		t.Fatal(err)
 	}
 
-	have, err := filepath.EvalSymlinks(path)
+	have, err := symlink.EvalSymlinks(context.Background(), fs, path)
 	if err != nil {
 		t.Errorf("EvalSymlinks(%q) in %q directory error: %v", path, wd, err)
 		return
@@ -183,7 +188,7 @@ func TestEvalSymlinks(t *testing.T) {
 func TestEvalSymlinksIsNotExist(t *testing.T) {
 	defer chtmpdir(t)()
 
-	_, err := filepath.EvalSymlinks("notexist")
+	_, err := symlink.EvalSymlinks(context.Background(), fs, "notexist")
 	if !os.IsNotExist(err) {
 		t.Errorf("expected the file is not found, got %v\n", err)
 	}
@@ -194,7 +199,7 @@ func TestEvalSymlinksIsNotExist(t *testing.T) {
 	}
 	defer os.Remove("link")
 
-	_, err = filepath.EvalSymlinks("link")
+	_, err = symlink.EvalSymlinks(context.Background(), fs, "link")
 	if !os.IsNotExist(err) {
 		t.Errorf("expected the file is not found, got %v\n", err)
 	}
@@ -251,7 +256,7 @@ func TestIssue13582(t *testing.T) {
 		{link2, realFile},
 	}
 	for i, test := range tests {
-		have, err := filepath.EvalSymlinks(test.path)
+		have, err := symlink.EvalSymlinks(context.Background(), fs, test.path)
 		if err != nil {
 			t.Fatal(err)
 		}

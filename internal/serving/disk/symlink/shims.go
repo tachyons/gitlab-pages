@@ -1,13 +1,17 @@
-package filepath
+package symlink
 
-import stdlib "path/filepath"
+import (
+	"context"
+	"path/filepath"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+)
 
 func volumeNameLen(s string) int { return 0 }
 
-func IsAbs(path string) bool                   { return stdlib.IsAbs(path) }
-func Clean(path string) string                 { return stdlib.Clean(path) }
-func Join(elem ...string) string               { return stdlib.Join(elem...) }
-func VolumeName(path string) string            { return stdlib.VolumeName(path) }
-func EvalSymlinks(path string) (string, error) { return walkSymlinks(path) }
+func IsAbs(path string) bool   { return filepath.IsAbs(path) }
+func Clean(path string) string { return filepath.Clean(path) }
 
-const Separator = stdlib.Separator
+func EvalSymlinks(ctx context.Context, fs vfs.VFS, path string) (string, error) {
+	return walkSymlinks(ctx, fs, path)
+}
