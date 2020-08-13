@@ -278,6 +278,7 @@ postgresql:
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PG_VERSION" | sha1sum))
     - build_if_needed --build-arg "PG_VERSION=$PG_VERSION"
+                      --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}debian"
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag $PG_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/postgresql_container.txt
@@ -291,6 +292,7 @@ cfssl-self-sign:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$CFSSL_VERSION" | sha1sum))
     - build_if_needed --build-arg "CFSSL_VERSION=$CFSSL_VERSION"
                       --build-arg "ALPINE_VERSION=$ALPINE_VERSION"
+                      --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}alpine"
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag "$CFSSL_VERSION"
 
@@ -311,6 +313,7 @@ kubectl:
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"
+                      --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}debian"
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag $KUBECTL_VERSION${IMAGE_TAG_EXT}
 
@@ -325,6 +328,7 @@ alpine-certificates:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$CA_PKG_VERSION" | sha1sum))
     - build_if_needed --build-arg "ALPINE_VERSION=${ALPINE_VERSION}"
                       --build-arg "CA_PKG_VERSION=${CA_PKG_VERSION}"
+                      --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}alpine"
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag ${CA_PKG_VERSION}
 
@@ -345,6 +349,7 @@ gitlab-python:
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
     - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
+                      --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}debian"
     - push_if_master_or_stable_or_tag
     - push_if_master_or_stable_or_tag ${PYTHON_VERSION}${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/python_container.txt
@@ -1005,6 +1010,7 @@ gitlab-container-registry:
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
                       --build-arg "REGISTRY_NAMESPACE=gitlab-org"
+                      --build-arg "DEPENDENCY_PROXY=${DEPENDENCY_PROXY}"
     - push_if_master_or_stable_or_tag $GITLAB_CONTAINER_REGISTRY_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - git-base
@@ -1091,7 +1097,7 @@ gitlab-workhorse-ce:
     - gitlab-rails-ce
 
 sync-images:
-  image: "docker:git"
+  image: "${DEPENDENCY_PROXY}docker:git"
   variables:
     DOCKER_DRIVER: overlay2
     DOCKER_HOST: tcp://docker:2375

@@ -1,4 +1,5 @@
-FROM debian:stretch-slim
+ARG FROM_IMAGE="debian"
+FROM ${FROM_IMAGE}:stretch-slim
 
 ARG BUILD_DIR=/tmp/build
 ARG PYTHON_VERSION="3.7.3"

@@ -10,6 +10,17 @@ mirror of the project will build the images and push them to dev registry. At
 the time of publishing, these images will be copied to the com registry and
 hence will be available to the public to use.
 
+## Dependency Proxy
+When the variable `DEPENDENCY_PROXY` is set, it will be prefixed to the name of any image which
+is pulled from dockerhub.com. To work properly, the variable should be set with the trailing `/`.
+The images which currently use this are
+1. alpine-certificates
+1. cfssl-self-sign
+1. gitlab-container-registry
+1. gitlab-python
+1. kubectl
+1. postgresql
+
 ## Manually triggering the pipeline for a reference
 
 If manual run of the pipeline needs to be done in order to build/rebuild a particular ref of GitLab,
