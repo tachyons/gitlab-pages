@@ -52,12 +52,38 @@ The following variable should be present for a EE build:
 
 ![ee-cng-release.png](ee-cng-release.png)
 
-## UBI offline build
+## UBI images
+
+We provide [UBI](https://www.redhat.com/en/blog/introducing-red-hat-universal-base-image)
+images for GitLab components using separate Dockerfiles. These images follow a slightly
+different build and release process, detailed below.
+
+### Context
+
+UBI images are provided by creating **Dockerfile.build.ubi8** and/or **Dockerfile.ubi8** files in the
+CNG repository for the given component, alongside the standard **Dockerfile**.
+
+- **Dockerfile.build.ubi8** files are required when accessing dependencies over the internet.
+- **Dockerfile.ubi8** files are required when creating a final image for use in Kubernetes.
+    - If dependencies from the internet are required, they will be pulled from the image
+      created from **Dockerfile.build.ubi8**.
+
+The presence of these files will trigger the UBI image build, given that either:
+
+- The pipeline is running for a tag ending in `-ubi8`, or
+- The pipeline is running with an environment variable matching `UBI_PIPELINE='true'`
+
+If one of these conditions is met, additional pipeline jobs and stages will appear and the UBI
+images will be built and pushed.
+
+### Offline builds
 
 UBI-based images can be built in an isolated environment with limited access to the internet.
 In such an environment, the build scripts must download the binary dependencies from
 [GitLab CNG Releases](https://gitlab.com/gitlab-org/build/CNG/-/releases). They also need
 access the official UBI software repositories.
+
+### Build stages
 
 The CNG images can be built in three stages. This is because some images use the images
 from prior stages as their base. Not all the CNG images are final images. Some are
