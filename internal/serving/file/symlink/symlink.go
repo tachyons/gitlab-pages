@@ -14,7 +14,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
-func walkSymlinks(ctx context.Context, fs vfs.VFS, path string) (string, error) {
+func walkSymlinks(ctx context.Context, fs vfs.Dir, path string) (string, error) {
 	volLen := volumeNameLen(path)
 	pathSeparator := string(os.PathSeparator)
 

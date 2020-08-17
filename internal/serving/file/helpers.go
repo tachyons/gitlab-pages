@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
 func endsWithSlash(path string) bool {
@@ -23,13 +24,13 @@ func endsWithoutHTMLExtension(path string) bool {
 // Detect file's content-type either by extension or mime-sniffing.
 // Implementation is adapted from Golang's `http.serveContent()`
 // See https://github.com/golang/go/blob/902fc114272978a40d2e65c2510a18e870077559/src/net/http/fs.go#L194
-func (reader *Reader) detectContentType(ctx context.Context, path string) (string, error) {
+func (reader *Reader) detectContentType(ctx context.Context, dir vfs.Dir, path string) (string, error) {
 	contentType := mime.TypeByExtension(filepath.Ext(path))
 
 	if contentType == "" {
 		var buf [512]byte
 
-		file, err := reader.vfs.Open(ctx, path)
+		file, err := dir.Open(ctx, path)
 		if err != nil {
 			return "", err
 		}
@@ -55,7 +56,7 @@ func acceptsGZip(r *http.Request) bool {
 	return acceptedEncoding == "gzip"
 }
 
-func (reader *Reader) handleGZip(ctx context.Context, w http.ResponseWriter, r *http.Request, fullPath string) string {
+func (reader *Reader) handleGZip(ctx context.Context, w http.ResponseWriter, r *http.Request, dir vfs.Dir, fullPath string) string {
 	if !acceptsGZip(r) {
 		return fullPath
 	}
@@ -63,7 +64,7 @@ func (reader *Reader) handleGZip(ctx context.Context, w http.ResponseWriter, r *
 	gzipPath := fullPath + ".gz"
 
 	// Ensure the .gz file is not a symlink
-	fi, err := reader.vfs.Lstat(ctx, gzipPath)
+	fi, err := dir.Lstat(ctx, gzipPath)
 	if err != nil || !fi.Mode().IsRegular() {
 		return fullPath
 	}

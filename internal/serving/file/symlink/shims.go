@@ -12,6 +12,6 @@ func volumeNameLen(s string) int { return 0 }
 func IsAbs(path string) bool   { return filepath.IsAbs(path) }
 func Clean(path string) string { return filepath.Clean(path) }
 
-func EvalSymlinks(ctx context.Context, fs vfs.VFS, path string) (string, error) {
+func EvalSymlinks(ctx context.Context, fs vfs.Dir, path string) (string, error) {
 	return walkSymlinks(ctx, fs, path)
 }

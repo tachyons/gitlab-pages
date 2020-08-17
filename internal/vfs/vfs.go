@@ -11,6 +11,11 @@ import (
 
 // VFS abstracts the things Pages needs to serve a static site from disk.
 type VFS interface {
+	Dir(ctx context.Context, path string) (Dir, error)
+}
+
+// Dir abstracts the things Pages needs to serve a static site from a given path.
+type Dir interface {
 	Lstat(ctx context.Context, name string) (os.FileInfo, error)
 	Readlink(ctx context.Context, name string) (string, error)
 	Open(ctx context.Context, name string) (File, error)
@@ -36,20 +41,38 @@ func (i *InstrumentedVFS) increment(operation string, err error) {
 	metrics.VFSOperations.WithLabelValues(i.name, operation, strconv.FormatBool(err == nil)).Inc()
 }
 
-func (i *InstrumentedVFS) Lstat(ctx context.Context, name string) (os.FileInfo, error) {
-	fi, err := i.fs.Lstat(ctx, name)
+func (i *InstrumentedVFS) Dir(ctx context.Context, path string) (Dir, error) {
+	dir, err := i.fs.Dir(ctx, path)
+	i.increment("Lstat", err)
+	if dir != nil {
+		dir = &InstrumentedDir{dir: dir, name: i.name}
+	}
+	return dir, err
+}
+
+type InstrumentedDir struct {
+	dir  Dir
+	name string
+}
+
+func (i *InstrumentedDir) increment(operation string, err error) {
+	metrics.VFSOperations.WithLabelValues(i.name, operation, strconv.FormatBool(err == nil)).Inc()
+}
+
+func (i *InstrumentedDir) Lstat(ctx context.Context, name string) (os.FileInfo, error) {
+	fi, err := i.dir.Lstat(ctx, name)
 	i.increment("Lstat", err)
 	return fi, err
 }
 
-func (i *InstrumentedVFS) Readlink(ctx context.Context, name string) (string, error) {
-	target, err := i.fs.Readlink(ctx, name)
+func (i *InstrumentedDir) Readlink(ctx context.Context, name string) (string, error) {
+	target, err := i.dir.Readlink(ctx, name)
 	i.increment("Readlink", err)
 	return target, err
 }
 
-func (i *InstrumentedVFS) Open(ctx context.Context, name string) (File, error) {
-	f, err := i.fs.Open(ctx, name)
+func (i *InstrumentedDir) Open(ctx context.Context, name string) (File, error) {
+	f, err := i.dir.Open(ctx, name)
 	i.increment("Open", err)
 	return f, err
 }
