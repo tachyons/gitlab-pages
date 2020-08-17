@@ -77,6 +77,18 @@ var (
 		Help: "The time (in seconds) it takes to get a response from the GitLab domains API",
 	}, []string{"status_code"})
 
+	// DomainsSourceAPIReqTotal is the number of calls made to the Object Storage that returned a 4XX error
+	ZIPHttpReaderReqTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "gitlab_pages_zip_reader_requests_total",
+		Help: "The number of Object Storage API calls with different status codes",
+	}, []string{"status_code"})
+
+	// DomainsSourceAPICallDuration is the time it takes to get a response from the Object Storage in seconds
+	ZIPHttpReaderReqDuration = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gitlab_pages_zip_reader_requests_duration",
+		Help: "The time (in seconds) it takes to get a response from the Object Storage",
+	}, []string{"status_code"})
+
 	// DiskServingFileSize metric for file size serving. serving_types: disk and object_storage
 	DiskServingFileSize = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name: "gitlab_pages_disk_serving_file_size_bytes",

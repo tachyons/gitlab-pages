@@ -8,6 +8,10 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
+const cacheExpirationInterval = time.Minute
+const cacheRefreshInterval = time.Minute / 2
+const cacheEvictInterval = time.Minute
+
 type zipVFS struct {
 	cache *cache.Cache
 }
@@ -15,8 +19,13 @@ type zipVFS struct {
 func (fs *zipVFS) Dir(ctx context.Context, path string) (vfs.Dir, error) {
 	// we do it in loop to not use any additional locks
 	for {
-		dir, found := fs.cache.Get(path)
-		if !found {
+		dir, till, found := fs.cache.GetWithExpiration(path)
+		if found {
+			if till.Sub(time.Now()) < cacheRefreshInterval {
+				// refresh item
+				fs.cache.Set(path, dir, cache.DefaultExpiration)
+			}
+		} else {
 			dir = newArchive(path)
 
 			// if it errors, it means that it is already added
@@ -26,18 +35,21 @@ func (fs *zipVFS) Dir(ctx context.Context, path string) (vfs.Dir, error) {
 			}
 		}
 
-		err := dir.(*zipArchive).Open(ctx)
-		return dir, err
+		zipDir := dir.(*zipArchive)
+
+		err := zipDir.openArchive(ctx)
+		return zipDir, err
 	}
 }
 
 func New() vfs.VFS {
 	vfs := &zipVFS{
-		cache: cache.New(time.Minute, 2*time.Minute),
+		cache: cache.New(cacheExpirationInterval, cacheRefreshInterval),
 	}
+
 	vfs.cache.OnEvicted(func(path string, object interface{}) {
-		if archive, ok := object.(*Archive); archive != nil && ok {
-			archive.Close()
+		if archive, ok := object.(*zipArchive); archive != nil && ok {
+			archive.close()
 		}
 	})
 	return vfs
