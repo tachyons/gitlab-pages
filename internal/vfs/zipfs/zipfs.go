@@ -73,6 +73,7 @@ func Open(ctx context.Context, opener Opener, expiry time.Time) (*VFS, error) {
 		opener: opener,
 		expiry: expiry,
 	}
+	fs.offsetCache.offsets = make(map[int]int64)
 
 	f, err := fs.opener(ctx)
 	if err != nil {
@@ -116,9 +117,6 @@ func (fs *VFS) offset(i int) (int64, error) {
 	}
 
 	fs.offsetCache.Lock()
-	if fs.offsetCache.offsets == nil {
-		fs.offsetCache.offsets = make(map[int]int64)
-	}
 	fs.offsetCache.offsets[i] = offset
 	fs.offsetCache.Unlock()
 
