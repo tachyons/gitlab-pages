@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/file/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/file/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/serverless"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -32,6 +33,8 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 	switch source.Type {
 	case "file":
 		return disk.New()
+	case "zip":
+		return zip.New()
 	case "serverless":
 		serving, err := serverless.NewFromAPISource(source.Serverless)
 		if err != nil {

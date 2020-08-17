@@ -151,7 +151,14 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 	reader.fileSizeMetric.Observe(float64(fi.Size()))
 
 	w.Header().Set("Content-Type", contentType)
-	http.ServeContent(w, r, origPath, fi.ModTime(), file)
+
+	if rs, ok := file.(io.ReadSeeker); ok {
+		http.ServeContent(w, r, origPath, fi.ModTime(), rs)
+	} else {
+		// Support ReadSeeker if available
+		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
+		io.Copy(w, file)
+	}
 
 	return nil
 }
