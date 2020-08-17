@@ -116,6 +116,9 @@ func (fs *VFS) offset(i int) (int64, error) {
 	}
 
 	fs.offsetCache.Lock()
+	if fs.offsetCache.offsets == nil {
+		fs.offsetCache.offsets = make(map[int]int64)
+	}
 	fs.offsetCache.offsets[i] = offset
 	fs.offsetCache.Unlock()
 
