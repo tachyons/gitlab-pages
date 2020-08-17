@@ -19,7 +19,3 @@ fi
 
 echo "Performing '${RAKE_TASK}'"
 /srv/gitlab/bin/rake ${RAKE_TASK} && STATUS=$? || STATUS=$?
-
-# Attempt to update the FDW
-echo "Performing refresh of foreign tables 'geo:db:refresh_foreign_tables'"
-/srv/gitlab/bin/rake geo:db:refresh_foreign_tables
