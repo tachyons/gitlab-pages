@@ -2,18 +2,23 @@ package local
 
 import (
 	"context"
-	"os"
-
-	"golang.org/x/sys/unix"
+	"path/filepath"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
 type VFS struct{}
 
-func (fs VFS) Lstat(ctx context.Context, name string) (os.FileInfo, error) { return os.Lstat(name) }
-func (fs VFS) Readlink(ctx context.Context, name string) (string, error)   { return os.Readlink(name) }
+func (fs VFS) Root(ctx context.Context, path string) (vfs.Root, error) {
+	realPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
 
-func (fs VFS) Open(ctx context.Context, name string) (vfs.File, error) {
-	return os.OpenFile(name, os.O_RDONLY|unix.O_NOFOLLOW, 0)
+	realPath, err = filepath.EvalSymlinks(realPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Root{path: realPath}, nil
 }

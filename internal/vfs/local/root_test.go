@@ -9,25 +9,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: write more tests validating path sanitisation
+
 func TestReadlink(t *testing.T) {
 	ctx := context.Background()
-	fs := VFS{}
+	root, err := VFS{}.Root(ctx, ".")
+	require.NoError(t, err)
 
-	target, err := fs.Readlink(ctx, "testdata/link")
+	target, err := root.Readlink(ctx, "testdata/link")
 	require.NoError(t, err)
 	require.Equal(t, "file", target)
 }
 
 func TestReadlinkNotSymlink(t *testing.T) {
 	ctx := context.Background()
-	fs := VFS{}
+	root, err := VFS{}.Root(ctx, ".")
+	require.NoError(t, err)
 
 	for _, path := range []string{"testdata", "testdata/file"} {
 		t.Run(path, func(t *testing.T) {
 			_, err := os.Lstat(path)
 			require.NoError(t, err, "sanity check: input must actually exist")
 
-			_, err = fs.Readlink(ctx, path)
+			_, err = root.Readlink(ctx, path)
 			require.Error(t, err, "expect readlink to fail")
 		})
 	}
@@ -35,7 +39,8 @@ func TestReadlinkNotSymlink(t *testing.T) {
 
 func TestLstat(t *testing.T) {
 	ctx := context.Background()
-	fs := VFS{}
+	root, err := VFS{}.Root(ctx, ".")
+	require.NoError(t, err)
 
 	testCases := []struct {
 		path     string
@@ -53,7 +58,7 @@ func TestLstat(t *testing.T) {
 				require.NoError(t, os.Chmod(tc.path, tc.modePerm), "preparation: deterministic permissions")
 			}
 
-			fi, err := fs.Lstat(ctx, tc.path)
+			fi, err := root.Lstat(ctx, tc.path)
 			require.NoError(t, err, "lstat error")
 
 			require.Equal(t, tc.modeType, fi.Mode()&os.ModeType, "file mode: type")
@@ -66,9 +71,10 @@ func TestLstat(t *testing.T) {
 
 func TestOpen(t *testing.T) {
 	ctx := context.Background()
-	fs := VFS{}
+	root, err := VFS{}.Root(ctx, ".")
+	require.NoError(t, err)
 
-	f, err := fs.Open(ctx, "testdata/file")
+	f, err := root.Open(ctx, "testdata/file")
 	require.NoError(t, err, "open file")
 
 	data, err := ioutil.ReadAll(f)
@@ -80,7 +86,8 @@ func TestOpen(t *testing.T) {
 
 func TestOpenDenySymlink(t *testing.T) {
 	ctx := context.Background()
-	fs := VFS{}
+	root, err := VFS{}.Root(ctx, ".")
+	require.NoError(t, err)
 	const symlinkPath = "testdata/link"
 
 	fi, err := os.Stat(symlinkPath)
@@ -91,6 +98,6 @@ func TestOpenDenySymlink(t *testing.T) {
 	require.NoError(t, err, "lstat link")
 	require.Equal(t, os.ModeSymlink, fi.Mode()&os.ModeType, "sanity check: testdata/link should be a symlink")
 
-	_, err = fs.Open(ctx, symlinkPath)
+	_, err = root.Open(ctx, symlinkPath)
 	require.Error(t, err, "opening symlink should fail (security mechanism)")
 }

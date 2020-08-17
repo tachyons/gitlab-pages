@@ -14,7 +14,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
-func walkSymlinks(ctx context.Context, fs vfs.VFS, path string) (string, error) {
+func walkSymlinks(ctx context.Context, root vfs.Root, path string) (string, error) {
 	volLen := volumeNameLen(path)
 	pathSeparator := string(os.PathSeparator)
 
@@ -57,7 +57,10 @@ func walkSymlinks(ctx context.Context, fs vfs.VFS, path string) (string, error) 
 					break
 				}
 			}
-			if r < volLen || dest[r+1:] == ".." {
+
+			if r >= 0 && r+1 == volLen && os.IsPathSeparator(dest[r]) {
+				return "", errors.New("EvalSymlinks: cannot backtrack root path")
+			} else if r < volLen || dest[r+1:] == ".." {
 				// Either path has no slashes
 				// (it's empty or just "C:")
 				// or it ends in a ".." we had to keep.
@@ -83,7 +86,7 @@ func walkSymlinks(ctx context.Context, fs vfs.VFS, path string) (string, error) 
 
 		// Resolve symlink.
 
-		fi, err := fs.Lstat(ctx, dest)
+		fi, err := root.Lstat(ctx, dest)
 		if err != nil {
 			return "", err
 		}
@@ -102,7 +105,7 @@ func walkSymlinks(ctx context.Context, fs vfs.VFS, path string) (string, error) 
 			return "", errors.New("EvalSymlinks: too many links")
 		}
 
-		link, err := fs.Readlink(ctx, dest)
+		link, err := root.Readlink(ctx, dest)
 		if err != nil {
 			return "", err
 		}
@@ -145,5 +148,6 @@ func walkSymlinks(ctx context.Context, fs vfs.VFS, path string) (string, error) 
 			end = 0
 		}
 	}
+
 	return Clean(dest), nil
 }
