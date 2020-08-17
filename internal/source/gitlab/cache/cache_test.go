@@ -60,11 +60,12 @@ func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
 	defer c.stats.bumpLookups()
 
 	lookup := api.Lookup{}
-	if c.failure == nil {
-		lookup.Name = <-c.domain
-	} else {
+	if c.failure != nil {
 		lookup.Error = c.failure
+		return lookup
 	}
+
+	lookup.Name = <-c.domain
 
 	return lookup
 }
@@ -74,12 +75,9 @@ func (c *client) Status() error {
 }
 
 func withTestCache(config resolverConfig, cacheConfig *cacheConfig, block func(*Cache, *client)) {
-	var chanSize int
-
+	chanSize := 0
 	if config.buffered {
 		chanSize = 1
-	} else {
-		chanSize = 0
 	}
 
 	resolver := &client{
@@ -252,11 +250,10 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(entry *Entry) {
 				ctx, cancel := context.WithCancel(context.Background())
+				cancel() // <- test purpose
 
 				response := make(chan *api.Lookup, 1)
 				go func() { response <- cache.Resolve(ctx, "my.gitlab.com") }()
-
-				cancel()
 
 				resolver.domain <- "my.gitlab.com"
 				lookup := <-response
