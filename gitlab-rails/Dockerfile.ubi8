@@ -43,12 +43,14 @@ ENV EXECJS_RUNTIME=Disabled
 ENV CONFIG_TEMPLATE_DIRECTORY=/srv/gitlab/config
 ENV UPGRADE_STATUS_DIR=${GITLAB_DATA}/.upgrade-status
 
+# Set the path that bootsnap will use for cache
+ENV BOOTSNAP_CACHE_DIR=/srv/gitlab/bootsnap
 # Generate bootsnap cache
 RUN echo "Generating bootsnap cache"; \
     cd /srv/gitlab && \
-    su ${GITLAB_USER} -c "mkdir /srv/gitlab/tmp/"  && \
-    su ${GITLAB_USER} -c "ENABLE_BOOTSNAP=1 bin/rake about" && \
-    du -hs /srv/gitlab/tmp/cache/bootsnap-* ;
+    su ${GITLAB_USER} -c "mkdir ${BOOTSNAP_CACHE_DIR}"  && \
+    su ${GITLAB_USER} -c "ENABLE_BOOTSNAP=1 BOOTSNAP_CACHE_DIR=${BOOTSNAP_CACHE_DIR} bin/rake about" && \
+    du -hs ${BOOTSNAP_CACHE_DIR} ;
 # exit code of this command will be that of `du`
 
 VOLUME ${GITLAB_DATA} /var/log
