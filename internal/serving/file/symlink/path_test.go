@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"testing"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/file/symlink"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 )
 

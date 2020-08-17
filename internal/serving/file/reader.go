@@ -1,4 +1,4 @@
-package disk
+package file
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/file/symlink"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 

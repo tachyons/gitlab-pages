@@ -9,7 +9,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/file/disk"
 )
 
 // Domain is a domain that gitlab-pages can serve.

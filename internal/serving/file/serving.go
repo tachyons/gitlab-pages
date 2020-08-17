@@ -1,33 +1,25 @@
-package disk
+package file
 
 import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-var disk = &Disk{
-	reader: Reader{
-		fileSizeMetric: metrics.DiskServingFileSize,
-		vfs:            vfs.Instrumented(local.VFS{}, "disk"),
-	},
-}
-
 // Disk describes a disk access serving
-type Disk struct {
+type Files struct {
 	reader Reader
 }
 
 // ServeFileHTTP serves a file from disk and returns true. It returns false
 // when a file could not been found.
-func (s *Disk) ServeFileHTTP(h serving.Handler) bool {
+func (s *Files) ServeFileHTTP(h serving.Handler) bool {
 	return s.reader.tryFile(h) == nil
 }
 
 // ServeNotFoundHTTP tries to read a custom 404 page
-func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
+func (s *Files) ServeNotFoundHTTP(h serving.Handler) {
 	if s.reader.tryNotFound(h) == nil {
 		return
 	}
@@ -38,6 +30,11 @@ func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
 
 // New returns a serving instance that is capable of reading files
 // from the disk
-func New() serving.Serving {
-	return disk
+func New(vfs vfs.VFS) serving.Serving {
+	return &Files{
+		reader: Reader{
+			fileSizeMetric: metrics.DiskServingFileSize,
+			vfs:            vfs,
+		},
+	}
 }

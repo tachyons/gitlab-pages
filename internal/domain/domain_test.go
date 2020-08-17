@@ -11,7 +11,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/file/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 

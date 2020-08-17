@@ -1,4 +1,4 @@
-package disk
+package file
 
 type locationDirectoryError struct {
 	FullPath     string

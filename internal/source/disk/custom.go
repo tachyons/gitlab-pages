@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/file/disk"
 )
 
 type customProjectResolver struct {
