@@ -2,8 +2,8 @@ ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
 ARG GIT_TAG=2.28.0
 ARG GITLAB_EDITION=gitlab-rails-ee
-ARG RAILS_VERSION="master"
-ARG RUBY_VERSION="master"
+ARG RAILS_VERSION=latest
+ARG RUBY_VERSION=latest
 
 FROM ${FROM_IMAGE}:${GIT_TAG} as builder
 

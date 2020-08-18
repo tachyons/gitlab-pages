@@ -18,7 +18,7 @@ SCRIPT_HOME="$( cd "${BASH_SOURCE[0]%/*}" > /dev/null 2>&1 && pwd )"
 
 set -euxo pipefail
 
-TAG=${1:-master}
+TAG=${1:-latest}
 PACKAGE_NAME="ubi8-build-dependencies-${TAG}.tar"
 PACKAGE_HOST='https://gitlab-ubi.s3.us-east-2.amazonaws.com'
 PACKAGE_URL="${PACKAGE_HOST}/${PACKAGE_NAME}"
