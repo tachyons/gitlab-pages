@@ -16,7 +16,7 @@ set -euxo pipefail
 
 SCRIPT_HOME="$( cd "${BASH_SOURCE[0]%/*}" > /dev/null 2>&1 && pwd )"
 
-TAG=${1:-latest}
+TAG=${1:-master}
 REPOSITORY=${2:-}
 WORKSPACE="${SCRIPT_HOME}/build"
 DOCKERFILE_EXT='.ubi8'
