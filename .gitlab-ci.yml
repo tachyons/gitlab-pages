@@ -237,7 +237,7 @@ gitlab-ruby:
     - build:gitlab-ruby
   script:
     - build_if_needed
-    - push_tags
+    - push_if_master_or_stable_or_tag
 
 build:gitlab-graphicsmagick:
   <<: *build-job-base
@@ -257,8 +257,8 @@ gitlab-graphicsmagick:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${GM_VERSION}" | sha1sum))
     - export GM_VERSION_MINOR=$(expr match $GM_VERSION '\(^[0-9]\+.[0-9]\+\)')
     - build_if_needed --build-arg "GM_VERSION=$GM_VERSION" --build-arg "GM_VERSION_MINOR=$GM_VERSION_MINOR"
-    - push_tags
-    - push_tags $GM_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag $GM_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-graphicsmagick_container.txt
 
 build:postgresql:
@@ -279,8 +279,8 @@ postgresql:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PG_VERSION" | sha1sum))
     - build_if_needed --build-arg "PG_VERSION=$PG_VERSION"
                       --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}debian"
-    - push_tags
-    - push_tags $PG_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag $PG_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/postgresql_container.txt
 
 cfssl-self-sign:
@@ -293,8 +293,8 @@ cfssl-self-sign:
     - build_if_needed --build-arg "CFSSL_VERSION=$CFSSL_VERSION"
                       --build-arg "ALPINE_VERSION=$ALPINE_VERSION"
                       --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}alpine"
-    - push_tags
-    - push_tags "$CFSSL_VERSION"
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag "$CFSSL_VERSION"
 
 build:kubectl:
   <<: *build-job-base
@@ -314,8 +314,8 @@ kubectl:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"
                       --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}debian"
-    - push_tags
-    - push_tags $KUBECTL_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag $KUBECTL_VERSION${IMAGE_TAG_EXT}
 
 alpine-certificates:
   <<: *job-base
@@ -329,8 +329,8 @@ alpine-certificates:
     - build_if_needed --build-arg "ALPINE_VERSION=${ALPINE_VERSION}"
                       --build-arg "CA_PKG_VERSION=${CA_PKG_VERSION}"
                       --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}alpine"
-    - push_tags
-    - push_tags ${CA_PKG_VERSION}
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag ${CA_PKG_VERSION}
 
 build:gitlab-python:
   <<: *build-job-base
@@ -350,8 +350,8 @@ gitlab-python:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
     - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
                       --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}debian"
-    - push_tags
-    - push_tags ${PYTHON_VERSION}${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag ${PYTHON_VERSION}${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/python_container.txt
 
 build:gitlab-go:
@@ -372,7 +372,7 @@ gitlab-go:
     - build_if_needed --build-arg "GO_VERSION=$GO_VERSION"
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
-    - push_tags
+    - push_if_master_or_stable_or_tag
   dependencies:
       - gitlab-ruby
       - build:gitlab-go
@@ -444,7 +444,7 @@ gitlab-rails-ee:
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GM_IMAGE=${gm_image}"
-    - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
     -   container_id=$(docker create "${CI_REGISTRY_IMAGE}/${image_name}")
@@ -489,7 +489,7 @@ gitlab-rails-ce:
                       --build-arg "PG_IMAGE=$pg_image"
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
                       --build-arg "GM_IMAGE=${gm_image}"
-    - push_tags $GITLAB_REF_SLUG
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
     -   container_id=$(docker create "${CI_REGISTRY_IMAGE}/${image_name}")
@@ -538,7 +538,7 @@ gitlab-task-runner-ee:
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
-    - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
@@ -561,7 +561,7 @@ gitlab-task-runner-ce:
                       --build-arg "TAG=$rails_container"
                       --build-arg "PYTHON_TAG=${python_version}"
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
-    - push_tags $GITLAB_REF_SLUG
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
     - gitlab-python
@@ -581,7 +581,7 @@ gitlab-geo-logcursor:
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
-    - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
 
@@ -618,7 +618,7 @@ gitlab-webservice-ee:
                       --build-arg "PYTHON_TAG=${python_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
-    - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
@@ -638,7 +638,7 @@ gitlab-webservice-ce:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
                       --build-arg "TAG=$rails_container"
-    - push_tags $GITLAB_REF_SLUG
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
 
@@ -675,7 +675,7 @@ gitlab-actioncable-ee:
                       --build-arg "PYTHON_TAG=${python_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
-    - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
@@ -695,7 +695,7 @@ gitlab-actioncable-ce:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
                       --build-arg "TAG=$rails_container"
-    - push_tags $GITLAB_REF_SLUG
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
 
@@ -732,7 +732,7 @@ gitlab-sidekiq-ee:
                       --build-arg "PYTHON_TAG=${python_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
-    - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
@@ -752,7 +752,7 @@ gitlab-sidekiq-ce:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
                       --build-arg "TAG=$rails_container"
-    - push_tags $GITLAB_REF_SLUG
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
 
@@ -782,8 +782,8 @@ gitlab-exporter:
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
-    - push_tags
-    - push_tags $GITLAB_EXPORTER_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag $GITLAB_EXPORTER_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-ruby
     - build:gitlab-exporter
@@ -810,8 +810,8 @@ gitlab-mailroom:
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
-    - push_tags
-    - push_tags $MAILROOM_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag $MAILROOM_VERSION${IMAGE_TAG_EXT}
   dependencies:
       - gitlab-ruby
       - build:gitlab-mailroom
@@ -857,7 +857,7 @@ gitlab-shell:
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "CACHE_BUSTER=$GITLAB_SHELL_VERSION$(date -uI)"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
-    - push_tags $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/shell_container.txt
   dependencies:
     - gitlab-go
@@ -889,8 +889,8 @@ git-base:
     - build_if_needed --build-arg "TAG=$go_version"
                       --build-arg "GIT_VERSION=$GIT_VERSION"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
-    - push_tags
-    - push_tags $GIT_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag
+    - push_if_master_or_stable_or_tag $GIT_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/git_container.txt
 
 build:gitlab-elasticsearch-indexer:
@@ -930,7 +930,7 @@ gitlab-elasticsearch-indexer:
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_ELASTICSEARCH_INDEXER_VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
-    - push_tags "$GITLAB_ELASTICSEARCH_INDEXER_VERSION${IMAGE_TAG_EXT}"
+    - push_if_master_or_stable_or_tag "$GITLAB_ELASTICSEARCH_INDEXER_VERSION${IMAGE_TAG_EXT}"
 
 build:gitaly:
   <<: *build-job-base
@@ -974,7 +974,7 @@ gitaly:
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "CACHE_BUSTER=$GITALY_SERVER_VERSION$(date -uI)"
                       --build-arg "GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${git_version}${IMAGE_TAG_EXT}"
-    - push_tags $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - git-base
     - build:gitaly
@@ -1011,7 +1011,7 @@ gitlab-container-registry:
                       --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
                       --build-arg "REGISTRY_NAMESPACE=gitlab-org"
                       --build-arg "DEPENDENCY_PROXY=${DEPENDENCY_PROXY}"
-    - push_tags $GITLAB_CONTAINER_REGISTRY_VERSION${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITLAB_CONTAINER_REGISTRY_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - git-base
     - gitlab-go
@@ -1063,7 +1063,7 @@ gitlab-workhorse-ee:
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
-    - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - git-base
     - gitlab-rails-ee
@@ -1091,7 +1091,7 @@ gitlab-workhorse-ce:
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ce"
-    - push_tags $GITLAB_REF_SLUG
+    - push_if_master_or_stable_or_tag $GITLAB_REF_SLUG
   dependencies:
     - git-base
     - gitlab-rails-ce
@@ -1152,7 +1152,7 @@ ubi-assets-release:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/ && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
       when: manual
   before_script:
-    - export UBI_RELEASE_TAG=${CI_COMMIT_TAG:-master}
+    - export UBI_RELEASE_TAG=${CI_COMMIT_TAG:-latest}
     - export AWS_ACCESS_KEY_ID="${GPG_KEY_AWS_ACCESS_KEY_ID}"
     - export AWS_SECRET_ACCESS_KEY="${GPG_KEY_AWS_SECRET_ACCESS_KEY}"
     - aws s3 cp --quiet ${GPG_KEY_LOCATION} /tmp/private.pem

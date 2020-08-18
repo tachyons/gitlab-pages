@@ -1,6 +1,6 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG PYTHON_VERSION="3.7.3"
-ARG TAG="master"
+ARG TAG=latest
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee"
 
 FROM ${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_VERSION} as python
