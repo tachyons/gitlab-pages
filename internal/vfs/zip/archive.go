@@ -3,11 +3,12 @@ package zip
 import (
 	"archive/zip"
 	"context"
-	"io"
-	"io/ioutil"
-	"os"
-	"strings"
+	"errors"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
@@ -65,8 +66,14 @@ func (a *zipArchive) close() {
 	a.zip = nil
 }
 
+func (a *zipArchive) findFile(name string) *zip.File {
+	name = filepath.Clean(name)
+	name = strings.TrimPrefix(name, "/")
+	return a.files[name]
+}
+
 func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error) {
-	file := a.files[name]
+	file := a.findFile(name)
 	if file == nil {
 		return nil, os.ErrNotExist
 	}
@@ -74,27 +81,18 @@ func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error
 	return file.FileInfo(), nil
 }
 
-func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) {
-	file := a.files[name]
+func (a *zipArchive) EvalSymlinks(ctx context.Context, name string) (string, error) {
+	file := a.findFile(name)
 	if file == nil {
 		return "", os.ErrNotExist
 	}
 
 	if file.FileInfo().Mode()&os.ModeSymlink != os.ModeSymlink {
-		return "", os.ErrInvalid
+		return name, nil
 	}
 
-	rc, err := file.Open()
-	if err != nil {
-		return "", err
-	}
-
-	data, err := ioutil.ReadAll(&io.LimitedReader{R: rc, N: maxSymlinkSize})
-	if err != nil {
-		return "", err
-	}
-
-	return string(data), nil
+	// TODO: to be implemented
+	return "", errors.New("to be implemented")
 }
 
 func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
@@ -124,7 +122,7 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 	switch file.Method {
 	case zip.Deflate:
 		reader = newDeflateReader(reader)
-	
+
 	case zip.Store:
 		// no-op
 

@@ -16,7 +16,7 @@ type zipVFS struct {
 	cache *cache.Cache
 }
 
-func (fs *zipVFS) Dir(ctx context.Context, path string) (vfs.Dir, error) {
+func (fs *zipVFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 	// we do it in loop to not use any additional locks
 	for {
 		dir, till, found := fs.cache.GetWithExpiration(path)
