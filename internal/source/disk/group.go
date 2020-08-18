@@ -97,6 +97,9 @@ func (g *Group) Resolve(r *http.Request) (*serving.Request, error) {
 		ProjectID:          projectConfig.ID,
 	}
 
+	lookupPath.VFS = "zip"
+	lookupPath.Path = "http://192.168.88.233:9000/test-bucket/doc-gitlab-com.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TEST_KEY%2F20200818%2F%2Fs3%2Faws4_request&X-Amz-Date=20200818T173935Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=95810918d1b2441a07385838ebba5a0f01fdf4dcdf94ea9c602f8e7d06c84019"
+
 	return &serving.Request{
 		Serving:    disk.Instance(),
 		LookupPath: lookupPath,

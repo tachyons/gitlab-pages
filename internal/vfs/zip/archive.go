@@ -50,7 +50,6 @@ func (a *zipArchive) processZip() {
 		if !strings.HasPrefix(file.Name, dirPrefix) {
 			continue
 		}
-
 		a.files[file.Name] = file
 	}
 
@@ -67,9 +66,17 @@ func (a *zipArchive) close() {
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {
-	name = filepath.Clean(name)
-	name = strings.TrimPrefix(name, "/")
-	return a.files[name]
+	name = filepath.Join("public", name)
+
+	if file := a.files[name]; file != nil {
+		return file
+	}
+
+	if dir := a.files[name+"/"]; dir != nil {
+		return dir
+	}
+
+	return nil
 }
 
 func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error) {
@@ -96,7 +103,7 @@ func (a *zipArchive) EvalSymlinks(ctx context.Context, name string) (string, err
 }
 
 func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
-	file := a.files[name]
+	file := a.findFile(name)
 	if file == nil {
 		return nil, os.ErrNotExist
 	}
@@ -135,7 +142,8 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 
 func newArchive(path string) *zipArchive {
 	return &zipArchive{
-		path: path,
-		done: make(chan struct{}),
+		path:  path,
+		done:  make(chan struct{}),
+		files: make(map[string]*zip.File),
 	}
 }
