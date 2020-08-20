@@ -5,6 +5,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -14,8 +15,9 @@ var disk = &Disk{
 	reader: Reader{
 		fileSizeMetric: metrics.DiskServingFileSize,
 		vfs: map[string]vfs.VFS{
-			"":      localVFS, // default to use if not specified
+			"":      localVFS,
 			"local": localVFS,
+			"zip":   vfs.Instrumented(zip.New(), "zip"),
 		},
 	},
 }
