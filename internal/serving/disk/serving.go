@@ -36,8 +36,8 @@ func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
 	httperrors.Serve404(h.Writer)
 }
 
-// New returns a serving instance that is capable of reading files
+// Instance returns a serving instance that is capable of reading files
 // from the disk
-func New() serving.Serving {
+func Instance() serving.Serving {
 	return disk
 }

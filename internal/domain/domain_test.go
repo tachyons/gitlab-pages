@@ -23,7 +23,7 @@ type stubbedResolver struct {
 
 func (resolver *stubbedResolver) Resolve(*http.Request) (*serving.Request, error) {
 	return &serving.Request{
-		Serving:    disk.New(),
+		Serving:    disk.Instance(),
 		LookupPath: resolver.project,
 		SubPath:    resolver.subpath,
 	}, resolver.err

@@ -24,7 +24,7 @@ func (p *customProjectResolver) Resolve(r *http.Request) (*serving.Request, erro
 	}
 
 	return &serving.Request{
-		Serving:    disk.New(),
+		Serving:    disk.Instance(),
 		LookupPath: lookupPath,
 		SubPath:    r.URL.Path,
 	}, nil
