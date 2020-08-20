@@ -19,7 +19,7 @@ import (
 // Reader is a disk access driver
 type Reader struct {
 	fileSizeMetric prometheus.Histogram
-	vfs            vfs.VFS
+	vfs            map[string]vfs.VFS
 }
 
 func (reader *Reader) tryFile(h serving.Handler) error {
@@ -76,7 +76,12 @@ func (reader *Reader) tryNotFound(h serving.Handler) error {
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
 func (reader *Reader) resolvePath(ctx context.Context, lookupPath *serving.LookupPath, subPath ...string) (vfs.Root, string, error) {
-	root, err := reader.vfs.Root(ctx, lookupPath.Path)
+	vfs := reader.vfs[lookupPath.VFS]
+	if vfs == nil {
+		return nil, "", fmt.Errorf("unknown VFS: %q", lookupPath.VFS)
+	}
+
+	root, err := vfs.Root(ctx, lookupPath.Path)
 	if err != nil {
 		return nil, "", err
 	}

@@ -88,6 +88,7 @@ func (g *Group) Resolve(r *http.Request) (*serving.Request, error) {
 	}
 
 	lookupPath := &serving.LookupPath{
+		VFS:                "local",
 		Prefix:             prefix,
 		Path:               filepath.Join(g.name, projectPath, "public") + "/",
 		IsNamespaceProject: projectConfig.NamespaceProject,

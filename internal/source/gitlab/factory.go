@@ -16,6 +16,7 @@ import (
 // https://gitlab.com/gitlab-org/gitlab-pages/issues/272
 func fabricateLookupPath(size int, lookup api.LookupPath) *serving.LookupPath {
 	return &serving.LookupPath{
+		VFS:                lookup.VFS,
 		Prefix:             lookup.Prefix,
 		Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
 		IsNamespaceProject: (lookup.Prefix == "/" && size > 1),

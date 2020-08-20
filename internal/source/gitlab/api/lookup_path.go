@@ -2,6 +2,7 @@ package api
 
 // LookupPath represents a lookup path for a virtual domain
 type LookupPath struct {
+	VFS           string `json:"vfs",omitempty`
 	ProjectID     int    `json:"project_id,omitempty"`
 	AccessControl bool   `json:"access_control,omitempty"`
 	HTTPSOnly     bool   `json:"https_only,omitempty"`

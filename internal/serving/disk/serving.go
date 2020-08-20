@@ -8,10 +8,15 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
+var localVFS = vfs.Instrumented(local.VFS{}, "local")
+
 var disk = &Disk{
 	reader: Reader{
 		fileSizeMetric: metrics.DiskServingFileSize,
-		vfs:            vfs.Instrumented(local.VFS{}, "disk"),
+		vfs: map[string]vfs.VFS{
+			"":      localVFS, // default to use if not specified
+			"local": localVFS,
+		},
 	},
 }
 

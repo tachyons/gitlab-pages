@@ -15,6 +15,7 @@ type customProjectResolver struct {
 
 func (p *customProjectResolver) Resolve(r *http.Request) (*serving.Request, error) {
 	lookupPath := &serving.LookupPath{
+		VFS:                "local",
 		Prefix:             "/",
 		Path:               p.path,
 		IsNamespaceProject: false,
