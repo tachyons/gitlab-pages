@@ -15,7 +15,7 @@ var disk = &Disk{
 	reader: Reader{
 		fileSizeMetric: metrics.DiskServingFileSize,
 		vfs: map[string]vfs.VFS{
-			"":      localVFS,
+			"":      localVFS, // default to use if not specified
 			"local": localVFS,
 			"zip":   vfs.Instrumented(zip.New(), "zip"),
 		},

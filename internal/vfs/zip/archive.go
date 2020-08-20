@@ -12,29 +12,27 @@ import (
 	"sync"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/zip/http_range"
 )
 
 const dirPrefix = "public/"
 const maxSymlinkSize = 256
 
 type zipArchive struct {
-	path      string
-	once      sync.Once
-	done      chan struct{}
-	zip       *zip.Reader
-	zipCloser io.Closer
-	files     map[string]*zip.File
-	zipErr    error
+	path string
+	once sync.Once
+	done chan struct{}
+
+	resource *http_range.Resource
+	reader   *http_range.ReadAtReader
+	archive  *zip.Reader
+	err      error
+
+	files map[string]*zip.File
 }
 
 func (a *zipArchive) openArchive(ctx context.Context) error {
-	a.once.Do(func() {
-		a.zip, a.zipCloser, a.zipErr = openZIPArchive(a.path)
-		if a.zip != nil {
-			a.processZip()
-		}
-		close(a.done)
-	})
+	a.once.Do(a.readArchive)
 
 	// wait for it to close
 	// or exit early
@@ -42,31 +40,41 @@ func (a *zipArchive) openArchive(ctx context.Context) error {
 	case <-a.done:
 	case <-ctx.Done():
 	}
-	return a.zipErr
+	return a.err
 }
 
-func (a *zipArchive) processZip() {
-	for _, file := range a.zip.File {
-		if !strings.HasPrefix(file.Name, dirPrefix) {
-			continue
-		}
-		a.files[file.Name] = file
+func (a *zipArchive) readArchive() {
+	a.resource, a.err = http_range.NewResource(context.Background(), a.path)
+	if a.err != nil {
+		return
 	}
 
-	// recycle memory
-	a.zip.File = nil
+	a.reader = http_range.NewReadAt(a.resource)
+	a.reader.WithCachedReader(func() {
+		a.archive, a.err = zip.NewReader(a.reader, a.resource.Size)
+	})
+
+	if a.archive != nil {
+		for _, file := range a.archive.File {
+			if !strings.HasPrefix(file.Name, dirPrefix) {
+				continue
+			}
+			a.files[file.Name] = file
+		}
+
+		// recycle memory
+		a.archive.File = nil
+	}
+
+	close(a.done)
 }
 
 func (a *zipArchive) close() {
-	if a.zipCloser != nil {
-		a.zipCloser.Close()
-	}
-	a.zipCloser = nil
-	a.zip = nil
+	// no-op: everything can be GC recycled
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {
-	name = filepath.Join("public", name)
+	name = filepath.Join(dirPrefix, name)
 
 	if file := a.files[name]; file != nil {
 		return file
@@ -128,17 +136,8 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 	}
 
 	// TODO: We can support `io.Seeker` if file would not be compressed
-
-	if !isHTTPArchive(a.path) {
-		return file.Open()
-	}
-
-	var reader io.ReadCloser
-	reader = &httpReader{
-		URL: a.path,
-		Off: dataOffset,
-		N:   int64(file.UncompressedSize64),
-	}
+	var reader vfs.File
+	reader = a.reader.SectionReader(dataOffset, int64(file.CompressedSize64))
 
 	switch file.Method {
 	case zip.Deflate:
