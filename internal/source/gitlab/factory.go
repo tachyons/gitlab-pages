@@ -31,7 +31,7 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 
 	switch source.Type {
 	case "file":
-		return disk.New()
+		return disk.Instance()
 	case "serverless":
 		serving, err := serverless.NewFromAPISource(source.Serverless)
 		if err != nil {
@@ -47,5 +47,5 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 }
 
 func defaultServing() serving.Serving {
-	return disk.New()
+	return disk.Instance()
 }

@@ -84,7 +84,7 @@ func (g *Group) Resolve(r *http.Request) (*serving.Request, error) {
 	if projectConfig == nil {
 		// it is not an error when project does not exist, in that case
 		// serving.Request.LookupPath is nil.
-		return &serving.Request{Serving: disk.New()}, nil
+		return &serving.Request{Serving: disk.Instance()}, nil
 	}
 
 	lookupPath := &serving.LookupPath{
@@ -97,7 +97,7 @@ func (g *Group) Resolve(r *http.Request) (*serving.Request, error) {
 	}
 
 	return &serving.Request{
-		Serving:    disk.New(),
+		Serving:    disk.Instance(),
 		LookupPath: lookupPath,
 		SubPath:    subPath,
 	}, nil

@@ -44,7 +44,7 @@ func (d *Domain) resolve(r *http.Request) *serving.Request {
 	// TODO improve code around default serving, when `disk` serving gets removed
 	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
 	if request == nil {
-		return &serving.Request{Serving: disk.New()}
+		return &serving.Request{Serving: disk.Instance()}
 	}
 
 	return request

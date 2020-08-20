@@ -15,7 +15,7 @@ import (
 func TestDisk_ServeFileHTTP(t *testing.T) {
 	defer setUpTests(t)()
 
-	s := New()
+	s := Instance()
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "http://group.gitlab-example.com/serving/index.html", nil)
 	handler := serving.Handler{
