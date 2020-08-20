@@ -88,18 +88,32 @@ func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error
 	return file.FileInfo(), nil
 }
 
-func (a *zipArchive) EvalSymlinks(ctx context.Context, name string) (string, error) {
+func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) {
 	file := a.findFile(name)
 	if file == nil {
 		return "", os.ErrNotExist
 	}
 
 	if file.FileInfo().Mode()&os.ModeSymlink != os.ModeSymlink {
-		return name, nil
+		return "", errors.New("not a symlink")
 	}
 
-	// TODO: to be implemented
-	return "", errors.New("to be implemented")
+	rc, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer rc.Close()
+
+	symlink := make([]byte, maxSymlinkSize+1)
+	_, err = io.ReadFull(rc, symlink)
+	if err != nil {
+		return "", err
+	}
+	if len(symlink) > maxSymlinkSize {
+		return "", errors.New("symlink too long")
+	}
+
+	return string(symlink), nil
 }
 
 func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
