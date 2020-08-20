@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
@@ -37,10 +36,6 @@ func (h *httpReader) ensureRequest(requestedSize int) error {
 		return err
 	}
 	requests++
-	if requests > 10000 {
-		println("Too many requests")
-		os.Exit(1)
-	}
 
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", h.Off, h.Off+h.N-1))
 	res, err := httpClient.Do(req)
