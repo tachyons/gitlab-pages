@@ -22,9 +22,16 @@ var (
 )
 
 type Reader struct {
-	R            *Resource
-	offset, size int64
-	res          *http.Response
+	R *Resource
+
+	// res defines a current response serving data
+	res *http.Response
+	// rangeStart defines an starting range
+	rangeStart int64
+	// rangeSize defines a size of range
+	rangeSize int64
+	// offset defines a current place where data is being read from
+	offset int64
 }
 
 var httpClient = &http.Client{
@@ -39,7 +46,10 @@ func (h *Reader) ensureRequest() (err error) {
 		return nil
 	}
 
-	if h.offset < 0 || h.size < 0 || h.offset+h.size > h.R.Size {
+	if h.rangeStart < 0 || h.rangeSize < 0 || h.rangeStart+h.rangeSize > h.R.Size {
+		return ErrInvalidRange
+	}
+	if h.offset < h.rangeStart || h.offset >= h.rangeStart+h.rangeSize {
 		return ErrInvalidRange
 	}
 
@@ -54,7 +64,7 @@ func (h *Reader) ensureRequest() (err error) {
 		req.Header.Set("If-Range", h.R.Etag)
 	}
 
-	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", h.offset, h.offset+h.size-1))
+	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", h.offset, h.rangeStart+h.rangeSize-1))
 
 	res, err := httpClient.Do(req)
 	if err != nil {
@@ -90,9 +100,57 @@ func (h *Reader) ensureRequest() (err error) {
 	return nil
 }
 
-// WithinRange checks if a given data can be read efficiently
-func (h *Reader) WithinRange(offset, n int64) bool {
-	return h.offset == offset && n <= h.size
+func (h *Reader) Seek(offset int64, whence int) (int64, error) {
+	// SeekStart means relative to the start of the file,
+	// SeekCurrent means relative to the current offset, and
+	// SeekEnd means relative to the end.
+	// Seek returns the new offset relative to the start of the
+	// file and an error, if any.
+
+	var newOffset int64
+
+	switch whence {
+	case io.SeekStart:
+		newOffset = h.rangeStart + offset
+
+	case io.SeekCurrent:
+		newOffset = h.offset + offset
+
+	case io.SeekEnd:
+		newOffset = h.rangeStart + h.rangeSize
+
+	default:
+		return 0, errors.New("invalid whence")
+	}
+
+	if newOffset < h.rangeStart || newOffset > h.rangeStart+h.rangeSize {
+		return 0, errors.New("outside of range")
+	}
+
+	if newOffset != h.offset {
+		// recycle h.res
+		h.Close()
+	}
+
+	h.offset = newOffset
+	return newOffset - h.rangeStart, nil
+}
+
+// CanRead checks if a given data can be read from the current offset
+func (h *Reader) CanRead(offset, n int64) bool {
+	if offset < 0 || n < 0 {
+		return false
+	}
+
+	if h.offset != offset {
+		return false
+	}
+
+	if offset+n >= h.rangeStart+h.rangeSize {
+		return false
+	}
+
+	return true
 }
 
 // Read reads a data into a given buffer
@@ -109,7 +167,6 @@ func (h *Reader) Read(p []byte) (int, error) {
 
 	if err == nil || err == io.EOF {
 		h.offset += int64(n)
-		h.size -= int64(n)
 	}
 	return n, err
 }
@@ -118,12 +175,14 @@ func (h *Reader) Read(p []byte) (int, error) {
 func (h *Reader) Close() error {
 	if h.res != nil {
 		// TODO: should we read till end?
-		return h.res.Body.Close()
+		err := h.res.Body.Close()
+		h.res = nil
+		return err
 	}
 	return nil
 }
 
 // NewReader creates a Reader object on a given resource for a given range
 func NewReader(resource *Resource, offset, n int64) *Reader {
-	return &Reader{R: resource, offset: offset, size: n}
+	return &Reader{R: resource, rangeStart: offset, rangeSize: n, offset: offset}
 }

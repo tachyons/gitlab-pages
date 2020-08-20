@@ -10,7 +10,7 @@ type ReadAtReader struct {
 }
 
 func (h *ReadAtReader) cachedRead(p []byte, off int64) (n int, err error) {
-	if !h.cachedReader.WithinRange(off, int64(len(p))) {
+	if !h.cachedReader.CanRead(off, int64(len(p))) {
 		h.cachedReader.Close()
 		h.cachedReader = NewReader(h.R, off, h.R.Size-off)
 	}
