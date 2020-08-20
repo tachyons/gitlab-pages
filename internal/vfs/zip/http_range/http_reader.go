@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -40,6 +41,9 @@ var httpClient = &http.Client{
 	Timeout:   30 * time.Minute,
 	Transport: httptransport.NewTransportWithMetrics(metrics.ZIPHttpReaderReqDuration, metrics.ZIPHttpReaderReqTotal),
 }
+
+// ensure that Reader is seekable
+var seekableReader vfs.SeekableFile = &Reader{}
 
 func (h *Reader) ensureRequest() (err error) {
 	if h.res != nil {

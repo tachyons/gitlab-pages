@@ -135,22 +135,18 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 		return nil, err
 	}
 
-	// TODO: We can support `io.Seeker` if file would not be compressed
-	var reader vfs.File
-	reader = a.reader.SectionReader(dataOffset, int64(file.CompressedSize64))
+	reader := a.reader.SectionReader(dataOffset, int64(file.CompressedSize64))
 
 	switch file.Method {
 	case zip.Deflate:
-		reader = newDeflateReader(reader)
+		return newDeflateReader(reader), nil
 
 	case zip.Store:
-		// no-op
+		return reader, nil
 
 	default:
 		return nil, fmt.Errorf("unsupported compression: %x", file.Method)
 	}
-
-	return reader, nil
 }
 
 func newArchive(path string) *zipArchive {

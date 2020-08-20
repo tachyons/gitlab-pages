@@ -155,7 +155,7 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 	w.Header().Set("Content-Type", contentType)
 
 	// TODO: Support it here
-	if rs, ok := file.(io.ReadSeeker); ok {
+	if rs, ok := file.(vfs.SeekableFile); ok {
 		http.ServeContent(w, r, origPath, fi.ModTime(), rs)
 	} else {
 		// Support ReadSeeker if available
