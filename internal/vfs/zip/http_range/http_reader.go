@@ -140,23 +140,6 @@ func (h *Reader) Seek(offset int64, whence int) (int64, error) {
 	return newOffset - h.rangeStart, nil
 }
 
-// CanRead checks if a given data can be read from the current offset
-func (h *Reader) CanRead(offset, n int64) bool {
-	if offset < 0 || n < 0 {
-		return false
-	}
-
-	if h.offset != offset {
-		return false
-	}
-
-	if offset+n >= h.rangeStart+h.rangeSize {
-		return false
-	}
-
-	return true
-}
-
 // Read reads a data into a given buffer
 func (h *Reader) Read(p []byte) (int, error) {
 	if len(p) == 0 {

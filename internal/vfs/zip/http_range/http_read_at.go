@@ -9,10 +9,10 @@ type ReadAtReader struct {
 	cachedReader *Reader
 }
 
-func (h *ReadAtReader) cachedRead(p []byte, off int64) (n int, err error) {
-	if !h.cachedReader.CanRead(off, int64(len(p))) {
-		h.cachedReader.Close()
-		h.cachedReader = NewReader(h.R, off, h.R.Size-off)
+func (h *ReadAtReader) cachedRead(p []byte, off int64) (int, error) {
+	_, err := h.cachedReader.Seek(off, io.SeekStart)
+	if err != nil {
+		return 0, err
 	}
 
 	return io.ReadFull(h.cachedReader, p)
