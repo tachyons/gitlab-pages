@@ -27,18 +27,22 @@ func (i *instrumentedVFS) increment(operation string, err error) {
 	metrics.VFSOperations.WithLabelValues(i.name, operation, strconv.FormatBool(err == nil)).Inc()
 }
 
+func (i *instrumentedVFS) log() *log.Entry {
+	return log.WithField("vfs", i.name)
+}
+
 func (i *instrumentedVFS) Root(ctx context.Context, path string) (Root, error) {
 	root, err := i.fs.Root(ctx, path)
+
 	i.increment("Root", err)
-
-	if root != nil {
-		root = &instrumentedRoot{root: root, name: i.name, path: path}
-	}
-
-	log.WithField("vfs", i.name).
+	i.log().
 		WithField("path", path).
 		WithError(err).
 		Traceln("Root call")
 
-	return root, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &instrumentedRoot{root: root, name: i.name, rootPath: path}, nil
 }
