@@ -1,4 +1,4 @@
-ARG TAG=latest
+ARG TAG="master"
 ARG FROM_IMAGE=registry.gitlab.com/gitlab-org/build/cng/gitlab-ruby
 
 FROM ${FROM_IMAGE}:${TAG}
