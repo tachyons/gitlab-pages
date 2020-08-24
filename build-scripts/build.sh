@@ -74,7 +74,7 @@ function build_if_needed(){
     if [ -z ${DISABLE_DOCKER_BUILD_CACHE+x} ]; then
       CACHE_IMAGE="$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}"
       if ! $(docker pull $CACHE_IMAGE > /dev/null); then
-        CACHE_IMAGE="$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:latest${IMAGE_TAG_EXT}"
+        CACHE_IMAGE="$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:master${IMAGE_TAG_EXT}"
         docker pull $CACHE_IMAGE || true
       fi
 
@@ -83,7 +83,7 @@ function build_if_needed(){
 
     # Add build image argument for UBI build stage
     if [ "${UBI_BUILD_IMAGE}" = 'true' ]; then
-      [ -z "${BUILD_IMAGE}" ] && export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:latest-ubi8"
+      [ -z "${BUILD_IMAGE}" ] && export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:master-ubi8"
       DOCKER_ARGS+=(--build-arg BUILD_IMAGE="${BUILD_IMAGE}")
     fi
 
@@ -98,9 +98,6 @@ function build_if_needed(){
     # Push new image unless it is a UBI build image
     if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
       docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}"
-
-      # Create a tag based on Branch/Tag name for easy reference
-      tag_and_push $CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}
     fi
   fi
 
@@ -118,8 +115,12 @@ function tag_and_push(){
   fi
 }
 
-function push_latest(){
-  tag_and_push "latest${IMAGE_TAG_EXT}"
+function push_master(){
+  tag_and_push "master${IMAGE_TAG_EXT}"
+}
+
+function push_branch_slug(){
+  tag_and_push $CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}
 }
 
 function get_version(){
@@ -138,6 +139,18 @@ function is_tag(){
   [ -n "${CI_COMMIT_TAG}" ] || [ -n "${GITLAB_TAG}" ]
 }
 
+function is_auto_deploy(){
+  [[ $CI_COMMIT_BRANCH =~ $AUTO_DEPLOY_BRANCH_REGEX ]] || [[ $CI_COMMIT_TAG =~ $AUTO_DEPLOY_TAG_REGEX ]]
+}
+
+function is_regular_tag(){
+  is_tag && ! is_auto_deploy
+}
+
+function is_branch(){
+  [ -n "${CI_COMMIT_BRANCH}" ]
+}
+
 function trim_edition(){
   echo $1 | sed -e "s/-.e\(-ubi8\)\?$/\1/"
 }
@@ -146,33 +159,40 @@ function trim_tag(){
   echo $(trim_edition $1) | sed -e "s/^v//"
 }
 
-function push_if_master_or_stable_or_tag(){
-
-  # For tag pipelines, nothing needs to be done on gitlab.com project. Images
-  # will be built, and copied to .com registry as part of the release. However,
-  # this check is done here intentionally, and not at build time (which
-  # involves pushing CONTAINER_VERSION, CI_COMMIT_REF_SLUG tags also) because
-  # we may not be syncing build images, but only the user facing images.
-  if [ "$CI_REGISTRY" == "registry.gitlab.com" ] && [ -n "$CI_COMMIT_TAG" ]; then
-    return
-  fi
-
+function push_tags(){
   if [ ! -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
     echo "Skipping $(get_trimmed_job_name): Dockerfile${DOCKERFILE_EXT} does not exist."
     return 0
   fi
 
-  if is_master || is_stable || is_tag; then
-    if [ -z "$1" ] || [ "$1" == "master" ]; then
-      push_latest
-    else
-      local edition="$1"
-      if is_tag; then
-        edition=$(trim_edition $edition)
-      fi
-      tag_and_push $edition
-      echo "${CI_JOB_NAME#build:*}:$edition" > "artifacts/images/${CI_JOB_NAME#build:*}.txt"
+  # If a version has been specified and we are on master branch or a
+  # non-auto-deploy tag, we use the specified version.
+  if [ -n "$1" ] && (is_master || is_regular_tag); then
+    local edition=$1
+
+    # If on a non-auto-deploy tag pipeline, we can trim the `-ee` and `-ubi8`
+    # suffixes.
+    if is_regular_tag; then
+      edition=$(trim_edition $edition)
     fi
+
+    tag_and_push $edition
+
+    # Once a SemVer tag is used, that gets precedence over CONTAINER_VERSION.
+    # So we overwrite the recorded information.
+    echo "${CI_JOB_NAME#build:*}:$edition" > "artifacts/images/${CI_JOB_NAME#build:*}.txt"
+  elif is_regular_tag; then
+    # If no version is specified, but on a non-auto-deploy tag pipeline, we use
+    # the trimmed tag.
+    trimmed_tag=$(trim_edition $CI_COMMIT_TAG)
+
+    tag_and_push $trimmed_tag
+  else
+    # If a version was specified but on a branch or auto-deploy tag,
+    # OR
+    # if no version was specified at all,
+    # we use the slug.
+    tag_and_push ${CI_COMMIT_REF_SLUG}
   fi
 }
 
