@@ -55,7 +55,6 @@ func (d *Domains) setConfigSource(config Config) error {
 	// attach gitlab by default when source is not disk (auto, gitlab)
 	switch config.DomainConfigSource() {
 	case "gitlab":
-		// TODO:  https://gitlab.com/gitlab-org/gitlab/-/issues/218357
 		d.configSource = sourceGitlab
 		return d.setGitLabClient(config)
 	case "auto":
