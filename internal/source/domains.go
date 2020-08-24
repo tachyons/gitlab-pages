@@ -39,11 +39,7 @@ type Domains struct {
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
 func NewDomains(config Config) (*Domains, error) {
-	domains := &Domains{
-		// TODO: disable domains.disk https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
-		disk: disk.New(),
-	}
-
+	domains := &Domains{}
 	if err := domains.setConfigSource(config); err != nil {
 		return nil, err
 	}
@@ -67,7 +63,9 @@ func (d *Domains) setConfigSource(config Config) error {
 		d.configSource = sourceAuto
 		return d.setGitLabClient(config)
 	case "disk":
+		// TODO: disable domains.disk https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 		d.configSource = sourceDisk
+		d.disk = disk.New()
 	default:
 		return fmt.Errorf("invalid option for -domain-config-source: %q", config.DomainConfigSource())
 	}
