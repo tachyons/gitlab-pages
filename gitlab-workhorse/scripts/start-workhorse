@@ -19,4 +19,5 @@ gitlab-workhorse \
   -documentRoot "/srv/gitlab/public" \
   -secretPath "/etc/gitlab/gitlab-workhorse/secret" \
   -config "/srv/gitlab/config/workhorse-config.toml" \
+  ${WORKHORSE_PROM_LISTEN_ADDR:-} \
   2>&1
