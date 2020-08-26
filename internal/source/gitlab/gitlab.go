@@ -114,3 +114,7 @@ func (g *Gitlab) IsReady() bool {
 
 	return g.isReady
 }
+
+// Read is a dummy method to match disk interface
+func (g *Gitlab) Read(string) {
+}

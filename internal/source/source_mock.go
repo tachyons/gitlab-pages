@@ -30,6 +30,10 @@ func (m *MockSource) IsReady() bool {
 	return args.Get(0).(bool)
 }
 
+func (m *MockSource) Read(rootDomain string) {
+	m.Called(rootDomain)
+}
+
 // NewMockSource returns a new Source mock for testing
 func NewMockSource() *MockSource {
 	return &MockSource{}

@@ -1,6 +1,7 @@
 package source
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 
@@ -18,128 +19,117 @@ var (
 	serverlessDomainRegex = regexp.MustCompile(`^[^.]+-[[:xdigit:]]{2}a1[[:xdigit:]]{10}f2[[:xdigit:]]{2}[[:xdigit:]]+-?.*`)
 )
 
-type configSource int
-
-const (
-	sourceGitlab configSource = iota
-	sourceDisk
-	sourceAuto
-)
-
-// Domains struct represents a map of all domains supported by pages. It is
-// currently using two sources during the transition to the new GitLab domains
-// source.
-type Domains struct {
-	configSource configSource
-	gitlab       Source
-	disk         *disk.Disk // legacy disk source
-}
-
 // NewDomains is a factory method for domains initializing a mutex. It should
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
-func NewDomains(config Config) (*Domains, error) {
-	domains := &Domains{
-		// TODO: disable domains.disk https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
-		disk: disk.New(),
-	}
-
-	if err := domains.setConfigSource(config); err != nil {
-		return nil, err
-	}
-
-	return domains, nil
-}
-
-// setConfigSource and initialize gitlab source
-// returns error if -domain-config-source is not valid
-// returns error if -domain-config-source=gitlab and init fails
-func (d *Domains) setConfigSource(config Config) error {
-	// TODO: Handle domain-config-source=auto https://gitlab.com/gitlab-org/gitlab/-/issues/218358
-	// attach gitlab by default when source is not disk (auto, gitlab)
+func NewDomains(config Config) (Source, error) {
 	switch config.DomainConfigSource() {
 	case "gitlab":
-		// TODO:  https://gitlab.com/gitlab-org/gitlab/-/issues/218357
-		d.configSource = sourceGitlab
-		return d.setGitLabClient(config)
+		return gitlab.New(config)
 	case "auto":
-		// TODO: handle DomainConfigSource == "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
-		d.configSource = sourceAuto
-		return d.setGitLabClient(config)
+		return newAutoSource(config), nil
 	case "disk":
-		d.configSource = sourceDisk
-	default:
-		return fmt.Errorf("invalid option for -domain-config-source: %q", config.DomainConfigSource())
+		return newDiskServerlessSource(config), nil
 	}
 
-	return nil
+	return nil, fmt.Errorf("invalid option for -domain-config-source: %q", config.DomainConfigSource())
 }
 
-// setGitLabClient when domain-config-source is `gitlab` or `auto`, only return error for `gitlab` source
-func (d *Domains) setGitLabClient(config Config) error {
-	// We want to notify users about any API issues
-	// Creating a glClient will start polling connectivity in the background
-	// and spam errors in log
+type notAvailableSource struct{}
+
+func (s notAvailableSource) GetDomain(domain string) (*domain.Domain, error) {
+	return nil, errors.New("Source is not available")
+}
+
+func (s notAvailableSource) IsReady() bool {
+	return false
+}
+
+func (s notAvailableSource) Read(string) {
+}
+
+type autoSource struct {
+	gitlab Source
+	disk   Source
+}
+
+func (s *autoSource) source(domain string) Source {
+	if IsServerlessDomain(domain) {
+		return s.gitlab
+	}
+
+	if s.gitlab.IsReady() {
+		return s.gitlab
+	}
+
+	return s.disk
+}
+
+func (s *autoSource) GetDomain(domain string) (*domain.Domain, error) {
+	return s.source(domain).GetDomain(domain)
+}
+
+func (s *autoSource) IsReady() bool {
+	return s.gitlab.IsReady() || s.disk.IsReady()
+}
+
+func (s *autoSource) Read(rootDomain string) {
+	s.disk.Read(rootDomain)
+}
+
+func newAutoSource(config Config) *autoSource {
+	source := &autoSource{disk: disk.New()}
+
 	glClient, err := gitlab.New(config)
 	if err != nil {
-		if d.configSource == sourceGitlab {
-			return err
-		}
-
 		log.WithError(err).Warn("failed to initialize GitLab client for `-domain-config-source=auto`")
 
-		return nil
+		source.gitlab = notAvailableSource{}
+	} else {
+		source.gitlab = glClient
 	}
 
-	d.gitlab = glClient
-
-	return nil
+	return source
 }
 
-// GetDomain retrieves a domain information from a source. We are using two
-// sources here because it allows us to switch behavior and the domain source
-// for some subset of domains, to test / PoC the new GitLab Domains Source that
-// we plan to use to replace the disk source.
-func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
-	return d.source(name).GetDomain(name)
+type diskServerlessSource struct {
+	serverless Source
+	disk       Source
 }
 
-// Read starts the disk domain source. It is DEPRECATED, because we want to
-// remove it entirely when disk source gets removed.
-func (d *Domains) Read(rootDomain string) {
-	d.disk.Read(rootDomain)
-}
-
-// IsReady checks if the disk domain source managed to traverse entire pages
-// filesystem and is ready for use. It is DEPRECATED, because we want to remove
-// it entirely when disk source gets removed.
-func (d *Domains) IsReady() bool {
-	return d.disk.IsReady()
-}
-
-func (d *Domains) source(domain string) Source {
-	if d.gitlab == nil {
-		return d.disk
-	}
-
-	// This check is only needed until we enable `d.gitlab` source in all
-	// environments (including on-premises installations) followed by removal of
-	// `d.disk` source. This can be safely removed afterwards.
+func (s *diskServerlessSource) source(domain string) Source {
 	if IsServerlessDomain(domain) {
-		return d.gitlab
+		return s.serverless
 	}
 
-	if d.configSource == sourceDisk {
-		return d.disk
+	return s.disk
+}
+
+func (s *diskServerlessSource) GetDomain(domain string) (*domain.Domain, error) {
+	return s.source(domain).GetDomain(domain)
+}
+
+func (s *diskServerlessSource) IsReady() bool {
+	return s.disk.IsReady()
+}
+
+func (s *diskServerlessSource) Read(rootDomain string) {
+	s.disk.Read(rootDomain)
+}
+
+func newDiskServerlessSource(config Config) *diskServerlessSource {
+	source := &diskServerlessSource{disk: disk.New()}
+
+	glClient, err := gitlab.New(config)
+	if err != nil {
+		log.WithError(err).Warn("failed to initialize GitLab client for serverless domains")
+
+		source.serverless = notAvailableSource{}
+	} else {
+		source.serverless = glClient
 	}
 
-	// TODO: handle sourceAuto https://gitlab.com/gitlab-org/gitlab/-/issues/218358
-	// check IsReady for sourceAuto for now
-	if d.configSource == sourceGitlab || d.gitlab.IsReady() {
-		return d.gitlab
-	}
-
-	return d.disk
+	return source
 }
 
 // IsServerlessDomain checks if a domain requested is a serverless domain we

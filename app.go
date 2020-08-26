@@ -41,7 +41,7 @@ var (
 
 type theApp struct {
 	appConfig
-	domains        *source.Domains
+	domains        source.Source
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
 	Handlers       *handlers.Handlers
