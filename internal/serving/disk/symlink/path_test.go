@@ -16,27 +16,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 )
 
 var fs = vfs.Instrumented(&local.VFS{}, "local")
-
-func tmpDir(t *testing.T) (vfs.Root, string, func()) {
-	tmpDir, err := ioutil.TempDir("", "symlink_tests")
-	require.NoError(t, err)
-
-	// On some systems `/tmp` can be a symlink
-	tmpDir, err = filepath.EvalSymlinks(tmpDir)
-	require.NoError(t, err)
-
-	root, err := fs.Root(context.Background(), tmpDir)
-	require.NoError(t, err)
-
-	return root, tmpDir, func() {
-		os.RemoveAll(tmpDir)
-	}
-}
 
 type EvalSymlinksTest struct {
 	// If dest is empty, the path is created; otherwise the dest is symlinked to the path.
@@ -100,7 +85,7 @@ func testEvalSymlinks(t *testing.T, wd, path, want string) {
 }
 
 func TestEvalSymlinks(t *testing.T) {
-	_, tmpDir, cleanup := tmpDir(t)
+	_, tmpDir, cleanup := testhelpers.TmpDir(t, "symlink_tests")
 	defer cleanup()
 
 	// Create the symlink farm using relative paths.
@@ -139,7 +124,7 @@ func TestEvalSymlinks(t *testing.T) {
 }
 
 func TestEvalSymlinksIsNotExist(t *testing.T) {
-	root, _, cleanup := tmpDir(t)
+	root, _, cleanup := testhelpers.TmpDir(t, "symlink_tests")
 	defer cleanup()
 
 	_, err := symlink.EvalSymlinks(context.Background(), root, "notexist")
@@ -160,7 +145,7 @@ func TestEvalSymlinksIsNotExist(t *testing.T) {
 }
 
 func TestIssue13582(t *testing.T) {
-	root, tmpDir, cleanup := tmpDir(t)
+	root, tmpDir, cleanup := testhelpers.TmpDir(t, "symlink_tests")
 	defer cleanup()
 
 	dir := filepath.Join(tmpDir, "dir")

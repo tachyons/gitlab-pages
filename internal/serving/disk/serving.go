@@ -1,6 +1,8 @@
 package disk
 
 import (
+	"os"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
@@ -15,7 +17,17 @@ type Disk struct {
 // ServeFileHTTP serves a file from disk and returns true. It returns false
 // when a file could not been found.
 func (s *Disk) ServeFileHTTP(h serving.Handler) bool {
-	return s.reader.tryFile(h) == nil
+	if s.reader.tryFile(h) == nil {
+		return true
+	}
+
+	if os.Getenv("FF_ENABLE_REDIRECTS") == "true" {
+		if s.reader.tryRedirects(h) == nil {
+			return true
+		}
+	}
+
+	return false
 }
 
 // ServeNotFoundHTTP tries to read a custom 404 page
