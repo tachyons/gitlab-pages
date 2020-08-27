@@ -42,6 +42,11 @@ type appConfig struct {
 	CustomHeaders             []string
 }
 
+// RootDomain is the GitLab Pages base domain from where projects will be served from.
+func (config appConfig) RootDomain() string {
+	return config.Domain
+}
+
 // InternalGitLabServerURL returns URL to a GitLab instance.
 func (config appConfig) InternalGitLabServerURL() string {
 	return config.InternalGitLabServer

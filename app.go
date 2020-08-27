@@ -12,10 +12,11 @@ import (
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/lupine/go-mimedb"
+
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
-	"gitlab.com/lupine/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
@@ -371,8 +372,6 @@ func (a *theApp) Run() {
 	if a.ListenMetrics != 0 {
 		a.listenMetricsFD(&wg, a.ListenMetrics)
 	}
-
-	a.domains.Read(a.Domain)
 
 	wg.Wait()
 }

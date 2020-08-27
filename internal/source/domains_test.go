@@ -11,9 +11,14 @@ import (
 )
 
 type sourceConfig struct {
+	rootDomain   string
 	api          string
 	secret       string
 	domainSource string
+}
+
+func (c sourceConfig) RootDomain() string {
+	return c.rootDomain
 }
 
 func (c sourceConfig) InternalGitLabServerURL() string {
@@ -191,6 +196,6 @@ func newTestDomains(t *testing.T, gitlabSource *MockSource, config configSource)
 	return &Domains{
 		configSource: config,
 		gitlab:       gitlabSource,
-		disk:         disk.New(),
+		disk:         disk.New("gitlab.io"),
 	}
 }
