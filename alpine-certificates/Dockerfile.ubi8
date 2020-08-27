@@ -1,0 +1,14 @@
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.2
+
+FROM ${UBI_IMAGE}
+
+COPY scripts/bundle-certificates-ubi /scripts/bundle-certificates
+
+# Ensure that update-ca-trust has permission when non-root user
+RUN chmod -R 770 /etc/pki/ca-trust/extracted && \
+    chmod -R 770 /usr/share/pki/ca-trust-source/anchors
+
+# bundle-certificates script will copy custom CAs into RHEL-compatible directory
+VOLUME /etc/ssl/certs /usr/local/share/ca-certificates
+
+CMD ["/scripts/bundle-certificates"]

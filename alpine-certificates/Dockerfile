@@ -10,7 +10,7 @@ FROM $FROM_IMAGE:$ALPINE_VERSION
 ARG CA_PKG_VERSION=20191127-r2
 RUN apk --update --no-cache add ca-certificates=${CA_PKG_VERSION}
 
-COPY scripts/ /scripts/
+COPY scripts/bundle-certificates /scripts/
 
 VOLUME /etc/ssl/certs /usr/local/share/ca-certificates
 
