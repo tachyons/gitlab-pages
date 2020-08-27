@@ -80,6 +80,11 @@ $ make
 $ ./gitlab-pages -listen-https ":9090" -root-cert=path/to/example.com.crt -root-key=path/to/example.com.key -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
+### Getting started with development
+
+See [docs/development.md](docs/development.md)
+
+
 ### Run daemon **in secure mode**
 
 When compiled with `CGO_ENABLED=0` (which is the default), `gitlab-pages` is a
@@ -286,6 +291,13 @@ environment variable). Directives are specified in `key=value` format, like:
 pages-domain=example.com
 use-http2=false
 ```
+
+
+
+### Testing and linting
+
+See [docs/development.md](docs/development.md)
+
 
 ### License
 
