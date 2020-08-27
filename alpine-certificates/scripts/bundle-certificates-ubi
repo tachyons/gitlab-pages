@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# purge any existing state
+if [ $(ls -1 /etc/ssl/certs/ | wc -l) -gt 0 ]; then
+  rm -r /etc/ssl/certs/*
+  echo "Removed existing state from /etc/ssl/certs"
+fi
+
+# Copy any mounted custom-CAs to RHEL-compatible directory
+if [ $(ls -1 /usr/local/share/ca-certificates/ | wc -l) -gt 0 ]; then
+  cp /usr/local/share/ca-certificates/* /usr/share/pki/ca-trust-source/anchors/
+  echo "Copied custom certificates to RHEL-compatible directory"
+fi
+
+# Update the CA certificates store in /etc/pki/ca-trust/extracted/
+update-ca-trust
+echo "Updated CA trust"
+
+# Copy certificates into common path (/etc/ssl/certs)
+cp /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/certs/ca-bundle.crt
+cp /etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt /etc/ssl/certs/ca-bundle.trust.crt
+echo "Copied bundles into /etc/ssl/certs"

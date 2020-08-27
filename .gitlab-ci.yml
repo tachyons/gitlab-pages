@@ -322,7 +322,6 @@ alpine-certificates:
   <<: *except-deps
   stage: phase-one
   script:
-    - export DOCKERFILE_EXT=
     # sets CA_PKG_VERSION to `20171114-r3` (from `P:ca-certificates\nV:VERSION\n`)
     - export CA_PKG_VERSION=$(curl --retry 6 -qs http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/x86_64/APKINDEX.tar.gz | tar xzf - -O APKINDEX | grep -A1 '^P:ca-certificates$' | tail -n1 | cut -d ':' -f2)
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$CA_PKG_VERSION" | sha1sum))
