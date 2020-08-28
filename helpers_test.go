@@ -420,13 +420,15 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 	require.Equal(t, len(listeners), nListening, "all listeners must be accepting TCP connections")
 }
 
-func NewGitlabDomainsSourceStub(t *testing.T) *httptest.Server {
+func NewGitlabDomainsSourceStub(t *testing.T) (*httptest.Server, *bool) {
+	called := false
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v4/internal/pages/status", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
+		called = true
 		domain := r.URL.Query().Get("host")
 		path := "shared/lookups/" + domain + ".json"
 
@@ -448,7 +450,7 @@ func NewGitlabDomainsSourceStub(t *testing.T) *httptest.Server {
 	}
 	mux.HandleFunc("/api/v4/internal/pages", handler)
 
-	return httptest.NewServer(mux)
+	return httptest.NewServer(mux), &called
 }
 
 func newConfigFile(configs ...string) (string, error) {

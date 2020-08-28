@@ -1711,33 +1711,112 @@ func TestTLSVersions(t *testing.T) {
 func TestGitlabDomainsSource(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	source := NewGitlabDomainsSourceStub(t)
-	defer source.Close()
+	t.Run("gitlab_domain_source", func(t *testing.T) {
+		source, apiCalled := NewGitlabDomainsSourceStub(t)
+		defer source.Close()
 
-	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+		gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
+		pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
 
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
-	defer teardown()
+		teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
+		defer teardown()
 
-	t.Run("when a domain exists", func(t *testing.T) {
-		response, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
-		require.NoError(t, err)
+		t.Run("when a domain exists", func(t *testing.T) {
+			response, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
+			require.NoError(t, err)
 
-		defer response.Body.Close()
-		body, err := ioutil.ReadAll(response.Body)
-		require.NoError(t, err)
+			defer response.Body.Close()
+			body, err := ioutil.ReadAll(response.Body)
+			require.NoError(t, err)
 
-		require.Equal(t, http.StatusOK, response.StatusCode)
-		require.Equal(t, "New Pages GitLab Source TEST OK\n", string(body))
+			require.Equal(t, http.StatusOK, response.StatusCode)
+			require.Equal(t, "New Pages GitLab Source TEST OK\n", string(body))
+			require.True(t, *apiCalled)
+		})
+
+		t.Run("when a domain does not exists", func(t *testing.T) {
+			response, err := GetPageFromListener(t, httpListener, "non-existent-domain.gitlab.io", "/path")
+			defer response.Body.Close()
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusNotFound, response.StatusCode)
+			require.True(t, *apiCalled)
+		})
 	})
 
-	t.Run("when a domain does not exists", func(t *testing.T) {
-		response, err := GetPageFromListener(t, httpListener, "non-existent-domain.gitlab.io", "/path")
-		defer response.Body.Close()
-		require.NoError(t, err)
+	t.Run("disk-domain-source", func(t *testing.T) {
+		source, apiCalled := NewGitlabDomainsSourceStub(t)
+		defer source.Close()
 
-		require.Equal(t, http.StatusNotFound, response.StatusCode)
+		gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
+		pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "disk"}
+
+		teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
+		defer teardown()
+
+		t.Run("when a domain exists", func(t *testing.T) {
+			// test.domain.com sourced from disk configuration
+			response, err := GetPageFromListener(t, httpListener, "test.domain.com", "/")
+			require.NoError(t, err)
+
+			defer response.Body.Close()
+			body, err := ioutil.ReadAll(response.Body)
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusOK, response.StatusCode)
+			require.Equal(t, "main-dir\n", string(body))
+
+			// apiCalled == false implies that disk was ready and the configuration was loaded successfully
+			require.False(t, *apiCalled)
+		})
+
+		t.Run("when a domain does not exists", func(t *testing.T) {
+			response, err := GetPageFromListener(t, httpListener, "non-existent-domain.gitlab.io", "/path")
+			defer response.Body.Close()
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusNotFound, response.StatusCode)
+			require.False(t, *apiCalled)
+		})
+	})
+
+	// TODO: modify mock so we can test auto when API is not ready https://gitlab.com/gitlab-org/gitlab/-/issues/218358
+	t.Run("auto-domain-source", func(t *testing.T) {
+		source, apiCalled := NewGitlabDomainsSourceStub(t)
+		defer source.Close()
+
+		gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
+		pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "disk"}
+
+		teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
+		defer teardown()
+
+		t.Run("when a domain exists", func(t *testing.T) {
+			// test.domain.com sourced from disk configuration
+			response, err := GetPageFromListener(t, httpListener, "test.domain.com", "/")
+			require.NoError(t, err)
+
+			defer response.Body.Close()
+			body, err := ioutil.ReadAll(response.Body)
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusOK, response.StatusCode)
+			require.Equal(t, "main-dir\n", string(body))
+
+			// apiCalled == false implies that disk was ready and the configuration was loaded successfully
+			require.False(t, *apiCalled)
+		})
+
+		t.Run("when a domain does not exists", func(t *testing.T) {
+			response, err := GetPageFromListener(t, httpListener, "non-existent-domain.gitlab.io", "/path")
+			defer response.Body.Close()
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusNotFound, response.StatusCode)
+			require.False(t, *apiCalled)
+		})
 	})
 }
