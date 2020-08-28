@@ -18,15 +18,10 @@ type Disk struct {
 // New is a factory method for the Disk source. It is initializing a mutex. It
 // should not initialize `dm` as we later check the readiness by comparing it
 // with a nil value.
-func New(rootDomain string) *Disk {
-	d := &Disk{
+func New() *Disk {
+	return &Disk{
 		lock: &sync.RWMutex{},
 	}
-
-	// start reading domain configuration from disk concurrently
-	go Watch(rootDomain, d.updateDomains, time.Second)
-
-	return d
 }
 
 // GetDomain returns a domain from the domains map if it exists
@@ -44,6 +39,12 @@ func (d *Disk) GetDomain(host string) (*domain.Domain, error) {
 // configuration files.
 func (d *Disk) IsReady() bool {
 	return d.dm != nil
+}
+
+// Read starts the domain source, in this case it is reading domains from
+// groups on disk concurrently.
+func (d *Disk) Read(rootDomain string) {
+	go Watch(rootDomain, d.updateDomains, time.Second)
 }
 
 func (d *Disk) updateDomains(dm Map) {

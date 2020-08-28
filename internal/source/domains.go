@@ -51,6 +51,7 @@ func NewDomains(config Config) (*Domains, error) {
 // returns error if -domain-config-source is not valid
 // returns error if -domain-config-source=gitlab and init fails
 func (d *Domains) setConfigSource(config Config) error {
+	// TODO: Handle domain-config-source=auto https://gitlab.com/gitlab-org/gitlab/-/issues/218358
 	// attach gitlab by default when source is not disk (auto, gitlab)
 	switch config.DomainConfigSource() {
 	case "gitlab":
@@ -60,12 +61,12 @@ func (d *Domains) setConfigSource(config Config) error {
 		// TODO: handle DomainConfigSource == "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
 		d.configSource = sourceAuto
 		// enable disk for auto for now
-		d.disk = disk.New(config.RootDomain())
+		d.disk = disk.New()
 		return d.setGitLabClient(config)
 	case "disk":
 		// TODO: disable domains.disk https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 		d.configSource = sourceDisk
-		d.disk = disk.New(config.RootDomain())
+		d.disk = disk.New()
 	default:
 		return fmt.Errorf("invalid option for -domain-config-source: %q", config.DomainConfigSource())
 	}
@@ -100,6 +101,15 @@ func (d *Domains) setGitLabClient(config Config) error {
 // we plan to use to replace the disk source.
 func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
 	return d.source(name).GetDomain(name)
+}
+
+// Read starts the disk domain source. It is DEPRECATED, because we want to
+// remove it entirely when disk source gets removed.
+func (d *Domains) Read(rootDomain string) {
+	// start disk.Read for sourceDisk and sourceAuto
+	if d.configSource != sourceGitlab {
+		d.disk.Read(rootDomain)
+	}
 }
 
 // IsReady checks if the disk domain source managed to traverse entire pages
