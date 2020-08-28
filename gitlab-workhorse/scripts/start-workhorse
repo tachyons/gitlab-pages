@@ -10,6 +10,9 @@ mkdir -p -m 3770 $TMPDIR
 
 export GITLAB_WORKHORSE_LOG_FILE=${GITLAB_WORKHORSE_LOG_FILE:-stdout}
 export GITLAB_WORKHORSE_LOG_FORMAT=${GITLAB_WORKHORSE_LOG_FORMAT:-json}
+if [[ "${GITLAB_WORKHORSE_PROM_LISTEN_ADDR}" =~ ^.+:[0-9][0-9]{0,4}$ ]]; then
+   export PROM_LISTEN_ADDR="-prometheusListenAddr ${GITLAB_WORKHORSE_PROM_LISTEN_ADDR}"
+fi
 
 gitlab-workhorse \
   -logFile ${GITLAB_WORKHORSE_LOG_FILE} \
@@ -19,4 +22,5 @@ gitlab-workhorse \
   -documentRoot "/srv/gitlab/public" \
   -secretPath "/etc/gitlab/gitlab-workhorse/secret" \
   -config "/srv/gitlab/config/workhorse-config.toml" \
+  ${PROM_LISTEN_ADDR} \
   2>&1
