@@ -41,6 +41,7 @@ func TestNewDomains(t *testing.T) {
 		sourceConfig    sourceConfig
 		expectedErr     string
 		expectGitlabNil bool
+		expectDiskNil   bool
 	}{
 		{
 			name:         "no_source_config",
@@ -56,20 +57,25 @@ func TestNewDomains(t *testing.T) {
 			name:            "disk_source",
 			sourceConfig:    sourceConfig{domainSource: "disk"},
 			expectGitlabNil: true,
+			expectDiskNil:   false,
 		},
 		{
+			// TODO: https://gitlab.com/gitlab-org/gitlab/-/issues/218358
 			name:            "auto_without_api_config",
 			sourceConfig:    sourceConfig{domainSource: "auto"},
 			expectGitlabNil: true,
+			expectDiskNil:   false,
 		},
 		{
 			name:            "auto_with_api_config",
 			sourceConfig:    sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "auto"},
 			expectGitlabNil: false,
+			expectDiskNil:   false,
 		},
 		{
-			name:         "gitlab_source_success",
-			sourceConfig: sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "gitlab"},
+			name:          "gitlab_source_success",
+			sourceConfig:  sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "gitlab"},
+			expectDiskNil: true,
 		},
 		{
 			name:         "gitlab_source_no_url",
@@ -93,7 +99,7 @@ func TestNewDomains(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tt.expectGitlabNil, domains.gitlab == nil)
-			require.NotNil(t, domains.disk)
+			require.Equal(t, tt.expectDiskNil, domains.disk == nil)
 		})
 	}
 }

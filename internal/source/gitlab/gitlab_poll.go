@@ -14,7 +14,7 @@ const (
 
 // Poll tries to call the /internal/pages/status API endpoint once plus
 // for `maxElapsedTime`
-// TODO: Remove in https://gitlab.com/gitlab-org/gitlab/-/issues/218357
+// TODO: Remove in https://gitlab.com/gitlab-org/gitlab-pages/-/issues/449
 func (g *Gitlab) poll(interval, maxElapsedTime time.Duration) {
 	backOff := backoff.NewExponentialBackOff()
 	backOff.InitialInterval = interval

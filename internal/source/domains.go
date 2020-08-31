@@ -39,11 +39,7 @@ type Domains struct {
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
 func NewDomains(config Config) (*Domains, error) {
-	domains := &Domains{
-		// TODO: disable domains.disk https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
-		disk: disk.New(),
-	}
-
+	domains := &Domains{}
 	if err := domains.setConfigSource(config); err != nil {
 		return nil, err
 	}
@@ -59,15 +55,18 @@ func (d *Domains) setConfigSource(config Config) error {
 	// attach gitlab by default when source is not disk (auto, gitlab)
 	switch config.DomainConfigSource() {
 	case "gitlab":
-		// TODO:  https://gitlab.com/gitlab-org/gitlab/-/issues/218357
 		d.configSource = sourceGitlab
 		return d.setGitLabClient(config)
 	case "auto":
 		// TODO: handle DomainConfigSource == "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
 		d.configSource = sourceAuto
+		// enable disk for auto for now
+		d.disk = disk.New()
 		return d.setGitLabClient(config)
 	case "disk":
+		// TODO: disable domains.disk https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 		d.configSource = sourceDisk
+		d.disk = disk.New()
 	default:
 		return fmt.Errorf("invalid option for -domain-config-source: %q", config.DomainConfigSource())
 	}
@@ -107,14 +106,27 @@ func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
 // Read starts the disk domain source. It is DEPRECATED, because we want to
 // remove it entirely when disk source gets removed.
 func (d *Domains) Read(rootDomain string) {
-	d.disk.Read(rootDomain)
+	// start disk.Read for sourceDisk and sourceAuto
+	if d.configSource != sourceGitlab {
+		d.disk.Read(rootDomain)
+	}
 }
 
 // IsReady checks if the disk domain source managed to traverse entire pages
 // filesystem and is ready for use. It is DEPRECATED, because we want to remove
 // it entirely when disk source gets removed.
 func (d *Domains) IsReady() bool {
-	return d.disk.IsReady()
+	switch d.configSource {
+	case sourceGitlab:
+		return d.gitlab.IsReady()
+	case sourceDisk:
+		return d.disk.IsReady()
+	case sourceAuto:
+		// TODO: implement auto https://gitlab.com/gitlab-org/gitlab/-/issues/218358, default to disk for now
+		return d.disk.IsReady()
+	}
+
+	return false
 }
 
 func (d *Domains) source(domain string) Source {
