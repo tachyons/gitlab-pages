@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,59 +13,22 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
-type stats struct {
-	m       sync.Mutex
-	started uint64
-	lookups uint64
-}
-
 type client struct {
-	stats   stats
-	bootup  chan uint64
+	counter uint64
+	lookups chan uint64
 	domain  chan string
 	failure error
 }
 
-func (s *stats) bumpStarted() uint64 {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	s.started++
-	return s.started
-}
-
-func (s *stats) bumpLookups() uint64 {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	s.lookups++
-	return s.lookups
-}
-
-func (s *stats) getStarted() uint64 {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	return s.started
-}
-
-func (s *stats) getLookups() uint64 {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	return s.lookups
-}
-
 func (c *client) GetLookup(ctx context.Context, _ string) api.Lookup {
-	c.bootup <- c.stats.bumpStarted()
-	defer c.stats.bumpLookups()
-
 	lookup := api.Lookup{}
 	if c.failure == nil {
 		lookup.Name = <-c.domain
 	} else {
 		lookup.Error = c.failure
 	}
+
+	c.lookups <- atomic.AddUint64(&c.counter, 1)
 
 	return lookup
 }
@@ -84,9 +48,11 @@ func withTestCache(config resolverConfig, cacheConfig *cacheConfig, block func(*
 
 	resolver := &client{
 		domain:  make(chan string, chanSize),
-		bootup:  make(chan uint64, 100),
+		lookups: make(chan uint64, 100),
 		failure: config.failure,
 	}
+
+	resolver.lookups <- 0
 
 	cache := NewCache(resolver, cacheConfig)
 
@@ -127,13 +93,14 @@ type entryConfig struct {
 func TestResolve(t *testing.T) {
 	t.Run("when item is not cached", func(t *testing.T) {
 		withTestCache(resolverConfig{buffered: true}, nil, func(cache *Cache, resolver *client) {
+			require.Equal(t, uint64(0), <-resolver.lookups)
 			resolver.domain <- "my.gitlab.com"
 
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			require.NoError(t, lookup.Error)
 			require.Equal(t, "my.gitlab.com", lookup.Name)
-			require.Equal(t, uint64(1), resolver.stats.getLookups())
+			require.Equal(t, uint64(1), <-resolver.lookups)
 		})
 	})
 
@@ -152,12 +119,12 @@ func TestResolve(t *testing.T) {
 			go receiver()
 			go receiver()
 
-			require.Equal(t, uint64(0), resolver.stats.getLookups())
+			require.Equal(t, uint64(0), <-resolver.lookups)
 
 			resolver.domain <- "my.gitlab.com"
 			wg.Wait()
 
-			require.Equal(t, uint64(1), resolver.stats.getLookups())
+			require.Equal(t, uint64(1), <-resolver.lookups)
 		})
 	})
 
@@ -167,7 +134,7 @@ func TestResolve(t *testing.T) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				require.Equal(t, "my.gitlab.com", lookup.Name)
-				require.Equal(t, uint64(0), resolver.stats.getLookups())
+				require.Equal(t, uint64(0), <-resolver.lookups)
 			})
 		})
 	})
@@ -181,30 +148,27 @@ func TestResolve(t *testing.T) {
 					lookup <- cache.Resolve(context.Background(), "my.gitlab.com")
 				}()
 
-				<-resolver.bootup
-
-				require.Equal(t, uint64(1), resolver.stats.getStarted())
-				require.Equal(t, uint64(0), resolver.stats.getLookups())
+				require.Equal(t, uint64(0), <-resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
 				<-lookup
 
-				require.Equal(t, uint64(1), resolver.stats.getStarted())
-				require.Equal(t, uint64(1), resolver.stats.getLookups())
+				require.Equal(t, uint64(1), <-resolver.lookups)
 			})
 		})
 	})
 
 	t.Run("when item is in long cache only", func(t *testing.T) {
-		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{buffered: false}, nil, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				require.Equal(t, "my.gitlab.com", lookup.Name)
-				require.Equal(t, uint64(0), resolver.stats.getLookups())
+				require.Equal(t, uint64(0), <-resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
-				require.Equal(t, uint64(1), resolver.stats.getLookups())
+
+				require.Equal(t, uint64(1), <-resolver.lookups)
 			})
 		})
 	})
@@ -216,10 +180,11 @@ func TestResolve(t *testing.T) {
 				cache.Resolve(context.Background(), "my.gitlab.com")
 				cache.Resolve(context.Background(), "my.gitlab.com")
 
-				require.Equal(t, uint64(0), resolver.stats.getLookups())
+				require.Equal(t, uint64(0), <-resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
-				require.Equal(t, uint64(1), resolver.stats.getLookups())
+
+				require.Equal(t, uint64(1), <-resolver.lookups)
 			})
 		})
 	})
@@ -227,12 +192,17 @@ func TestResolve(t *testing.T) {
 	t.Run("when retrieval failed with an error", func(t *testing.T) {
 		cc := defaultCacheConfig
 		cc.maxRetrievalInterval = 0
+		err := errors.New("500 error")
 
-		withTestCache(resolverConfig{failure: errors.New("500 err")}, &cc, func(cache *Cache, resolver *client) {
+		withTestCache(resolverConfig{failure: err}, &cc, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			require.Equal(t, uint64(3), resolver.stats.getLookups())
-			require.EqualError(t, lookup.Error, "500 err")
+			require.Equal(t, uint64(0), <-resolver.lookups)
+			require.Equal(t, uint64(1), <-resolver.lookups)
+			require.Equal(t, uint64(2), <-resolver.lookups)
+			require.Equal(t, uint64(3), <-resolver.lookups)
+
+			require.EqualError(t, lookup.Error, "500 error")
 		})
 	})
 
@@ -243,7 +213,7 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{}, &cc, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			require.Equal(t, uint64(0), resolver.stats.getLookups())
+			require.Equal(t, uint64(0), <-resolver.lookups)
 			require.EqualError(t, lookup.Error, "retrieval context done")
 		})
 	})
