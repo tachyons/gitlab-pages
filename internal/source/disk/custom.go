@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 )
 
 type customProjectResolver struct {
@@ -24,7 +24,7 @@ func (p *customProjectResolver) Resolve(r *http.Request) (*serving.Request, erro
 	}
 
 	return &serving.Request{
-		Serving:    disk.Instance(),
+		Serving:    local.Instance(),
 		LookupPath: lookupPath,
 		SubPath:    r.URL.Path,
 	}, nil
