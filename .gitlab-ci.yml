@@ -330,7 +330,7 @@ alpine-certificates:
                       --build-arg "CA_PKG_VERSION=${CA_PKG_VERSION}"
                       --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}alpine"
     - push_tags
-    - push_tags ${CA_PKG_VERSION}
+    - push_tags ${CA_PKG_VERSION}${IMAGE_TAG_EXT}
 
 build:gitlab-python:
   <<: *build-job-base
