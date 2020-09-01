@@ -216,15 +216,12 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *client) {
 			cache.withTestEntry(entryConfig{expired: false, retrieved: false}, func(entry *Entry) {
 				ctx, cancel := context.WithCancel(context.Background())
-
-				response := make(chan *api.Lookup, 1)
-				go func() { response <- cache.Resolve(ctx, "my.gitlab.com") }()
-
 				cancel()
 
-				resolver.domain <- "my.gitlab.com"
-				lookup := <-response
+				lookup := cache.Resolve(ctx, "my.gitlab.com")
+				resolver.domain <- "err.gitlab.com"
 
+				require.Equal(t, "my.gitlab.com", lookup.Name)
 				require.EqualError(t, lookup.Error, "context done")
 			})
 		})
