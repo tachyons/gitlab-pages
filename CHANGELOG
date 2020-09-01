@@ -1,3 +1,8 @@
+v 1.23.0
+
+- Add VFS for local disk !324
+- Fully support `domain-config-source=gitlab` !332
+
 v 1.22.0
 
 - Serve custom 404.html file for namespace domains !263
