@@ -115,14 +115,6 @@ function tag_and_push(){
   fi
 }
 
-function push_master(){
-  tag_and_push "master${IMAGE_TAG_EXT}"
-}
-
-function push_branch_slug(){
-  tag_and_push $CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}
-}
-
 function get_version(){
   git ls-tree HEAD -- $1 | awk '{ print $3 }'
 }
@@ -170,8 +162,7 @@ function push_tags(){
   if [ -n "$1" ] && (is_master || is_regular_tag); then
     local edition=$1
 
-    # If on a non-auto-deploy tag pipeline, we can trim the `-ee` and `-ubi8`
-    # suffixes.
+    # If on a non-auto-deploy tag pipeline, we can trim the `-ee` suffixes.
     if is_regular_tag; then
       edition=$(trim_edition $edition)
     fi
@@ -192,7 +183,7 @@ function push_tags(){
     # OR
     # if no version was specified at all,
     # we use the slug.
-    tag_and_push ${CI_COMMIT_REF_SLUG}
+    tag_and_push ${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT}
   fi
 }
 
