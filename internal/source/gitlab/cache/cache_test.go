@@ -52,8 +52,6 @@ func withTestCache(config resolverConfig, cacheConfig *cacheConfig, block func(*
 		failure: config.failure,
 	}
 
-	resolver.lookups <- 0
-
 	cache := NewCache(resolver, cacheConfig)
 
 	block(cache, resolver)
@@ -93,7 +91,7 @@ type entryConfig struct {
 func TestResolve(t *testing.T) {
 	t.Run("when item is not cached", func(t *testing.T) {
 		withTestCache(resolverConfig{buffered: true}, nil, func(cache *Cache, resolver *client) {
-			require.Equal(t, uint64(0), <-resolver.lookups)
+			require.Equal(t, 0, len(resolver.lookups))
 			resolver.domain <- "my.gitlab.com"
 
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
@@ -119,7 +117,7 @@ func TestResolve(t *testing.T) {
 			go receiver()
 			go receiver()
 
-			require.Equal(t, uint64(0), <-resolver.lookups)
+			require.Equal(t, 0, len(resolver.lookups))
 
 			resolver.domain <- "my.gitlab.com"
 			wg.Wait()
@@ -134,7 +132,7 @@ func TestResolve(t *testing.T) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				require.Equal(t, "my.gitlab.com", lookup.Name)
-				require.Equal(t, uint64(0), <-resolver.lookups)
+				require.Equal(t, 0, len(resolver.lookups))
 			})
 		})
 	})
@@ -148,7 +146,7 @@ func TestResolve(t *testing.T) {
 					lookup <- cache.Resolve(context.Background(), "my.gitlab.com")
 				}()
 
-				require.Equal(t, uint64(0), <-resolver.lookups)
+				require.Equal(t, 0, len(resolver.lookups))
 
 				resolver.domain <- "my.gitlab.com"
 				<-lookup
@@ -164,7 +162,7 @@ func TestResolve(t *testing.T) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				require.Equal(t, "my.gitlab.com", lookup.Name)
-				require.Equal(t, uint64(0), <-resolver.lookups)
+				require.Equal(t, 0, len(resolver.lookups))
 
 				resolver.domain <- "my.gitlab.com"
 
@@ -180,7 +178,7 @@ func TestResolve(t *testing.T) {
 				cache.Resolve(context.Background(), "my.gitlab.com")
 				cache.Resolve(context.Background(), "my.gitlab.com")
 
-				require.Equal(t, uint64(0), <-resolver.lookups)
+				require.Equal(t, 0, len(resolver.lookups))
 
 				resolver.domain <- "my.gitlab.com"
 
@@ -197,11 +195,7 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{failure: err}, &cc, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			require.Equal(t, uint64(0), <-resolver.lookups)
-			require.Equal(t, uint64(1), <-resolver.lookups)
-			require.Equal(t, uint64(2), <-resolver.lookups)
-			require.Equal(t, uint64(3), <-resolver.lookups)
-
+			require.Equal(t, 3, len(resolver.lookups))
 			require.EqualError(t, lookup.Error, "500 error")
 		})
 	})
@@ -213,7 +207,7 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{}, &cc, func(cache *Cache, resolver *client) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			require.Equal(t, uint64(0), <-resolver.lookups)
+			require.Equal(t, 0, len(resolver.lookups))
 			require.EqualError(t, lookup.Error, "retrieval context done")
 		})
 	})
