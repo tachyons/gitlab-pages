@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/serverless"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -31,7 +31,7 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 
 	switch source.Type {
 	case "file":
-		return disk.Instance()
+		return local.Instance()
 	case "serverless":
 		serving, err := serverless.NewFromAPISource(source.Serverless)
 		if err != nil {
@@ -47,5 +47,5 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 }
 
 func defaultServing() serving.Serving {
-	return disk.Instance()
+	return local.Instance()
 }

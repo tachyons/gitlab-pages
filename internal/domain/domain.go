@@ -9,7 +9,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 )
 
 // Domain is a domain that gitlab-pages can serve.
@@ -44,7 +44,7 @@ func (d *Domain) resolve(r *http.Request) *serving.Request {
 	// TODO improve code around default serving, when `disk` serving gets removed
 	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
 	if request == nil {
-		return &serving.Request{Serving: disk.Instance()}
+		return &serving.Request{Serving: local.Instance()}
 	}
 
 	return request

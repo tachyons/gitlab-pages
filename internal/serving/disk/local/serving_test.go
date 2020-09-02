@@ -1,4 +1,4 @@
-package disk
+package local
 
 import (
 	"io/ioutil"
@@ -44,5 +44,5 @@ var chdirSet = false
 
 func setUpTests(t testing.TB) func() {
 	t.Helper()
-	return testhelpers.ChdirInPath(t, "../../../shared/pages", &chdirSet)
+	return testhelpers.ChdirInPath(t, "../../../../shared/pages", &chdirSet)
 }

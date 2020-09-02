@@ -4,16 +4,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
-
-var disk = &Disk{
-	reader: Reader{
-		fileSizeMetric: metrics.DiskServingFileSize,
-		vfs:            vfs.Instrumented(local.VFS{}, "disk"),
-	},
-}
 
 // Disk describes a disk access serving
 type Disk struct {
@@ -36,8 +28,13 @@ func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
 	httperrors.Serve404(h.Writer)
 }
 
-// Instance returns a serving instance that is capable of reading files
-// from the disk
-func Instance() serving.Serving {
-	return disk
+// New returns a serving instance that is capable of reading files
+// from the VFS
+func New(vfs vfs.VFS) serving.Serving {
+	return &Disk{
+		reader: Reader{
+			fileSizeMetric: metrics.DiskServingFileSize,
+			vfs:            vfs,
+		},
+	}
 }

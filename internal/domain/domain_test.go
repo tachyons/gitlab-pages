@@ -11,7 +11,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -23,7 +23,7 @@ type stubbedResolver struct {
 
 func (resolver *stubbedResolver) Resolve(*http.Request) (*serving.Request, error) {
 	return &serving.Request{
-		Serving:    disk.Instance(),
+		Serving:    local.Instance(),
 		LookupPath: resolver.project,
 		SubPath:    resolver.subpath,
 	}, resolver.err
