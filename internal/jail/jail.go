@@ -204,11 +204,6 @@ func (j *Jail) Bind(dest, src string) {
 	j.bindMounts[jailedDest] = src
 }
 
-// LazyUnbind detaches all binded mountpoints
-func (j *Jail) LazyUnbind() error {
-	return j.unmount()
-}
-
 // ExternalPath converts a jail internal path to the equivalent jail external path
 func (j *Jail) ExternalPath(internal string) string {
 	return path.Join(j.Path(), internal)

@@ -287,8 +287,8 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
 
 	// Unshare mount namespace
 	// 1. If this fails, in a worst case changes to mounts will propagate to other processes
-	// 2. Needed for fixing `os.Getwd()` which does return `(unreachable)`:
-	// 3. https://man7.org/linux/man-pages/man2/getcwd.2.html.
+	// 2. Ensures that jail mount is not propagated to the parent mount namespace
+	//    to avoid populating `tmp` directory with old mounts
 	_ = wrapper.Unshare()
 
 	if err := wrapper.Build(); err != nil {
