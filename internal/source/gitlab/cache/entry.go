@@ -65,7 +65,9 @@ func (e *Entry) Lookup() *api.Lookup {
 
 // Retrieve perform a blocking retrieval of the cache entry response.
 func (e *Entry) Retrieve(ctx context.Context, client api.Client) (lookup *api.Lookup) {
-	e.retrieve.Do(func() { go e.setResponse(e.retriever.Retrieve(e.domain)) })
+	// We run the code within an additional func() to run both `e.setResponse`
+	// and `e.retrieve.Retrieve` asynchronously.
+	e.retrieve.Do(func() { go func() { e.setResponse(e.retriever.Retrieve(e.domain)) }() })
 
 	select {
 	case <-ctx.Done():
