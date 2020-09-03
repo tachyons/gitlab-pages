@@ -7,6 +7,10 @@ import (
 	"runtime"
 )
 
+func (j *Jail) Unshare() error {
+	return fmt.Errorf("Unshare not supported on %s", runtime.GOOS)
+}
+
 func (j *Jail) notSupported() error {
 	if len(j.bindMounts) > 0 {
 		return fmt.Errorf("Bind mount not supported on %s", runtime.GOOS)

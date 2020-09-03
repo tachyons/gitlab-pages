@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/kardianos/osext"
@@ -27,9 +28,19 @@ func daemonMain() {
 		return
 	}
 
+	// Validate that a working directory is valid
+	// https://man7.org/linux/man-pages/man2/getcwd.2.html
+	wd, err := os.Getwd()
+	if err != nil {
+		fatal(err, "could not get current working directory")
+	} else if strings.HasPrefix(wd, "(unreachable)") {
+		fatal(os.ErrPermission, "could not get current working directory")
+	}
+
 	log.WithFields(log.Fields{
 		"uid": syscall.Getuid(),
 		"gid": syscall.Getgid(),
+		"wd":  wd,
 	}).Info("starting the daemon as unprivileged user")
 
 	// read the configuration from the pipe "ExtraFiles"
@@ -131,10 +142,6 @@ func chrootDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 	cmd.SysProcAttr.Chroot = chroot.Path()
 	cmd.Path = tempExecutablePath
 	cmd.Dir = "/"
-
-	if err := chroot.Build(); err != nil {
-		return nil, err
-	}
 
 	return chroot, nil
 }
@@ -249,11 +256,6 @@ func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 	cmd.Path = "/gitlab-pages"
 	cmd.Dir = pagesRootInChroot
 
-	err = cage.Build()
-	if err != nil {
-		return nil, err
-	}
-
 	return cage, nil
 }
 
@@ -283,6 +285,17 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
 	}
 	defer wrapper.Dispose()
 
+	// Unshare mount namespace
+	// 1. If this fails, in a worst case changes to mounts will propagate to other processes
+	// 2. Ensures that jail mount is not propagated to the parent mount namespace
+	//    to avoid populating `tmp` directory with old mounts
+	_ = wrapper.Unshare()
+
+	if err := wrapper.Build(); err != nil {
+		log.WithError(err).Print("chroot build failed")
+		return err
+	}
+
 	// Create a pipe to pass the configuration
 	configReader, configWriter, err := os.Pipe()
 	if err != nil {
@@ -296,12 +309,6 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
 	// Start the process
 	if err := cmd.Start(); err != nil {
 		log.WithError(err).Error("start failed")
-		return err
-	}
-
-	// Proactively detach any bind-mounts so they can't be left dangling
-	if err := wrapper.LazyUnbind(); err != nil {
-		log.WithError(err).Print("jail lazy umount failed")
 		return err
 	}
 

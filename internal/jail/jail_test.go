@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -249,53 +248,6 @@ func TestJailCopyTo(t *testing.T) {
 	jailedContent, err := ioutil.ReadFile(jailedFilePath)
 	require.NoError(err)
 	require.Equal(content, string(jailedContent), "jailed file should preserve file content")
-}
-
-func TestJailLazyUnbind(t *testing.T) {
-	if os.Geteuid() != 0 || runtime.GOOS != "linux" {
-		t.Skip("chroot binding requires linux and root permissions")
-	}
-
-	require := require.New(t)
-
-	toBind, err := ioutil.TempDir("", "to-bind")
-	require.NoError(err)
-	defer os.RemoveAll(toBind)
-
-	tmpFilePath := path.Join(toBind, "a-file")
-	tmpFile, err := os.OpenFile(tmpFilePath, os.O_CREATE, 0644)
-	require.NoError(err)
-	tmpFile.Close()
-
-	jailPath := tmpJailPath()
-	cage := jail.Create(jailPath, 0755)
-
-	cage.MkDir("/my-bind", 0755)
-	cage.Bind("/my-bind", toBind)
-
-	err = cage.Build()
-	require.NoError(err, "jail build failed")
-
-	bindedTmpFilePath := cage.ExternalPath("/my-bind/a-file")
-	f, err := os.Open(bindedTmpFilePath)
-	require.NoError(err, "temporary file not binded")
-	require.NotNil(f)
-
-	err = cage.LazyUnbind()
-	require.NoError(err, "lazy unbind failed")
-
-	f.Close()
-	_, err = os.Stat(bindedTmpFilePath)
-	require.Error(err, "lazy unbind should remove mount-point after file close")
-
-	err = cage.Dispose()
-	require.NoError(err, "dispose failed")
-
-	_, err = os.Stat(cage.Path())
-	require.Error(err, "Jail path should not exist after Jail.Dispose()")
-
-	_, err = os.Stat(tmpFilePath)
-	require.NoError(err, "disposing a jail should not delete files under binded directories")
 }
 
 func TestJailIntoOnlyCleansSubpaths(t *testing.T) {
