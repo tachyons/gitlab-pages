@@ -300,7 +300,11 @@ func TestClientStatusClientTimeout(t *testing.T) {
 
 	err := client.Status()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Client.Timeout")
+	// we can receive any of these messages
+	// - context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+	// - net/http: request canceled (Client.Timeout exceeded while awaiting headers)
+	// - context deadline exceeded
+	require.Contains(t, err.Error(), "exceeded")
 }
 
 func TestClientStatusConnectionRefused(t *testing.T) {
