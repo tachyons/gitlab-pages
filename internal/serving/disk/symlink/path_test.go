@@ -10,31 +10,27 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 )
 
-var fs = local.VFS{}
+var fs = vfs.Instrumented(&local.VFS{}, "local")
 
-func chtmpdir(t *testing.T) (restore func()) {
-	oldwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("chtmpdir: %v", err)
-	}
-	d, err := ioutil.TempDir("", "test")
-	if err != nil {
-		t.Fatalf("chtmpdir: %v", err)
-	}
-	if err := os.Chdir(d); err != nil {
-		t.Fatalf("chtmpdir: %v", err)
-	}
-	return func() {
-		if err := os.Chdir(oldwd); err != nil {
-			t.Fatalf("chtmpdir: %v", err)
-		}
-		os.RemoveAll(d)
+func tmpDir(t *testing.T) (vfs.Root, string, func()) {
+	tmpDir, err := ioutil.TempDir("", "symlink_tests")
+	require.NoError(t, err)
+
+	root, err := fs.Root(context.Background(), tmpDir)
+	require.NoError(t, err)
+
+	return root, tmpDir, func() {
+		os.RemoveAll(tmpDir)
 	}
 }
 
@@ -74,19 +70,22 @@ var EvalSymlinksTests = []EvalSymlinksTest{
 	{"test/link2/..", "test"},
 	{"test/dir/link3", "."},
 	{"test/link2/link3/test", "test"},
-	{"test/linkabs", "/"},
+	{"test/linkabs", "../.."},
 	{"test/link4/..", "test"},
 	{"src/versions/current/modules/test", "src/pool/test"},
 }
 
 // simpleJoin builds a file name from the directory and path.
 // It does not use Join because we don't want ".." to be evaluated.
-func simpleJoin(dir, path string) string {
-	return dir + string(filepath.Separator) + path
+func simpleJoin(path ...string) string {
+	return strings.Join(path, string(filepath.Separator))
 }
 
-func testEvalSymlinks(t *testing.T, path, want string) {
-	have, err := symlink.EvalSymlinks(context.Background(), fs, path)
+func testEvalSymlinks(t *testing.T, wd, path, want string) {
+	root, err := fs.Root(context.Background(), wd)
+	require.NoError(t, err)
+
+	have, err := symlink.EvalSymlinks(context.Background(), root, path)
 	if err != nil {
 		t.Errorf("EvalSymlinks(%q) error: %v", path, err)
 		return
@@ -96,46 +95,9 @@ func testEvalSymlinks(t *testing.T, path, want string) {
 	}
 }
 
-func testEvalSymlinksAfterChdir(t *testing.T, wd, path, want string) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		err := os.Chdir(cwd)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	err = os.Chdir(wd)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	have, err := symlink.EvalSymlinks(context.Background(), fs, path)
-	if err != nil {
-		t.Errorf("EvalSymlinks(%q) in %q directory error: %v", path, wd, err)
-		return
-	}
-	if filepath.Clean(have) != filepath.Clean(want) {
-		t.Errorf("EvalSymlinks(%q) in %q directory returns %q, want %q", path, wd, have, want)
-	}
-}
-
 func TestEvalSymlinks(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "evalsymlink")
-	if err != nil {
-		t.Fatal("creating temp dir:", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// /tmp may itself be a symlink! Avoid the confusion, although
-	// it means trusting the thing we're testing.
-	tmpDir, err = filepath.EvalSymlinks(tmpDir)
-	if err != nil {
-		t.Fatal("eval symlink for tmp dir:", err)
-	}
+	_, tmpDir, cleanup := tmpDir(t)
+	defer cleanup()
 
 	// Create the symlink farm using relative paths.
 	for _, d := range EvalSymlinksTestDirs {
@@ -153,42 +115,30 @@ func TestEvalSymlinks(t *testing.T) {
 
 	// Evaluate the symlink farm.
 	for _, test := range EvalSymlinksTests {
-		path := simpleJoin(tmpDir, test.path)
-
-		dest := simpleJoin(tmpDir, test.dest)
-		if filepath.IsAbs(test.dest) || os.IsPathSeparator(test.dest[0]) {
-			dest = test.dest
-		}
-		testEvalSymlinks(t, path, dest)
+		testEvalSymlinks(t, tmpDir, test.path, test.dest)
 
 		// test EvalSymlinks(".")
-		testEvalSymlinksAfterChdir(t, path, ".", ".")
+		testEvalSymlinks(t, simpleJoin(tmpDir, test.path), ".", ".")
 
 		// test EvalSymlinks("C:.") on Windows
 		if runtime.GOOS == "windows" {
 			volDot := filepath.VolumeName(tmpDir) + "."
-			testEvalSymlinksAfterChdir(t, path, volDot, volDot)
+			testEvalSymlinks(t, simpleJoin(tmpDir, test.path), volDot, volDot)
 		}
 
 		// test EvalSymlinks(".."+path)
-		dotdotPath := simpleJoin("..", test.dest)
-		if filepath.IsAbs(test.dest) || os.IsPathSeparator(test.dest[0]) {
-			dotdotPath = test.dest
-		}
-		testEvalSymlinksAfterChdir(t,
-			simpleJoin(tmpDir, "test"),
-			simpleJoin("..", test.path),
-			dotdotPath)
-
-		// test EvalSymlinks(p) where p is relative path
-		testEvalSymlinksAfterChdir(t, tmpDir, test.path, test.dest)
+		testEvalSymlinks(t,
+			tmpDir,
+			simpleJoin("test", "..", test.path),
+			test.dest)
 	}
 }
 
 func TestEvalSymlinksIsNotExist(t *testing.T) {
-	defer chtmpdir(t)()
+	root, _, cleanup := tmpDir(t)
+	defer cleanup()
 
-	_, err := symlink.EvalSymlinks(context.Background(), fs, "notexist")
+	_, err := symlink.EvalSymlinks(context.Background(), root, "notexist")
 	if !os.IsNotExist(err) {
 		t.Errorf("expected the file is not found, got %v\n", err)
 	}
@@ -199,21 +149,18 @@ func TestEvalSymlinksIsNotExist(t *testing.T) {
 	}
 	defer os.Remove("link")
 
-	_, err = symlink.EvalSymlinks(context.Background(), fs, "link")
+	_, err = symlink.EvalSymlinks(context.Background(), root, "link")
 	if !os.IsNotExist(err) {
 		t.Errorf("expected the file is not found, got %v\n", err)
 	}
 }
 
 func TestIssue13582(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "issue13582")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	root, tmpDir, cleanup := tmpDir(t)
+	defer cleanup()
 
 	dir := filepath.Join(tmpDir, "dir")
-	err = os.Mkdir(dir, 0755)
+	err := os.Mkdir(dir, 0755)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,25 +185,17 @@ func TestIssue13582(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// /tmp may itself be a symlink!
-	realTmpDir, err := filepath.EvalSymlinks(tmpDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	realDir := filepath.Join(realTmpDir, "dir")
-	realFile := filepath.Join(realDir, "file")
-
 	tests := []struct {
 		path, want string
 	}{
-		{dir, realDir},
-		{linkToDir, realDir},
-		{file, realFile},
-		{link1, realFile},
-		{link2, realFile},
+		{"dir", "dir"},
+		{"link_to_dir", "dir"},
+		{"link_to_dir/file", "dir/file"},
+		{"link_to_dir/link1", "dir/file"},
+		{"link_to_dir/link2", "dir/file"},
 	}
 	for i, test := range tests {
-		have, err := symlink.EvalSymlinks(context.Background(), fs, test.path)
+		have, err := symlink.EvalSymlinks(context.Background(), root, test.path)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -25,7 +24,13 @@ type Reader struct {
 
 func (reader *Reader) tryFile(h serving.Handler) error {
 	ctx := h.Request.Context()
-	fullPath, err := reader.resolvePath(ctx, h.LookupPath.Path, h.SubPath)
+
+	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
+	if err != nil {
+		return err
+	}
+
+	fullPath, err := reader.resolvePath(ctx, root, h.SubPath)
 
 	request := h.Request
 	host := request.Host
@@ -33,7 +38,7 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(urlPath) {
-			fullPath, err = reader.resolvePath(ctx, h.LookupPath.Path, h.SubPath, "index.html")
+			fullPath, err = reader.resolvePath(ctx, root, h.SubPath, "index.html")
 		} else {
 			// TODO why are we doing that? In tests it redirects to HTTPS. This seems wrong,
 			// issue about this: https://gitlab.com/gitlab-org/gitlab-pages/issues/273
@@ -50,24 +55,30 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 	}
 
 	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
-		fullPath, err = reader.resolvePath(ctx, h.LookupPath.Path, strings.TrimSuffix(h.SubPath, "/")+".html")
+		fullPath, err = reader.resolvePath(ctx, root, strings.TrimSuffix(h.SubPath, "/")+".html")
 	}
 
 	if err != nil {
 		return err
 	}
 
-	return reader.serveFile(ctx, h.Writer, h.Request, fullPath, h.LookupPath.HasAccessControl)
+	return reader.serveFile(ctx, h.Writer, h.Request, root, fullPath, h.LookupPath.HasAccessControl)
 }
 
 func (reader *Reader) tryNotFound(h serving.Handler) error {
 	ctx := h.Request.Context()
-	page404, err := reader.resolvePath(ctx, h.LookupPath.Path, "404.html")
+
+	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
 	if err != nil {
 		return err
 	}
 
-	err = reader.serveCustomFile(ctx, h.Writer, h.Request, http.StatusNotFound, page404)
+	page404, err := reader.resolvePath(ctx, root, "404.html")
+	if err != nil {
+		return err
+	}
+
+	err = reader.serveCustomFile(ctx, h.Writer, h.Request, http.StatusNotFound, root, page404)
 	if err != nil {
 		return err
 	}
@@ -76,15 +87,12 @@ func (reader *Reader) tryNotFound(h serving.Handler) error {
 
 // Resolve the HTTP request to a path on disk, converting requests for
 // directories to requests for index.html inside the directory if appropriate.
-func (reader *Reader) resolvePath(ctx context.Context, publicPath string, subPath ...string) (string, error) {
-	// Ensure that publicPath always ends with "/"
-	publicPath = strings.TrimSuffix(publicPath, "/") + "/"
-
+func (reader *Reader) resolvePath(ctx context.Context, root vfs.Root, subPath ...string) (string, error) {
 	// Don't use filepath.Join as cleans the path,
 	// where we want to traverse full path as supplied by user
 	// (including ..)
-	testPath := publicPath + strings.Join(subPath, "/")
-	fullPath, err := symlink.EvalSymlinks(ctx, reader.vfs, testPath)
+	testPath := strings.Join(subPath, "/")
+	fullPath, err := symlink.EvalSymlinks(ctx, root, testPath)
 
 	if err != nil {
 		if endsWithoutHTMLExtension(testPath) {
@@ -96,12 +104,7 @@ func (reader *Reader) resolvePath(ctx context.Context, publicPath string, subPat
 		return "", err
 	}
 
-	// The requested path resolved to somewhere outside of the public/ directory
-	if !strings.HasPrefix(fullPath, publicPath) && fullPath != filepath.Clean(publicPath) {
-		return "", fmt.Errorf("%q should be in %q", fullPath, publicPath)
-	}
-
-	fi, err := reader.vfs.Lstat(ctx, fullPath)
+	fi, err := root.Lstat(ctx, fullPath)
 	if err != nil {
 		return "", err
 	}
@@ -110,7 +113,7 @@ func (reader *Reader) resolvePath(ctx context.Context, publicPath string, subPat
 	if fi.IsDir() {
 		return "", &locationDirectoryError{
 			FullPath:     fullPath,
-			RelativePath: strings.TrimPrefix(fullPath, publicPath),
+			RelativePath: testPath,
 		}
 	}
 
@@ -123,17 +126,17 @@ func (reader *Reader) resolvePath(ctx context.Context, publicPath string, subPat
 	return fullPath, nil
 }
 
-func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, origPath string, accessControl bool) error {
-	fullPath := reader.handleGZip(ctx, w, r, origPath)
+func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, origPath string, accessControl bool) error {
+	fullPath := reader.handleGZip(ctx, w, r, root, origPath)
 
-	file, err := reader.vfs.Open(ctx, fullPath)
+	file, err := root.Open(ctx, fullPath)
 	if err != nil {
 		return err
 	}
 
 	defer file.Close()
 
-	fi, err := reader.vfs.Lstat(ctx, fullPath)
+	fi, err := root.Lstat(ctx, fullPath)
 	if err != nil {
 		return err
 	}
@@ -144,7 +147,7 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 		w.Header().Set("Expires", time.Now().Add(10*time.Minute).Format(time.RFC1123))
 	}
 
-	contentType, err := reader.detectContentType(ctx, origPath)
+	contentType, err := reader.detectContentType(ctx, root, origPath)
 	if err != nil {
 		return err
 	}
@@ -157,22 +160,22 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 	return nil
 }
 
-func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter, r *http.Request, code int, origPath string) error {
-	fullPath := reader.handleGZip(ctx, w, r, origPath)
+func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter, r *http.Request, code int, root vfs.Root, origPath string) error {
+	fullPath := reader.handleGZip(ctx, w, r, root, origPath)
 
 	// Open and serve content of file
-	file, err := reader.vfs.Open(ctx, fullPath)
+	file, err := root.Open(ctx, fullPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	fi, err := reader.vfs.Lstat(ctx, fullPath)
+	fi, err := root.Lstat(ctx, fullPath)
 	if err != nil {
 		return err
 	}
 
-	contentType, err := reader.detectContentType(ctx, origPath)
+	contentType, err := reader.detectContentType(ctx, root, origPath)
 	if err != nil {
 		return err
 	}
