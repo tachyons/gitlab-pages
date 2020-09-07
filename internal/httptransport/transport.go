@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,9 +26,13 @@ var (
 
 type meteredRoundTripper struct {
 	next      http.RoundTripper
+	name      string
 	durations *prometheus.GaugeVec
 	counter   *prometheus.CounterVec
 }
+
+// Option setting for metered round tripper
+type Option func(*meteredRoundTripper)
 
 func newInternalTransport() *http.Transport {
 	return &http.Transport{
@@ -44,11 +49,24 @@ func newInternalTransport() *http.Transport {
 
 // NewTransportWithMetrics will create a custom http.RoundTripper that can be used with an http.Client.
 // The RoundTripper will report metrics based on the collectors passed.
-func NewTransportWithMetrics(gaugeVec *prometheus.GaugeVec, counterVec *prometheus.CounterVec) http.RoundTripper {
-	return &meteredRoundTripper{
+func NewTransportWithMetrics(gaugeVec *prometheus.GaugeVec, counterVec *prometheus.CounterVec, options ...Option) http.RoundTripper {
+	mtr := &meteredRoundTripper{
 		next:      InternalTransport,
 		durations: gaugeVec,
 		counter:   counterVec,
+	}
+
+	for _, option := range options {
+		option(mtr)
+	}
+
+	return mtr
+}
+
+// WithMeteredRoundTripperName adds a name to the meteredRoundTripper instance
+func WithMeteredRoundTripperName(name string) func(*meteredRoundTripper) {
+	return func(tripper *meteredRoundTripper) {
+		tripper.name = name
 	}
 }
 
@@ -87,9 +105,27 @@ func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 		return nil, err
 	}
 
+	mrt.logResponse(r, resp)
+
 	statusCode := strconv.Itoa(resp.StatusCode)
 	mrt.durations.WithLabelValues(statusCode).Set(time.Since(start).Seconds())
 	mrt.counter.WithLabelValues(statusCode).Inc()
 
 	return resp, nil
+}
+
+func (mrt *meteredRoundTripper) logResponse(req *http.Request, resp *http.Response) {
+	if log.GetLevel() == log.TraceLevel {
+		l := log.WithFields(log.Fields{
+			"client_name":     mrt.name,
+			"req_url":         req.URL.String(),
+			"res_status_code": resp.StatusCode,
+		})
+
+		for header, value := range resp.Header {
+			l = l.WithField(strings.ToLower(header), strings.Join(value, ";"))
+		}
+
+		l.Traceln("response")
+	}
 }

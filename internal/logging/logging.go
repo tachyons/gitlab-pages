@@ -18,7 +18,7 @@ func ConfigureLogging(format string, verbose bool) error {
 	}
 
 	if verbose {
-		levelOption = log.WithLogLevel("debug")
+		levelOption = log.WithLogLevel("trace")
 	} else {
 		levelOption = log.WithLogLevel("info")
 	}
