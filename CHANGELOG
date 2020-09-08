@@ -1,3 +1,7 @@
+v 1.24.0
+
+- Unshare mount namespaces when creating jail !342
+
 v 1.23.0
 
 - Add VFS for local disk !324
