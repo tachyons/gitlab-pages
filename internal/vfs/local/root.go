@@ -66,6 +66,9 @@ func (r *Root) Readlink(ctx context.Context, name string) (string, error) {
 	}
 
 	if filepath.IsAbs(target) {
+		// target is always scoped to the current `r.rootPath`
+		target = filepath.Join(r.rootPath, target)
+
 		return filepath.Rel(filepath.Dir(fullPath), target)
 	}
 
