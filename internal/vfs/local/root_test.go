@@ -120,12 +120,11 @@ func TestReadlinkAbsolutePath(t *testing.T) {
 	// create structure as:
 	// /tmp/dir: directory
 	// /tmp/dir/symlink: points to `/tmp/file`
-	tmpDir, err := ioutil.TempDir("", "vfs")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	tmpDir, cleanup := tmpDir(t)
+	defer cleanup()
 
 	dirPath := filepath.Join(tmpDir, "dir")
-	err = os.Mkdir(dirPath, 0755)
+	err := os.Mkdir(dirPath, 0755)
 	require.NoError(t, err)
 
 	symlinkPath := filepath.Join(dirPath, "symlink")
