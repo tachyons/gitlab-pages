@@ -21,6 +21,10 @@ import (
 
 var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to the gitlab-pages binary")
 
+const (
+	objectStorageMockServer = "127.0.0.1:37003"
+)
+
 // TODO: Use TCP port 0 everywhere to avoid conflicts. The binary could output
 // the actual port (and type of listener) for us to read in place of the
 // hardcoded values below.
@@ -1922,6 +1926,82 @@ func TestDomainsSource(t *testing.T) {
 			}
 
 			require.Equal(t, tt.want.apiCalled, apiCalled, "api called mismatch")
+		})
+	}
+}
+
+func TestZipServing(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	var apiCalled bool
+	source := NewGitlabDomainsSourceStub(t, &apiCalled)
+	defer source.Close()
+
+	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
+	defer teardown()
+
+	_, cleanup := newZipFileServerURL(t, "shared/pages/group/zip.gitlab.io/public.zip")
+	defer cleanup()
+
+	tests := map[string]struct {
+		urlSuffix          string
+		expectedStatusCode int
+		expectedContent    string
+	}{
+		"base_domain_no_suffix": {
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "zip.gitlab.io/project/index.html\n",
+		},
+		"file_exists": {
+			urlSuffix:          "/index.html",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "zip.gitlab.io/project/index.html\n",
+		},
+		"file_exists_in_subdir": {
+			urlSuffix:          "/subdir/hello.html",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "zip.gitlab.io/project/subdir/hello.html\n",
+		},
+		"file_exists_symlink": {
+			urlSuffix:          "/symlink.html",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "symlink.html->subdir/linked.html\n",
+		},
+		"dir": {
+			urlSuffix:          "/subdir/",
+			expectedStatusCode: http.StatusNotFound,
+			expectedContent:    "zip.gitlab.io/project/404.html\n",
+		},
+		"file_does_not_exist": {
+			urlSuffix:          "/unknown.html",
+			expectedStatusCode: http.StatusNotFound,
+			expectedContent:    "zip.gitlab.io/project/404.html\n",
+		},
+		"bad_symlink": {
+			urlSuffix:          "/bad-symlink.html",
+			expectedStatusCode: http.StatusNotFound,
+			expectedContent:    "zip.gitlab.io/project/404.html\n",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			response, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", tt.urlSuffix)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
+			if tt.expectedStatusCode == http.StatusOK || tt.expectedStatusCode == http.StatusNotFound {
+				defer response.Body.Close()
+
+				body, err := ioutil.ReadAll(response.Body)
+				require.NoError(t, err)
+
+				require.Equal(t, tt.expectedContent, string(body), "content mismatch")
+			}
 		})
 	}
 }

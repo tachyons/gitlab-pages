@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"sync"
@@ -92,6 +93,17 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 			subPath := ""
 			if isSubPath {
 				subPath = strings.TrimPrefix(urlPath, lookup.Prefix)
+			}
+
+			if lookup.Source.Type == "zip" {
+				urlPath, err := url.Parse(lookup.Source.Path)
+				if err != nil {
+					return nil, err
+				}
+
+				lookup.Source.Path = urlPath.String()
+			} else {
+				lookup.Source.Path = strings.TrimPrefix(lookup.Source.Path, "/")
 			}
 
 			return &serving.Request{
