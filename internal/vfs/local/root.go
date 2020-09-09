@@ -65,13 +65,18 @@ func (r *Root) Readlink(ctx context.Context, name string) (string, error) {
 		return "", err
 	}
 
-	if filepath.IsAbs(target) {
-		// target is always scoped to the current `r.rootPath`
-		target = filepath.Join(r.rootPath, target)
-
+	// If `target` is local to `rootPath` return relative
+	if strings.HasPrefix(target, r.rootPath+"/") {
 		return filepath.Rel(filepath.Dir(fullPath), target)
 	}
 
+	// If `target` is absolute return as-is making `EvalSymlinks`
+	// to discover misuse of a root path
+	if filepath.IsAbs(target) {
+		return target, nil
+	}
+
+	// If `target` is relative, return as-is
 	return target, nil
 }
 

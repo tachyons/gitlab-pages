@@ -74,7 +74,7 @@ var EvalSymlinksTests = []EvalSymlinksTest{
 	{"test/link2/..", "test"},
 	{"test/dir/link3", "."},
 	{"test/link2/link3/test", "test"},
-	{"test/linkabs", "."},
+	{"test/linkabs", "/"},
 	{"test/link4/..", "test"},
 	{"src/versions/current/modules/test", "src/pool/test"},
 }

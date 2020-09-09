@@ -119,7 +119,8 @@ func TestReadlink(t *testing.T) {
 func TestReadlinkAbsolutePath(t *testing.T) {
 	// create structure as:
 	// /tmp/dir: directory
-	// /tmp/dir/symlink: points to `/tmp/file`
+	// /tmp/dir/symlink: points to `/tmp/file` outside of the `/tmp/dir`
+	// /tmp/dir/symlink2: points to `/tmp/dir/file`
 	tmpDir, cleanup := tmpDir(t)
 	defer cleanup()
 
@@ -132,13 +133,36 @@ func TestReadlinkAbsolutePath(t *testing.T) {
 	err = os.Symlink(filePath, symlinkPath)
 	require.NoError(t, err)
 
+	symlinkPath = filepath.Join(dirPath, "symlink2")
+	dirFilePath := filepath.Join(dirPath, "file")
+	err = os.Symlink(dirFilePath, symlinkPath)
+	require.NoError(t, err)
+
 	root, err := localVFS.Root(context.Background(), dirPath)
 	require.NoError(t, err)
 
-	targetPath, err := root.Readlink(context.Background(), "symlink")
-	require.NoError(t, err)
+	tests := map[string]struct {
+		path           string
+		expectedTarget string
+	}{
+		"the absolute path is returned for file outside of `/tmp/dir": {
+			path:           "symlink",
+			expectedTarget: filePath,
+		},
+		"the relative path is returned for file inside the `/tmp/dir": {
+			path:           "symlink2",
+			expectedTarget: "file",
+		},
+	}
 
-	assert.Equal(t, "../file", targetPath, "the relative path is returned")
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			targetPath, err := root.Readlink(context.Background(), test.path)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedTarget, targetPath)
+		})
+	}
 }
 
 func TestLstat(t *testing.T) {
