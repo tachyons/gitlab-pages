@@ -22,7 +22,7 @@ Build and start the app. For any changes, you must run `make` to build the app, 
 make && ./gitlab-pages -config=gitlab-pages.conf
 ```
 
-Visit http://group.pages.gdk.test:8090/project/index.html and you should see a
+Visit http://group.192.168.1.135.nip.io:8090/project/index.html (replace `192.168.1.135` with your IP) and you should see a
 `project-subdir` response
 
 You can see our [testing](#testing) and [linting](#linting) sections below on how to run those.
