@@ -26,6 +26,10 @@ func tmpDir(t *testing.T) (vfs.Root, string, func()) {
 	tmpDir, err := ioutil.TempDir("", "symlink_tests")
 	require.NoError(t, err)
 
+	// On some systems `/tmp` can be a symlink
+	tmpDir, err = filepath.EvalSymlinks(tmpDir)
+	require.NoError(t, err)
+
 	root, err := fs.Root(context.Background(), tmpDir)
 	require.NoError(t, err)
 
@@ -70,7 +74,7 @@ var EvalSymlinksTests = []EvalSymlinksTest{
 	{"test/link2/..", "test"},
 	{"test/dir/link3", "."},
 	{"test/link2/link3/test", "test"},
-	{"test/linkabs", "../.."},
+	{"test/linkabs", "/"},
 	{"test/link4/..", "test"},
 	{"src/versions/current/modules/test", "src/pool/test"},
 }
