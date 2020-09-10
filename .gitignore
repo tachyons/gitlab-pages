@@ -9,3 +9,7 @@ shared/pages/.update
 # Used by the makefile
 /.GOPATH
 /bin
+
+# reports
+gl-license-scanning-report.json
+gl-code-quality-report.json

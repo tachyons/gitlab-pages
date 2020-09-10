@@ -23,9 +23,6 @@ include:
 
 license_scanning:
   <<: *rules-for-scanners
-  variables:
-    LICENSE_MANAGEMENT_SETUP_CMD: go mod vendor
-
 
 gemnasium-dependency_scanning:
   <<: *rules-for-scanners
