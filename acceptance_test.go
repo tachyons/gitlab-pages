@@ -448,28 +448,48 @@ func TestHttpsOnlyDomainDisabled(t *testing.T) {
 func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	skipUnlessEnabled(t)
 	listener := []ListenSpec{{"http", "127.0.0.1", "37003"}}
-	teardown := RunPagesProcess(t, *pagesBinary, listener, ":42345")
+
+	var apiCalled bool
+	source := NewGitlabDomainsSourceStub(t, &apiCalled)
+	defer source.Close()
+
+	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listener, ":42345", []string{}, pagesArgs...)
 	defer teardown()
+
+	// need to call an actual resource to populate certain metrics e.g. gitlab_pages_domains_source_api_requests_total
+	_, err := GetPageFromListener(t, listener[0], "new-source-test.gitlab.io", "")
+	require.NoError(t, err)
 
 	resp, err := http.Get("http://localhost:42345/metrics")
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
 
 	require.Contains(t, string(body), "gitlab_pages_http_in_flight_requests 0")
-	require.Contains(t, string(body), "gitlab_pages_served_domains 16")
+	// TODO: remove metrics for disk sourcehttps://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
+	require.Contains(t, string(body), "gitlab_pages_served_domains 0")
 	require.Contains(t, string(body), "gitlab_pages_domains_failed_total 0")
-	require.Contains(t, string(body), "gitlab_pages_domains_updated_total 1")
+	require.Contains(t, string(body), "gitlab_pages_domains_updated_total 0")
 	require.Contains(t, string(body), "gitlab_pages_last_domain_update_seconds gauge")
 	require.Contains(t, string(body), "gitlab_pages_domains_configuration_update_duration gauge")
-	require.Contains(t, string(body), "gitlab_pages_domains_source_cache_hit 0")
-	require.Contains(t, string(body), "gitlab_pages_domains_source_cache_miss 0")
+	// end TODO
+	require.Contains(t, string(body), "gitlab_pages_domains_source_cache_hit 3")
+	require.Contains(t, string(body), "gitlab_pages_domains_source_cache_miss 2")
 	require.Contains(t, string(body), "gitlab_pages_domains_source_failures_total 0")
 	require.Contains(t, string(body), "gitlab_pages_serverless_requests 0")
 	require.Contains(t, string(body), "gitlab_pages_serverless_latency_sum 0")
 	require.Contains(t, string(body), "gitlab_pages_disk_serving_file_size_bytes_sum 0")
 	require.Contains(t, string(body), "gitlab_pages_serving_time_seconds_sum 0")
+	require.Contains(t, string(body), `gitlab_pages_domains_source_api_requests_total{status_code="200"}`)
+	require.Contains(t, string(body), `gitlab_pages_domains_source_api_call_duration{status_code="200"}`)
+	// TODO: add test when Zip is enabled https://gitlab.com/gitlab-org/gitlab-pages/-/issues/443
+	// require.Contains(t, string(body), `gitlab_pages_httprange_zip_reader_requests_total{status_code="200"}`)
+	// require.Contains(t, string(body), `gitlab_pages_httprange_zip_reader_requests_duration{status_code="200"}`)
 }
 
 func TestStatusPage(t *testing.T) {

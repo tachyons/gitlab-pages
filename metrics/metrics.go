@@ -5,6 +5,7 @@ import (
 )
 
 var (
+	// TODO: remove disk source metrics https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 	// DomainsServed counts the total number of sites served
 	DomainsServed = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "gitlab_pages_served_domains",
