@@ -99,15 +99,17 @@ var (
 		Help: "The number of VFS operations",
 	}, []string{"vfs_name", "operation", "success"})
 
-	// ZipFileServingReqTotal is the number of requests made to Object Storage by zip file serving
-	ZipFileServingReqTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "gitlab_pages_httprange_zip_reader_requests_total",
-		Help: "The number of requests made to Object Storage by zip file serving with different status codes",
+	// ObjectStorageBackendReqTotal is the number of requests made to Object Storage by zip file serving
+	// Could be bigger than the number of pages served.
+	ObjectStorageBackendReqTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "gitlab_pages_object_storage_backend_requests_total",
+		Help: "The number of requests made to Object Storage by zip file serving with different status codes." +
+			"Could be bigger than the number of requests served",
 	}, []string{"status_code"})
 
-	// ZipFileServingReqDuration is the time it takes to get a response from Object Storage in seconds for zip file servings
-	ZipFileServingReqDuration = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "gitlab_pages_httprange_zip_reader_requests_duration",
+	// ObjectStorageBackendReqDuration is the time it takes to get a response from Object Storage in seconds for zip file servings
+	ObjectStorageBackendReqDuration = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gitlab_pages_object_storage_backend_requests_duration",
 		Help: "The time (in seconds) it takes to get a response from the Object Storage provider for zip file serving",
 	}, []string{"status_code"})
 )
@@ -130,7 +132,7 @@ func MustRegister() {
 		DiskServingFileSize,
 		ServingTime,
 		VFSOperations,
-		ZipFileServingReqTotal,
-		ZipFileServingReqDuration,
+		ObjectStorageBackendReqTotal,
+		ObjectStorageBackendReqDuration,
 	)
 }

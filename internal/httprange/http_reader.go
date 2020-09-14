@@ -47,9 +47,9 @@ var httpClient = &http.Client{
 	// The longest time the request can be executed
 	Timeout: 30 * time.Minute,
 	Transport: httptransport.NewTransportWithMetrics(
-		metrics.ZipFileServingReqDuration,
-		metrics.ZipFileServingReqTotal,
-		httptransport.WithMeteredRoundTripperName("httprange_client"),
+		"object_storage_client",
+		metrics.ObjectStorageBackendReqDuration,
+		metrics.ObjectStorageBackendReqTotal,
 	),
 }
 

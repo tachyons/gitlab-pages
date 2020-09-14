@@ -464,7 +464,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Contains(t, string(body), "gitlab_pages_http_in_flight_requests 0")
-	// TODO: remove metrics for disk sourcehttps://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
+	// TODO: remove metrics for disk source https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 	require.Contains(t, string(body), "gitlab_pages_served_domains 0")
 	require.Contains(t, string(body), "gitlab_pages_domains_failed_total 0")
 	require.Contains(t, string(body), "gitlab_pages_domains_updated_total 0")

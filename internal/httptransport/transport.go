@@ -31,9 +31,6 @@ type meteredRoundTripper struct {
 	counter   *prometheus.CounterVec
 }
 
-// Option setting for metered round tripper
-type Option func(*meteredRoundTripper)
-
 func newInternalTransport() *http.Transport {
 	return &http.Transport{
 		DialTLS: func(network, addr string) (net.Conn, error) {
@@ -49,24 +46,12 @@ func newInternalTransport() *http.Transport {
 
 // NewTransportWithMetrics will create a custom http.RoundTripper that can be used with an http.Client.
 // The RoundTripper will report metrics based on the collectors passed.
-func NewTransportWithMetrics(gaugeVec *prometheus.GaugeVec, counterVec *prometheus.CounterVec, options ...Option) http.RoundTripper {
-	mtr := &meteredRoundTripper{
+func NewTransportWithMetrics(name string, gaugeVec *prometheus.GaugeVec, counterVec *prometheus.CounterVec) http.RoundTripper {
+	return &meteredRoundTripper{
 		next:      InternalTransport,
+		name:      name,
 		durations: gaugeVec,
 		counter:   counterVec,
-	}
-
-	for _, option := range options {
-		option(mtr)
-	}
-
-	return mtr
-}
-
-// WithMeteredRoundTripperName adds a name to the meteredRoundTripper instance
-func WithMeteredRoundTripperName(name string) func(*meteredRoundTripper) {
-	return func(tripper *meteredRoundTripper) {
-		tripper.name = name
 	}
 }
 
