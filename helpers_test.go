@@ -163,6 +163,21 @@ func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesPath string, listener
 	return runPagesProcess(t, wait, pagesPath, listeners, promPort, envs, extraArgs...)
 }
 
+func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
+	var apiCalled bool
+	source := NewGitlabDomainsSourceStub(t, &apiCalled)
+
+	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+	pagesArgs := append([]string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
+
+	cleanup := runPagesProcess(t, wait, pagesPath, listeners, promPort, envs, pagesArgs...)
+
+	return func() {
+		source.Close()
+		cleanup()
+	}
+}
+
 func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) func() {
 	configFile, cleanup := defaultConfigFileWith(t,
 		"auth-server=https://gitlab-auth.com",
