@@ -1,3 +1,7 @@
+v 1.25.0
+
+- No user-facing changes
+
 v 1.24.0
 
 - Unshare mount namespaces when creating jail !342
