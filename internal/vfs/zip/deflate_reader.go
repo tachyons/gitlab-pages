@@ -5,23 +5,27 @@ import (
 	"io"
 )
 
+// deflateReader wrapper to support reading compressed files.
+// Implements the io.ReadCloser interface.
 type deflateReader struct {
-	R io.ReadCloser
-	D io.ReadCloser
+	reader      io.ReadCloser
+	flateReader io.ReadCloser
 }
 
+// Read from flateReader
 func (r *deflateReader) Read(p []byte) (n int, err error) {
-	return r.D.Read(p)
+	return r.flateReader.Read(p)
 }
 
+// Close all readers
 func (r *deflateReader) Close() error {
-	r.R.Close()
-	return r.D.Close()
+	r.reader.Close()
+	return r.flateReader.Close()
 }
 
 func newDeflateReader(r io.ReadCloser) *deflateReader {
 	return &deflateReader{
-		R: r,
-		D: flate.NewReader(r),
+		reader:      r,
+		flateReader: flate.NewReader(r),
 	}
 }
