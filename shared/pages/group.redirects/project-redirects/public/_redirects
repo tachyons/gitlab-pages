@@ -1,0 +1,11 @@
+/project-redirects/redirect-portal.html /project-redirects/magic-land.html 302
+/project-redirects/cake-portal.html /project-redirects/still-alive.html 302
+/project-redirects/jobs/*                       /project-redirects/careers/:splat
+/project-redirects/wardrobe.html /project-redirects/narnia.html 302
+/project-redirects/news/:year/:month/:date/:slug /project-redirects/blog/:year/:month/:date/:slug
+/project-redirects/pit.html /project-redirects/spikes.html 302
+/project-redirects/goto-domain.html https://GitLab.com/pages.html 302
+/project-redirects/goto-bare-domain.html GitLab.com/pages.html 302
+/project-redirects/goto-schemaless.html //GitLab.com/pages.html 302
+/project-redirects/cake-portal/ /project-redirects/still-alive/ 302
+/project-redirects/file-override.html /project-redirects/should-not-be-here.html 302

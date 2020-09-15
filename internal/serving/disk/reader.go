@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
@@ -20,6 +22,34 @@ import (
 type Reader struct {
 	fileSizeMetric prometheus.Histogram
 	vfs            vfs.VFS
+}
+
+// Show the user some validation messages for their _redirects file
+func (reader *Reader) serveRedirectsStatus(h serving.Handler, redirects *redirects.Redirects) error {
+	h.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	h.Writer.Header().Set("X-Content-Type-Options", "nosniff")
+	h.Writer.WriteHeader(http.StatusOK)
+	_, err := fmt.Fprintln(h.Writer, redirects.Status())
+	return err
+}
+
+func (reader *Reader) tryRedirects(h serving.Handler) error {
+	ctx := h.Request.Context()
+	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
+	if err != nil {
+		return err
+	}
+
+	r := redirects.ParseRedirects(ctx, root)
+
+	rewrittenURL, status, err := r.Rewrite(h.Request.URL)
+	if err != nil {
+		return err
+	}
+
+	http.Redirect(h.Writer, h.Request, rewrittenURL.Path, status)
+
+	return nil
 }
 
 func (reader *Reader) tryFile(h serving.Handler) error {
@@ -60,6 +90,18 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 
 	if err != nil {
 		return err
+	}
+
+	// Serve status of `_redirects` under `_redirects`
+	// We check if the final resolved path is `_redirects` after symlink traversal
+	if fullPath == redirects.ConfigFile {
+		if os.Getenv("FF_ENABLE_REDIRECTS") == "true" {
+			r := redirects.ParseRedirects(ctx, root)
+			return reader.serveRedirectsStatus(h, r)
+		}
+
+		h.Writer.WriteHeader(http.StatusForbidden)
+		return nil
 	}
 
 	return reader.serveFile(ctx, h.Writer, h.Request, root, fullPath, h.LookupPath.HasAccessControl)

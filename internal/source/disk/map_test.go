@@ -52,6 +52,8 @@ func TestReadProjects(t *testing.T) {
 		"withacmechallenge.domain.com",
 		"capitalgroup.test.io",
 		"group.404.gitlab-example.com",
+		"group.redirects.test.io",
+		"redirects.custom-domain.com",
 	}
 
 	for _, expected := range domains {

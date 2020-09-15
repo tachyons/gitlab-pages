@@ -1,0 +1,11 @@
+/redirect-portal.html /magic-land.html 302
+/cake-portal.html /still-alive.html 302
+/jobs/*                       /careers/:splat
+/wardrobe.html /narnia.html 302
+/news/:year/:month/:date/:slug /blog/:year/:month/:date/:slug
+/pit.html /spikes.html 302
+/goto-domain.html https://GitLab.com/pages.html 302
+/goto-bare-domain.html GitLab.com/pages.html 302
+/goto-schemaless.html //GitLab.com/pages.html 302
+/cake-portal/ /still-alive/ 302
+/file-override.html /should-not-be-here.html 302

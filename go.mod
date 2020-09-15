@@ -21,7 +21,9 @@ require (
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/objx v0.2.0 // indirect
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.6.1
+	github.com/tj/assert v0.0.3 // indirect
+	github.com/tj/go-redirects v0.0.0-20180508180010-5c02ead0bbc5
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	gitlab.com/gitlab-org/labkit v0.0.0-20200520155818-96e583c57891
@@ -32,6 +34,5 @@ require (
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
 	golang.org/x/tools v0.0.0-20200502202811-ed308ab3e770
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )
