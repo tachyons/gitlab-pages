@@ -176,6 +176,7 @@ func TestReadLink(t *testing.T) {
 		})
 	}
 }
+
 func openZipArchive(t *testing.T) (*zipArchive, func()) {
 	t.Helper()
 
