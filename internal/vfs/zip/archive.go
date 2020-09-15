@@ -82,17 +82,19 @@ func (a *zipArchive) readArchive(ctx context.Context) {
 		a.archive, a.err = zip.NewReader(a.reader, a.resource.Size)
 	})
 
-	if a.archive != nil {
-		for _, file := range a.archive.File {
-			if !strings.HasPrefix(file.Name, dirPrefix) {
-				continue
-			}
-			a.files[file.Name] = file
-		}
-
-		// recycle memory
-		a.archive.File = nil
+	if a.archive == nil {
+		return
 	}
+
+	for _, file := range a.archive.File {
+		if !strings.HasPrefix(file.Name, dirPrefix) {
+			continue
+		}
+		a.files[file.Name] = file
+	}
+
+	// recycle memory
+	a.archive.File = nil
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {

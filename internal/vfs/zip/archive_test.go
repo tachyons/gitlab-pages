@@ -40,9 +40,8 @@ func TestOpen(t *testing.T) {
 			expectedErr:     nil,
 		},
 		"is_dir": {
-			file:            "subdir",
-			expectedContent: "zip.gitlab.io/project/index.html\n",
-			expectedErr:     nil,
+			file:        "subdir",
+			expectedErr: nil,
 		},
 		"file_does_not_exist": {
 			file:        "unknown.html",
@@ -60,7 +59,7 @@ func TestOpen(t *testing.T) {
 
 			require.NoError(t, err)
 
-			if name == "is_dir" {
+			if tt.expectedContent == "" {
 				// cannot ioutil.ReadAll dirs but zip.Open should not fail
 				return
 			}
