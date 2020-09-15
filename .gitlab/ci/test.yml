@@ -23,6 +23,10 @@ test:1.14:
   extends: .tests
   image: golang:1.14
 
+test:1.15:
+  extends: .tests
+  image: golang:1.15
+
 race:
   extends: .go-mod-cache
   stage: test
