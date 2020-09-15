@@ -58,7 +58,7 @@ func Test_withRoundTripper(t *testing.T) {
 				err: tt.err,
 			}
 
-			mtr := &meteredRoundTripper{next, gaugeVec, counterVec}
+			mtr := &meteredRoundTripper{next: next, durations: gaugeVec, counter: counterVec}
 			r := httptest.NewRequest("GET", "/", nil)
 
 			res, err := mtr.RoundTrip(r)

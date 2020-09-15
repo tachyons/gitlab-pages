@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 var (
@@ -44,10 +45,12 @@ type Reader struct {
 //  instead https://gitlab.com/gitlab-org/gitlab-pages/-/issues/457
 var httpClient = &http.Client{
 	// The longest time the request can be executed
-	Timeout:   30 * time.Minute,
-	Transport: httptransport.InternalTransport,
-	// TODO: add metrics https://gitlab.com/gitlab-org/gitlab-pages/-/issues/448
-	// Transport: httptransport.NewTransportWithMetrics(metrics.ZIPHttpReaderReqDuration, metrics.ZIPHttpReaderReqTotal),
+	Timeout: 30 * time.Minute,
+	Transport: httptransport.NewTransportWithMetrics(
+		"object_storage_client",
+		metrics.ObjectStorageBackendReqDuration,
+		metrics.ObjectStorageBackendReqTotal,
+	),
 }
 
 // ensureResponse is set before reading from it.

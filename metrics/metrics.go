@@ -4,6 +4,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// TODO: remove disk source metrics https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 var (
 	// DomainsServed counts the total number of sites served
 	DomainsServed = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -97,6 +98,20 @@ var (
 		Name: "gitlab_pages_vfs_operations_total",
 		Help: "The number of VFS operations",
 	}, []string{"vfs_name", "operation", "success"})
+
+	// ObjectStorageBackendReqTotal is the number of requests made to Object Storage by zip file serving
+	// Could be bigger than the number of pages served.
+	ObjectStorageBackendReqTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "gitlab_pages_object_storage_backend_requests_total",
+		Help: "The number of requests made to Object Storage by zip file serving with different status codes." +
+			"Could be bigger than the number of requests served",
+	}, []string{"status_code"})
+
+	// ObjectStorageBackendReqDuration is the time it takes to get a response from Object Storage in seconds for zip file servings
+	ObjectStorageBackendReqDuration = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "gitlab_pages_object_storage_backend_requests_duration",
+		Help: "The time (in seconds) it takes to get a response from the Object Storage provider for zip file serving",
+	}, []string{"status_code"})
 )
 
 // MustRegister collectors with the Prometheus client
@@ -117,5 +132,7 @@ func MustRegister() {
 		DiskServingFileSize,
 		ServingTime,
 		VFSOperations,
+		ObjectStorageBackendReqTotal,
+		ObjectStorageBackendReqDuration,
 	)
 }
