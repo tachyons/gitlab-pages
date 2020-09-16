@@ -39,7 +39,8 @@ func endsWithoutHTMLExtension(path string) bool {
 // Implementation is adapted from Golang's `http.serveContent()`
 // See https://github.com/golang/go/blob/902fc114272978a40d2e65c2510a18e870077559/src/net/http/fs.go#L194
 func (reader *Reader) detectContentType(ctx context.Context, root vfs.Root, path string) (string, error) {
-	contentType := mime.TypeByExtension(filepath.Ext(path))
+	fileExt := filepath.Ext(path)
+	contentType := mime.TypeByExtension(fileExt)
 
 	if contentType == "" {
 		var buf [512]byte
@@ -55,6 +56,10 @@ func (reader *Reader) detectContentType(ctx context.Context, root vfs.Root, path
 		// Ignoring errors because we don't care if the 512 bytes cannot be read.
 		n, _ := io.ReadFull(file, buf[:])
 		contentType = http.DetectContentType(buf[:n])
+	}
+
+	if contentType == "application/octet-stream" && fileExt == ".avif" {
+		contentType = "image/avif"
 	}
 
 	return contentType, nil
