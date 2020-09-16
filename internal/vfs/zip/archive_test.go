@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -181,7 +182,7 @@ func openZipArchive(t *testing.T) (*zipArchive, func()) {
 
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
 
-	zip := newArchive(testServerURL + "/public.zip")
+	zip := newArchive(testServerURL+"/public.zip", time.Second)
 
 	err := zip.openArchive(context.Background())
 	require.NoError(t, err)
