@@ -45,6 +45,7 @@ type zipArchive struct {
 	archive  *zip.Reader
 	err      error
 
+	// TODO: add metrics https://gitlab.com/gitlab-org/gitlab-pages/-/issues/423
 	files map[string]*zip.File
 }
 
@@ -100,6 +101,7 @@ func (a *zipArchive) readArchive(ctx context.Context) {
 		return
 	}
 
+	// TODO: Improve preprocessing of zip archives https://gitlab.com/gitlab-org/gitlab-pages/-/issues/432
 	for _, file := range a.archive.File {
 		if !strings.HasPrefix(file.Name, dirPrefix) {
 			continue
@@ -132,6 +134,7 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 		return nil, os.ErrNotExist
 	}
 
+	// TODO: cache dataOffsets of files https://gitlab.com/gitlab-org/gitlab-pages/-/issues/461
 	dataOffset, err := file.DataOffset()
 	if err != nil {
 		return nil, err
