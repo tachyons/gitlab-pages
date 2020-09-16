@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -20,6 +21,9 @@ import (
 const (
 	dirPrefix      = "public/"
 	maxSymlinkSize = 256
+
+	// DefaultOpenTimeout to request an archive and read its contents the first time
+	DefaultOpenTimeout = 30 * time.Second
 )
 
 var (
@@ -31,9 +35,10 @@ var (
 // It represents a zip archive saving all its files int memory.
 // It holds an httprange.Resource that can be read with httprange.RangedReader in chunks.
 type zipArchive struct {
-	path string
-	once sync.Once
-	done chan struct{}
+	path        string
+	once        sync.Once
+	done        chan struct{}
+	openTimeout time.Duration
 
 	resource *httprange.Resource
 	reader   *httprange.RangedReader
@@ -43,17 +48,21 @@ type zipArchive struct {
 	files map[string]*zip.File
 }
 
-func newArchive(path string) *zipArchive {
+func newArchive(path string, timeout time.Duration) *zipArchive {
 	return &zipArchive{
-		path:  path,
-		done:  make(chan struct{}),
-		files: make(map[string]*zip.File),
+		path:        path,
+		done:        make(chan struct{}),
+		files:       make(map[string]*zip.File),
+		openTimeout: timeout,
 	}
 }
 
-func (a *zipArchive) openArchive(ctx context.Context) error {
+func (a *zipArchive) openArchive(parentCtx context.Context) error {
+	ctx, cancel := context.WithTimeout(parentCtx, a.openTimeout)
+	defer cancel()
+
 	a.once.Do(func() {
-		a.readArchive(ctx)
+		go a.readArchive(ctx)
 	})
 
 	// wait for readArchive to be done or return when the context is canceled
@@ -62,7 +71,12 @@ func (a *zipArchive) openArchive(ctx context.Context) error {
 		return a.err
 	case <-ctx.Done():
 		err := ctx.Err()
-		log.WithError(err).Traceln("open zip archive timed out")
+		switch err {
+		case context.Canceled:
+			log.WithError(err).Traceln("open zip archive request canceled")
+		case context.DeadlineExceeded:
+			log.WithError(err).Traceln("open zip archive timed out")
+		}
 
 		return err
 	}
