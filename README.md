@@ -296,7 +296,7 @@ use-http2=false
 
 ### Testing and linting
 
-See [docs/development.md](docs/development.md)
+See [doc/development.md](doc/development.md)
 
 
 ### License
