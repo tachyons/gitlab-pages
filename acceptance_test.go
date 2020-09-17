@@ -626,7 +626,7 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
 }
 
-func TestObscureMIMEType(t *testing.T) {
+func TestMIMETypes(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "")
 	defer teardown()
