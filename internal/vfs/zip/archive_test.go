@@ -177,6 +177,28 @@ func TestReadLink(t *testing.T) {
 	}
 }
 
+func TestContextCanBeCanceled(t *testing.T) {
+	zip, cleanup := openZipArchive(t)
+	defer cleanup()
+
+	for _, test := range []string{"open", "lstat", "readlink"} {
+		t.Run(test, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			var err error
+			switch test {
+			case "open":
+				_, err = zip.Open(ctx, "index.html")
+			case "lstat":
+				_, err = zip.Open(ctx, "index.html")
+			case "readlink":
+				_, err = zip.Open(ctx, "index.html")
+			}
+			require.EqualError(t, err, context.Canceled.Error())
+		})
+	}
+}
+
 func openZipArchive(t *testing.T) (*zipArchive, func()) {
 	t.Helper()
 
