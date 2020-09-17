@@ -28,7 +28,7 @@ fi
 if [ "${SCHEMA_FORMAT,,}" == "ruby" ]; then
   SCHEMA_VERSION=$(grep '(version: ' ${SCHEMA_FILE} | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)) do/\1/')
 elif [ ! -d ${SCHEMA_VERSION_DIR} ]; then
-  SCHEMA_VERSION=$(sed -n '/COPY "schema_migrations" (version) FROM STDIN/,/\\\./p' ${SCHEMA_FILE} | grep -o "[[:digit:]]*" | awk -v max=0 '{if($1>max){max=$1}}END{print max}')
+  SCHEMA_VERSION=$(sed -n '/COPY "schema_migrations" (version) FROM STDIN/,/\\\./p' ${SCHEMA_FILE} | grep -o "[[:digit:]]*" | awk '$1 > max { max = $1 } END { print max }')
 else
   SCHEMA_VERSION=$(ls -r -1 ${SCHEMA_VERSION_DIR} | head -1)
 fi
