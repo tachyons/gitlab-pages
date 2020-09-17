@@ -177,25 +177,45 @@ func TestReadLink(t *testing.T) {
 	}
 }
 
-func TestContextCanBeCanceled(t *testing.T) {
+func TestContextCancelOrTimeout(t *testing.T) {
 	zip, cleanup := openZipArchive(t)
 	defer cleanup()
 
-	for _, test := range []string{"open", "lstat", "readlink"} {
-		t.Run(test, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			cancel()
+	testFn := func(test string, cancelCtx bool) func(t *testing.T) {
+		return func(t *testing.T) {
+			var ctx context.Context
+			var cancel func()
+
+			if cancelCtx {
+				ctx, cancel = context.WithCancel(context.Background())
+				cancel()
+			} else {
+				ctx, cancel = context.WithTimeout(context.Background(), 2*time.Millisecond)
+				defer cancel()
+				time.Sleep(4 * time.Millisecond)
+			}
+
 			var err error
 			switch test {
 			case "open":
 				_, err = zip.Open(ctx, "index.html")
 			case "lstat":
-				_, err = zip.Open(ctx, "index.html")
+				_, err = zip.Lstat(ctx, "index.html")
 			case "readlink":
-				_, err = zip.Open(ctx, "index.html")
+				_, err = zip.Readlink(ctx, "symlink.html")
 			}
-			require.EqualError(t, err, context.Canceled.Error())
-		})
+
+			if cancelCtx {
+				require.EqualError(t, err, context.Canceled.Error())
+			} else {
+				require.EqualError(t, err, context.DeadlineExceeded.Error())
+			}
+		}
+	}
+
+	for _, test := range []string{"open", "lstat", "readlink"} {
+		t.Run("cancel/"+test, testFn(test, true))
+		t.Run("timeout/"+test, testFn(test, false))
 	}
 }
 
