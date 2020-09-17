@@ -129,6 +129,21 @@ func (a *zipArchive) findFile(name string) *zip.File {
 
 // Open finds the file by name inside the zipArchive and returns a reader that can be served by the VFS
 func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
+	var file vfs.File
+	var fnErr error
+
+	fn := func() {
+		file, fnErr = a.open(name)
+	}
+
+	if err := waitForFuncOrCtx(ctx, fn); err != nil {
+		return nil, err
+	}
+
+	return file, fnErr
+}
+
+func (a *zipArchive) open(name string) (vfs.File, error) {
 	file := a.findFile(name)
 	if file == nil {
 		return nil, os.ErrNotExist
@@ -155,6 +170,21 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 
 // Lstat finds the file by name inside the zipArchive and returns its FileInfo
 func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error) {
+	var fi os.FileInfo
+	var fnErr error
+
+	fn := func() {
+		fi, fnErr = a.lstat(name)
+	}
+
+	if err := waitForFuncOrCtx(ctx, fn); err != nil {
+		return nil, err
+	}
+
+	return fi, fnErr
+}
+
+func (a *zipArchive) lstat(name string) (os.FileInfo, error) {
 	file := a.findFile(name)
 	if file == nil {
 		return nil, os.ErrNotExist
@@ -165,6 +195,22 @@ func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error
 
 // ReadLink finds the file by name inside the zipArchive and returns the contents of the symlink
 func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) {
+	var link string
+	var fnErr error
+
+	fn := func() {
+		link, fnErr = a.readLink(name)
+	}
+
+	if err := waitForFuncOrCtx(ctx, fn); err != nil {
+		return "", err
+	}
+
+	return link, fnErr
+}
+
+// ReadLink finds the file by name inside the zipArchive and returns the contents of the symlink
+func (a *zipArchive) readLink(name string) (string, error) {
 	file := a.findFile(name)
 	if file == nil {
 		return "", os.ErrNotExist
@@ -200,3 +246,28 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 
 // close no-op: everything can be recycled by the GC
 func (a *zipArchive) close() {}
+
+// waitForFuncOrCtx executes a fn asynchronously while waiting for it to finish or returns if ctx.Done earlier
+func waitForFuncOrCtx(ctx context.Context, fn func()) error {
+	done := make(chan struct{})
+	go func() {
+		fn()
+
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		err := ctx.Err()
+		switch err {
+		case context.Canceled:
+			log.WithError(err).Traceln("Root operation canceled")
+		case context.DeadlineExceeded:
+			log.WithError(err).Traceln("Root operation timed out")
+		}
+
+		return err
+	}
+}
