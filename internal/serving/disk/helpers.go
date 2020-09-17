@@ -58,6 +58,8 @@ func (reader *Reader) detectContentType(ctx context.Context, root vfs.Root, path
 		contentType = http.DetectContentType(buf[:n])
 	}
 
+	// see https://gitlab.com/gitlab-org/gitlab-pages/-/issues/460
+	// packages mime and http currently do not know about the avif file format
 	if contentType == "application/octet-stream" && fileExt == ".avif" {
 		contentType = "image/avif"
 	}
