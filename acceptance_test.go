@@ -641,6 +641,15 @@ func TestMIMETypes(t *testing.T) {
 	mt, _, err := mime.ParseMediaType(rsp.Header.Get("Content-Type"))
 	require.NoError(t, err)
 	require.Equal(t, "application/manifest+json", mt)
+
+	rsp, err = GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/image.avif")
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
+	mt, _, err = mime.ParseMediaType(rsp.Header.Get("Content-Type"))
+	require.NoError(t, err)
+	require.Equal(t, "image/avif", mt)
 }
 
 func TestArtifactProxyRequest(t *testing.T) {
