@@ -501,31 +501,10 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.Contains(t, string(body), "gitlab_pages_zip_opened_entries_count")
 }
 
-func TestDisabledRedirects(t *testing.T) {
-	skipUnlessEnabled(t)
-
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{"FF_ENABLE_REDIRECTS=false"})
-	defer teardown()
-
-	// Test that redirects status page is forbidden
-	rsp, err := GetPageFromListener(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/_redirects")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-
-	require.Equal(t, http.StatusForbidden, rsp.StatusCode)
-
-	// Test that redirects are disabled
-	rsp, err = GetRedirectPage(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/redirect-portal.html")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-
-	require.Equal(t, http.StatusNotFound, rsp.StatusCode)
-}
-
 func TestRedirectStatusPage(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{"FF_ENABLE_REDIRECTS=true"})
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/_redirects")
@@ -542,7 +521,7 @@ func TestRedirectStatusPage(t *testing.T) {
 func TestRedirect(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{"FF_ENABLE_REDIRECTS=true"})
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	// Test that serving a file still works with redirects enabled

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -95,13 +94,8 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 	// Serve status of `_redirects` under `_redirects`
 	// We check if the final resolved path is `_redirects` after symlink traversal
 	if fullPath == redirects.ConfigFile {
-		if os.Getenv("FF_ENABLE_REDIRECTS") == "true" {
-			r := redirects.ParseRedirects(ctx, root)
-			return reader.serveRedirectsStatus(h, r)
-		}
-
-		h.Writer.WriteHeader(http.StatusForbidden)
-		return nil
+		r := redirects.ParseRedirects(ctx, root)
+		return reader.serveRedirectsStatus(h, r)
 	}
 
 	return reader.serveFile(ctx, h.Writer, h.Request, root, fullPath, h.LookupPath.HasAccessControl)
