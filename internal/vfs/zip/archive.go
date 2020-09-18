@@ -101,7 +101,7 @@ func (a *zipArchive) readArchive() {
 
 	// load all archive files into memory using a cached ranged reader
 	a.reader = httprange.NewRangedReader(a.resource)
-	a.reader.WithCachedReader(func() {
+	a.reader.WithCachedReader(ctx, func() {
 		a.archive, a.err = zip.NewReader(a.reader, a.resource.Size)
 	})
 
@@ -149,7 +149,7 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 	}
 
 	// only read from dataOffset up to the size of the compressed file
-	reader := a.reader.SectionReader(dataOffset, int64(file.CompressedSize64))
+	reader := a.reader.SectionReader(ctx, dataOffset, int64(file.CompressedSize64))
 
 	switch file.Method {
 	case zip.Deflate:

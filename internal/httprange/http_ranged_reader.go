@@ -1,6 +1,7 @@
 package httprange
 
 import (
+	"context"
 	"io"
 )
 
@@ -21,15 +22,16 @@ func (rr *RangedReader) cachedRead(buf []byte, off int64) (int, error) {
 }
 
 func (rr *RangedReader) ephemeralRead(buf []byte, offset int64) (n int, err error) {
-	reader := NewReader(rr.Resource, offset, int64(len(buf)))
+	// we can use context.Background and rely on the Reader's httpClient timeout for ephemeral reads
+	reader := NewReader(context.Background(), rr.Resource, offset, int64(len(buf)))
 	defer reader.Close()
 
 	return io.ReadFull(reader, buf)
 }
 
 // SectionReader partitions a resource from `offset` with a specified `size`
-func (rr *RangedReader) SectionReader(offset, size int64) *Reader {
-	return NewReader(rr.Resource, offset, size)
+func (rr *RangedReader) SectionReader(ctx context.Context, offset, size int64) *Reader {
+	return NewReader(ctx, rr.Resource, offset, size)
 }
 
 // ReadAt reads from cachedReader if exists, otherwise fetches a new Resource first.
@@ -44,8 +46,8 @@ func (rr *RangedReader) ReadAt(buf []byte, offset int64) (n int, err error) {
 
 // WithCachedReader creates a Reader and saves it to the RangedReader instance.
 // It takes a readFunc that will Seek  the contents from Reader.
-func (rr *RangedReader) WithCachedReader(readFunc func()) {
-	rr.cachedReader = NewReader(rr.Resource, 0, rr.Resource.Size)
+func (rr *RangedReader) WithCachedReader(ctx context.Context, readFunc func()) {
+	rr.cachedReader = NewReader(ctx, rr.Resource, 0, rr.Resource.Size)
 
 	defer func() {
 		rr.cachedReader.Close()

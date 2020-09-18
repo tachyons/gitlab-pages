@@ -1,6 +1,7 @@
 package httprange
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -31,6 +32,9 @@ var (
 // Reader holds a Resource and specifies ranges to read from at a time.
 // Implements the io.Reader, io.Seeker and io.Closer  interfaces.
 type Reader struct {
+	// ctx for read requests
+	ctx context.Context
+	// Resource to read from
 	Resource *Resource
 	// res defines a current response serving data
 	res *http.Response
@@ -97,6 +101,8 @@ func (r *Reader) prepareRequest() (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	req = req.WithContext(r.ctx)
 
 	if r.Resource.ETag != "" {
 		req.Header.Set("ETag", r.Resource.ETag)
@@ -199,6 +205,6 @@ func (r *Reader) Close() error {
 }
 
 // NewReader creates a Reader object on a given resource for a given range
-func NewReader(resource *Resource, offset, size int64) *Reader {
-	return &Reader{Resource: resource, rangeStart: offset, rangeSize: size, offset: offset}
+func NewReader(ctx context.Context, resource *Resource, offset, size int64) *Reader {
+	return &Reader{ctx: ctx, Resource: resource, rangeStart: offset, rangeSize: size, offset: offset}
 }
