@@ -177,6 +177,28 @@ func TestReadLink(t *testing.T) {
 	}
 }
 
+func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	defer cleanup()
+
+	zip := newArchive(testServerURL+"/public.zip", time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := zip.openArchive(ctx)
+	require.EqualError(t, err, context.Canceled.Error())
+
+	<-zip.done
+
+	file, err := zip.Open(context.Background(), "index.html")
+	require.NoError(t, err)
+	data, err := ioutil.ReadAll(file)
+	require.NoError(t, err)
+
+	require.Equal(t, "zip.gitlab.io/project/index.html\n", string(data))
+	require.NoError(t, file.Close())
+}
+
 func openZipArchive(t *testing.T) (*zipArchive, func()) {
 	t.Helper()
 
