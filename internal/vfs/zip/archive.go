@@ -32,7 +32,7 @@ var (
 )
 
 // zipArchive implements the vfs.Root interface.
-// It represents a zip archive saving all its files int memory.
+// It represents a zip archive saving all its files in memory.
 // It holds an httprange.Resource that can be read with httprange.RangedReader in chunks.
 type zipArchive struct {
 	path        string
@@ -205,6 +205,3 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 	// only return the n bytes read from the link
 	return string(symlink[:n]), nil
 }
-
-// close no-op: everything can be recycled by the GC
-func (a *zipArchive) close() {}

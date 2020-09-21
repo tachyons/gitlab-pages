@@ -199,6 +199,20 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 	require.NoError(t, file.Close())
 }
 
+func TestReadArchiveFails(t *testing.T) {
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	defer cleanup()
+
+	zip := newArchive(testServerURL+"/unkown.html", time.Second)
+
+	err := zip.openArchive(context.Background())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Not Found")
+
+	_, err = zip.Open(context.Background(), "index.html")
+	require.EqualError(t, err, os.ErrNotExist.Error())
+}
+
 func openZipArchive(t *testing.T) (*zipArchive, func()) {
 	t.Helper()
 
@@ -215,7 +229,6 @@ func openZipArchive(t *testing.T) (*zipArchive, func()) {
 	require.NotZero(t, zip.files)
 
 	return zip, func() {
-		zip.close()
 		cleanup()
 	}
 }
@@ -225,9 +238,12 @@ func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
 
 	chdir := testhelpers.ChdirInPath(t, "../../../shared/pages", &chdirSet)
 
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	m := http.NewServeMux()
+	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, zipFilePath)
 	}))
+
+	testServer := httptest.NewServer(m)
 
 	return testServer.URL, func() {
 		chdir()
