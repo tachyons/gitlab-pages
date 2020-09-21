@@ -3,6 +3,7 @@ package zip
 import (
 	"context"
 	"errors"
+	"net/url"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -44,9 +45,14 @@ func New(name string) vfs.VFS {
 // to try and find the cached archive or return if there's an error, for example
 // if the context is canceled.
 func (fs *zipVFS) Root(ctx context.Context, path string) (vfs.Root, error) {
+	urlPath, err := url.Parse(path)
+	if err != nil {
+		return nil, err
+	}
+
 	// we do it in loop to not use any additional locks
 	for {
-		root, err := fs.findOrOpenArchive(ctx, path)
+		root, err := fs.findOrOpenArchive(ctx, urlPath.String())
 		if err == errAlreadyCached {
 			continue
 		}
