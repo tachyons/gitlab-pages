@@ -5,10 +5,9 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
-	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-var instance = disk.New(vfs.Instrumented(local.New("local")), metrics.VFSServingFileSize)
+var instance = disk.New(vfs.Instrumented(local.New("local")))
 
 // Instance returns a serving instance that is capable of reading files
 // from the disk

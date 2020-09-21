@@ -3,11 +3,10 @@ package disk
 import (
 	"os"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 // Disk describes a disk access serving
@@ -43,10 +42,10 @@ func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
 
 // New returns a serving instance that is capable of reading files
 // from the VFS
-func New(vfs vfs.VFS, fileSizeMetric *prometheus.HistogramVec) serving.Serving {
+func New(vfs vfs.VFS) serving.Serving {
 	return &Disk{
 		reader: Reader{
-			fileSizeMetric: fileSizeMetric,
+			fileSizeMetric: metrics.VFSServingFileSize,
 			vfs:            vfs,
 		},
 	}
