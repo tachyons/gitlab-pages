@@ -8,7 +8,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-var instance = disk.New(vfs.Instrumented(&local.VFS{}, "local"), metrics.DiskServingFileSize)
+var instance = disk.New(vfs.Instrumented(local.New("local")), metrics.VFSServingFileSize)
 
 // Instance returns a serving instance that is capable of reading files
 // from the disk

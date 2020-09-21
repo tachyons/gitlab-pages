@@ -23,7 +23,17 @@ var (
 
 // zipVFS is a simple cached implementation of the vfs.VFS interface
 type zipVFS struct {
+	name  string
 	cache *cache.Cache
+}
+
+// New creates a zipVFS instance that can be used by a serving request
+func New(name string) vfs.VFS {
+	return &zipVFS{
+		name: name,
+		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
+		cache: cache.New(cacheExpirationInterval, cacheRefreshInterval),
+	}
 }
 
 // Root opens an archive given a URL path and returns an instance of zipArchive
@@ -45,12 +55,8 @@ func (fs *zipVFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 	}
 }
 
-// New creates a zipVFS instance that can be used by a serving request
-func New() vfs.VFS {
-	return &zipVFS{
-		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
-		cache: cache.New(cacheExpirationInterval, cacheRefreshInterval),
-	}
+func (fs *zipVFS) Name() string {
+	return fs.name
 }
 
 // findOrOpenArchive if found in fs.cache refresh if needed and return it.

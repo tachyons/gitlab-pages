@@ -43,7 +43,7 @@ func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
 
 // New returns a serving instance that is capable of reading files
 // from the VFS
-func New(vfs vfs.VFS, fileSizeMetric prometheus.Histogram) serving.Serving {
+func New(vfs vfs.VFS, fileSizeMetric *prometheus.HistogramVec) serving.Serving {
 	return &Disk{
 		reader: Reader{
 			fileSizeMetric: fileSizeMetric,

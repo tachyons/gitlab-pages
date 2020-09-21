@@ -20,7 +20,7 @@ import (
 
 // Reader is a disk access driver
 type Reader struct {
-	fileSizeMetric prometheus.Histogram
+	fileSizeMetric *prometheus.HistogramVec
 	vfs            vfs.VFS
 }
 
@@ -196,7 +196,7 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 
 	w.Header().Set("Content-Type", contentType)
 
-	reader.fileSizeMetric.Observe(float64(fi.Size()))
+	reader.fileSizeMetric.WithLabelValues(reader.vfs.Name()).Observe(float64(fi.Size()))
 
 	// Support vfs.SeekableFile if available (uncompressed files)
 	if rs, ok := file.(vfs.SeekableFile); ok {
@@ -231,7 +231,7 @@ func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter
 		return err
 	}
 
-	reader.fileSizeMetric.Observe(float64(fi.Size()))
+	reader.fileSizeMetric.WithLabelValues(reader.vfs.Name()).Observe(float64(fi.Size()))
 
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))

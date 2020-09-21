@@ -8,7 +8,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-var instance = disk.New(vfs.Instrumented(zip.New(), "zip"), metrics.ZipServingFileSize)
+var instance = disk.New(vfs.Instrumented(zip.New("zip")), metrics.VFSServingFileSize)
 
 // Instance returns a serving instance that is capable of reading files
 // from a zip archives opened from a URL, most likely stored in object storage

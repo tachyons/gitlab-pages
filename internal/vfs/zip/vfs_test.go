@@ -25,7 +25,7 @@ func TestVFSRoot(t *testing.T) {
 		},
 	}
 
-	testZipVFS := New()
+	testZipVFS := New("zip_test")
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {

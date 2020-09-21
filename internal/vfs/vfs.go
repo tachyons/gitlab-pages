@@ -12,10 +12,11 @@ import (
 // VFS abstracts the things Pages needs to serve a static site from disk.
 type VFS interface {
 	Root(ctx context.Context, path string) (Root, error)
+	Name() string
 }
 
-func Instrumented(fs VFS, name string) VFS {
-	return &instrumentedVFS{fs: fs, name: name}
+func Instrumented(fs VFS) VFS {
+	return &instrumentedVFS{fs: fs, name: fs.Name()}
 }
 
 type instrumentedVFS struct {
@@ -45,4 +46,8 @@ func (i *instrumentedVFS) Root(ctx context.Context, path string) (Root, error) {
 	}
 
 	return &instrumentedRoot{root: root, name: i.name, rootPath: path}, nil
+}
+
+func (i *instrumentedVFS) Name() string {
+	return i.name
 }
