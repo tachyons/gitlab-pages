@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -199,12 +198,12 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 
 	reader.fileSizeMetric.Observe(float64(fi.Size()))
 
-	// This is just a failsafe as we need to assert that file is of type
-	// vfs.SeekableFile before passing onto http.ServeContent
+	// Support vfs.SeekableFile if available (uncompressed files)
 	if rs, ok := file.(vfs.SeekableFile); ok {
 		http.ServeContent(w, r, origPath, fi.ModTime(), rs)
 	} else {
-		log.WithField("filename", fi.Name()).Traceln("file is not seekable")
+		// compressed files will be served by io.Copy
+		// TODO: Add extra headers https://gitlab.com/gitlab-org/gitlab-pages/-/issues/466
 		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
 		io.Copy(w, file)
 	}
