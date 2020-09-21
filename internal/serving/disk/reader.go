@@ -194,10 +194,19 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 		return err
 	}
 
+	w.Header().Set("Content-Type", contentType)
+
 	reader.fileSizeMetric.Observe(float64(fi.Size()))
 
-	w.Header().Set("Content-Type", contentType)
-	http.ServeContent(w, r, origPath, fi.ModTime(), file)
+	// Support vfs.SeekableFile if available (uncompressed files)
+	if rs, ok := file.(vfs.SeekableFile); ok {
+		http.ServeContent(w, r, origPath, fi.ModTime(), rs)
+	} else {
+		// compressed files will be served by io.Copy
+		// TODO: Add extra headers https://gitlab.com/gitlab-org/gitlab-pages/-/issues/466
+		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
+		io.Copy(w, file)
+	}
 
 	return nil
 }

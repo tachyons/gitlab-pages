@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -40,6 +41,9 @@ type Reader struct {
 	// offset defines a current place where data is being read from
 	offset int64
 }
+
+// ensure that Reader is seekable
+var _ vfs.SeekableFile = &Reader{}
 
 // TODO: make this configurable/take an http client when creating a reader/ranged reader
 //  instead https://gitlab.com/gitlab-org/gitlab-pages/-/issues/457
