@@ -49,6 +49,7 @@ rm -f "${WORKSPACE}"/*.out "${WORKSPACE}/failed.log"
 
 # Stage one
 
+buildImage alpine-certificates &
 buildImage kubectl &
 buildImage gitlab-ruby &
 buildImage gitlab-container-registry &
