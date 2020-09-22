@@ -175,7 +175,7 @@ func TestSeekAndRead(t *testing.T) {
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			r := NewReader(resource, tt.readerOffset, resource.Size-tt.readerOffset)
+			r := NewReader(context.Background(), resource, tt.readerOffset, resource.Size-tt.readerOffset)
 
 			_, err := r.Seek(tt.seekOffset, tt.seekWhence)
 			if tt.expectedSeekErrMsg != "" {
@@ -233,7 +233,7 @@ func TestReaderSetResponse(t *testing.T) {
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			r := NewReader(&Resource{ETag: tt.prevETag}, tt.offset, 0)
+			r := NewReader(context.Background(), &Resource{ETag: tt.prevETag}, tt.offset, 0)
 			res := &http.Response{StatusCode: tt.status, Header: map[string][]string{}}
 			res.Header.Set("ETag", tt.resEtag)
 

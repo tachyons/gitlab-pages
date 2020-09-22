@@ -86,7 +86,7 @@ func TestSectionReader(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			rr := NewRangedReader(resource)
-			s := rr.SectionReader(int64(tt.sectionOffset), int64(tt.sectionSize))
+			s := rr.SectionReader(context.Background(), int64(tt.sectionOffset), int64(tt.sectionSize))
 			defer s.Close()
 
 			buf := make([]byte, tt.readSize)
@@ -185,7 +185,7 @@ func TestReadAt(t *testing.T) {
 		}
 
 		t.Run(name, func(t *testing.T) {
-			rr.WithCachedReader(func() {
+			rr.WithCachedReader(context.Background(), func() {
 				t.Run("cachedReader", testFn(rr))
 			})
 
@@ -232,13 +232,46 @@ func TestReadAtMultipart(t *testing.T) {
 	// cachedReader should not make extra requests, the expectedCounter should always be the same
 	counter = 1
 	t.Run("cachedReader", func(t *testing.T) {
-		rr.WithCachedReader(func() {
+		rr.WithCachedReader(context.Background(), func() {
 			// "1234567890"
 			assertReadAtFunc(t, bufLen, 0, testData[:bufLen], 2)
 			// "abcdefghij"
 			assertReadAtFunc(t, bufLen, bufLen, testData[bufLen:2*bufLen], 2)
 			// "0987654321"
 			assertReadAtFunc(t, bufLen, 2*bufLen, testData[2*bufLen:], 2)
+		})
+	})
+}
+
+func TestReadContextCanceled(t *testing.T) {
+	testServer := newTestServer(t, nil)
+	defer testServer.Close()
+
+	resource, err := NewResource(context.Background(), testServer.URL+"/resource")
+	require.NoError(t, err)
+
+	rr := NewRangedReader(resource)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	t.Run("section_reader", func(t *testing.T) {
+		s := rr.SectionReader(ctx, 0, resource.Size)
+
+		buf := make([]byte, resource.Size)
+		n, err := s.Read(buf)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "context canceled")
+		require.Zero(t, n)
+	})
+
+	t.Run("cached_reader", func(t *testing.T) {
+		rr.WithCachedReader(ctx, func() {
+			buf := make([]byte, resource.Size)
+			n, err := rr.ReadAt(buf, int64(0))
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "context canceled")
+			require.Zero(t, n)
 		})
 	})
 }
