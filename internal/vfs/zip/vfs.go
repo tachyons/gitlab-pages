@@ -13,8 +13,8 @@ import (
 
 const (
 	// TODO: make these configurable https://gitlab.com/gitlab-org/gitlab-pages/-/issues/464
-	cacheExpirationInterval = time.Minute
-	cacheRefreshInterval    = time.Minute / 2
+	defaultCacheExpirationInterval = time.Minute
+	defaultCacheRefreshInterval    = time.Minute / 2
 )
 
 var (
@@ -33,7 +33,7 @@ func New(name string) vfs.VFS {
 	return &zipVFS{
 		name: name,
 		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
-		cache: cache.New(cacheExpirationInterval, cacheRefreshInterval),
+		cache: cache.New(defaultCacheExpirationInterval, defaultCacheRefreshInterval),
 	}
 }
 
@@ -71,7 +71,7 @@ func (fs *zipVFS) Name() string {
 func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchive, error) {
 	archive, expiry, found := fs.cache.GetWithExpiration(path)
 	if found {
-		if time.Until(expiry) < cacheRefreshInterval {
+		if time.Until(expiry) < defaultCacheRefreshInterval {
 			// refresh item
 			fs.cache.Set(path, archive, cache.DefaultExpiration)
 		}

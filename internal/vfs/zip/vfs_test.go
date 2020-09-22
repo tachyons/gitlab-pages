@@ -3,6 +3,7 @@ package zip
 import (
 	"context"
 	"io/ioutil"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -22,6 +23,10 @@ func TestVFSRoot(t *testing.T) {
 		"zip_file_does_not_exist": {
 			path:           "/unknown",
 			expectedErrMsg: "404 Not Found",
+		},
+		"invalid_url": {
+			path:           "/%",
+			expectedErrMsg: "invalid URL",
 		},
 	}
 
@@ -55,4 +60,34 @@ func TestVFSRoot(t *testing.T) {
 			require.Equal(t, "subdir/linked.html", link)
 		})
 	}
+}
+
+func TestVFSRootMultipleRequests(t *testing.T) {
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	defer cleanup()
+
+	testZipVFS := New("zip_test")
+
+	wg := &sync.WaitGroup{}
+	wg.Add(5)
+
+	for i := 0; i < 5; i++ {
+		go func(i int) {
+			defer wg.Done()
+
+			vfs, err := testZipVFS.Root(context.Background(), testServerURL+"/public.zip")
+			require.NoError(t, err, i)
+
+			f, err := vfs.Open(context.Background(), "index.html")
+			require.NoError(t, err, i)
+
+			content, err := ioutil.ReadAll(f)
+			require.NoError(t, err, i)
+
+			require.Equal(t, "zip.gitlab.io/project/index.html\n", string(content), i)
+		}(i)
+	}
+
+	wg.Wait()
+	// TODO: add tests for cache callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
 }
