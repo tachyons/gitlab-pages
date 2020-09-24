@@ -452,11 +452,14 @@ func TestHttpsOnlyDomainDisabled(t *testing.T) {
 func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	skipUnlessEnabled(t)
 
+	_, cleanup := newZipFileServerURL(t, "shared/pages/group/zip.gitlab.io/public.zip")
+	defer cleanup()
+
 	teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, listeners, ":42345", []string{})
 	defer teardown()
 
 	// need to call an actual resource to populate certain metrics e.g. gitlab_pages_domains_source_api_requests_total
-	res, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
+	res, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", "/index.html/")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, res.StatusCode)
 
@@ -484,9 +487,8 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.Contains(t, string(body), "gitlab_pages_serving_time_seconds_sum")
 	require.Contains(t, string(body), `gitlab_pages_domains_source_api_requests_total{status_code="200"}`)
 	require.Contains(t, string(body), `gitlab_pages_domains_source_api_call_duration{status_code="200"}`)
-	// TODO: add test when Zip is enabled https://gitlab.com/gitlab-org/gitlab-pages/-/issues/443
-	// require.Contains(t, string(body), `gitlab_pages_httprange_zip_reader_requests_total{status_code="200"}`)
-	// require.Contains(t, string(body), `gitlab_pages_httprange_zip_reader_requests_duration{status_code="200"}`)
+	require.Contains(t, string(body), `gitlab_pages_object_storage_backend_requests_total{status_code="206"}`)
+	require.Contains(t, string(body), `gitlab_pages_object_storage_backend_requests_duration{status_code="206"}`)
 }
 
 func TestDisabledRedirects(t *testing.T) {
