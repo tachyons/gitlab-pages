@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var localVFS = New("local_test")
+var localVFS = &VFS{}
 
 func tmpDir(t *testing.T) (string, func()) {
 	tmpDir, err := ioutil.TempDir("", "vfs")

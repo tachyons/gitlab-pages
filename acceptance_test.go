@@ -1994,11 +1994,10 @@ func TestZipServing(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			response, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", tt.urlSuffix)
 			require.NoError(t, err)
+			defer response.Body.Close()
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
 			if tt.expectedStatusCode == http.StatusOK || tt.expectedStatusCode == http.StatusNotFound {
-				defer response.Body.Close()
-
 				body, err := ioutil.ReadAll(response.Body)
 				require.NoError(t, err)
 

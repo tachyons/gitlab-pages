@@ -11,16 +11,7 @@ import (
 
 var errNotDirectory = errors.New("path needs to be a directory")
 
-type VFS struct {
-	name string
-}
-
-// New instance of VFS
-func New(name string) *VFS {
-	return &VFS{
-		name: name,
-	}
-}
+type VFS struct{}
 
 func (fs VFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 	rootPath, err := filepath.Abs(path)
@@ -46,5 +37,5 @@ func (fs VFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 }
 
 func (fs *VFS) Name() string {
-	return fs.name
+	return "local"
 }

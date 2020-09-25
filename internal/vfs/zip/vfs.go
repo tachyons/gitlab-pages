@@ -24,14 +24,12 @@ var (
 
 // zipVFS is a simple cached implementation of the vfs.VFS interface
 type zipVFS struct {
-	name  string
 	cache *cache.Cache
 }
 
 // New creates a zipVFS instance that can be used by a serving request
-func New(name string) vfs.VFS {
+func New() vfs.VFS {
 	return &zipVFS{
-		name: name,
 		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
 		cache: cache.New(defaultCacheExpirationInterval, defaultCacheRefreshInterval),
 	}
@@ -62,34 +60,36 @@ func (fs *zipVFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 }
 
 func (fs *zipVFS) Name() string {
-	return fs.name
+	return "zip"
 }
 
 // findOrOpenArchive if found in fs.cache refresh if needed and return it.
 // otherwise open the archive and try to save it, if saving fails it's because
-// the archive has already been cached (e.g. by another request)
+// the archive has already been cached (e.g. by another concurrent request)
 func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchive, error) {
 	archive, expiry, found := fs.cache.GetWithExpiration(path)
 	if found {
+		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
 		if time.Until(expiry) < defaultCacheRefreshInterval {
 			// refresh item
-			fs.cache.Set(path, archive, cache.DefaultExpiration)
+			fs.cache.SetDefault(path, archive)
 		}
 	} else {
 		archive = newArchive(path, DefaultOpenTimeout)
 
 		// if adding the archive to the cache fails it means it's already been added before
+		// this is done to find concurrent additions.
 		if fs.cache.Add(path, archive, cache.DefaultExpiration) != nil {
 			return nil, errAlreadyCached
 		}
 	}
 
-	zipDir, ok := archive.(*zipArchive)
+	zipArchive, ok := archive.(*zipArchive)
 	if !ok {
 		// fail if the found archive in cache is not a zipArchive (just for type safety)
 		return nil, errNotZipArchive
 	}
 
-	err := zipDir.openArchive(ctx)
-	return zipDir, err
+	err := zipArchive.openArchive(ctx)
+	return zipArchive, err
 }

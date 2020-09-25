@@ -3,14 +3,14 @@ package zip
 import (
 	"context"
 	"io/ioutil"
-	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestVFSRoot(t *testing.T) {
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	url, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
 	tests := map[string]struct {
@@ -30,11 +30,11 @@ func TestVFSRoot(t *testing.T) {
 		},
 	}
 
-	testZipVFS := New("zip_test")
+	vfs := New()
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			rootVFS, err := testZipVFS.Root(context.Background(), testServerURL+tt.path)
+			root, err := vfs.Root(context.Background(), url+tt.path)
 			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.expectedErrMsg)
@@ -42,52 +42,56 @@ func TestVFSRoot(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.IsType(t, &zipArchive{}, rootVFS)
+			require.IsType(t, &zipArchive{}, root)
 
-			f, err := rootVFS.Open(context.Background(), "index.html")
+			f, err := root.Open(context.Background(), "index.html")
 			require.NoError(t, err)
 
 			content, err := ioutil.ReadAll(f)
 			require.NoError(t, err)
 			require.Equal(t, "zip.gitlab.io/project/index.html\n", string(content))
 
-			fi, err := rootVFS.Lstat(context.Background(), "index.html")
+			fi, err := root.Lstat(context.Background(), "index.html")
 			require.NoError(t, err)
 			require.Equal(t, "index.html", fi.Name())
 
-			link, err := rootVFS.Readlink(context.Background(), "symlink.html")
+			link, err := root.Readlink(context.Background(), "symlink.html")
 			require.NoError(t, err)
 			require.Equal(t, "subdir/linked.html", link)
 		})
 	}
 }
 
-func TestVFSRootMultipleRequests(t *testing.T) {
+func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
-	testZipVFS := New("zip_test")
+	path := testServerURL + "/public.zip"
 
-	wg := &sync.WaitGroup{}
-	wg.Add(5)
+	vfs := New().(*zipVFS)
+	root, err := vfs.Root(context.Background(), path)
+	require.NoError(t, err)
 
-	for i := 0; i < 5; i++ {
-		go func(i int) {
-			defer wg.Done()
+	done := make(chan struct{})
+	defer close(done)
 
-			vfs, err := testZipVFS.Root(context.Background(), testServerURL+"/public.zip")
-			require.NoError(t, err, i)
+	// Try to hit a condition between the invocation
+	// of cache.GetWithExpiration and cache.Add
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
 
-			f, err := vfs.Open(context.Background(), "index.html")
-			require.NoError(t, err, i)
+			default:
+				vfs.cache.Flush()
+				vfs.cache.SetDefault(path, root)
+			}
+		}
+	}()
 
-			content, err := ioutil.ReadAll(f)
-			require.NoError(t, err, i)
-
-			require.Equal(t, "zip.gitlab.io/project/index.html\n", string(content), i)
-		}(i)
-	}
-
-	wg.Wait()
-	// TODO: add tests for cache callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
+	require.Eventually(t, func() bool {
+		_, err := vfs.findOrOpenArchive(context.Background(), path)
+		return err == errAlreadyCached
+	}, time.Second, time.Nanosecond)
 }
