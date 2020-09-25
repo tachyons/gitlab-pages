@@ -78,8 +78,8 @@ var (
 		Help: "The time (in seconds) it takes to get a response from the GitLab domains API",
 	}, []string{"status_code"})
 
-	// VFSServingFileSize metric for file size serving. Includes a vfs_name (local or zip).
-	VFSServingFileSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	// DiskServingFileSize metric for file size serving. Includes a vfs_name (local or zip).
+	DiskServingFileSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "gitlab_pages_disk_serving_file_size_bytes",
 		Help: "The size in bytes for each file that has been served",
 		// From 1B to 100MB in *10 increments (1 10 100 1,000 10,000 100,000 1'000,000 10'000,000 100'000,000)
@@ -129,7 +129,7 @@ func MustRegister() {
 		DomainsSourceFailures,
 		ServerlessRequests,
 		ServerlessLatency,
-		VFSServingFileSize,
+		DiskServingFileSize,
 		ServingTime,
 		VFSOperations,
 		ObjectStorageBackendReqTotal,

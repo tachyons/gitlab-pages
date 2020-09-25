@@ -14,11 +14,11 @@ import (
 const (
 	// TODO: make these configurable https://gitlab.com/gitlab-org/gitlab-pages/-/issues/464
 	defaultCacheExpirationInterval = time.Minute
+	defaultCacheCleanupInterval    = time.Minute / 2
 	defaultCacheRefreshInterval    = time.Minute / 2
 )
 
 var (
-	errNotZipArchive = errors.New("cached item is not a zip archive")
 	errAlreadyCached = errors.New("archive already cached")
 )
 
@@ -31,7 +31,7 @@ type zipVFS struct {
 func New() vfs.VFS {
 	return &zipVFS{
 		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
-		cache: cache.New(defaultCacheExpirationInterval, defaultCacheRefreshInterval),
+		cache: cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
 	}
 }
 
@@ -84,12 +84,7 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchi
 		}
 	}
 
-	zipArchive, ok := archive.(*zipArchive)
-	if !ok {
-		// fail if the found archive in cache is not a zipArchive (just for type safety)
-		return nil, errNotZipArchive
-	}
-
+	zipArchive := archive.(*zipArchive)
 	err := zipArchive.openArchive(ctx)
 	return zipArchive, err
 }

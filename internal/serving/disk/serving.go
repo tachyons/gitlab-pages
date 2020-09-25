@@ -45,7 +45,7 @@ func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
 func New(vfs vfs.VFS) serving.Serving {
 	return &Disk{
 		reader: Reader{
-			fileSizeMetric: metrics.VFSServingFileSize,
+			fileSizeMetric: metrics.DiskServingFileSize,
 			vfs:            vfs,
 		},
 	}
