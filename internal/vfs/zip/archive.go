@@ -59,6 +59,14 @@ func newArchive(path string, openTimeout time.Duration) *zipArchive {
 }
 
 func (a *zipArchive) openArchive(parentCtx context.Context) error {
+	// return early if openArchive was done already in a concurrent request
+	select {
+	case <-a.done:
+		return a.err
+
+	default:
+	}
+
 	ctx, cancel := context.WithTimeout(parentCtx, a.openTimeout)
 	defer cancel()
 
