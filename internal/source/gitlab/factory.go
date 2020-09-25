@@ -1,8 +1,6 @@
 package gitlab
 
 import (
-	"strings"
-
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -18,7 +16,7 @@ import (
 func fabricateLookupPath(size int, lookup api.LookupPath) *serving.LookupPath {
 	return &serving.LookupPath{
 		Prefix:             lookup.Prefix,
-		Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
+		Path:               lookup.Source.Path,
 		IsNamespaceProject: (lookup.Prefix == "/" && size > 1),
 		IsHTTPSOnly:        lookup.HTTPSOnly,
 		HasAccessControl:   lookup.AccessControl,
