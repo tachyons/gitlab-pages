@@ -319,6 +319,8 @@ func appMain() {
 	}).Print("GitLab Pages Daemon")
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
+	addExtraMIMETypes()
+
 	if err := os.Chdir(*pagesRoot); err != nil {
 		fatal(err, "could not change directory into pagesRoot")
 	}
