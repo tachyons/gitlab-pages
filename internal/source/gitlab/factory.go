@@ -1,12 +1,11 @@
 package gitlab
 
 import (
-	"strings"
-
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/serverless"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -17,7 +16,7 @@ import (
 func fabricateLookupPath(size int, lookup api.LookupPath) *serving.LookupPath {
 	return &serving.LookupPath{
 		Prefix:             lookup.Prefix,
-		Path:               strings.TrimPrefix(lookup.Source.Path, "/"),
+		Path:               lookup.Source.Path,
 		IsNamespaceProject: (lookup.Prefix == "/" && size > 1),
 		IsHTTPSOnly:        lookup.HTTPSOnly,
 		HasAccessControl:   lookup.AccessControl,
@@ -32,6 +31,8 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 	switch source.Type {
 	case "file":
 		return local.Instance()
+	case "zip":
+		return zip.Instance()
 	case "serverless":
 		serving, err := serverless.NewFromAPISource(source.Serverless)
 		if err != nil {

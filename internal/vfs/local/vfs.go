@@ -35,3 +35,7 @@ func (fs VFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 
 	return &Root{rootPath: rootPath}, nil
 }
+
+func (fs *VFS) Name() string {
+	return "local"
+}

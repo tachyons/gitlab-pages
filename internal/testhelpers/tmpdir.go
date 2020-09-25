@@ -13,7 +13,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 )
 
-var fs = vfs.Instrumented(&local.VFS{}, "local")
+var fs = vfs.Instrumented(&local.VFS{})
 
 func TmpDir(t *testing.T, pattern string) (vfs.Root, string, func()) {
 	tmpDir, err := ioutil.TempDir("", pattern)

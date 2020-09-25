@@ -21,7 +21,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 )
 
-var fs = vfs.Instrumented(&local.VFS{}, "local")
+var fs = vfs.Instrumented(&local.VFS{})
 
 type EvalSymlinksTest struct {
 	// If dest is empty, the path is created; otherwise the dest is symlinked to the path.

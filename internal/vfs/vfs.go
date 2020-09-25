@@ -12,23 +12,23 @@ import (
 // VFS abstracts the things Pages needs to serve a static site from disk.
 type VFS interface {
 	Root(ctx context.Context, path string) (Root, error)
+	Name() string
 }
 
-func Instrumented(fs VFS, name string) VFS {
-	return &instrumentedVFS{fs: fs, name: name}
+func Instrumented(fs VFS) VFS {
+	return &instrumentedVFS{fs: fs}
 }
 
 type instrumentedVFS struct {
-	fs   VFS
-	name string
+	fs VFS
 }
 
 func (i *instrumentedVFS) increment(operation string, err error) {
-	metrics.VFSOperations.WithLabelValues(i.name, operation, strconv.FormatBool(err == nil)).Inc()
+	metrics.VFSOperations.WithLabelValues(i.fs.Name(), operation, strconv.FormatBool(err == nil)).Inc()
 }
 
 func (i *instrumentedVFS) log() *log.Entry {
-	return log.WithField("vfs", i.name)
+	return log.WithField("vfs", i.fs.Name())
 }
 
 func (i *instrumentedVFS) Root(ctx context.Context, path string) (Root, error) {
@@ -44,5 +44,9 @@ func (i *instrumentedVFS) Root(ctx context.Context, path string) (Root, error) {
 		return nil, err
 	}
 
-	return &instrumentedRoot{root: root, name: i.name, rootPath: path}, nil
+	return &instrumentedRoot{root: root, name: i.fs.Name(), rootPath: path}, nil
+}
+
+func (i *instrumentedVFS) Name() string {
+	return i.fs.Name()
 }

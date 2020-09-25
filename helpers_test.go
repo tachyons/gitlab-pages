@@ -522,3 +522,31 @@ func copyFile(dest, src string) error {
 	_, err = io.Copy(destFile, srcFile)
 	return err
 }
+
+func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
+	t.Helper()
+
+	m := http.NewServeMux()
+	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, zipFilePath)
+	}))
+
+	// create a listener with the desired port.
+	l, err := net.Listen("tcp", objectStorageMockServer)
+	require.NoError(t, err)
+
+	testServer := httptest.NewUnstartedServer(m)
+
+	// NewUnstartedServer creates a listener. Close that listener and replace
+	// with the one we created.
+	testServer.Listener.Close()
+	testServer.Listener = l
+
+	// Start the server.
+	testServer.Start()
+
+	return testServer.URL, func() {
+		// Cleanup.
+		testServer.Close()
+	}
+}
