@@ -1,3 +1,7 @@
+v 1.26.0
+
+- Add the ability to serve web-sites from the zip archive stored in object storage !351
+
 v 1.25.0
 
 - No user-facing changes
