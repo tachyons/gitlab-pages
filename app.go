@@ -475,6 +475,8 @@ func runApp(config appConfig) {
 		log.WithError(err).Warn("Loading extended MIME database failed")
 	}
 
+	addExtraMIMETypes()
+
 	a.Run()
 }
 
