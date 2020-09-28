@@ -16,6 +16,10 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
+// preventive measure to skip `@hashed` dir for new zip deployments when sourcing config from disk
+// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/468
+const skipHashedDir = "@hashed"
+
 // Map maps domain names to Domain instances.
 type Map map[string]*domain.Domain
 
@@ -180,6 +184,10 @@ func (dm Map) ReadGroups(rootDomain string, fis godirwalk.Dirents) {
 			buf := make([]byte, 2*os.Getpagesize())
 
 			for group := range fanOutGroups {
+				if group == skipHashedDir {
+					continue
+				}
+
 				started := time.Now()
 
 				readProjects(group, "", 0, buf, fanIn)

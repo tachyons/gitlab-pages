@@ -1900,6 +1900,17 @@ func TestDomainsSource(t *testing.T) {
 				apiCalled:  false,
 			},
 		},
+		{
+			name: "disk_source_domain_should_not_exist_under_hashed_dir",
+			args: args{
+				configSource: "disk",
+				domain:       "hashed.com",
+			},
+			want: want{
+				statusCode: http.StatusNotFound,
+				apiCalled:  false,
+			},
+		},
 		// TODO: modify mock so we can test domain-config-source=auto when API/disk is not ready https://gitlab.com/gitlab-org/gitlab/-/issues/218358
 	}
 
