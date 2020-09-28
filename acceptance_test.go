@@ -26,17 +26,17 @@ var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to 
 // hardcoded values below.
 var listeners = []ListenSpec{
 	{"http", "127.0.0.1", "37000"},
-	{"http", "::1", "37000"},
+	// {"http", "::1", "37000"},
 	{"https", "127.0.0.1", "37001"},
-	{"https", "::1", "37001"},
+	// {"https", "::1", "37001"},
 	{"proxy", "127.0.0.1", "37002"},
-	{"proxy", "::1", "37002"},
+	// {"proxy", "::1", "37002"},
 }
 
 var (
 	httpListener  = listeners[0]
-	httpsListener = listeners[2]
-	proxyListener = listeners[4]
+	httpsListener = listeners[1]
+	proxyListener = listeners[2]
 )
 
 func skipUnlessEnabled(t *testing.T, conditions ...string) {
@@ -1005,7 +1005,7 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 
 	var listeners = []ListenSpec{
 		{"proxy", "127.0.0.1", "37002"},
-		{"proxy", "::1", "37002"},
+		// {"proxy", "::1", "37002"},
 	}
 
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")

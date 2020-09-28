@@ -1,5 +1,5 @@
 IMPORT_PATH := gitlab.com/gitlab-org/gitlab-pages
-V := 1
+#V := 1
 
 # Space separated patterns of packages to skip in list, test, fmt.
 IGNORED_PACKAGES := /vendor/ /internal/httputil/ /internal/mocks/

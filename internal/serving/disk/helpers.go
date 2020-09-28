@@ -2,6 +2,7 @@ package disk
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
@@ -25,7 +26,9 @@ func endsWithoutHTMLExtension(path string) bool {
 // Implementation is adapted from Golang's `http.serveContent()`
 // See https://github.com/golang/go/blob/902fc114272978a40d2e65c2510a18e870077559/src/net/http/fs.go#L194
 func (reader *Reader) detectContentType(ctx context.Context, root vfs.Root, path string) (string, error) {
+	fmt.Printf("in detectContentType looking for: %q \n", filepath.Ext(path))
 	contentType := mime.TypeByExtension(filepath.Ext(path))
+	fmt.Printf("in detectContentType found contentType?: %q \n", contentType)
 
 	if contentType == "" {
 		var buf [512]byte
