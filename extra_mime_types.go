@@ -12,8 +12,7 @@ var extraMIMETypes = map[string]string{
 }
 
 func addExtraMIMETypes() {
-	return
-	fmt.Printf("calling addExtraMIMETypes: %+v\n", extraMIMETypes)
+	fmt.Printf("calling addExtraMIMETypes:  %+v\n", extraMIMETypes)
 	for ext, mimeType := range extraMIMETypes {
 		if err := mime.AddExtensionType(ext, mimeType); err != nil {
 			fmt.Printf("failed %q - %+v\n", mimeType, err)

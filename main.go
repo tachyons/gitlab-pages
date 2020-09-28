@@ -13,6 +13,7 @@ import (
 
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
@@ -318,8 +319,6 @@ func appMain() {
 		"revision": REVISION,
 	}).Print("GitLab Pages Daemon")
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
-
-	addExtraMIMETypes()
 
 	if err := os.Chdir(*pagesRoot); err != nil {
 		fatal(err, "could not change directory into pagesRoot")
