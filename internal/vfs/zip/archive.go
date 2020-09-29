@@ -16,6 +16,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
@@ -127,6 +128,9 @@ func (a *zipArchive) readArchive() {
 
 	// recycle memory
 	a.archive.File = nil
+
+	metrics.ZipServingFilesPerArchiveCount.Observe(float64(len(a.files)))
+	metrics.ZipServingOpenArchivesTotal.Inc()
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {

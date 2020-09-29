@@ -9,6 +9,7 @@ import (
 	"github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
@@ -69,6 +70,8 @@ func (fs *zipVFS) Name() string {
 func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchive, error) {
 	archive, expiry, found := fs.cache.GetWithExpiration(path)
 	if found {
+		metrics.ZipServingArchiveCacheHit.Inc()
+
 		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
 		if time.Until(expiry) < defaultCacheRefreshInterval {
 			// refresh item
@@ -82,9 +85,17 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchi
 		if fs.cache.Add(path, archive, cache.DefaultExpiration) != nil {
 			return nil, errAlreadyCached
 		}
+
+		metrics.ZipServingArchiveCacheMiss.Inc()
 	}
 
 	zipArchive := archive.(*zipArchive)
+
 	err := zipArchive.openArchive(ctx)
-	return zipArchive, err
+	if err != nil {
+		metrics.ZipServingFailedOpenArchivesTotal.Inc()
+		return nil, err
+	}
+
+	return zipArchive, nil
 }

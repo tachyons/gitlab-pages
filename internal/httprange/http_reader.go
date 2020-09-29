@@ -54,11 +54,13 @@ var _ vfs.SeekableFile = &Reader{}
 var httpClient = &http.Client{
 	// The longest time the request can be executed
 	Timeout: 30 * time.Minute,
-	Transport: httptransport.NewTransportWithMetrics(
-		"object_storage_client",
-		metrics.ObjectStorageBackendReqDuration,
-		metrics.ObjectStorageBackendReqTotal,
-	),
+	Transport: &tracedTransport{
+		next: httptransport.NewTransportWithMetrics(
+			"object_storage_client",
+			metrics.ObjectStorageBackendReqDuration,
+			metrics.ObjectStorageBackendReqTotal,
+		),
+	},
 }
 
 // ensureResponse is set before reading from it.

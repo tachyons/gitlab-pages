@@ -112,6 +112,45 @@ var (
 		Name: "gitlab_pages_object_storage_backend_requests_duration",
 		Help: "The time (in seconds) it takes to get a response from the Object Storage provider for zip file serving",
 	}, []string{"status_code"})
+
+	// ObjectStorageResponsiveness Object Storage request responsiveness for different stages of an http request
+	// see httptrace.ClientTrace
+	ObjectStorageResponsiveness = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "gitlab_pages_object_storage_backend_request_responsiveness",
+		Help: "Object Storage request responsiveness for different stages (TLS Handshake,response write, etc)",
+	}, []string{"request_stage"})
+
+	// ZipServingOpenArchivesTotal is the number of zip archives that have been opened
+	ZipServingOpenArchivesTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_object_storage_open_zip_archives_total",
+		Help: "The total number of zip archives that have been opened",
+	})
+
+	// ZipServingFailedOpenArchivesTotal is the number of zip archives that have failed to open
+	ZipServingFailedOpenArchivesTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_object_storage_failed_open_zip_archives_total",
+		Help: "The total number of zip archives that have failed to open",
+	})
+
+	// ZipServingFilesPerArchiveCount
+	ZipServingFilesPerArchiveCount = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "gitlab_pages_object_storage_files_per_zip_archive",
+		Help: "The number of files per zip archive",
+		// squared buckets up to 2^13
+		Buckets: prometheus.ExponentialBuckets(2, 2, 13),
+	})
+
+	// ZipServingArchiveCacheHit is the number of zip archive cache hits
+	ZipServingArchiveCacheHit = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_object_storage_zip_archive_cache_hit",
+		Help: "The number of object storage zip archives cache hits",
+	})
+
+	// ZipServingArchiveCacheMiss is the number of zip archive cache misses
+	ZipServingArchiveCacheMiss = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_object_storage_zip_archive_cache_miss",
+		Help: "The number of object storage zip archives cache misses",
+	})
 )
 
 // MustRegister collectors with the Prometheus client
@@ -134,5 +173,11 @@ func MustRegister() {
 		VFSOperations,
 		ObjectStorageBackendReqTotal,
 		ObjectStorageBackendReqDuration,
+		ObjectStorageResponsiveness,
+		ZipServingOpenArchivesTotal,
+		ZipServingFailedOpenArchivesTotal,
+		ZipServingFilesPerArchiveCount,
+		ZipServingArchiveCacheHit,
+		ZipServingArchiveCacheMiss,
 	)
 }
