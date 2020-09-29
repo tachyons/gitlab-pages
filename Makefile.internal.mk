@@ -49,4 +49,4 @@ bin/golint: .GOPATH/.ok
 	    { echo "Vendored golint not found, try running 'make setup'..."; exit 1; }
 bin/benchstat: .GOPATH/.ok
 	@test -x $@ || \
-	    { echo "Vendored golint not found, try running 'make setup'..."; exit 1; }
+	    { echo "Vendored benchstat not found, try running 'make setup'..."; exit 1; }
