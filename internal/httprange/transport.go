@@ -26,37 +26,37 @@ func (tr *tracedTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 func newTracer(start time.Time) *httptrace.ClientTrace {
 	trace := &httptrace.ClientTrace{
 		GetConn: func(host string) {
-			metrics.ObjectStorageResponsiveness.WithLabelValues("get_connection").Observe(float64(time.Since(start)))
+			observe("get_connection", start)
 
 			log.WithFields(log.Fields{
 				"host": host,
 			}).Traceln("get_connection")
 		},
 		GotConn: func(connInfo httptrace.GotConnInfo) {
-			metrics.ObjectStorageResponsiveness.WithLabelValues("get_connection").Observe(float64(time.Since(start)))
+			observe("get_connection", start)
 
 			log.WithFields(log.Fields{
 				"reused":       connInfo.Reused,
 				"was_idle":     connInfo.WasIdle,
 				"idle_time_ms": connInfo.IdleTime.Milliseconds(),
-			}).Traceln("got_connection")
+			}).Traceln("get_connection")
 		},
 		PutIdleConn: nil,
 		GotFirstResponseByte: func() {
-			metrics.ObjectStorageResponsiveness.WithLabelValues("got_first_response_byte").Observe(float64(time.Since(start)))
+			observe("got_first_response_byte", start)
 		},
 		Got100Continue: nil,
 		Got1xxResponse: nil,
 		DNSStart: func(d httptrace.DNSStartInfo) {
-			metrics.ObjectStorageResponsiveness.WithLabelValues("dns_lookup_start").Observe(float64(time.Since(start)))
+			observe("dns_lookup_start", start)
 		},
 		DNSDone: func(d httptrace.DNSDoneInfo) {
-			metrics.ObjectStorageResponsiveness.WithLabelValues("dns_lookup_done").Observe(float64(time.Since(start)))
+			observe("dns_lookup_done", start)
 
-			log.WithFields(log.Fields{}).WithError(d.Err).Traceln("connect_start")
+			log.WithFields(log.Fields{}).WithError(d.Err).Traceln("dns_lookup_done")
 		},
 		ConnectStart: func(net, addr string) {
-			metrics.ObjectStorageResponsiveness.WithLabelValues("connect_start").Observe(float64(time.Since(start)))
+			observe("connect_start", start)
 
 			log.WithFields(log.Fields{
 				"network": net,
@@ -64,7 +64,7 @@ func newTracer(start time.Time) *httptrace.ClientTrace {
 			}).Traceln("connect_start")
 		},
 		ConnectDone: func(net string, addr string, err error) {
-			metrics.ObjectStorageResponsiveness.WithLabelValues("connect_done").Observe(float64(time.Since(start)))
+			observe("connect_done", start)
 
 			log.WithFields(log.Fields{
 				"network": net,
@@ -72,10 +72,10 @@ func newTracer(start time.Time) *httptrace.ClientTrace {
 			}).WithError(err).Traceln("connect_done")
 		},
 		TLSHandshakeStart: func() {
-			metrics.ObjectStorageResponsiveness.WithLabelValues("tls_handshake_start").Observe(float64(time.Since(start)))
+			observe("tls_handshake_start", start)
 		},
 		TLSHandshakeDone: func(connState tls.ConnectionState, err error) {
-			metrics.ObjectStorageResponsiveness.WithLabelValues("tls_handshake_done").Observe(float64(time.Since(start)))
+			observe("tls_handshake_done", start)
 
 			log.WithFields(log.Fields{
 				"version":            connState.Version,
@@ -89,4 +89,8 @@ func newTracer(start time.Time) *httptrace.ClientTrace {
 	}
 
 	return trace
+}
+
+func observe(label string, start time.Time) {
+	metrics.ObjectStorageResponsiveness.WithLabelValues(label).Observe(float64(time.Since(start).Milliseconds()))
 }

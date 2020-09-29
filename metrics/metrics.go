@@ -113,11 +113,12 @@ var (
 		Help: "The time (in seconds) it takes to get a response from the Object Storage provider for zip file serving",
 	}, []string{"status_code"})
 
-	// ObjectStorageResponsiveness Object Storage request responsiveness for different stages of an http request
-	// see httptrace.ClientTrace
+	// ObjectStorageResponsiveness Object Storage request responsiveness in ms for different stages of an http request
+	// see httptrace.ClientTrac
 	ObjectStorageResponsiveness = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "gitlab_pages_object_storage_backend_request_responsiveness",
-		Help: "Object Storage request responsiveness for different stages (TLS Handshake,response write, etc)",
+		Name:    "gitlab_pages_object_storage_backend_request_responsiveness_ms",
+		Help:    "Object Storage request responsiveness for different stages (TLS Handshake,response write, etc)",
+		Buckets: []float64{1, 5, 10, 20, 50, 100, 250, 500, 1000, 2000, 5000, 10000, 20000},
 	}, []string{"request_stage"})
 
 	// ZipServingOpenArchivesTotal is the number of zip archives that have been opened
@@ -137,7 +138,7 @@ var (
 		Name: "gitlab_pages_object_storage_files_per_zip_archive",
 		Help: "The number of files per zip archive",
 		// squared buckets up to 2^13
-		Buckets: prometheus.ExponentialBuckets(2, 2, 13),
+		Buckets: prometheus.ExponentialBuckets(1, 2, 14),
 	})
 
 	// ZipServingArchiveCacheHit is the number of zip archive cache hits
