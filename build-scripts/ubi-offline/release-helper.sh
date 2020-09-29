@@ -220,6 +220,7 @@ releaseImage() {
 mkdir -p "${RELEASE_PATH}"
 
 releaseImage kubectl
+releaseImage alpine-certificates
 releaseImage git-base "gitlab-ruby"
 releaseImage gitlab-ruby
 releaseImage gitlab-container-registry
