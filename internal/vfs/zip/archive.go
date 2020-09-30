@@ -168,7 +168,7 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 		return nil, os.ErrNotExist
 	}
 
-	item, err := a.fs.dataOffsetCache.Fetch(a.cacheKey+":"+name, DataOffsetCacheInterval, func() (interface{}, error) {
+	item, err := a.fs.dataOffsetCache.Fetch(a.cacheKey+name, DataOffsetCacheInterval, func() (interface{}, error) {
 		return file.DataOffset()
 	})
 	if err != nil {
@@ -211,7 +211,7 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 		return "", errNotSymlink
 	}
 
-	item, err := a.fs.readlinkCache.Fetch(a.cacheKey+":"+name, ReadLinkCacheInterval, func() (interface{}, error) {
+	item, err := a.fs.readlinkCache.Fetch(a.cacheKey+name, ReadLinkCacheInterval, func() (interface{}, error) {
 		rc, err := file.Open()
 		if err != nil {
 			return nil, err
