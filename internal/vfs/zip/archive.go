@@ -140,7 +140,7 @@ func (a *zipArchive) readArchive() {
 
 	fileCount := float64(len(a.files))
 	metrics.ZipServingFilesPerArchiveTotalCount.Add(fileCount)
-	metrics.ZipServingFilesPerZipArchiveCurrentlyCached.Set(fileCount)
+	metrics.ZipServingFilesPerZipArchiveCurrentlyCached.Add(fileCount)
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {
