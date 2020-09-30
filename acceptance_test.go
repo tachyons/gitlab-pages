@@ -492,8 +492,9 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.Contains(t, string(body), `gitlab_pages_object_storage_backend_requests_duration_bucket`)
 	require.Contains(t, string(body), `gitlab_pages_object_storage_backend_httptrace_duration`)
 	require.Contains(t, string(body), `gitlab_pages_zip_archives_total`)
-	require.Contains(t, string(body), `gitlab_pages_object_storage_files_per_zip_archive`)
-	require.Contains(t, string(body), `gitlab_pages_object_storage_zip_archive_cache`)
+	require.Contains(t, string(body), `gitlab_pages_zip_archives_currently_cached`)
+	require.Contains(t, string(body), `gitlab_pages_files_per_zip_archive_currently_cached`)
+	require.Contains(t, string(body), `gitlab_pages_files_per_zip_archive_total`)
 }
 
 func TestDisabledRedirects(t *testing.T) {

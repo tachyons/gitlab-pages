@@ -30,10 +30,16 @@ type zipVFS struct {
 
 // New creates a zipVFS instance that can be used by a serving request
 func New() vfs.VFS {
-	return &zipVFS{
+	zipVFS := &zipVFS{
 		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
 		cache: cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
 	}
+
+	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
+		metrics.ZipServingArchivesCurrentlyCached.Dec()
+	})
+
+	return zipVFS
 }
 
 // Root opens an archive given a URL path and returns an instance of zipArchive
@@ -85,8 +91,8 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchi
 		if fs.cache.Add(path, archive, cache.DefaultExpiration) != nil {
 			return nil, errAlreadyCached
 		}
-
 		metrics.ZipServingArchiveCache.WithLabelValues("miss").Inc()
+		metrics.ZipServingArchivesCurrentlyCached.Inc()
 	}
 
 	zipArchive := archive.(*zipArchive)

@@ -138,7 +138,9 @@ func (a *zipArchive) readArchive() {
 	// recycle memory
 	a.archive.File = nil
 
-	metrics.ZipServingFilesPerArchiveCount.Observe(float64(len(a.files)))
+	fileCount := float64(len(a.files))
+	metrics.ZipServingFilesPerArchiveTotalCount.Add(fileCount)
+	metrics.ZipServingFilesPerZipArchiveCurrentlyCached.Set(fileCount)
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {

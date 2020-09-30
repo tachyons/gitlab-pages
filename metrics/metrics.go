@@ -141,23 +141,38 @@ var (
 		[]string{"state"},
 	)
 
-	// ZipServingFilesPerArchiveCount
-	ZipServingFilesPerArchiveCount = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name: "gitlab_pages_object_storage_files_per_zip_archive",
-			Help: "The number of files per zip archive",
-			// squared buckets up to 2^13
-			Buckets: prometheus.ExponentialBuckets(1, 2, 14),
-		},
-	)
-
 	// ZipServingArchiveCache is the number of zip archive cache hits/misses
 	ZipServingArchiveCache = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gitlab_pages_object_storage_zip_archive_cache",
-			Help: "The number of object storage zip archives cache hits",
+			Name: "gitlab_pages_zip_archives_cache",
+			Help: "The number of zip archives cache hits",
 		},
 		[]string{"cache"},
+	)
+
+	// ZipServingArchivesCurrentlyCached is the number of zip archives currently
+	// in the cache
+	ZipServingArchivesCurrentlyCached = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_zip_archives_currently_cached",
+			Help: "The number of zip archives currently in the cache",
+		},
+	)
+
+	// ZipServingFilesPerZipArchiveCurrentlyCached ...
+	ZipServingFilesPerZipArchiveCurrentlyCached = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_files_per_zip_archive_currently_cached",
+			Help: "The number of object storage zip archives currently in the cache",
+		},
+	)
+
+	// ZipServingFilesPerArchiveTotalCount over time
+	ZipServingFilesPerArchiveTotalCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "gitlab_pages_files_per_zip_archive_total",
+			Help: "The number of files per zip archive total count",
+		},
 	)
 )
 
@@ -183,7 +198,9 @@ func MustRegister() {
 		ObjectStorageBackendReqDuration,
 		ObjectStorageTraceDuration,
 		ZipServingOpenArchivesTotal,
-		ZipServingFilesPerArchiveCount,
+		ZipServingFilesPerArchiveTotalCount,
 		ZipServingArchiveCache,
+		ZipServingFilesPerZipArchiveCurrentlyCached,
+		ZipServingArchivesCurrentlyCached,
 	)
 }
