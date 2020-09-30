@@ -23,8 +23,10 @@ const (
 	// It follows Netlify's syntax but we don't support the special options yet like splats, placeholders, query parameters
 	//  - https://docs.netlify.com/routing/redirects/
 	//  - https://docs.netlify.com/routing/redirects/redirect-options/
-	ConfigFile    = "_redirects"
-	maxConfigSize = 32 * 1024
+	ConfigFile = "_redirects"
+
+	// Check https://gitlab.com/gitlab-org/gitlab-pages/-/issues/472 before increasing this value
+	maxConfigSize = 64 * 1024
 )
 
 var (
