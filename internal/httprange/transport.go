@@ -26,61 +26,62 @@ func (tr *tracedTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 func newTracer(start time.Time) *httptrace.ClientTrace {
 	trace := &httptrace.ClientTrace{
 		GetConn: func(host string) {
-			observe("get_connection", start)
+			httpTraceObserve("httptrace.ClientTrace.GetConn", start)
 
 			log.WithFields(log.Fields{
 				"host": host,
-			}).Traceln("get_connection")
+			}).Traceln("httptrace.ClientTrace.GetConn")
 		},
 		GotConn: func(connInfo httptrace.GotConnInfo) {
-			observe("get_connection", start)
+			httpTraceObserve("httptrace.ClientTrace.GotConn", start)
 
 			log.WithFields(log.Fields{
 				"reused":       connInfo.Reused,
 				"was_idle":     connInfo.WasIdle,
 				"idle_time_ms": connInfo.IdleTime.Milliseconds(),
-			}).Traceln("get_connection")
+			}).Traceln("httptrace.ClientTrace.GotConn")
 		},
 		PutIdleConn: nil,
 		GotFirstResponseByte: func() {
-			observe("got_first_response_byte", start)
+			httpTraceObserve("httptrace.ClientTrace.GotFirstResponseByte", start)
 		},
 		Got100Continue: nil,
 		Got1xxResponse: nil,
 		DNSStart: func(d httptrace.DNSStartInfo) {
-			observe("dns_lookup_start", start)
+			httpTraceObserve("httptrace.ClientTrace.DNSStart", start)
 		},
 		DNSDone: func(d httptrace.DNSDoneInfo) {
-			observe("dns_lookup_done", start)
+			httpTraceObserve("httptrace.ClientTrace.DNSDone", start)
 
-			log.WithFields(log.Fields{}).WithError(d.Err).Traceln("dns_lookup_done")
+			log.WithFields(log.Fields{}).WithError(d.Err).
+				Traceln("httptrace.ClientTrace.DNSDone")
 		},
 		ConnectStart: func(net, addr string) {
-			observe("connect_start", start)
+			httpTraceObserve("httptrace.ClientTrace.ConnectStart", start)
 
 			log.WithFields(log.Fields{
 				"network": net,
 				"address": addr,
-			}).Traceln("connect_start")
+			}).Traceln("httptrace.ClientTrace.ConnectStart")
 		},
 		ConnectDone: func(net string, addr string, err error) {
-			observe("connect_done", start)
+			httpTraceObserve("httptrace.ClientTrace.ConnectDone", start)
 
 			log.WithFields(log.Fields{
 				"network": net,
 				"address": addr,
-			}).WithError(err).Traceln("connect_done")
+			}).WithError(err).Traceln("httptrace.ClientTrace.ConnectDone")
 		},
 		TLSHandshakeStart: func() {
-			observe("tls_handshake_start", start)
+			httpTraceObserve("httptrace.ClientTrace.TLSHandshakeStart", start)
 		},
 		TLSHandshakeDone: func(connState tls.ConnectionState, err error) {
-			observe("tls_handshake_done", start)
+			httpTraceObserve("httptrace.ClientTrace.TLSHandshakeDone", start)
 
 			log.WithFields(log.Fields{
 				"version":            connState.Version,
 				"connection_resumed": connState.DidResume,
-			}).WithError(err).Traceln("tls_handshake_done")
+			}).WithError(err).Traceln("httptrace.ClientTrace.TLSHandshakeDone")
 		},
 		WroteHeaderField: nil,
 		WroteHeaders:     nil,
@@ -91,6 +92,7 @@ func newTracer(start time.Time) *httptrace.ClientTrace {
 	return trace
 }
 
-func observe(label string, start time.Time) {
-	metrics.ObjectStorageTraceDuration.WithLabelValues(label).Observe(float64(time.Since(start).Milliseconds()))
+func httpTraceObserve(label string, start time.Time) {
+	metrics.ObjectStorageTraceDuration.WithLabelValues(label).
+		Observe(time.Since(start).Seconds())
 }

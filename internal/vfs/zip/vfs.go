@@ -70,7 +70,7 @@ func (fs *zipVFS) Name() string {
 func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchive, error) {
 	archive, expiry, found := fs.cache.GetWithExpiration(path)
 	if found {
-		metrics.ZipServingArchiveCache.Inc()
+		metrics.ZipServingArchiveCache.WithLabelValues("hit").Inc()
 
 		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
 		if time.Until(expiry) < defaultCacheRefreshInterval {
@@ -86,14 +86,13 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchi
 			return nil, errAlreadyCached
 		}
 
-		metrics.ZipServingArchiveCacheMiss.Inc()
+		metrics.ZipServingArchiveCache.WithLabelValues("miss").Inc()
 	}
 
 	zipArchive := archive.(*zipArchive)
 
 	err := zipArchive.openArchive(ctx)
 	if err != nil {
-		metrics.ZipServingFailedOpenArchivesTotal.Inc()
 		return nil, err
 	}
 

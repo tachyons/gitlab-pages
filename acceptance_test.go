@@ -486,16 +486,14 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.Contains(t, string(body), "gitlab_pages_disk_serving_file_size_bytes_sum")
 	require.Contains(t, string(body), "gitlab_pages_serving_time_seconds_sum")
 	require.Contains(t, string(body), `gitlab_pages_domains_source_api_requests_total{status_code="200"}`)
-	require.Contains(t, string(body), `gitlab_pages_domains_source_api_call_duration{status_code="200"}`)
+	require.Contains(t, string(body), `gitlab_pages_domains_source_api_call_duration_bucket`)
 	// object storage
 	require.Contains(t, string(body), `gitlab_pages_object_storage_backend_requests_total{status_code="206"}`)
-	require.Contains(t, string(body), `gitlab_pages_object_storage_backend_requests_duration{status_code="206"}`)
-	require.Contains(t, string(body), `gitlab_pages_object_storage_backend_request_responsiveness_ms_count`)
-	require.Contains(t, string(body), `gitlab_pages_object_storage_open_zip_archives_total`)
-	require.Contains(t, string(body), `gitlab_pages_object_storage_failed_open_zip_archives_total`)
+	require.Contains(t, string(body), `gitlab_pages_object_storage_backend_requests_duration_bucket`)
+	require.Contains(t, string(body), `gitlab_pages_object_storage_backend_httptrace_duration`)
+	require.Contains(t, string(body), `gitlab_pages_zip_archives_total`)
 	require.Contains(t, string(body), `gitlab_pages_object_storage_files_per_zip_archive`)
-	require.Contains(t, string(body), `gitlab_pages_object_storage_zip_archive_cache_hit`)
-	require.Contains(t, string(body), `gitlab_pages_object_storage_zip_archive_cache_miss`)
+	require.Contains(t, string(body), `gitlab_pages_object_storage_zip_archive_cache`)
 }
 
 func TestDisabledRedirects(t *testing.T) {

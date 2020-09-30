@@ -73,7 +73,7 @@ var (
 	}, []string{"status_code"})
 
 	// DomainsSourceAPICallDuration is the time it takes to get a response from the GitLab API in seconds
-	DomainsSourceAPICallDuration = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	DomainsSourceAPICallDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "gitlab_pages_domains_source_api_call_duration",
 		Help: "The time (in seconds) it takes to get a response from the GitLab domains API",
 	}, []string{"status_code"})
@@ -111,7 +111,7 @@ var (
 	// from Object Storage in seconds for zip file servings
 	ObjectStorageBackendReqDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "gitlab_pages_object_storage_backend_requests_duration_seconds",
+			Name: "gitlab_pages_object_storage_backend_requests_duration",
 			Help: "The time (in seconds) it takes to get a response from the " +
 				"Object Storage provider for zip file serving",
 		},
@@ -122,9 +122,9 @@ var (
 	// seconds for different stages of an http request see httptrace.ClientTrace
 	ObjectStorageTraceDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "gitlab_pages_object_storage_backend_httptrace_duration_seconds",
-			Help: "Object Storage request tracing duration for different " +
-				"stages (see Go's httptrace.ClientTrace)",
+			Name: "gitlab_pages_object_storage_backend_httptrace_duration",
+			Help: "Object Storage request tracing duration in seconds for " +
+				"different connection stages (see Go's httptrace.ClientTrace)",
 			Buckets: []float64{0.001, 0.005, 0.01, 0.02, 0.05, 0.100, 0.250,
 				0.500, 1, 2, 5, 10, 20, 50},
 		},
@@ -154,7 +154,7 @@ var (
 	// ZipServingArchiveCache is the number of zip archive cache hits/misses
 	ZipServingArchiveCache = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gitlab_pages_object_storage_zip_archive_cache_hit",
+			Name: "gitlab_pages_object_storage_zip_archive_cache",
 			Help: "The number of object storage zip archives cache hits",
 		},
 		[]string{"cache"},

@@ -59,7 +59,16 @@ func newArchive(path string, openTimeout time.Duration) *zipArchive {
 	}
 }
 
-func (a *zipArchive) openArchive(parentCtx context.Context) error {
+func (a *zipArchive) openArchive(parentCtx context.Context) (err error) {
+	defer func() {
+		// checking named return err value
+		if err != nil {
+			metrics.ZipServingOpenArchivesTotal.WithLabelValues("error").Inc()
+		} else {
+			metrics.ZipServingOpenArchivesTotal.WithLabelValues("ok").Inc()
+		}
+	}()
+
 	// return early if openArchive was done already in a concurrent request
 	select {
 	case <-a.done:
@@ -130,7 +139,6 @@ func (a *zipArchive) readArchive() {
 	a.archive.File = nil
 
 	metrics.ZipServingFilesPerArchiveCount.Observe(float64(len(a.files)))
-	metrics.ZipServingOpenArchivesTotal.Inc()
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {
