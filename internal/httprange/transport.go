@@ -92,5 +92,5 @@ func newTracer(start time.Time) *httptrace.ClientTrace {
 }
 
 func observe(label string, start time.Time) {
-	metrics.ObjectStorageResponsiveness.WithLabelValues(label).Observe(float64(time.Since(start).Milliseconds()))
+	metrics.ObjectStorageTraceDuration.WithLabelValues(label).Observe(float64(time.Since(start).Milliseconds()))
 }
