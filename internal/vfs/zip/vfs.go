@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/karlseguin/ccache"
 	"github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
@@ -25,14 +26,20 @@ var (
 
 // zipVFS is a simple cached implementation of the vfs.VFS interface
 type zipVFS struct {
-	cache *cache.Cache
+	cache           *cache.Cache
+	dataOffsetCache *ccache.Cache
+	readlinkCache   *ccache.Cache
+
+	archiveCount int64
 }
 
 // New creates a zipVFS instance that can be used by a serving request
 func New() vfs.VFS {
 	zipVFS := &zipVFS{
 		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
-		cache: cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
+		cache:           cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
+		dataOffsetCache: ccache.New(ccache.Configure().MaxSize(10000).ItemsToPrune(2000)),
+		readlinkCache:   ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(2000)),
 	}
 
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
@@ -86,7 +93,7 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchi
 			fs.cache.SetDefault(path, archive)
 		}
 	} else {
-		archive = newArchive(path, DefaultOpenTimeout)
+		archive = newArchive(fs, path, DefaultOpenTimeout)
 
 		// if adding the archive to the cache fails it means it's already been added before
 		// this is done to find concurrent additions.

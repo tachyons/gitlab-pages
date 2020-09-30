@@ -181,7 +181,8 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
-	zip := newArchive(testServerURL+"/public.zip", time.Second)
+	fs := New().(*zipVFS)
+	zip := newArchive(fs, testServerURL+"/public.zip", time.Second)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -203,7 +204,8 @@ func TestReadArchiveFails(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
-	zip := newArchive(testServerURL+"/unkown.html", time.Second)
+	fs := New().(*zipVFS)
+	zip := newArchive(fs, testServerURL+"/unkown.html", time.Second)
 
 	err := zip.openArchive(context.Background())
 	require.Error(t, err)
@@ -218,7 +220,8 @@ func openZipArchive(t *testing.T) (*zipArchive, func()) {
 
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
 
-	zip := newArchive(testServerURL+"/public.zip", time.Second)
+	fs := New().(*zipVFS)
+	zip := newArchive(fs, testServerURL+"/public.zip", time.Second)
 
 	err := zip.openArchive(context.Background())
 	require.NoError(t, err)

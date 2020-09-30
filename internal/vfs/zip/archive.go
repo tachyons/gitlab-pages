@@ -8,8 +8,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -24,7 +26,9 @@ const (
 	maxSymlinkSize = 256
 
 	// DefaultOpenTimeout to request an archive and read its contents the first time
-	DefaultOpenTimeout = 30 * time.Second
+	DefaultOpenTimeout      = 30 * time.Second
+	DataOffsetCacheInterval = 60 * time.Second
+	ReadLinkCacheInterval   = 60 * time.Second
 )
 
 var (
@@ -36,10 +40,14 @@ var (
 // It represents a zip archive saving all its files in memory.
 // It holds an httprange.Resource that can be read with httprange.RangedReader in chunks.
 type zipArchive struct {
+	fs *zipVFS
+
 	path        string
 	once        sync.Once
 	done        chan struct{}
 	openTimeout time.Duration
+
+	cacheKey string
 
 	resource *httprange.Resource
 	reader   *httprange.RangedReader
@@ -50,12 +58,14 @@ type zipArchive struct {
 	files map[string]*zip.File
 }
 
-func newArchive(path string, openTimeout time.Duration) *zipArchive {
+func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive {
 	return &zipArchive{
+		fs:          fs,
 		path:        path,
 		done:        make(chan struct{}),
 		files:       make(map[string]*zip.File),
 		openTimeout: openTimeout,
+		cacheKey:    strconv.FormatInt(atomic.AddInt64(&fs.archiveCount, 1), 10) + ":",
 	}
 }
 
@@ -158,11 +168,14 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 		return nil, os.ErrNotExist
 	}
 
-	// TODO: cache dataOffsets of files https://gitlab.com/gitlab-org/gitlab-pages/-/issues/461
-	dataOffset, err := file.DataOffset()
+	item, err := a.fs.dataOffsetCache.Fetch(a.cacheKey+":"+name, DataOffsetCacheInterval, func() (interface{}, error) {
+		return file.DataOffset()
+	})
 	if err != nil {
 		return nil, err
 	}
+
+	dataOffset := item.Value().(int64)
 
 	// only read from dataOffset up to the size of the compressed file
 	reader := a.reader.SectionReader(ctx, dataOffset, int64(file.CompressedSize64))
@@ -198,28 +211,37 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 		return "", errNotSymlink
 	}
 
-	rc, err := file.Open()
+	item, err := a.fs.readlinkCache.Fetch(a.cacheKey+":"+name, ReadLinkCacheInterval, func() (interface{}, error) {
+		rc, err := file.Open()
+		if err != nil {
+			return nil, err
+		}
+		defer rc.Close()
+
+		var symlink [maxSymlinkSize + 1]byte
+
+		// read up to len(symlink) bytes from the link file
+		n, err := io.ReadFull(rc, symlink[:])
+		if err != nil && err != io.ErrUnexpectedEOF {
+			// if err == io.ErrUnexpectedEOF the link is smaller than len(symlink) so it's OK to not return it
+			return nil, err
+		}
+
+		// cache symlink up to desired size
+		return string(symlink[:n]), nil
+	})
 	if err != nil {
 		return "", err
 	}
-	defer rc.Close()
 
-	symlink := make([]byte, maxSymlinkSize+1)
-
-	// read up to len(symlink) bytes from the link file
-	n, err := io.ReadFull(rc, symlink)
-	if err != nil && err != io.ErrUnexpectedEOF {
-		// if err == io.ErrUnexpectedEOF the link is smaller than len(symlink) so it's OK to not return it
-		return "", err
-	}
+	symlink := item.Value().(string)
 
 	// return errSymlinkSize if the number of bytes read from the link is too big
-	if n > maxSymlinkSize {
+	if len(symlink) > maxSymlinkSize {
 		return "", errSymlinkSize
 	}
 
-	// only return the n bytes read from the link
-	return string(symlink[:n]), nil
+	return symlink, nil
 }
 
 // onEvicted called by the zipVFS.cache when an archive is removed from the cache
