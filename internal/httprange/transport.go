@@ -41,12 +41,9 @@ func newTracer(start time.Time) *httptrace.ClientTrace {
 				"idle_time_ms": connInfo.IdleTime.Milliseconds(),
 			}).Traceln("httptrace.ClientTrace.GotConn")
 		},
-		PutIdleConn: nil,
 		GotFirstResponseByte: func() {
 			httpTraceObserve("httptrace.ClientTrace.GotFirstResponseByte", start)
 		},
-		Got100Continue: nil,
-		Got1xxResponse: nil,
 		DNSStart: func(d httptrace.DNSStartInfo) {
 			httpTraceObserve("httptrace.ClientTrace.DNSStart", start)
 		},
@@ -83,10 +80,6 @@ func newTracer(start time.Time) *httptrace.ClientTrace {
 				"connection_resumed": connState.DidResume,
 			}).WithError(err).Traceln("httptrace.ClientTrace.TLSHandshakeDone")
 		},
-		WroteHeaderField: nil,
-		WroteHeaders:     nil,
-		Wait100Continue:  nil,
-		WroteRequest:     nil,
 	}
 
 	return trace
