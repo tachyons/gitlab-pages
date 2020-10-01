@@ -224,6 +224,5 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 
 // onEvicted called by the zipVFS.cache when an archive is removed from the cache
 func (a *zipArchive) onEvicted() {
-	metrics.ZipCachedArchives.Dec()
 	metrics.ZipArchiveEntriesCached.Sub(float64(len(a.files)))
 }

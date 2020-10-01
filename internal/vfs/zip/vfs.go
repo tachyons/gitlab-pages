@@ -36,6 +36,8 @@ func New() vfs.VFS {
 	}
 
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
+		metrics.ZipCachedArchives.Dec()
+
 		i.(*zipArchive).onEvicted()
 	})
 
