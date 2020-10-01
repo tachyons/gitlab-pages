@@ -36,7 +36,7 @@ func New() vfs.VFS {
 	}
 
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
-		 i.(*zipArchive).onEvicted()
+		i.(*zipArchive).onEvicted()
 	})
 
 	return zipVFS

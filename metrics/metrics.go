@@ -99,32 +99,32 @@ var (
 		Help: "The number of VFS operations",
 	}, []string{"vfs_name", "operation", "success"})
 
-    // HTTPRangeRequestsTotal is the number of requests made to a
-    // httprange.Resource by opening and/or reading from it. Mostly used by the
-    // internal/vfs/zip package to load archives from Object Storage.
+	// HTTPRangeRequestsTotal is the number of requests made to a
+	// httprange.Resource by opening and/or reading from it. Mostly used by the
+	// internal/vfs/zip package to load archives from Object Storage.
 	// Could be bigger than the number of pages served.
 	HTTPRangeRequestsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "gitlab_pages_httprange_requests_total",
 		Help: "The number of requests made by the zip VFS to a Resource with " +
-		    "different status codes." +
+			"different status codes." +
 			"Could be bigger than the number of requests served",
 	}, []string{"status_code"})
 
-    // HTTPRangeRequestDuration is the time it takes to get a response
-    // from an httprange.Resource hosted in object storage for a request made by
-    // the zip VFS
+	// HTTPRangeRequestDuration is the time it takes to get a response
+	// from an httprange.Resource hosted in object storage for a request made by
+	// the zip VFS
 	HTTPRangeRequestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "gitlab_pages_httprange_requests_duration",
 			Help: "The time (in seconds) it takes to get a response from " +
 				"a httprange.Resource hosted in object storage for a request " +
-			    "made by the zip VFS",
+				"made by the zip VFS",
 		},
 		[]string{"status_code"},
 	)
 
-    // HTTPRangeTraceDuration httprange requests duration in seconds for
-    // different stages of an http request (see httptrace.ClientTrace)
+	// HTTPRangeTraceDuration httprange requests duration in seconds for
+	// different stages of an http request (see httptrace.ClientTrace)
 	HTTPRangeTraceDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "gitlab_pages_httprange_trace_duration",
@@ -137,13 +137,12 @@ var (
 	)
 
 	// HTTPRangeOpenRequests is the number of open requests made by httprange.Reader
-    HTTPRangeOpenRequests = prometheus.NewGauge(prometheus.GaugeOpts{
-        Name: "gitlab_pages_httprange_open_requests",
-        Help: "The number of open requests made by httprange.Reader",
+	HTTPRangeOpenRequests = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "gitlab_pages_httprange_open_requests",
+		Help: "The number of open requests made by httprange.Reader",
+	})
 
-    })
-
-    // ZipOpened is the number of zip archives that have been opened
+	// ZipOpened is the number of zip archives that have been opened
 	ZipOpened = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gitlab_pages_zip_opened",
@@ -161,26 +160,26 @@ var (
 		[]string{"cache"},
 	)
 
-    // ZipCachedArchives is the number of zip archives currently in the cache
-    ZipCachedArchives = prometheus.NewGauge(
+	// ZipCachedArchives is the number of zip archives currently in the cache
+	ZipCachedArchives = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "gitlab_pages_zip_cached_archives",
 			Help: "The number of zip archives currently in the cache",
 		},
 	)
 
-    // ZipArchiveEntriesCached is the number of files per zip archive currently
-    // in the cache
-    ZipArchiveEntriesCached = prometheus.NewGauge(
+	// ZipArchiveEntriesCached is the number of files per zip archive currently
+	// in the cache
+	ZipArchiveEntriesCached = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "gitlab_pages_zip_archive_entries_cached",
 			Help: "The number of files per zip archive currently in the cache",
 		},
 	)
 
-    // ZipOpenedEntriesCount is the number of files per archive total count
-    // over time
-    ZipOpenedEntriesCount = prometheus.NewCounter(
+	// ZipOpenedEntriesCount is the number of files per archive total count
+	// over time
+	ZipOpenedEntriesCount = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "gitlab_pages_zip_opened_entries_count",
 			Help: "The number of files per zip archive total count over time",
@@ -206,14 +205,14 @@ func MustRegister() {
 		DiskServingFileSize,
 		ServingTime,
 		VFSOperations,
-        HTTPRangeRequestsTotal,
-        HTTPRangeRequestDuration,
-        HTTPRangeTraceDuration,
-        HTTPRangeOpenRequests,
-        ZipOpened,
-        ZipOpenedEntriesCount,
+		HTTPRangeRequestsTotal,
+		HTTPRangeRequestDuration,
+		HTTPRangeTraceDuration,
+		HTTPRangeOpenRequests,
+		ZipOpened,
+		ZipOpenedEntriesCount,
 		ZipServingArchiveCache,
-        ZipArchiveEntriesCached,
-        ZipCachedArchives,
+		ZipArchiveEntriesCached,
+		ZipCachedArchives,
 	)
 }
