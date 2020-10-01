@@ -16,6 +16,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
@@ -58,7 +59,7 @@ func newArchive(path string, openTimeout time.Duration) *zipArchive {
 	}
 }
 
-func (a *zipArchive) openArchive(parentCtx context.Context) error {
+func (a *zipArchive) openArchive(parentCtx context.Context) (err error) {
 	// return early if openArchive was done already in a concurrent request
 	select {
 	case <-a.done:
@@ -104,6 +105,7 @@ func (a *zipArchive) readArchive() {
 
 	a.resource, a.err = httprange.NewResource(ctx, a.path)
 	if a.err != nil {
+		metrics.ZipOpened.WithLabelValues("error").Inc()
 		return
 	}
 
@@ -113,7 +115,8 @@ func (a *zipArchive) readArchive() {
 		a.archive, a.err = zip.NewReader(a.reader, a.resource.Size)
 	})
 
-	if a.archive == nil {
+	if a.archive == nil || a.err != nil {
+		metrics.ZipOpened.WithLabelValues("error").Inc()
 		return
 	}
 
@@ -127,6 +130,11 @@ func (a *zipArchive) readArchive() {
 
 	// recycle memory
 	a.archive.File = nil
+
+	fileCount := float64(len(a.files))
+	metrics.ZipOpened.WithLabelValues("ok").Inc()
+	metrics.ZipOpenedEntriesCount.Add(fileCount)
+	metrics.ZipArchiveEntriesCached.Add(fileCount)
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {
@@ -212,4 +220,9 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 
 	// only return the n bytes read from the link
 	return string(symlink[:n]), nil
+}
+
+// onEvicted called by the zipVFS.cache when an archive is removed from the cache
+func (a *zipArchive) onEvicted() {
+	metrics.ZipArchiveEntriesCached.Sub(float64(len(a.files)))
 }

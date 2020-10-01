@@ -43,7 +43,7 @@ func Test_withRoundTripper(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gaugeVec := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			histVec := prometheus.NewHistogramVec(prometheus.HistogramOpts{
 				Name: t.Name(),
 			}, []string{"status_code"})
 
@@ -58,7 +58,7 @@ func Test_withRoundTripper(t *testing.T) {
 				err: tt.err,
 			}
 
-			mtr := &meteredRoundTripper{next: next, durations: gaugeVec, counter: counterVec}
+			mtr := &meteredRoundTripper{next: next, durations: histVec, counter: counterVec}
 			r := httptest.NewRequest("GET", "/", nil)
 
 			res, err := mtr.RoundTrip(r)
@@ -72,9 +72,6 @@ func Test_withRoundTripper(t *testing.T) {
 			require.NotNil(t, res)
 
 			statusCode := strconv.Itoa(res.StatusCode)
-			gaugeValue := testutil.ToFloat64(gaugeVec.WithLabelValues(statusCode))
-			require.Greater(t, gaugeValue, float64(0))
-
 			counterCount := testutil.ToFloat64(counterVec.WithLabelValues(statusCode))
 			require.Equal(t, float64(1), counterCount, statusCode)
 		})

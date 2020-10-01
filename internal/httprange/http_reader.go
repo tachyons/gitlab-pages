@@ -54,11 +54,13 @@ var _ vfs.SeekableFile = &Reader{}
 var httpClient = &http.Client{
 	// The longest time the request can be executed
 	Timeout: 30 * time.Minute,
-	Transport: httptransport.NewTransportWithMetrics(
-		"object_storage_client",
-		metrics.ObjectStorageBackendReqDuration,
-		metrics.ObjectStorageBackendReqTotal,
-	),
+	Transport: &tracedTransport{
+		next: httptransport.NewTransportWithMetrics(
+			"object_storage_client",
+			metrics.HTTPRangeRequestDuration,
+			metrics.HTTPRangeRequestsTotal,
+		),
+	},
 }
 
 // ensureResponse is set before reading from it.
@@ -73,14 +75,18 @@ func (r *Reader) ensureResponse() error {
 		return err
 	}
 
-	// TODO: add Traceln info for HTTP calls with headers and response https://gitlab.com/gitlab-org/gitlab-pages/-/issues/448
+	metrics.HTTPRangeOpenRequests.Inc()
+
 	res, err := httpClient.Do(req)
 	if err != nil {
+		metrics.HTTPRangeOpenRequests.Dec()
 		return err
 	}
 
 	err = r.setResponse(res)
 	if err != nil {
+		metrics.HTTPRangeOpenRequests.Dec()
+
 		// cleanup body on failure from r.setResponse to avoid memory leak
 		res.Body.Close()
 	}
@@ -198,6 +204,9 @@ func (r *Reader) Close() error {
 		// no need to read until the end
 		err := r.res.Body.Close()
 		r.res = nil
+
+		metrics.HTTPRangeOpenRequests.Dec()
+
 		return err
 	}
 

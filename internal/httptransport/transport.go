@@ -27,7 +27,7 @@ var (
 type meteredRoundTripper struct {
 	next      http.RoundTripper
 	name      string
-	durations *prometheus.GaugeVec
+	durations *prometheus.HistogramVec
 	counter   *prometheus.CounterVec
 }
 
@@ -46,11 +46,11 @@ func newInternalTransport() *http.Transport {
 
 // NewTransportWithMetrics will create a custom http.RoundTripper that can be used with an http.Client.
 // The RoundTripper will report metrics based on the collectors passed.
-func NewTransportWithMetrics(name string, gaugeVec *prometheus.GaugeVec, counterVec *prometheus.CounterVec) http.RoundTripper {
+func NewTransportWithMetrics(name string, histogramVec *prometheus.HistogramVec, counterVec *prometheus.CounterVec) http.RoundTripper {
 	return &meteredRoundTripper{
 		next:      InternalTransport,
 		name:      name,
-		durations: gaugeVec,
+		durations: histogramVec,
 		counter:   counterVec,
 	}
 }
@@ -93,7 +93,7 @@ func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 	mrt.logResponse(r, resp)
 
 	statusCode := strconv.Itoa(resp.StatusCode)
-	mrt.durations.WithLabelValues(statusCode).Set(time.Since(start).Seconds())
+	mrt.durations.WithLabelValues(statusCode).Observe(time.Since(start).Seconds())
 	mrt.counter.WithLabelValues(statusCode).Inc()
 
 	return resp, nil

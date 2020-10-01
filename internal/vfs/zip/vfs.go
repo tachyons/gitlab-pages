@@ -9,6 +9,7 @@ import (
 	"github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
@@ -29,10 +30,18 @@ type zipVFS struct {
 
 // New creates a zipVFS instance that can be used by a serving request
 func New() vfs.VFS {
-	return &zipVFS{
+	zipVFS := &zipVFS{
 		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
 		cache: cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
 	}
+
+	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
+		metrics.ZipCachedArchives.Dec()
+
+		i.(*zipArchive).onEvicted()
+	})
+
+	return zipVFS
 }
 
 // Root opens an archive given a URL path and returns an instance of zipArchive
@@ -69,6 +78,8 @@ func (fs *zipVFS) Name() string {
 func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchive, error) {
 	archive, expiry, found := fs.cache.GetWithExpiration(path)
 	if found {
+		metrics.ZipServingArchiveCache.WithLabelValues("hit").Inc()
+
 		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
 		if time.Until(expiry) < defaultCacheRefreshInterval {
 			// refresh item
@@ -82,9 +93,16 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchi
 		if fs.cache.Add(path, archive, cache.DefaultExpiration) != nil {
 			return nil, errAlreadyCached
 		}
+		metrics.ZipServingArchiveCache.WithLabelValues("miss").Inc()
+		metrics.ZipCachedArchives.Inc()
 	}
 
 	zipArchive := archive.(*zipArchive)
+
 	err := zipArchive.openArchive(ctx)
-	return zipArchive, err
+	if err != nil {
+		return nil, err
+	}
+
+	return zipArchive, nil
 }
