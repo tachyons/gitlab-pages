@@ -92,7 +92,7 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchi
 			return nil, errAlreadyCached
 		}
 		metrics.ZipServingArchiveCache.WithLabelValues("miss").Inc()
-		metrics.ZipServingArchivesCurrentlyCached.Inc()
+		metrics.ZipCachedArchives.Inc()
 	}
 
 	zipArchive := archive.(*zipArchive)

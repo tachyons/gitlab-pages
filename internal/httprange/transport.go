@@ -86,6 +86,6 @@ func newTracer(start time.Time) *httptrace.ClientTrace {
 }
 
 func httpTraceObserve(label string, start time.Time) {
-	metrics.ObjectStorageTraceDuration.WithLabelValues(label).
+	metrics.HTTPRangeTraceDuration.WithLabelValues(label).
 		Observe(time.Since(start).Seconds())
 }

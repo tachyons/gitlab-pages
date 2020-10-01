@@ -63,9 +63,9 @@ func (a *zipArchive) openArchive(parentCtx context.Context) (err error) {
 	defer func() {
 		// checking named return err value
 		if err != nil {
-			metrics.ZipServingOpenArchivesTotal.WithLabelValues("error").Inc()
+			metrics.ZipOpened.WithLabelValues("error").Inc()
 		} else {
-			metrics.ZipServingOpenArchivesTotal.WithLabelValues("ok").Inc()
+			metrics.ZipOpened.WithLabelValues("ok").Inc()
 		}
 	}()
 
@@ -139,8 +139,8 @@ func (a *zipArchive) readArchive() {
 	a.archive.File = nil
 
 	fileCount := float64(len(a.files))
-	metrics.ZipServingFilesPerArchiveTotalCount.Add(fileCount)
-	metrics.ZipServingFilesPerZipArchiveCurrentlyCached.Add(fileCount)
+	metrics.ZipOpenedEntriesCount.Add(fileCount)
+	metrics.ZipArchiveEntriesCached.Add(fileCount)
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {
@@ -230,6 +230,6 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 
 // onEvicted called by the zipVFS.cache when an archive is removed from the cache
 func (a *zipArchive) onEvicted(){
-    metrics.ZipServingArchivesCurrentlyCached.Dec()
-    metrics.ZipServingFilesPerZipArchiveCurrentlyCached.Sub(float64(len(a.files)))
+    metrics.ZipCachedArchives.Dec()
+    metrics.ZipArchiveEntriesCached.Sub(float64(len(a.files)))
 }
