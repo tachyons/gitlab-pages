@@ -36,9 +36,7 @@ func New() vfs.VFS {
 	}
 
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
-		zipArchive := i.(*zipArchive)
-
-		metrics.ZipServingFilesPerZipArchiveCurrentlyCached.Sub(float64(len(zipArchive.files)))
+		 i.(*zipArchive).onEvicted()
 	})
 
 	return zipVFS
