@@ -55,8 +55,12 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 		secretKey: secretKey,
 		baseURL:   parsedURL,
 		httpClient: &http.Client{
-			Timeout:   connectionTimeout,
-			Transport: httptransport.NewTransportWithMetrics("gitlab_internal_api", metrics.DomainsSourceAPICallDuration, metrics.DomainsSourceAPIReqTotal),
+			Timeout: connectionTimeout,
+			Transport: httptransport.NewTransportWithMetrics(
+				"gitlab_internal_api",
+				metrics.DomainsSourceAPITraceDuration,
+				metrics.DomainsSourceAPICallDuration,
+				metrics.DomainsSourceAPIReqTotal),
 		},
 		jwtTokenExpiry: jwtTokenExpiry,
 	}, nil

@@ -487,6 +487,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.Contains(t, string(body), "gitlab_pages_serving_time_seconds_sum")
 	require.Contains(t, string(body), `gitlab_pages_domains_source_api_requests_total{status_code="200"}`)
 	require.Contains(t, string(body), `gitlab_pages_domains_source_api_call_duration_bucket`)
+	require.Contains(t, string(body), `gitlab_pages_domains_source_api_trace_duration`)
 	// httprange
 	require.Contains(t, string(body), `gitlab_pages_httprange_requests_total{status_code="206"}`)
 	require.Contains(t, string(body), "gitlab_pages_httprange_requests_duration_bucket")

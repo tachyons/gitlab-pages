@@ -78,6 +78,19 @@ var (
 		Help: "The time (in seconds) it takes to get a response from the GitLab domains API",
 	}, []string{"status_code"})
 
+	// DomainsSourceAPITraceDuration requests trace duration in seconds for
+	// different stages of an http request (see httptrace.ClientTrace)
+	DomainsSourceAPITraceDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "gitlab_pages_domains_source_api_trace_duration",
+			Help: "Domain source API request tracing duration in seconds for " +
+				"different connection stages (see Go's httptrace.ClientTrace)",
+			Buckets: []float64{0.001, 0.005, 0.01, 0.02, 0.05, 0.100, 0.250,
+				0.500, 1, 2, 5, 10, 20, 50},
+		},
+		[]string{"request_stage"},
+	)
+
 	// DiskServingFileSize metric for file size serving. Includes a vfs_name (local or zip).
 	DiskServingFileSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "gitlab_pages_disk_serving_file_size_bytes",
@@ -199,6 +212,7 @@ func MustRegister() {
 		DomainsSourceCacheMiss,
 		DomainsSourceAPIReqTotal,
 		DomainsSourceAPICallDuration,
+		DomainsSourceAPITraceDuration,
 		DomainsSourceFailures,
 		ServerlessRequests,
 		ServerlessLatency,
