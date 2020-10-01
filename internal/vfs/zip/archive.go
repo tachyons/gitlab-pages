@@ -60,15 +60,6 @@ func newArchive(path string, openTimeout time.Duration) *zipArchive {
 }
 
 func (a *zipArchive) openArchive(parentCtx context.Context) (err error) {
-	defer func() {
-		// checking named return err value
-		if err != nil {
-			metrics.ZipOpened.WithLabelValues("error").Inc()
-		} else {
-			metrics.ZipOpened.WithLabelValues("ok").Inc()
-		}
-	}()
-
 	// return early if openArchive was done already in a concurrent request
 	select {
 	case <-a.done:
@@ -114,6 +105,7 @@ func (a *zipArchive) readArchive() {
 
 	a.resource, a.err = httprange.NewResource(ctx, a.path)
 	if a.err != nil {
+		metrics.ZipOpened.WithLabelValues("error").Inc()
 		return
 	}
 
@@ -123,7 +115,8 @@ func (a *zipArchive) readArchive() {
 		a.archive, a.err = zip.NewReader(a.reader, a.resource.Size)
 	})
 
-	if a.archive == nil {
+	if a.archive == nil || a.err != nil {
+		metrics.ZipOpened.WithLabelValues("error").Inc()
 		return
 	}
 
@@ -139,6 +132,7 @@ func (a *zipArchive) readArchive() {
 	a.archive.File = nil
 
 	fileCount := float64(len(a.files))
+	metrics.ZipOpened.WithLabelValues("ok").Inc()
 	metrics.ZipOpenedEntriesCount.Add(fileCount)
 	metrics.ZipArchiveEntriesCached.Add(fileCount)
 }
@@ -229,7 +223,7 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 }
 
 // onEvicted called by the zipVFS.cache when an archive is removed from the cache
-func (a *zipArchive) onEvicted(){
-    metrics.ZipCachedArchives.Dec()
-    metrics.ZipArchiveEntriesCached.Sub(float64(len(a.files)))
+func (a *zipArchive) onEvicted() {
+	metrics.ZipCachedArchives.Dec()
+	metrics.ZipArchiveEntriesCached.Sub(float64(len(a.files)))
 }
