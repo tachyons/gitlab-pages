@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"strconv"
 	"strings"
 	"sync"
@@ -27,6 +28,7 @@ var (
 type meteredRoundTripper struct {
 	next      http.RoundTripper
 	name      string
+	tracer    *prometheus.HistogramVec
 	durations *prometheus.HistogramVec
 	counter   *prometheus.CounterVec
 }
@@ -46,11 +48,13 @@ func newInternalTransport() *http.Transport {
 
 // NewTransportWithMetrics will create a custom http.RoundTripper that can be used with an http.Client.
 // The RoundTripper will report metrics based on the collectors passed.
-func NewTransportWithMetrics(name string, histogramVec *prometheus.HistogramVec, counterVec *prometheus.CounterVec) http.RoundTripper {
+func NewTransportWithMetrics(name string, tracerVec, durationsVec *prometheus.
+	HistogramVec, counterVec *prometheus.CounterVec) http.RoundTripper {
 	return &meteredRoundTripper{
 		next:      InternalTransport,
 		name:      name,
-		durations: histogramVec,
+		tracer:    tracerVec,
+		durations: durationsVec,
 		counter:   counterVec,
 	}
 }
@@ -83,6 +87,8 @@ func loadPool() {
 // gauge and counter collectors passed
 func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	start := time.Now()
+
+	r = r.WithContext(httptrace.WithClientTrace(r.Context(), mrt.newTracer(start)))
 
 	resp, err := mrt.next.RoundTrip(r)
 	if err != nil {
