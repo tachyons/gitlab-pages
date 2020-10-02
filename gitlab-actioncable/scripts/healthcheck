@@ -1,5 +1,0 @@
-#!/bin/bash
-
-set -e
-
-/usr/bin/pgrep -f tcp://0.0.0.0:${ACTIONCABLE_HOST_PORT:-8280}
