@@ -1,3 +1,7 @@
+v 1.27.0
+
+- Add more metrics for zip serving !363 !338
+
 v 1.26.0
 
 - Add the ability to serve web-sites from the zip archive stored in object storage !351
