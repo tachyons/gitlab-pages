@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/karlseguin/ccache"
+	"github.com/karlseguin/ccache/v2"
 	"github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
