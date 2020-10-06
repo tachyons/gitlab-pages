@@ -54,7 +54,6 @@ type zipArchive struct {
 	archive  *zip.Reader
 	err      error
 
-	// TODO: add metrics https://gitlab.com/gitlab-org/gitlab-pages/-/issues/423
 	files map[string]*zip.File
 }
 
@@ -168,14 +167,10 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 		return nil, os.ErrNotExist
 	}
 
-	item, err := a.fs.dataOffsetCache.Fetch(a.cacheKey+name, DataOffsetCacheInterval, func() (interface{}, error) {
-		return file.DataOffset()
-	})
+	dataOffset, err := a.getDataOffset(name, file)
 	if err != nil {
 		return nil, err
 	}
-
-	dataOffset := item.Value().(int64)
 
 	// only read from dataOffset up to the size of the compressed file
 	reader := a.reader.SectionReader(ctx, dataOffset, int64(file.CompressedSize64))
@@ -188,6 +183,28 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 	default:
 		return nil, fmt.Errorf("unsupported compression method: %x", file.Method)
 	}
+}
+
+func (a *zipArchive) getDataOffset(name string, file *zip.File) (int64, error) {
+	var dataOffset int64
+	item := a.fs.dataOffsetCache.Get(a.cacheKey + name)
+	if item == nil || item.Expired() {
+		var err error
+
+		dataOffset, err = file.DataOffset()
+		if err != nil {
+			return 0, err
+		}
+
+		a.fs.dataOffsetCache.Set(a.cacheKey+name, dataOffset, DataOffsetCacheInterval)
+
+		metrics.ZipServingArchiveDataOffsetCache.WithLabelValues("miss").Inc()
+	} else {
+		dataOffset = item.Value().(int64)
+		metrics.ZipServingArchiveDataOffsetCache.WithLabelValues("hit").Inc()
+	}
+
+	return dataOffset, nil
 }
 
 // Lstat finds the file by name inside the zipArchive and returns its FileInfo
@@ -210,35 +227,47 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 	if file.FileInfo().Mode()&os.ModeSymlink != os.ModeSymlink {
 		return "", errNotSymlink
 	}
-
-	item, err := a.fs.readlinkCache.Fetch(a.cacheKey+name, ReadLinkCacheInterval, func() (interface{}, error) {
-		rc, err := file.Open()
-		if err != nil {
-			return nil, err
-		}
-		defer rc.Close()
-
-		var symlink [maxSymlinkSize + 1]byte
-
-		// read up to len(symlink) bytes from the link file
-		n, err := io.ReadFull(rc, symlink[:])
-		if err != nil && err != io.ErrUnexpectedEOF {
-			// if err == io.ErrUnexpectedEOF the link is smaller than len(symlink) so it's OK to not return it
-			return nil, err
-		}
-
-		// cache symlink up to desired size
-		return string(symlink[:n]), nil
-	})
+	symlink, err := a.getSymlink(name, file)
 	if err != nil {
 		return "", err
 	}
 
-	symlink := item.Value().(string)
-
 	// return errSymlinkSize if the number of bytes read from the link is too big
 	if len(symlink) > maxSymlinkSize {
 		return "", errSymlinkSize
+	}
+
+	return symlink, nil
+}
+
+func (a *zipArchive) getSymlink(name string, file *zip.File) (string, error) {
+	var symlink string
+
+	item := a.fs.readlinkCache.Get(a.cacheKey + name)
+	if item == nil || item.Expired() {
+		rc, err := file.Open()
+		if err != nil {
+			return "", err
+		}
+		defer rc.Close()
+
+		var link [maxSymlinkSize + 1]byte
+
+		// read up to len(symlink) bytes from the link file
+		n, err := io.ReadFull(rc, link[:])
+		if err != nil && err != io.ErrUnexpectedEOF {
+			// if err == io.ErrUnexpectedEOF the link is smaller than len(symlink) so it's OK to not return it
+			return "", err
+		}
+
+		symlink = string(link[:n])
+		// cache symlink up to desired size
+		a.fs.readlinkCache.Set(a.cacheKey+name, symlink, ReadLinkCacheInterval)
+
+		metrics.ZipServingArchiveReadlinkCache.WithLabelValues("miss").Inc()
+	} else {
+		symlink = item.Value().(string)
+		metrics.ZipServingArchiveReadlinkCache.WithLabelValues("hit").Inc()
 	}
 
 	return symlink, nil

@@ -459,7 +459,8 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	defer teardown()
 
 	// need to call an actual resource to populate certain metrics e.g. gitlab_pages_domains_source_api_requests_total
-	res, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", "/index.html/")
+	res, err := GetPageFromListener(t, httpListener, "zip.gitlab.io",
+		"/symlink.html")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, res.StatusCode)
 
@@ -496,6 +497,8 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	// zip archives
 	require.Contains(t, string(body), "gitlab_pages_zip_opened")
 	require.Contains(t, string(body), "gitlab_pages_zip_cache_requests")
+	require.Contains(t, string(body), "gitlab_pages_zip_data_offset_cache_requests")
+	require.Contains(t, string(body), "gitlab_pages_zip_readlink_cache_requests")
 	require.Contains(t, string(body), "gitlab_pages_zip_cached_archives")
 	require.Contains(t, string(body), "gitlab_pages_zip_archive_entries_cached")
 	require.Contains(t, string(body), "gitlab_pages_zip_opened_entries_count")
