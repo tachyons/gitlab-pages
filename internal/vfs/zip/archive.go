@@ -187,6 +187,7 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 
 func (a *zipArchive) getDataOffset(name string, file *zip.File) (int64, error) {
 	var dataOffset int64
+
 	item := a.fs.dataOffsetCache.Get(a.cacheKey + name)
 	if item == nil || item.Expired() {
 		var err error

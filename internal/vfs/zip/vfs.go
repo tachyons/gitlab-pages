@@ -39,7 +39,7 @@ func New() vfs.VFS {
 		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
 		cache:           cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
 		dataOffsetCache: ccache.New(ccache.Configure().MaxSize(10000).ItemsToPrune(2000)),
-		readlinkCache:   ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(2000)),
+		readlinkCache:   ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(200)),
 	}
 
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
