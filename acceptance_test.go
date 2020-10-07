@@ -525,7 +525,7 @@ func TestDisabledRedirects(t *testing.T) {
 func TestRedirectStatusPage(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{"FF_ENABLE_REDIRECTS=true"})
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/_redirects")
@@ -542,7 +542,7 @@ func TestRedirectStatusPage(t *testing.T) {
 func TestRedirect(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{"FF_ENABLE_REDIRECTS=true"})
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	// Test that serving a file still works with redirects enabled

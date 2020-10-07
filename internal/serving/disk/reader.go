@@ -95,7 +95,7 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 	// Serve status of `_redirects` under `_redirects`
 	// We check if the final resolved path is `_redirects` after symlink traversal
 	if fullPath == redirects.ConfigFile {
-		if os.Getenv("FF_ENABLE_REDIRECTS") == "true" {
+		if os.Getenv("FF_ENABLE_REDIRECTS") != "false" {
 			r := redirects.ParseRedirects(ctx, root)
 			return reader.serveRedirectsStatus(h, r)
 		}
