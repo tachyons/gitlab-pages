@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/karlseguin/ccache/v2"
 	"github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
@@ -18,6 +17,16 @@ const (
 	defaultCacheExpirationInterval = time.Minute
 	defaultCacheCleanupInterval    = time.Minute / 2
 	defaultCacheRefreshInterval    = time.Minute / 2
+
+	// we assume that each item costs around 100 bytes
+	// this gives around 5MB of raw memory needed without acceleration structures
+	defaultDataOffsetItems              = 50000
+	defaultDataOffsetExpirationInterval = time.Minute
+
+	// we assume that each item costs around 200 bytes
+	// this gives around 2MB of raw memory needed without acceleration structures
+	defaultReadlinkItems              = 10000
+	defaultReadlinkExpirationInterval = time.Minute
 )
 
 var (
@@ -26,9 +35,10 @@ var (
 
 // zipVFS is a simple cached implementation of the vfs.VFS interface
 type zipVFS struct {
-	cache           *cache.Cache
-	dataOffsetCache *ccache.Cache
-	readlinkCache   *ccache.Cache
+	cache *cache.Cache
+
+	dataOffsetCache *lruCache
+	readlinkCache   *lruCache
 
 	archiveCount int64
 }
@@ -36,14 +46,13 @@ type zipVFS struct {
 // New creates a zipVFS instance that can be used by a serving request
 func New() vfs.VFS {
 	zipVFS := &zipVFS{
-		// TODO: add cache operation callbacks https://gitlab.com/gitlab-org/gitlab-pages/-/issues/465
 		cache:           cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
-		dataOffsetCache: ccache.New(ccache.Configure().MaxSize(10000).ItemsToPrune(2000)),
-		readlinkCache:   ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(200)),
+		dataOffsetCache: newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval),
+		readlinkCache:   newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval),
 	}
 
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
-		metrics.ZipCachedArchives.Dec()
+		metrics.ZipCachedEntries.WithLabelValues("archive").Dec()
 
 		i.(*zipArchive).onEvicted()
 	})
@@ -85,7 +94,7 @@ func (fs *zipVFS) Name() string {
 func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchive, error) {
 	archive, expiry, found := fs.cache.GetWithExpiration(path)
 	if found {
-		metrics.ZipServingArchiveCache.WithLabelValues("hit").Inc()
+		metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
 
 		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
 		if time.Until(expiry) < defaultCacheRefreshInterval {
@@ -100,8 +109,8 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchi
 		if fs.cache.Add(path, archive, cache.DefaultExpiration) != nil {
 			return nil, errAlreadyCached
 		}
-		metrics.ZipServingArchiveCache.WithLabelValues("miss").Inc()
-		metrics.ZipCachedArchives.Inc()
+		metrics.ZipCacheRequests.WithLabelValues("archive", "miss").Inc()
+		metrics.ZipCachedEntries.WithLabelValues("archive").Inc()
 	}
 
 	zipArchive := archive.(*zipArchive)

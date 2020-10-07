@@ -164,41 +164,22 @@ var (
 		[]string{"state"},
 	)
 
-	// ZipServingArchiveCache is the number of zip archive cache hits/misses
-	ZipServingArchiveCache = prometheus.NewCounterVec(
+	// ZipCacheRequests is the number of cache hits/misses
+	ZipCacheRequests = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "gitlab_pages_zip_cache_requests",
 			Help: "The number of zip archives cache hits/misses",
 		},
-		[]string{"cache"},
+		[]string{"op", "cache"},
 	)
 
-	// ZipServingArchiveDataOffsetCache is the number of zip archive
-	// data offset cache hits/misses
-	ZipServingArchiveDataOffsetCache = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "gitlab_pages_zip_data_offset_cache_requests",
-			Help: "The number of zip archive data offset cache hits/misses",
-		},
-		[]string{"cache"},
-	)
-
-	// ZipServingArchiveReadlinkCache is the number of zip archive Readlink
-	// cache hits/misses
-	ZipServingArchiveReadlinkCache = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "gitlab_pages_zip_readlink_cache_requests",
-			Help: "The number of zip archives Readlink cache hits/misses",
-		},
-		[]string{"cache"},
-	)
-
-	// ZipCachedArchives is the number of zip archives currently in the cache
-	ZipCachedArchives = prometheus.NewGauge(
+	// ZipCachedArchives is the number of entries in the cache
+	ZipCachedEntries = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "gitlab_pages_zip_cached_archives",
-			Help: "The number of zip archives currently in the cache",
+			Name: "gitlab_pages_zip_cached_entries",
+			Help: "The number of entries in the cache",
 		},
+		[]string{"op"},
 	)
 
 	// ZipArchiveEntriesCached is the number of files per zip archive currently
@@ -245,10 +226,8 @@ func MustRegister() {
 		HTTPRangeOpenRequests,
 		ZipOpened,
 		ZipOpenedEntriesCount,
-		ZipServingArchiveCache,
-		ZipServingArchiveDataOffsetCache,
-		ZipServingArchiveReadlinkCache,
+		ZipCacheRequests,
 		ZipArchiveEntriesCached,
-		ZipCachedArchives,
+		ZipCachedEntries,
 	)
 }

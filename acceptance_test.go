@@ -497,9 +497,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	// zip archives
 	require.Contains(t, string(body), "gitlab_pages_zip_opened")
 	require.Contains(t, string(body), "gitlab_pages_zip_cache_requests")
-	require.Contains(t, string(body), "gitlab_pages_zip_data_offset_cache_requests")
-	require.Contains(t, string(body), "gitlab_pages_zip_readlink_cache_requests")
-	require.Contains(t, string(body), "gitlab_pages_zip_cached_archives")
+	require.Contains(t, string(body), "gitlab_pages_zip_cached_entries")
 	require.Contains(t, string(body), "gitlab_pages_zip_archive_entries_cached")
 	require.Contains(t, string(body), "gitlab_pages_zip_opened_entries_count")
 }
