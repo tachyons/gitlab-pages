@@ -21,7 +21,7 @@ func (s *Disk) ServeFileHTTP(h serving.Handler) bool {
 		return true
 	}
 
-	if os.Getenv("FF_ENABLE_REDIRECTS") == "true" {
+	if os.Getenv("FF_ENABLE_REDIRECTS") != "false" {
 		if s.reader.tryRedirects(h) == nil {
 			return true
 		}
