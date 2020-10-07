@@ -84,14 +84,16 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 				return
 
 			default:
-				vfs.cache.Flush()
-				vfs.cache.SetDefault(path, root)
+				vfs.cacheMu.Lock()
+				vfs.cache.Clear()
+				vfs.cache.Set(path, root, defaultCacheExpirationInterval)
+				vfs.cacheMu.Unlock()
 			}
 		}
 	}()
 
 	require.Eventually(t, func() bool {
-		_, err := vfs.findOrOpenArchive(context.Background(), path)
-		return err == errAlreadyCached
+		item, _ := vfs.findOrOpenArchive(context.Background(), path)
+		return item != nil
 	}, time.Second, time.Nanosecond)
 }
