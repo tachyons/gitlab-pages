@@ -34,6 +34,7 @@ const (
 var (
 	errNotSymlink  = errors.New("not a symlink")
 	errSymlinkSize = errors.New("symlink too long")
+	errNotFile     = errors.New("not a file")
 )
 
 // zipArchive implements the vfs.Root interface.
@@ -165,6 +166,10 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 	file := a.findFile(name)
 	if file == nil {
 		return nil, os.ErrNotExist
+	}
+
+	if !file.Mode().IsRegular() {
+		return nil, errNotFile
 	}
 
 	dataOffset, err := a.fs.dataOffsetCache.findOrFetch(a.namespace, name, func() (interface{}, error) {

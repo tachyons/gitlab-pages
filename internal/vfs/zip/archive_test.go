@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 var chdirSet = false
 
 func TestOpen(t *testing.T) {
-	zip, cleanup := openZipArchive(t)
+	zip, cleanup := openZipArchive(t, nil)
 	defer cleanup()
 
 	tests := map[string]struct {
@@ -38,11 +39,11 @@ func TestOpen(t *testing.T) {
 		"file_exists_symlink": {
 			file:            "symlink.html",
 			expectedContent: "subdir/linked.html",
-			expectedErr:     nil,
+			expectedErr:     errNotFile,
 		},
 		"is_dir": {
 			file:        "subdir",
-			expectedErr: nil,
+			expectedErr: errNotFile,
 		},
 		"file_does_not_exist": {
 			file:        "unknown.html",
@@ -59,12 +60,6 @@ func TestOpen(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-
-			if tt.expectedContent == "" {
-				// cannot ioutil.ReadAll dirs but zip.Open should not fail
-				return
-			}
-
 			data, err := ioutil.ReadAll(f)
 			require.NoError(t, err)
 
@@ -74,8 +69,36 @@ func TestOpen(t *testing.T) {
 	}
 }
 
+func TestOpenCached(t *testing.T) {
+	var requests int64
+	zip, cleanup := openZipArchive(t, &requests)
+	defer cleanup()
+
+	t.Run("open file first time", func(t *testing.T) {
+		requestsStart := requests
+		f, err := zip.Open(context.Background(), "index.html")
+		require.NoError(t, err)
+		defer f.Close()
+
+		_, err = ioutil.ReadAll(f)
+		require.NoError(t, err)
+		require.Equal(t, int64(2), atomic.LoadInt64(&requests)-requestsStart, "we expect two requests to read file: data offset and content")
+	})
+
+	t.Run("open file second time", func(t *testing.T) {
+		requestsStart := atomic.LoadInt64(&requests)
+		f, err := zip.Open(context.Background(), "index.html")
+		require.NoError(t, err)
+		defer f.Close()
+
+		_, err = ioutil.ReadAll(f)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), atomic.LoadInt64(&requests)-requestsStart, "we expect one request to read file with cached data offset")
+	})
+}
+
 func TestLstat(t *testing.T) {
-	zip, cleanup := openZipArchive(t)
+	zip, cleanup := openZipArchive(t, nil)
 	defer cleanup()
 
 	tests := map[string]struct {
@@ -135,7 +158,7 @@ func TestLstat(t *testing.T) {
 }
 
 func TestReadLink(t *testing.T) {
-	zip, cleanup := openZipArchive(t)
+	zip, cleanup := openZipArchive(t, nil)
 	defer cleanup()
 
 	tests := map[string]struct {
@@ -177,8 +200,28 @@ func TestReadLink(t *testing.T) {
 	}
 }
 
+func TestReadlinkCached(t *testing.T) {
+	var requests int64
+	zip, cleanup := openZipArchive(t, &requests)
+	defer cleanup()
+
+	t.Run("readlink first time", func(t *testing.T) {
+		requestsStart := atomic.LoadInt64(&requests)
+		_, err := zip.Readlink(context.Background(), "symlink.html")
+		require.NoError(t, err)
+		require.Equal(t, int64(2), atomic.LoadInt64(&requests)-requestsStart, "we expect two requests to read symlink: data offset and link")
+	})
+
+	t.Run("readlink second time", func(t *testing.T) {
+		requestsStart := atomic.LoadInt64(&requests)
+		_, err := zip.Readlink(context.Background(), "symlink.html")
+		require.NoError(t, err)
+		require.Equal(t, int64(0), atomic.LoadInt64(&requests)-requestsStart, "we expect no additional requests to read cached symlink")
+	})
+}
+
 func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
 	fs := New().(*zipVFS)
@@ -201,7 +244,7 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 }
 
 func TestReadArchiveFails(t *testing.T) {
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
 	fs := New().(*zipVFS)
@@ -215,10 +258,14 @@ func TestReadArchiveFails(t *testing.T) {
 	require.EqualError(t, err, os.ErrNotExist.Error())
 }
 
-func openZipArchive(t *testing.T) (*zipArchive, func()) {
+func openZipArchive(t *testing.T, requests *int64) (*zipArchive, func()) {
 	t.Helper()
 
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	if requests == nil {
+		requests = new(int64)
+	}
+
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", requests)
 
 	fs := New().(*zipVFS)
 	zip := newArchive(fs, testServerURL+"/public.zip", time.Second)
@@ -230,13 +277,14 @@ func openZipArchive(t *testing.T) (*zipArchive, func()) {
 	// public/subdir/ public/subdir/hello.html public/subdir/linked.html
 	// public/bad_symlink.html public/subdir/2bp3Qzs...
 	require.NotZero(t, zip.files)
+	require.Equal(t, int64(3), atomic.LoadInt64(requests), "we expect three requests to open ZIP archive: size and two to seek central directory")
 
 	return zip, func() {
 		cleanup()
 	}
 }
 
-func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
+func newZipFileServerURL(t *testing.T, zipFilePath string, requests *int64) (string, func()) {
 	t.Helper()
 
 	chdir := testhelpers.ChdirInPath(t, "../../../shared/pages", &chdirSet)
@@ -244,6 +292,9 @@ func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
 	m := http.NewServeMux()
 	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, zipFilePath)
+		if requests != nil {
+			atomic.AddInt64(requests, 1)
+		}
 	}))
 
 	testServer := httptest.NewServer(m)

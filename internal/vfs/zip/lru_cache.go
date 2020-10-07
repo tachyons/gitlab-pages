@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/karlseguin/ccache/v2"
+
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
