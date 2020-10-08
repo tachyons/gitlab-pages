@@ -1,9 +1,9 @@
 FROM debian:stretch-slim
 
 ARG BUILD_DIR=/tmp/build
-ARG RUBY_MAJOR_VERSION=2.6
-ARG RUBY_MINOR_VERSION=2.6.6
-ARG RUBYGEMS_VERSION=2.7.10
+ARG RUBY_MAJOR_VERSION=2.7
+ARG RUBY_MINOR_VERSION=2.7.2
+ARG RUBYGEMS_VERSION=3.1.4
 ARG BUNDLER_VERSION=1.17.3
 
 ENV LANG=C.UTF-8
@@ -62,7 +62,7 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf ${BUILD_DIR} \
   && gem update --system "$RUBYGEMS_VERSION" \
-  && gem install bundler --version "$BUNDLER_VERSION" --force --no-ri --no-rdoc \
+  && gem install bundler --version "$BUNDLER_VERSION" --force --no-document \
   && curl --retry 6 -s https://codeload.github.com/ConnorAtherton/rb-readline/tar.gz/v0.5.5 | tar -xz \
   && ruby rb-readline-0.5.5/setup.rb && rm -rf rb-readline-0.5.5 \
 	&& rm -rf /root/.gem/ \
