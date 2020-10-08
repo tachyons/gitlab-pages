@@ -12,10 +12,11 @@ import (
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/lupine/go-mimedb"
+
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
-	"gitlab.com/lupine/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
@@ -85,6 +86,12 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 
 func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, error) {
 	host := request.GetHostWithoutPort(r)
+
+	// do not try to serve files under -pages-domain
+	if a.Domain == host {
+		return host, nil, nil
+	}
+
 	domain, err := a.domain(host)
 
 	return host, domain, err
