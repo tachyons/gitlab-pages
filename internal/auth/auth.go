@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"

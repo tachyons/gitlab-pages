@@ -14,6 +14,8 @@ import (
 
 // Domain is a domain that gitlab-pages can serve.
 type Domain struct {
+	servingRequest *serving.Request
+
 	Name            string
 	CertificateCert string
 	CertificateKey  string
@@ -39,13 +41,19 @@ func (d *Domain) isUnconfigured() bool {
 }
 
 func (d *Domain) resolve(r *http.Request) *serving.Request {
+	if d.servingRequest != nil {
+		return d.servingRequest
+	}
+
 	request, _ := d.Resolver.Resolve(r)
 
 	// TODO improve code around default serving, when `disk` serving gets removed
 	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
 	if request == nil {
-		return &serving.Request{Serving: local.Instance()}
+		request = &serving.Request{Serving: local.Instance()}
 	}
+
+	d.servingRequest = request
 
 	return request
 }

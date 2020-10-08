@@ -27,6 +27,8 @@ func serveFileOrNotFound(domain *domain.Domain) http.HandlerFunc {
 }
 
 func testGroupServeHTTPHost(t *testing.T, host string) {
+	t.Helper()
+
 	testGroup := &domain.Domain{
 		Resolver: &Group{
 			name: "group",
