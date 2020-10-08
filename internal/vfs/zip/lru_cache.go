@@ -23,12 +23,10 @@ func newLruCache(op string, maxEntries uint32, duration time.Duration) *lruCache
 		metrics.ZipCachedEntries.WithLabelValues(op).Dec()
 	})
 
-	c := &lruCache{
+	return &lruCache{
 		cache:    ccache.New(configuration),
 		duration: duration,
 	}
-
-	return c
 }
 
 func (c *lruCache) findOrFetch(namespace, key string, fetchFn func() (interface{}, error)) (interface{}, error) {
