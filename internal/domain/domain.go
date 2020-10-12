@@ -53,6 +53,7 @@ func (d *Domain) resolve(r *http.Request) *serving.Request {
 		request = &serving.Request{Serving: local.Instance()}
 	}
 
+	// store serving.Request to avoid calling d.Resolver.Resolve multiple times
 	d.servingRequest = request
 
 	return request
@@ -65,13 +66,7 @@ func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
 		return nil
 	}
 
-	request := d.resolve(r)
-
-	if request == nil {
-		return nil
-	}
-
-	return request.LookupPath
+	return d.resolve(r).LookupPath
 }
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
@@ -145,9 +140,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	request := d.resolve(r)
-
-	return request.ServeFileHTTP(w, r)
+	return d.resolve(r).ServeFileHTTP(w, r)
 }
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
@@ -157,9 +150,7 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request := d.resolve(r)
-
-	request.ServeNotFoundHTTP(w, r)
+	d.resolve(r).ServeNotFoundHTTP(w, r)
 }
 
 // serveNamespaceNotFound will try to find a parent namespace domain for a request
