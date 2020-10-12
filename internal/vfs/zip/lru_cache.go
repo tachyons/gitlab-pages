@@ -29,8 +29,8 @@ func newLruCache(op string, maxEntries uint32, duration time.Duration) *lruCache
 	}
 }
 
-func (c *lruCache) findOrFetch(namespace, key string, fetchFn func() (interface{}, error)) (interface{}, error) {
-	item := c.cache.Get(namespace + key)
+func (c *lruCache) findOrFetch(cacheNamespace, key string, fetchFn func() (interface{}, error)) (interface{}, error) {
+	item := c.cache.Get(cacheNamespace + key)
 
 	if item != nil && !item.Expired() {
 		metrics.ZipCacheRequests.WithLabelValues(c.op, "hit").Inc()
@@ -46,6 +46,6 @@ func (c *lruCache) findOrFetch(namespace, key string, fetchFn func() (interface{
 	metrics.ZipCacheRequests.WithLabelValues(c.op, "miss").Inc()
 	metrics.ZipCachedEntries.WithLabelValues(c.op).Inc()
 
-	c.cache.Set(namespace+key, value, c.duration)
+	c.cache.Set(cacheNamespace+key, value, c.duration)
 	return value, nil
 }

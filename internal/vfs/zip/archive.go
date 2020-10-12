@@ -48,7 +48,7 @@ type zipArchive struct {
 	done        chan struct{}
 	openTimeout time.Duration
 
-	namespace string
+	cacheNamespace string
 
 	resource *httprange.Resource
 	reader   *httprange.RangedReader
@@ -60,12 +60,12 @@ type zipArchive struct {
 
 func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive {
 	return &zipArchive{
-		fs:          fs,
-		path:        path,
-		done:        make(chan struct{}),
-		files:       make(map[string]*zip.File),
-		openTimeout: openTimeout,
-		namespace:   strconv.FormatInt(atomic.AddInt64(&fs.archiveCount, 1), 10) + ":",
+		fs:             fs,
+		path:           path,
+		done:           make(chan struct{}),
+		files:          make(map[string]*zip.File),
+		openTimeout:    openTimeout,
+		cacheNamespace: strconv.FormatInt(atomic.AddInt64(&fs.archiveCount, 1), 10) + ":",
 	}
 }
 
@@ -172,7 +172,7 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 		return nil, errNotFile
 	}
 
-	dataOffset, err := a.fs.dataOffsetCache.findOrFetch(a.namespace, name, func() (interface{}, error) {
+	dataOffset, err := a.fs.dataOffsetCache.findOrFetch(a.cacheNamespace, name, func() (interface{}, error) {
 		return file.DataOffset()
 	})
 	if err != nil {
@@ -213,7 +213,7 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 		return "", errNotSymlink
 	}
 
-	symlinkValue, err := a.fs.readlinkCache.findOrFetch(a.namespace, name, func() (interface{}, error) {
+	symlinkValue, err := a.fs.readlinkCache.findOrFetch(a.cacheNamespace, name, func() (interface{}, error) {
 		rc, err := file.Open()
 		if err != nil {
 			return nil, err
