@@ -8,6 +8,16 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
+// lruCacheGetPerPromote is a value that makes the item to be promoted
+// it is taken arbitrally as a sane value indicating that the item
+// was frequently picked
+// promotion moves the item to the front of the LRU list
+const lruCacheGetsPerPromote = 64
+
+// lruCacheItemsToPruneDiv is a value that indicates how much items
+// needs to be pruned on OOM, this prunes 1/16 of items
+const lruCacheItemsToPruneDiv = 16
+
 type lruCache struct {
 	op       string
 	duration time.Duration
@@ -17,8 +27,8 @@ type lruCache struct {
 func newLruCache(op string, maxEntries uint32, duration time.Duration) *lruCache {
 	configuration := ccache.Configure()
 	configuration.MaxSize(int64(maxEntries))
-	configuration.ItemsToPrune(maxEntries / 16)
-	configuration.GetsPerPromote(64) // if item gets requested frequently promote it
+	configuration.ItemsToPrune(maxEntries / lruCacheItemsToPruneDiv)
+	configuration.GetsPerPromote(lruCacheGetsPerPromote) // if item gets requested frequently promote it
 	configuration.OnDelete(func(*ccache.Item) {
 		metrics.ZipCachedEntries.WithLabelValues(op).Dec()
 	})

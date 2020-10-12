@@ -26,9 +26,7 @@ const (
 	maxSymlinkSize = 256
 
 	// DefaultOpenTimeout to request an archive and read its contents the first time
-	DefaultOpenTimeout      = 30 * time.Second
-	DataOffsetCacheInterval = 60 * time.Second
-	ReadLinkCacheInterval   = 60 * time.Second
+	DefaultOpenTimeout = 30 * time.Second
 )
 
 var (
