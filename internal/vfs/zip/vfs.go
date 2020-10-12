@@ -21,12 +21,12 @@ const (
 	// we assume that each item costs around 100 bytes
 	// this gives around 5MB of raw memory needed without acceleration structures
 	defaultDataOffsetItems              = 50000
-	defaultDataOffsetExpirationInterval = 15 * time.Minute
+	defaultDataOffsetExpirationInterval = time.Hour
 
 	// we assume that each item costs around 200 bytes
 	// this gives around 2MB of raw memory needed without acceleration structures
 	defaultReadlinkItems              = 10000
-	defaultReadlinkExpirationInterval = 15 * time.Minute
+	defaultReadlinkExpirationInterval = time.Hour
 )
 
 var (
