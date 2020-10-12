@@ -259,13 +259,17 @@ func TestReadArchiveFails(t *testing.T) {
 }
 
 func openZipArchive(t *testing.T, requests *int64) (*zipArchive, func()) {
+	return openZipArchiveCustom(t, "group/zip.gitlab.io/public.zip", requests)
+}
+
+func openZipArchiveCustom(t *testing.T, path string, requests *int64) (*zipArchive, func()) {
 	t.Helper()
 
 	if requests == nil {
 		requests = new(int64)
 	}
 
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", requests)
+	testServerURL, cleanup := newZipFileServerURL(t, path, requests)
 
 	fs := New().(*zipVFS)
 	zip := newArchive(fs, testServerURL+"/public.zip", time.Second)

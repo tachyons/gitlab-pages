@@ -35,6 +35,15 @@ var (
 	errNotFile     = errors.New("not a file")
 )
 
+type zipFile struct {
+	compressedSize64   uint64
+	uncompressedSize64 uint64
+	headerOffset       int64
+	Modified           time.Time
+	CreatorVersion     uint16
+	ExternalAttrs      uint32 // Meaning depends on CreatorVersion
+}
+
 // zipArchive implements the vfs.Root interface.
 // It represents a zip archive saving all its files in memory.
 // It holds an httprange.Resource that can be read with httprange.RangedReader in chunks.
@@ -53,7 +62,8 @@ type zipArchive struct {
 	archive  *zip.Reader
 	err      error
 
-	files map[string]*zip.File
+	files    map[string]*zip.File
+	zipFiles map[string]zipFile
 }
 
 func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive {
@@ -62,6 +72,7 @@ func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive 
 		path:           path,
 		done:           make(chan struct{}),
 		files:          make(map[string]*zip.File),
+		zipFiles:       make(map[string]zipFile),
 		openTimeout:    openTimeout,
 		cacheNamespace: strconv.FormatInt(atomic.AddInt64(&fs.archiveCount, 1), 10) + ":",
 	}
@@ -128,12 +139,17 @@ func (a *zipArchive) readArchive() {
 		return
 	}
 
+	const emptyComment = ""
+
 	// TODO: Improve preprocessing of zip archives https://gitlab.com/gitlab-org/gitlab-pages/-/issues/432
 	for _, file := range a.archive.File {
 		if !strings.HasPrefix(file.Name, dirPrefix) {
 			continue
 		}
+		file.Comment = emptyComment
+		file.Extra = nil
 		a.files[file.Name] = file
+		a.zipFiles[file.Name] = zipFile{}
 	}
 
 	// recycle memory
@@ -157,6 +173,34 @@ func (a *zipArchive) findFile(name string) *zip.File {
 	}
 
 	return nil
+}
+
+func (a *zipArchive) Size() int64 {
+	visited := make(map[interface{}]struct{})
+	size := sizeOf(a.files, visited) + sizeOf(*a.archive, visited)
+
+	for _, file := range a.files {
+		size += sizeOf(*file, visited)
+	}
+	return size
+}
+
+func (a *zipArchive) FileCount() int64 {
+	return int64(len(a.files))
+}
+
+func (a *zipArchive) SizePerFile() int64 {
+	return a.Size() / a.FileCount()
+}
+
+func (a *zipArchive) ZipSize() int64 {
+	visited := make(map[interface{}]struct{})
+	size := sizeOf(a.zipFiles, visited)
+	return size
+}
+
+func (a *zipArchive) ZipSizePerFile() int64 {
+	return a.ZipSize() / a.FileCount()
 }
 
 // Open finds the file by name inside the zipArchive and returns a reader that can be served by the VFS
