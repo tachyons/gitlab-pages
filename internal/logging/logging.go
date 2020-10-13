@@ -53,16 +53,20 @@ func getAccessLogger(format string) (*logrus.Logger, error) {
 // getExtraLogFields is used to inject additional fields into the
 // HTTP access logger middleware.
 func getExtraLogFields(r *http.Request) log.Fields {
-	var projectID uint64
-	if d := request.GetDomain(r); d != nil {
-		projectID = d.GetProjectID(r)
+	logFields := log.Fields{
+		"pages_https": request.IsHTTPS(r),
+		"pages_host":  request.GetHost(r),
 	}
 
-	return log.Fields{
-		"pages_https":      request.IsHTTPS(r),
-		"pages_host":       request.GetHost(r),
-		"pages_project_id": projectID,
+	if d := request.GetDomain(r); d != nil {
+		if lp := d.GetLookupPath(r); lp != nil {
+			logFields["pages_project_serving_type"] = lp.ServingType
+			logFields["pages_project_prefix"] = lp.Prefix
+			logFields["pages_project_id"] = lp.ProjectID
+		}
 	}
+
+	return logFields
 }
 
 // BasicAccessLogger configures the GitLab pages basic HTTP access logger middleware

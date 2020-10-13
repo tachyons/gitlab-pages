@@ -53,6 +53,10 @@ func (d *Domain) resolve(r *http.Request) *serving.Request {
 // GetLookupPath returns a project details based on the request. It returns nil
 // if project does not exist.
 func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
+	if d.isUnconfigured() {
+		return nil
+	}
+
 	request := d.resolve(r)
 
 	if request == nil {
@@ -65,10 +69,6 @@ func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
 func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
-	if d.isUnconfigured() {
-		return false
-	}
-
 	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
 		return lookupPath.IsHTTPSOnly
 	}
@@ -78,10 +78,6 @@ func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
 
 // IsAccessControlEnabled figures out if the request is to a project that has access control enabled
 func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
-	if d.isUnconfigured() {
-		return false
-	}
-
 	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
 		return lookupPath.HasAccessControl
 	}
@@ -91,10 +87,6 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 
 // IsNamespaceProject figures out if the request is to a namespace project
 func (d *Domain) IsNamespaceProject(r *http.Request) bool {
-	if d.isUnconfigured() {
-		return false
-	}
-
 	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
 		return lookupPath.IsNamespaceProject
 	}
@@ -104,10 +96,6 @@ func (d *Domain) IsNamespaceProject(r *http.Request) bool {
 
 // GetProjectID figures out what is the ID of the project user tries to access
 func (d *Domain) GetProjectID(r *http.Request) uint64 {
-	if d.isUnconfigured() {
-		return 0
-	}
-
 	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
 		return lookupPath.ProjectID
 	}
@@ -117,10 +105,6 @@ func (d *Domain) GetProjectID(r *http.Request) uint64 {
 
 // HasLookupPath figures out if the project exists that the user tries to access
 func (d *Domain) HasLookupPath(r *http.Request) bool {
-	if d.isUnconfigured() {
-		return false
-	}
-
 	return d.GetLookupPath(r) != nil
 }
 
@@ -146,7 +130,7 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 
 // ServeFileHTTP returns true if something was served, false if not.
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
-	if d.isUnconfigured() || !d.HasLookupPath(r) {
+	if !d.HasLookupPath(r) {
 		// TODO: this seems to be wrong: as we should rather return false, and
 		// fallback to `ServeNotFoundHTTP` to handle this case
 		httperrors.Serve404(w)
@@ -160,7 +144,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
 func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
-	if d.isUnconfigured() || !d.HasLookupPath(r) {
+	if !d.HasLookupPath(r) {
 		httperrors.Serve404(w)
 		return
 	}
@@ -196,7 +180,7 @@ func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 // ServeNotFoundAuthFailed handler to be called when auth failed so the correct custom
 // 404 page is served.
 func (d *Domain) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request) {
-	if d.isUnconfigured() || !d.HasLookupPath(r) {
+	if !d.HasLookupPath(r) {
 		httperrors.Serve404(w)
 		return
 	}
