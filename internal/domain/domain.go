@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -40,8 +41,27 @@ func (d *Domain) isUnconfigured() bool {
 	return d.Resolver == nil
 }
 
+func (d *Domain) isSameProject(reqPath string) bool {
+	return d.servingRequest != nil &&
+		d.servingRequest.LookupPath != nil &&
+		strings.Contains(reqPath, d.servingRequest.LookupPath.Path)
+}
+
 func (d *Domain) resolve(r *http.Request) *serving.Request {
-	if d.servingRequest != nil {
+	if d.isSameProject(r.URL.Path) {
+		// // && strings.
+		// // 	Contains(r.URL.
+		// // 		Path,
+		// // 		d.servingRequest.LookupPath.Path) {
+		// fmt.Printf("d.resolve d: %q - count: %d\n - r.URL."+
+		// 	"Path: %q - servingReq.Path: %q - servingReq."+
+		// 	"SubPath: %q\n",
+		// 	d.Name,
+		// 	count[d.Name],
+		// 	r.URL.Path,
+		// 	d.servingRequest.LookupPath.Path,
+		// 	d.servingRequest.LookupPath.SubPath,
+		// )
 		return d.servingRequest
 	}
 

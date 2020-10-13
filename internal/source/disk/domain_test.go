@@ -18,58 +18,54 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
-func serveFileOrNotFound(getDomain func() *domain.Domain) http.HandlerFunc {
-	d := getDomain()
+func serveFileOrNotFound(domain *domain.Domain) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		if !d.ServeFileHTTP(w, r) {
-			d.ServeNotFoundHTTP(w, r)
+		if !domain.ServeFileHTTP(w, r) {
+			domain.ServeNotFoundHTTP(w, r)
 		}
 	}
 }
 
 func testGroupServeHTTPHost(t *testing.T, host string) {
-	t.Helper()
-
-	testGroup := func() *domain.Domain {
-		return &domain.Domain{
-			Resolver: &Group{
-				name: "group",
-				projects: map[string]*projectConfig{
-					"group.test.io":            &projectConfig{},
-					"group.gitlab-example.com": &projectConfig{},
-					"project":                  &projectConfig{},
-					"project2":                 &projectConfig{},
-				},
+	testGroup := &domain.Domain{
+		Resolver: &Group{
+			name: "group",
+			projects: map[string]*projectConfig{
+				"group.test.io":            &projectConfig{},
+				"group.gitlab-example.com": &projectConfig{},
+				"project":                  &projectConfig{},
+				"project2":                 &projectConfig{},
 			},
-		}
+		},
 	}
 
 	makeURL := func(path string) string {
 		return "http://" + host + path
 	}
 
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/"), nil, "main-dir")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/index"), nil, "main-dir")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/index.html"), nil, "main-dir")
-	testhelpers.AssertRedirectTo(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project"), nil, "//"+host+"/project/")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project/"), nil, "project-subdir")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project/index"), nil, "project-subdir")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project/index/"), nil, "project-subdir")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project/index.html"), nil, "project-subdir")
-	testhelpers.AssertRedirectTo(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project/subdir"), nil, "//"+host+"/project/subdir/")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project/subdir/"), nil, "project-subsubdir")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project2/"), nil, "project2-main")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project2/index"), nil, "project2-main")
-	require.HTTPBodyContains(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project2/index.html"), nil, "project2-main")
-	require.HTTPError(t, serveFileOrNotFound(testGroup), "GET", makeURL("/private.project/"), nil)
-	require.HTTPError(t, serveFileOrNotFound(testGroup), "GET", makeURL("//about.gitlab.com/%2e%2e"), nil)
-	require.HTTPError(t, serveFileOrNotFound(testGroup), "GET", makeURL("/symlink"), nil)
-	require.HTTPError(t, serveFileOrNotFound(testGroup), "GET", makeURL("/symlink/index.html"), nil)
-	require.HTTPError(t, serveFileOrNotFound(testGroup), "GET", makeURL("/symlink/subdir/"), nil)
-	require.HTTPError(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project/fifo"), nil)
-	require.HTTPError(t, serveFileOrNotFound(testGroup), "GET", makeURL("/not-existing-file"), nil)
-	require.HTTPRedirect(t, serveFileOrNotFound(testGroup), "GET", makeURL("/project//about.gitlab.com/%2e%2e"), nil)
+	serve := serveFileOrNotFound(testGroup)
+
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/"), nil, "main-dir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/index"), nil, "main-dir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/index.html"), nil, "main-dir")
+	testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project"), nil, "//"+host+"/project/")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/"), nil, "project-subdir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/index"), nil, "project-subdir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/index/"), nil, "project-subdir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/index.html"), nil, "project-subdir")
+	testhelpers.AssertRedirectTo(t, serve, "GET", makeURL("/project/subdir"), nil, "//"+host+"/project/subdir/")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project/subdir/"), nil, "project-subsubdir")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project2/"), nil, "project2-main")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index"), nil, "project2-main")
+	require.HTTPBodyContains(t, serve, "GET", makeURL("/project2/index.html"), nil, "project2-main")
+	require.HTTPError(t, serve, "GET", makeURL("/private.project/"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("//about.gitlab.com/%2e%2e"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/symlink"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/symlink/index.html"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/symlink/subdir/"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/project/fifo"), nil)
+	require.HTTPError(t, serve, "GET", makeURL("/not-existing-file"), nil)
+	require.HTTPRedirect(t, serve, "GET", makeURL("/project//about.gitlab.com/%2e%2e"), nil)
 }
 
 func TestGroupServeHTTP(t *testing.T) {
@@ -84,14 +80,12 @@ func TestDomainServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testDomain := func() *domain.Domain {
-		return &domain.Domain{
-			Name: "test.domain.com",
-			Resolver: &customProjectResolver{
-				path:   "group/project2/public",
-				config: &domainConfig{},
-			},
-		}
+	testDomain := &domain.Domain{
+		Name: "test.domain.com",
+		Resolver: &customProjectResolver{
+			path:   "group/project2/public",
+			config: &domainConfig{},
+		},
 	}
 
 	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), "GET", "/", nil, "project2-main")
@@ -217,18 +211,16 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testGroup := func() *domain.Domain {
-		return &domain.Domain{
-			Resolver: &Group{
-				name: "group",
-				projects: map[string]*projectConfig{
-					"group.test.io":            &projectConfig{},
-					"group.gitlab-example.com": &projectConfig{},
-					"project":                  &projectConfig{},
-					"project2":                 &projectConfig{},
-				},
+	testGroup := &domain.Domain{
+		Resolver: &Group{
+			name: "group",
+			projects: map[string]*projectConfig{
+				"group.test.io":            &projectConfig{},
+				"group.gitlab-example.com": &projectConfig{},
+				"project":                  &projectConfig{},
+				"project2":                 &projectConfig{},
 			},
-		}
+		},
 	}
 
 	testSet := []struct {
@@ -386,19 +378,17 @@ func TestGroup404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testGroup := func() *domain.Domain {
-		return &domain.Domain{
-			Resolver: &Group{
-				name: "group.404",
-				projects: map[string]*projectConfig{
-					"domain.404":          &projectConfig{},
-					"group.404.test.io":   &projectConfig{},
-					"project.404":         &projectConfig{},
-					"project.404.symlink": &projectConfig{},
-					"project.no.404":      &projectConfig{},
-				},
+	testGroup := &domain.Domain{
+		Resolver: &Group{
+			name: "group.404",
+			projects: map[string]*projectConfig{
+				"domain.404":          &projectConfig{},
+				"group.404.test.io":   &projectConfig{},
+				"project.404":         &projectConfig{},
+				"project.404.symlink": &projectConfig{},
+				"project.no.404":      &projectConfig{},
 			},
-		}
+		},
 	}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testGroup), "GET", "http://group.404.test.io/project.404/not/existing-file", nil, "Custom 404 project page")
@@ -416,13 +406,11 @@ func TestDomain404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testDomain := func() *domain.Domain {
-		return &domain.Domain{
-			Resolver: &customProjectResolver{
-				path:   "group.404/domain.404/public/",
-				config: &domainConfig{Domain: "domain.404.com"},
-			},
-		}
+	testDomain := &domain.Domain{
+		Resolver: &customProjectResolver{
+			path:   "group.404/domain.404/public/",
+			config: &domainConfig{Domain: "domain.404.com"},
+		},
 	}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.404.test.io/not-existing-file", nil, "Custom domain.404 page")
@@ -433,7 +421,7 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testDomain := func() *domain.Domain { return &domain.Domain{} }
+	testDomain := &domain.Domain{}
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
@@ -482,17 +470,14 @@ func TestCacheControlHeaders(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testGroup := func() *domain.Domain {
-		return &domain.Domain{
-			Resolver: &Group{
-				name: "group",
-				projects: map[string]*projectConfig{
-					"group.test.io": &projectConfig{},
-				},
+	testGroup := &domain.Domain{
+		Resolver: &Group{
+			name: "group",
+			projects: map[string]*projectConfig{
+				"group.test.io": &projectConfig{},
 			},
-		}
+		},
 	}
-
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "http://group.test.io/", nil)
 	require.NoError(t, err)
