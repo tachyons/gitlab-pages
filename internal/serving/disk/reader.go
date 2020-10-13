@@ -61,12 +61,8 @@ func (reader *Reader) tryFile(w http.ResponseWriter, r *http.Request, lookupPath
 		return err
 	}
 
-	fullPath, err := reader.resolvePath(ctx, root, lookupPath.SubPath)
-
-	// request := h.Request
-	host := r.Host
 	urlPath := r.URL.Path
-
+	fullPath, err := reader.resolvePath(ctx, root, lookupPath.SubPath)
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(urlPath) {
 			fullPath, err = reader.resolvePath(ctx, root, lookupPath.SubPath,
@@ -76,7 +72,7 @@ func (reader *Reader) tryFile(w http.ResponseWriter, r *http.Request, lookupPath
 			// issue about this: https://gitlab.com/gitlab-org/gitlab-pages/issues/273
 
 			// Concat Host with URL.Path
-			redirectPath := "//" + host + "/"
+			redirectPath := "//" + r.Host + "/"
 			redirectPath += strings.TrimPrefix(urlPath, "/")
 
 			// Ensure that there's always "/" at end

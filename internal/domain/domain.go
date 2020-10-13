@@ -10,7 +10,6 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 )
 
 // Domain is a domain that gitlab-pages can serve.
@@ -49,34 +48,13 @@ func (d *Domain) isSameProject(reqPath string) bool {
 
 func (d *Domain) resolve(r *http.Request) *serving.Request {
 	if d.isSameProject(r.URL.Path) {
-		// // && strings.
-		// // 	Contains(r.URL.
-		// // 		Path,
-		// // 		d.servingRequest.LookupPath.Path) {
-		// fmt.Printf("d.resolve d: %q - count: %d\n - r.URL."+
-		// 	"Path: %q - servingReq.Path: %q - servingReq."+
-		// 	"SubPath: %q\n",
-		// 	d.Name,
-		// 	count[d.Name],
-		// 	r.URL.Path,
-		// 	d.servingRequest.LookupPath.Path,
-		// 	d.servingRequest.LookupPath.SubPath,
-		// )
 		return d.servingRequest
 	}
 
-	request, _ := d.Resolver.Resolve(r)
-
-	// TODO improve code around default serving, when `disk` serving gets removed
-	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
-	if request == nil {
-		request = &serving.Request{Serving: local.Instance()}
-	}
-
 	// store serving.Request to avoid calling d.Resolver.Resolve multiple times
-	d.servingRequest = request
+	d.servingRequest, _ = d.Resolver.Resolve(r)
 
-	return request
+	return d.servingRequest
 }
 
 // GetLookupPath returns a project details based on the request. It returns nil
