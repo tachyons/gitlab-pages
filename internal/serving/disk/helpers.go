@@ -5,6 +5,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -12,6 +13,19 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
+
+var compressedEncodings = map[string]string{
+	"br":   ".br",
+	"gzip": ".gz",
+}
+
+// Server side content encoding priority.
+// Map iteration order is not deterministic in go, so we need this array to specify the priority
+// when the client doesn't provide one
+var compressedEncodingsPriority = []string{
+	"br",
+	"gzip",
+}
 
 func endsWithSlash(path string) bool {
 	return strings.HasSuffix(path, "/")
@@ -46,33 +60,42 @@ func (reader *Reader) detectContentType(ctx context.Context, root vfs.Root, path
 	return contentType, nil
 }
 
-func acceptsGZip(r *http.Request) bool {
+func (reader *Reader) handleContentEncoding(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, fullPath string) string {
+	// don't accept range requests for compressed content
 	if r.Header.Get("Range") != "" {
-		return false
+		return fullPath
 	}
 
-	offers := []string{"gzip", "identity"}
+	files := map[string]os.FileInfo{}
+
+	// finding compressed files
+	for encoding, extension := range compressedEncodings {
+		path := fullPath + extension
+
+		// Ensure the file is not a symlink
+		if fi, err := root.Lstat(ctx, path); err == nil && fi.Mode().IsRegular() {
+			files[encoding] = fi
+		}
+	}
+
+	offers := make([]string, 0, len(files)+1)
+	for _, encoding := range compressedEncodingsPriority {
+		if _, ok := files[encoding]; ok {
+			offers = append(offers, encoding)
+		}
+	}
+	offers = append(offers, "identity")
+
 	acceptedEncoding := httputil.NegotiateContentEncoding(r, offers)
-	return acceptedEncoding == "gzip"
-}
 
-func (reader *Reader) handleGZip(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, fullPath string) string {
-	if !acceptsGZip(r) {
-		return fullPath
+	if fi, ok := files[acceptedEncoding]; ok {
+		w.Header().Set("Content-Encoding", acceptedEncoding)
+
+		// http.ServeContent doesn't set Content-Length if Content-Encoding is set
+		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
+
+		return fullPath + compressedEncodings[acceptedEncoding]
 	}
 
-	gzipPath := fullPath + ".gz"
-
-	// Ensure the .gz file is not a symlink
-	fi, err := root.Lstat(ctx, gzipPath)
-	if err != nil || !fi.Mode().IsRegular() {
-		return fullPath
-	}
-
-	w.Header().Set("Content-Encoding", "gzip")
-
-	// http.ServeContent doesn't set Content-Length if Content-Encoding is set
-	w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
-
-	return gzipPath
+	return fullPath
 }
