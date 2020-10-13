@@ -22,11 +22,11 @@ func (p *customProjectResolver) Resolve(r *http.Request) (*serving.Request, erro
 		IsHTTPSOnly:        p.config.HTTPSOnly,
 		HasAccessControl:   p.config.AccessControl,
 		ProjectID:          p.config.ID,
+		SubPath:            r.URL.Path,
 	}
 
 	return &serving.Request{
 		Serving:    local.Instance(),
 		LookupPath: lookupPath,
-		SubPath:    r.URL.Path,
 	}, nil
 }

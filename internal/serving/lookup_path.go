@@ -9,4 +9,5 @@ type LookupPath struct {
 	IsHTTPSOnly        bool
 	HasAccessControl   bool
 	ProjectID          uint64
+	SubPath            string
 }

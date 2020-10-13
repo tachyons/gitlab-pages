@@ -13,15 +13,16 @@ import (
 // fabricateLookupPath fabricates a serving LookupPath based on the API LookupPath
 // `size` argument is DEPRECATED, see
 // https://gitlab.com/gitlab-org/gitlab-pages/issues/272
-func fabricateLookupPath(size int, lookup api.LookupPath) *serving.LookupPath {
+func fabricateLookupPath(size int, lookup api.LookupPath, subPath string) *serving.LookupPath {
 	return &serving.LookupPath{
 		ServingType:        lookup.Source.Type,
 		Path:               lookup.Source.Path,
 		Prefix:             lookup.Prefix,
-		IsNamespaceProject: (lookup.Prefix == "/" && size > 1),
+		IsNamespaceProject: lookup.Prefix == "/" && size > 1,
 		IsHTTPSOnly:        lookup.HTTPSOnly,
 		HasAccessControl:   lookup.AccessControl,
 		ProjectID:          uint64(lookup.ProjectID),
+		SubPath:            subPath,
 	}
 }
 

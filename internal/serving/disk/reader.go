@@ -25,50 +25,52 @@ type Reader struct {
 }
 
 // Show the user some validation messages for their _redirects file
-func (reader *Reader) serveRedirectsStatus(h serving.Handler, redirects *redirects.Redirects) error {
-	h.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	h.Writer.Header().Set("X-Content-Type-Options", "nosniff")
-	h.Writer.WriteHeader(http.StatusOK)
-	_, err := fmt.Fprintln(h.Writer, redirects.Status())
+func (reader *Reader) serveRedirectsStatus(w http.ResponseWriter, redirects *redirects.Redirects) error {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+
+	_, err := fmt.Fprintln(w, redirects.Status())
 	return err
 }
 
-func (reader *Reader) tryRedirects(h serving.Handler) error {
-	ctx := h.Request.Context()
-	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
+func (reader *Reader) tryRedirects(w http.ResponseWriter, r *http.Request, lookupPath *serving.LookupPath) error {
+	ctx := r.Context()
+	root, err := reader.vfs.Root(ctx, lookupPath.Path)
 	if err != nil {
 		return err
 	}
 
-	r := redirects.ParseRedirects(ctx, root)
+	redirs := redirects.ParseRedirects(ctx, root)
 
-	rewrittenURL, status, err := r.Rewrite(h.Request.URL)
+	rewrittenURL, status, err := redirs.Rewrite(r.URL)
 	if err != nil {
 		return err
 	}
 
-	http.Redirect(h.Writer, h.Request, rewrittenURL.Path, status)
+	http.Redirect(w, r, rewrittenURL.Path, status)
 
 	return nil
 }
 
-func (reader *Reader) tryFile(h serving.Handler) error {
-	ctx := h.Request.Context()
+func (reader *Reader) tryFile(w http.ResponseWriter, r *http.Request, lookupPath *serving.LookupPath) error {
+	ctx := r.Context()
 
-	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
+	root, err := reader.vfs.Root(ctx, lookupPath.Path)
 	if err != nil {
 		return err
 	}
 
-	fullPath, err := reader.resolvePath(ctx, root, h.SubPath)
+	fullPath, err := reader.resolvePath(ctx, root, lookupPath.SubPath)
 
-	request := h.Request
-	host := request.Host
-	urlPath := request.URL.Path
+	// request := h.Request
+	host := r.Host
+	urlPath := r.URL.Path
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(urlPath) {
-			fullPath, err = reader.resolvePath(ctx, root, h.SubPath, "index.html")
+			fullPath, err = reader.resolvePath(ctx, root, lookupPath.SubPath,
+				"index.html")
 		} else {
 			// TODO why are we doing that? In tests it redirects to HTTPS. This seems wrong,
 			// issue about this: https://gitlab.com/gitlab-org/gitlab-pages/issues/273
@@ -79,13 +81,14 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 
 			// Ensure that there's always "/" at end
 			redirectPath = strings.TrimSuffix(redirectPath, "/") + "/"
-			http.Redirect(h.Writer, h.Request, redirectPath, 302)
+			http.Redirect(w, r, redirectPath, 302)
 			return nil
 		}
 	}
 
 	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
-		fullPath, err = reader.resolvePath(ctx, root, strings.TrimSuffix(h.SubPath, "/")+".html")
+		fullPath, err = reader.resolvePath(ctx, root,
+			strings.TrimSuffix(lookupPath.SubPath, "/")+".html")
 	}
 
 	if err != nil {
@@ -97,20 +100,20 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 	if fullPath == redirects.ConfigFile {
 		if os.Getenv("FF_ENABLE_REDIRECTS") != "false" {
 			r := redirects.ParseRedirects(ctx, root)
-			return reader.serveRedirectsStatus(h, r)
+			return reader.serveRedirectsStatus(w, r)
 		}
 
-		h.Writer.WriteHeader(http.StatusForbidden)
+		w.WriteHeader(http.StatusForbidden)
 		return nil
 	}
 
-	return reader.serveFile(ctx, h.Writer, h.Request, root, fullPath, h.LookupPath.HasAccessControl)
+	return reader.serveFile(ctx, w, r, root, fullPath, lookupPath.HasAccessControl)
 }
 
-func (reader *Reader) tryNotFound(h serving.Handler) error {
-	ctx := h.Request.Context()
+func (reader *Reader) tryNotFound(w http.ResponseWriter, r *http.Request, lookupPath *serving.LookupPath) error {
+	ctx := r.Context()
 
-	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
+	root, err := reader.vfs.Root(ctx, lookupPath.Path)
 	if err != nil {
 		return err
 	}
@@ -120,7 +123,8 @@ func (reader *Reader) tryNotFound(h serving.Handler) error {
 		return err
 	}
 
-	err = reader.serveCustomFile(ctx, h.Writer, h.Request, http.StatusNotFound, root, page404)
+	err = reader.serveCustomFile(ctx, w, r, http.StatusNotFound,
+		root, page404)
 	if err != nil {
 		return err
 	}

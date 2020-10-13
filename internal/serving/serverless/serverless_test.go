@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
 
 func withTestCluster(t *testing.T, cert, key string, block func(*http.ServeMux, *url.URL, *Certs)) {
@@ -50,7 +49,6 @@ func TestServeFileHTTP(t *testing.T) {
 
 			writer := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)
-			handler := serving.Handler{Writer: writer, Request: request}
 			request.Header.Set("X-Real-IP", "127.0.0.105")
 
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +58,7 @@ func TestServeFileHTTP(t *testing.T) {
 				require.Contains(t, r.Header.Get("X-Forwarded-For"), "127.0.0.105")
 			})
 
-			served := serverless.ServeFileHTTP(handler)
+			served := serverless.ServeFileHTTP(writer, request, nil)
 			result := writer.Result()
 
 			require.True(t, served)
@@ -82,13 +80,12 @@ func TestServeFileHTTP(t *testing.T) {
 
 			writer := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)
-			handler := serving.Handler{Writer: writer, Request: request}
 
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 			})
 
-			served := serverless.ServeFileHTTP(handler)
+			served := serverless.ServeFileHTTP(writer, request, nil)
 			result := writer.Result()
 			body, err := ioutil.ReadAll(writer.Body)
 			require.NoError(t, err)
@@ -113,14 +110,13 @@ func TestServeFileHTTP(t *testing.T) {
 
 			writer := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)
-			handler := serving.Handler{Writer: writer, Request: request}
 
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				w.Write([]byte("sorry, service unavailable"))
 			})
 
-			served := serverless.ServeFileHTTP(handler)
+			served := serverless.ServeFileHTTP(writer, request, nil)
 			result := writer.Result()
 			body, err := ioutil.ReadAll(writer.Body)
 			require.NoError(t, err)
@@ -145,14 +141,13 @@ func TestServeFileHTTP(t *testing.T) {
 
 			writer := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "http://example.gitlab.com/", nil)
-			handler := serving.Handler{Writer: writer, Request: request}
 
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte("OK"))
 			})
 
-			served := serverless.ServeFileHTTP(handler)
+			served := serverless.ServeFileHTTP(writer, request, nil)
 			result := writer.Result()
 			body, err := ioutil.ReadAll(writer.Body)
 			require.NoError(t, err)

@@ -95,11 +95,11 @@ func (g *Group) Resolve(r *http.Request) (*serving.Request, error) {
 		IsHTTPSOnly:        projectConfig.HTTPSOnly,
 		HasAccessControl:   projectConfig.AccessControl,
 		ProjectID:          projectConfig.ID,
+		SubPath:            subPath,
 	}
 
 	return &serving.Request{
 		Serving:    local.Instance(),
 		LookupPath: lookupPath,
-		SubPath:    subPath,
 	}, nil
 }

@@ -19,17 +19,14 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 	s := Instance()
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "http://zip.gitlab.io/zip/index.html", nil)
-	handler := serving.Handler{
-		Writer:  w,
-		Request: r,
-		LookupPath: &serving.LookupPath{
-			Prefix: "",
-			Path:   testServerURL + "/public.zip",
-		},
+
+	lookupPath := &serving.LookupPath{
+		Prefix:  "",
+		Path:    testServerURL + "/public.zip",
 		SubPath: "/index.html",
 	}
 
-	require.True(t, s.ServeFileHTTP(handler))
+	require.True(t, s.ServeFileHTTP(w, r, lookupPath))
 
 	resp := w.Result()
 	defer resp.Body.Close()
