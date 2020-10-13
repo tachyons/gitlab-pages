@@ -68,6 +68,7 @@ func BenchmarkTestAccess(t *testing.B) {
 	var lastMapStructPtr map[string]zipFilePtr
 	var lastMapCopyPtr map[string]*zip.File
 	var lastMapHashedPtr []map[string]*zip.File
+	var lastMapCopyFlatPtr map[string]*zip.File
 	var lastSlice zipFiles
 
 	t.Run("create Map Ptr", func(t *testing.B) {
@@ -122,6 +123,19 @@ func BenchmarkTestAccess(t *testing.B) {
 				newFile := &zip.File{}
 				*newFile = *file
 				lastMapCopyPtr[file.Name] = newFile
+			}
+		}
+	})
+
+	t.Run("create Map Copy Flat Pointer", func(t *testing.B) {
+		for i := 0; i < t.N; i++ {
+			ptrs := make([]zip.File, len(archive.files))
+			lastMapCopyFlatPtr = make(map[string]*zip.File)
+
+			for _, file := range archive.files {
+				newFile := &ptrs[len(lastMapCopyFlatPtr)]
+				*newFile = *file
+				lastMapCopyFlatPtr[file.Name] = newFile
 			}
 		}
 	})
