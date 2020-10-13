@@ -173,13 +173,12 @@ var (
 		[]string{"op", "cache"},
 	)
 
-	// ZipCachedArchives is the number of entries in the cache
-	ZipCachedEntries = prometheus.NewGaugeVec(
+	// ZipCachedArchives is the number of zip archives currently in the cache
+	ZipCachedArchives = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "gitlab_pages_zip_cached_entries",
 			Help: "The number of entries in the cache",
 		},
-		[]string{"op"},
 	)
 
 	// ZipArchiveEntriesCached is the number of files per zip archive currently
@@ -228,6 +227,6 @@ func MustRegister() {
 		ZipOpenedEntriesCount,
 		ZipCacheRequests,
 		ZipArchiveEntriesCached,
-		ZipCachedEntries,
+		ZipCachedArchives,
 	)
 }

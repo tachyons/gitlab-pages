@@ -107,8 +107,7 @@ func TestVFSFindOrCreateArchiveCacheEvict(t *testing.T) {
 
 	vfs := New().(*zipVFS)
 
-	archivesMetric := metrics.ZipCachedEntries.WithLabelValues("archive")
-	archivesCount := testutil.ToFloat64(archivesMetric)
+	archivesCount := testutil.ToFloat64(metrics.ZipCachedArchives)
 
 	// create a new archive and increase counters
 	archive, err := vfs.findOrOpenArchive(context.Background(), path)
@@ -125,6 +124,6 @@ func TestVFSFindOrCreateArchiveCacheEvict(t *testing.T) {
 	require.NotNil(t, archive2)
 	require.NotEqual(t, archive, archive2, "a different archive is returned")
 
-	archivesCountEnd := testutil.ToFloat64(archivesMetric)
+	archivesCountEnd := testutil.ToFloat64(metrics.ZipCachedArchives)
 	require.Equal(t, float64(1), archivesCountEnd-archivesCount, "all expired archives are evicted")
 }

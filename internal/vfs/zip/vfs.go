@@ -18,16 +18,6 @@ const (
 	defaultCacheExpirationInterval = time.Minute
 	defaultCacheCleanupInterval    = time.Minute / 2
 	defaultCacheRefreshInterval    = time.Minute / 2
-
-	// we assume that each item costs around 100 bytes
-	// this gives around 5MB of raw memory needed without acceleration structures
-	defaultDataOffsetItems              = 50000
-	defaultDataOffsetExpirationInterval = time.Hour
-
-	// we assume that each item costs around 200 bytes
-	// this gives around 2MB of raw memory needed without acceleration structures
-	defaultReadlinkItems              = 10000
-	defaultReadlinkExpirationInterval = time.Hour
 )
 
 var (
@@ -38,23 +28,16 @@ var (
 type zipVFS struct {
 	cache     *cache.Cache
 	cacheLock sync.Mutex
-
-	dataOffsetCache *lruCache
-	readlinkCache   *lruCache
-
-	archiveCount int64
 }
 
 // New creates a zipVFS instance that can be used by a serving request
 func New() vfs.VFS {
 	zipVFS := &zipVFS{
-		cache:           cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
-		dataOffsetCache: newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval),
-		readlinkCache:   newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval),
+		cache: cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
 	}
 
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
-		metrics.ZipCachedEntries.WithLabelValues("archive").Dec()
+		metrics.ZipCachedArchives.Dec()
 
 		i.(*zipArchive).onEvicted()
 	})
@@ -125,7 +108,7 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArc
 		}
 
 		metrics.ZipCacheRequests.WithLabelValues("archive", "miss").Inc()
-		metrics.ZipCachedEntries.WithLabelValues("archive").Inc()
+		metrics.ZipCachedArchives.Inc()
 	}
 
 	return archive.(*zipArchive), nil

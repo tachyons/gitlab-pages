@@ -5,13 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -46,24 +43,22 @@ type zipArchive struct {
 	done        chan struct{}
 	openTimeout time.Duration
 
-	cacheNamespace string
-
 	resource *httprange.Resource
 	reader   *httprange.RangedReader
 	archive  *zip.Reader
 	err      error
 
-	files map[string]*zip.File
+	files         map[string]zipFile
+	fileCacheLock sync.RWMutex
 }
 
 func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive {
 	return &zipArchive{
-		fs:             fs,
-		path:           path,
-		done:           make(chan struct{}),
-		files:          make(map[string]*zip.File),
-		openTimeout:    openTimeout,
-		cacheNamespace: strconv.FormatInt(atomic.AddInt64(&fs.archiveCount, 1), 10) + ":",
+		fs:          fs,
+		path:        path,
+		done:        make(chan struct{}),
+		files:       make(map[string]zipFile),
+		openTimeout: openTimeout,
 	}
 }
 
@@ -133,7 +128,9 @@ func (a *zipArchive) readArchive() {
 		if !strings.HasPrefix(file.Name, dirPrefix) {
 			continue
 		}
-		a.files[file.Name] = file
+		zipFile := zipFile{File: file}
+		zipFile.recycle()
+		a.files[file.Name] = zipFile
 	}
 
 	// recycle memory
@@ -145,15 +142,15 @@ func (a *zipArchive) readArchive() {
 	metrics.ZipArchiveEntriesCached.Add(fileCount)
 }
 
-func (a *zipArchive) findFile(name string) *zip.File {
+func (a *zipArchive) findFile(name string) *zipFile {
 	name = filepath.Join(dirPrefix, name)
 
-	if file := a.files[name]; file != nil {
-		return file
+	if file, ok := a.files[name]; ok {
+		return &file
 	}
 
-	if dir := a.files[name+"/"]; dir != nil {
-		return dir
+	if dir, ok := a.files[name+"/"]; ok {
+		return &dir
 	}
 
 	return nil
@@ -170,15 +167,13 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 		return nil, errNotFile
 	}
 
-	dataOffset, err := a.fs.dataOffsetCache.findOrFetch(a.cacheNamespace, name, func() (interface{}, error) {
-		return file.DataOffset()
-	})
+	dataOffset, err := file.cachedDataOffset(&a.fileCacheLock)
 	if err != nil {
 		return nil, err
 	}
 
 	// only read from dataOffset up to the size of the compressed file
-	reader := a.reader.SectionReader(ctx, dataOffset.(int64), int64(file.CompressedSize64))
+	reader := a.reader.SectionReader(ctx, dataOffset, int64(file.CompressedSize64))
 
 	switch file.Method {
 	case zip.Deflate:
@@ -207,40 +202,17 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 		return "", os.ErrNotExist
 	}
 
-	if file.FileInfo().Mode()&os.ModeSymlink != os.ModeSymlink {
-		return "", errNotSymlink
-	}
-
-	symlinkValue, err := a.fs.readlinkCache.findOrFetch(a.cacheNamespace, name, func() (interface{}, error) {
-		rc, err := file.Open()
-		if err != nil {
-			return nil, err
-		}
-		defer rc.Close()
-
-		var link [maxSymlinkSize + 1]byte
-
-		// read up to len(symlink) bytes from the link file
-		n, err := io.ReadFull(rc, link[:])
-		if err != nil && err != io.ErrUnexpectedEOF {
-			// if err == io.ErrUnexpectedEOF the link is smaller than len(symlink) so it's OK to not return it
-			return nil, err
-		}
-
-		return string(link[:n]), nil
-	})
+	link, err := file.cachedReadlink(&a.fileCacheLock)
 	if err != nil {
 		return "", err
 	}
 
-	symlink := symlinkValue.(string)
-
 	// return errSymlinkSize if the number of bytes read from the link is too big
-	if len(symlink) > maxSymlinkSize {
+	if len(link) > maxSymlinkSize {
 		return "", errSymlinkSize
 	}
 
-	return symlink, nil
+	return link, nil
 }
 
 // onEvicted called by the zipVFS.cache when an archive is removed from the cache
