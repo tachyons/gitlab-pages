@@ -10,7 +10,7 @@ import (
 )
 
 func TestVFSRoot(t *testing.T) {
-	url, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	url, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
 	tests := map[string]struct {
@@ -63,7 +63,7 @@ func TestVFSRoot(t *testing.T) {
 }
 
 func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
 	path := testServerURL + "/public.zip"
