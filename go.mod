@@ -3,6 +3,7 @@ module gitlab.com/gitlab-org/gitlab-pages
 go 1.13
 
 require (
+	github.com/andybalholm/brotli v1.0.1
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fzipp/gocyclo v0.0.0-20150627053110-6acd4345c835

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/andybalholm/brotli"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
@@ -176,7 +177,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 	}
 }
 
-func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, acceptEncoding string, str interface{}, contentType string, ungzip bool) {
+func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, acceptEncoding string, str interface{}, contentType string, expectCompressed bool) {
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(mode, url+"?"+values.Encode(), nil)
 	require.NoError(t, err)
@@ -185,16 +186,16 @@ func testHTTPGzip(t *testing.T, handler http.HandlerFunc, mode, url string, valu
 	}
 	handler(w, req)
 
-	if ungzip {
+	if expectCompressed {
 		contentLength := w.Header().Get("Content-Length")
 		require.Equal(t, strconv.Itoa(w.Body.Len()), contentLength, "Content-Length")
+
+		contentEncoding := w.Header().Get("Content-Encoding")
+		require.Equal(t, "gzip", contentEncoding, "Content-Encoding")
 
 		reader, err := gzip.NewReader(w.Body)
 		require.NoError(t, err)
 		defer reader.Close()
-
-		contentEncoding := w.Header().Get("Content-Encoding")
-		require.Equal(t, "gzip", contentEncoding, "Content-Encoding")
 
 		bytes, err := ioutil.ReadAll(reader)
 		require.NoError(t, err)
@@ -223,19 +224,18 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	}
 
 	testSet := []struct {
-		mode           string      // HTTP mode
-		url            string      // Test URL
-		acceptEncoding string      // Accept encoding header
-		body           interface{} // Expected body at above URL
-		contentType    string      // Expected content-type
-		ungzip         bool        // Expect the response to be gzipped?
+		mode             string      // HTTP mode
+		url              string      // Test URL
+		acceptEncoding   string      // Accept encoding header
+		body             interface{} // Expected body at above URL
+		contentType      string      // Expected content-type
+		expectCompressed bool        // Expect the response to be gzipped?
 	}{
 		// No gzip encoding requested
 		{"GET", "/index.html", "", "main-dir", "text/html; charset=utf-8", false},
 		{"GET", "/index.html", "identity", "main-dir", "text/html; charset=utf-8", false},
 		{"GET", "/index.html", "gzip; q=0", "main-dir", "text/html; charset=utf-8", false},
 		// gzip encoding requested,
-		{"GET", "/index.html", "*", "main-dir", "text/html; charset=utf-8", true},
 		{"GET", "/index.html", "identity, gzip", "main-dir", "text/html; charset=utf-8", true},
 		{"GET", "/index.html", "gzip", "main-dir", "text/html; charset=utf-8", true},
 		{"GET", "/index.html", "gzip; q=1", "main-dir", "text/html; charset=utf-8", true},
@@ -243,6 +243,10 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 		{"GET", "/index.html", "gzip, deflate", "main-dir", "text/html; charset=utf-8", true},
 		{"GET", "/index.html", "gzip; q=1, deflate", "main-dir", "text/html; charset=utf-8", true},
 		{"GET", "/index.html", "gzip; q=0.9, deflate", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "br; q=0.9, gzip; q=1", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "br; q=0, gzip; q=1", "main-dir", "text/html; charset=utf-8", true},
+		// fallback to gzip because .br is missing
+		{"GET", "/index2.html", "*", "main-dir", "text/html; charset=utf-8", true},
 		// gzip encoding requested, but url does not have compressed content on disk
 		{"GET", "/project2/index.html", "*", "project2-main", "text/html; charset=utf-8", false},
 		{"GET", "/project2/index.html", "identity, gzip", "project2-main", "text/html; charset=utf-8", false},
@@ -259,6 +263,102 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 		// Symlinked .gz files are not supported
 		{"GET", "/gz-symlink", "*", "data", "text/plain; charset=utf-8", false},
 		// Unknown file-extension, with text content
+		{"GET", "/text.unknown", "gzip", "hello", "text/plain; charset=utf-8", true},
+		{"GET", "/text-nogzip.unknown", "*", "hello", "text/plain; charset=utf-8", false},
+		// Unknown file-extension, with PNG content
+		{"GET", "/image.unknown", "gzip", "GIF89a", "image/gif", true},
+		{"GET", "/image-nogzip.unknown", "*", "GIF89a", "image/gif", false},
+	}
+
+	for _, tt := range testSet {
+		t.Run(tt.url+" acceptEncoding: "+tt.acceptEncoding, func(t *testing.T) {
+			URL := "http://group.test.io" + tt.url
+			testHTTPGzip(t, serveFileOrNotFound(testGroup), tt.mode, URL, nil, tt.acceptEncoding, tt.body, tt.contentType, tt.expectCompressed)
+		})
+	}
+}
+
+func testHTTPBrotli(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, acceptEncoding string, str interface{}, contentType string, expectCompressed bool) {
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(mode, url+"?"+values.Encode(), nil)
+	require.NoError(t, err)
+	if acceptEncoding != "" {
+		req.Header.Add("Accept-Encoding", acceptEncoding)
+	}
+	handler(w, req)
+
+	if expectCompressed {
+		contentLength := w.Header().Get("Content-Length")
+		require.Equal(t, strconv.Itoa(w.Body.Len()), contentLength, "Content-Length")
+
+		contentEncoding := w.Header().Get("Content-Encoding")
+		require.Equal(t, "br", contentEncoding, "Content-Encoding")
+
+		reader := brotli.NewReader(w.Body)
+		bytes, err := ioutil.ReadAll(reader)
+		require.NoError(t, err)
+		require.Contains(t, string(bytes), str)
+	} else {
+		require.Contains(t, w.Body.String(), str)
+	}
+
+	require.Equal(t, contentType, w.Header().Get("Content-Type"))
+}
+
+func TestGroupServeHTTPBrotli(t *testing.T) {
+	cleanup := setUpTests(t)
+	defer cleanup()
+
+	testGroup := &domain.Domain{
+		Resolver: &Group{
+			name: "group",
+			projects: map[string]*projectConfig{
+				"group.test.io":            &projectConfig{},
+				"group.gitlab-example.com": &projectConfig{},
+				"project":                  &projectConfig{},
+				"project2":                 &projectConfig{},
+			},
+		},
+	}
+
+	testSet := []struct {
+		mode             string      // HTTP mode
+		url              string      // Test URL
+		acceptEncoding   string      // Accept encoding header
+		body             interface{} // Expected body at above URL
+		contentType      string      // Expected content-type
+		expectCompressed bool        // Expect the response to be br compressed?
+	}{
+		// No br encoding requested
+		{"GET", "/index.html", "", "main-dir", "text/html; charset=utf-8", false},
+		{"GET", "/index.html", "identity", "main-dir", "text/html; charset=utf-8", false},
+		{"GET", "/index.html", "br; q=0", "main-dir", "text/html; charset=utf-8", false},
+		// br encoding requested,
+		{"GET", "/index.html", "*", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "identity, br", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "br", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "br; q=1", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "br; q=0.9", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "br, deflate", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "br; q=1, deflate", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "br; q=0.9, deflate", "main-dir", "text/html; charset=utf-8", true},
+		{"GET", "/index.html", "gzip; q=0.5, br; q=1", "main-dir", "text/html; charset=utf-8", true},
+		// br encoding requested, but url does not have compressed content on disk
+		{"GET", "/project2/index.html", "*", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "identity, br", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "br", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "br; q=1", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "br; q=0.9", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "br, deflate", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "br; q=1, deflate", "project2-main", "text/html; charset=utf-8", false},
+		{"GET", "/project2/index.html", "br; q=0.9, deflate", "project2-main", "text/html; charset=utf-8", false},
+		// malformed headers
+		{"GET", "/index.html", ";; br", "main-dir", "text/html; charset=utf-8", false},
+		{"GET", "/index.html", "middle-out", "main-dir", "text/html; charset=utf-8", false},
+		{"GET", "/index.html", "br; quality=1", "main-dir", "text/html; charset=utf-8", false},
+		// Symlinked .br files are not supported
+		{"GET", "/gz-symlink", "*", "data", "text/plain; charset=utf-8", false},
+		// Unknown file-extension, with text content
 		{"GET", "/text.unknown", "*", "hello", "text/plain; charset=utf-8", true},
 		{"GET", "/text-nogzip.unknown", "*", "hello", "text/plain; charset=utf-8", false},
 		// Unknown file-extension, with PNG content
@@ -267,8 +367,10 @@ func TestGroupServeHTTPGzip(t *testing.T) {
 	}
 
 	for _, tt := range testSet {
-		URL := "http://group.test.io" + tt.url
-		testHTTPGzip(t, serveFileOrNotFound(testGroup), tt.mode, URL, nil, tt.acceptEncoding, tt.body, tt.contentType, tt.ungzip)
+		t.Run(tt.url+" acceptEncoding: "+tt.acceptEncoding, func(t *testing.T) {
+			URL := "http://group.test.io" + tt.url
+			testHTTPBrotli(t, serveFileOrNotFound(testGroup), tt.mode, URL, nil, tt.acceptEncoding, tt.body, tt.contentType, tt.expectCompressed)
+		})
 	}
 }
 

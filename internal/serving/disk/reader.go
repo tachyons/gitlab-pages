@@ -169,7 +169,7 @@ func (reader *Reader) resolvePath(ctx context.Context, root vfs.Root, subPath ..
 }
 
 func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, origPath string, accessControl bool) error {
-	fullPath := reader.handleGZip(ctx, w, r, root, origPath)
+	fullPath := reader.handleContentEncoding(ctx, w, r, root, origPath)
 
 	file, err := root.Open(ctx, fullPath)
 	if err != nil {
@@ -212,7 +212,7 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 }
 
 func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter, r *http.Request, code int, root vfs.Root, origPath string) error {
-	fullPath := reader.handleGZip(ctx, w, r, root, origPath)
+	fullPath := reader.handleContentEncoding(ctx, w, r, root, origPath)
 
 	// Open and serve content of file
 	file, err := root.Open(ctx, fullPath)
