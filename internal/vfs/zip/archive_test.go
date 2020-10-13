@@ -102,24 +102,44 @@ func TestLstat(t *testing.T) {
 	defer cleanup()
 
 	tests := map[string]struct {
-		file        string
-		isDir       bool
-		isSymlink   bool
-		expectedErr error
+		file         string
+		isDir        bool
+		isSymlink    bool
+		expectedName string
+		expectedErr  error
 	}{
 		"file_exists": {
-			file: "index.html",
+			file:         "index.html",
+			expectedName: "index.html",
 		},
 		"file_exists_in_subdir": {
-			file: "subdir/hello.html",
+			file:         "subdir/hello.html",
+			expectedName: "hello.html",
 		},
 		"file_exists_symlink": {
-			file:      "symlink.html",
-			isSymlink: true,
+			file:         "symlink.html",
+			isSymlink:    true,
+			expectedName: "symlink.html",
+		},
+		"has_root": {
+			file:         "",
+			isDir:        true,
+			expectedName: "public",
+		},
+		"has_root_dot": {
+			file:         ".",
+			isDir:        true,
+			expectedName: "public",
+		},
+		"has_root_slash": {
+			file:         "/",
+			isDir:        true,
+			expectedName: "public",
 		},
 		"is_dir": {
-			file:  "subdir",
-			isDir: true,
+			file:         "subdir",
+			isDir:        true,
+			expectedName: "subdir",
 		},
 		"file_does_not_exist": {
 			file:        "unknown.html",
@@ -136,7 +156,7 @@ func TestLstat(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Contains(t, tt.file, fi.Name())
+			require.Equal(t, tt.expectedName, fi.Name())
 			require.Equal(t, tt.isDir, fi.IsDir())
 			require.NotEmpty(t, fi.ModTime())
 
@@ -265,7 +285,7 @@ func openZipArchive(t *testing.T, requests *int64) (*zipArchive, func()) {
 		requests = new(int64)
 	}
 
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", requests)
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", requests)
 
 	fs := New().(*zipVFS)
 	zip := newArchive(fs, testServerURL+"/public.zip", time.Second)
