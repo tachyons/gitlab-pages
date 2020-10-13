@@ -6,7 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 func TestVFSRoot(t *testing.T) {
@@ -94,4 +97,34 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 		_, err := vfs.findOrOpenArchive(context.Background(), path)
 		return err == errAlreadyCached
 	}, time.Second, time.Nanosecond)
+}
+
+func TestVFSFindOrCreateArchiveCacheEvict(t *testing.T) {
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
+	defer cleanup()
+
+	path := testServerURL + "/public.zip"
+
+	vfs := New().(*zipVFS)
+
+	archivesMetric := metrics.ZipCachedEntries.WithLabelValues("archive")
+	archivesCount := testutil.ToFloat64(archivesMetric)
+
+	// create a new archive and increase counters
+	archive, err := vfs.findOrOpenArchive(context.Background(), path)
+	require.NoError(t, err)
+	require.NotNil(t, archive)
+
+	// inject into cache to be "expired"
+	// (we could as well wait `defaultCacheExpirationInterval`)
+	vfs.cache.Set(path, archive, time.Nanosecond)
+
+	// a new object is created
+	archive2, err := vfs.findOrOpenArchive(context.Background(), path)
+	require.NoError(t, err)
+	require.NotNil(t, archive2)
+	require.NotEqual(t, archive, archive2, "a different archive is returned")
+
+	archivesCountEnd := testutil.ToFloat64(archivesMetric)
+	require.Equal(t, float64(1), archivesCountEnd-archivesCount, "all expired archives are evicted")
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -35,7 +36,8 @@ var (
 
 // zipVFS is a simple cached implementation of the vfs.VFS interface
 type zipVFS struct {
-	cache *cache.Cache
+	cache     *cache.Cache
+	cacheLock sync.Mutex
 
 	dataOffsetCache *lruCache
 	readlinkCache   *lruCache
@@ -88,10 +90,17 @@ func (fs *zipVFS) Name() string {
 	return "zip"
 }
 
-// findOrOpenArchive if found in fs.cache refresh if needed and return it.
-// otherwise open the archive and try to save it, if saving fails it's because
-// the archive has already been cached (e.g. by another concurrent request)
-func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchive, error) {
+// findOrCreateArchive if found in fs.cache refresh if needed and return it.
+// otherwise creates the archive entry in a cache and try to save it,
+// if saving fails it's because the archive has already been cached
+// (e.g. by another concurrent request)
+func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArchive, error) {
+	// This needs to happen in lock to ensure that
+	// concurrent access will not remove it
+	// it is needed due to the bug https://github.com/patrickmn/go-cache/issues/48
+	fs.cacheLock.Lock()
+	defer fs.cacheLock.Unlock()
+
 	archive, expiry, found := fs.cache.GetWithExpiration(path)
 	if found {
 		metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
@@ -104,18 +113,32 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchi
 	} else {
 		archive = newArchive(fs, path, DefaultOpenTimeout)
 
+		// We call delete to ensure that expired item
+		// is properly evicted as there's a bug in a cache library:
+		// https://github.com/patrickmn/go-cache/issues/48
+		fs.cache.Delete(path)
+
 		// if adding the archive to the cache fails it means it's already been added before
 		// this is done to find concurrent additions.
 		if fs.cache.Add(path, archive, cache.DefaultExpiration) != nil {
 			return nil, errAlreadyCached
 		}
+
 		metrics.ZipCacheRequests.WithLabelValues("archive", "miss").Inc()
 		metrics.ZipCachedEntries.WithLabelValues("archive").Inc()
 	}
 
-	zipArchive := archive.(*zipArchive)
+	return archive.(*zipArchive), nil
+}
 
-	err := zipArchive.openArchive(ctx)
+// findOrOpenArchive gets archive from cache and tries to open it
+func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchive, error) {
+	zipArchive, err := fs.findOrCreateArchive(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	err = zipArchive.openArchive(ctx)
 	if err != nil {
 		return nil, err
 	}
