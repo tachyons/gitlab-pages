@@ -96,8 +96,8 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 
 			return &serving.Request{
 				Serving:    fabricateServing(lookup),
-				LookupPath: fabricateLookupPath(size, lookup, subPath),
-			}, nil
+				LookupPath: fabricateLookupPath(size, lookup),
+				SubPath:    subPath}, nil
 		}
 	}
 

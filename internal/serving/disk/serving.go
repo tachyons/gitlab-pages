@@ -1,7 +1,6 @@
 package disk
 
 import (
-	"net/http"
 	"os"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -17,13 +16,13 @@ type Disk struct {
 
 // ServeFileHTTP serves a file from disk and returns true. It returns false
 // when a file could not been found.
-func (s *Disk) ServeFileHTTP(w http.ResponseWriter, r *http.Request, lookupPath *serving.LookupPath) bool {
-	if s.reader.tryFile(w, r, lookupPath) == nil {
+func (s *Disk) ServeFileHTTP(h serving.Handler) bool {
+	if s.reader.tryFile(h) == nil {
 		return true
 	}
 
 	if os.Getenv("FF_ENABLE_REDIRECTS") != "false" {
-		if s.reader.tryRedirects(w, r, lookupPath) == nil {
+		if s.reader.tryRedirects(h) == nil {
 			return true
 		}
 	}
@@ -32,13 +31,13 @@ func (s *Disk) ServeFileHTTP(w http.ResponseWriter, r *http.Request, lookupPath 
 }
 
 // ServeNotFoundHTTP tries to read a custom 404 page
-func (s *Disk) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request, lookupPath *serving.LookupPath) {
-	if s.reader.tryNotFound(w, r, lookupPath) == nil {
+func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
+	if s.reader.tryNotFound(h) == nil {
 		return
 	}
 
 	// Generic 404
-	httperrors.Serve404(w)
+	httperrors.Serve404(h.Writer)
 }
 
 // New returns a serving instance that is capable of reading files

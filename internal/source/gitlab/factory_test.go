@@ -15,17 +15,16 @@ func TestFabricateLookupPath(t *testing.T) {
 	t.Run("when lookup path is not a namespace project", func(t *testing.T) {
 		lookup := api.LookupPath{Prefix: "/something"}
 
-		path := fabricateLookupPath(1, lookup, "/subpath")
+		path := fabricateLookupPath(1, lookup)
 
 		require.Equal(t, path.Prefix, "/something")
-		require.Equal(t, path.SubPath, "/subpath")
 		require.False(t, path.IsNamespaceProject)
 	})
 
 	t.Run("when lookup path is a namespace project", func(t *testing.T) {
 		lookup := api.LookupPath{Prefix: "/"}
 
-		path := fabricateLookupPath(2, lookup, "")
+		path := fabricateLookupPath(2, lookup)
 
 		require.Equal(t, path.Prefix, "/")
 		require.True(t, path.IsNamespaceProject)

@@ -18,14 +18,17 @@ func TestDisk_ServeFileHTTP(t *testing.T) {
 	s := Instance()
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "http://group.gitlab-example.com/serving/index.html", nil)
-
-	lookupPath := &serving.LookupPath{
-		Prefix:  "/serving",
-		Path:    "group/serving/public",
+	handler := serving.Handler{
+		Writer:  w,
+		Request: r,
+		LookupPath: &serving.LookupPath{
+			Prefix: "/serving",
+			Path:   "group/serving/public",
+		},
 		SubPath: "/index.html",
 	}
 
-	require.True(t, s.ServeFileHTTP(w, r, lookupPath))
+	require.True(t, s.ServeFileHTTP(handler))
 
 	resp := w.Result()
 	defer resp.Body.Close()

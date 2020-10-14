@@ -17,6 +17,7 @@ import (
 
 type stubbedResolver struct {
 	project *serving.LookupPath
+	subpath string
 	err     error
 }
 
@@ -24,6 +25,7 @@ func (resolver *stubbedResolver) Resolve(*http.Request) (*serving.Request, error
 	return &serving.Request{
 		Serving:    local.Instance(),
 		LookupPath: resolver.project,
+		SubPath:    resolver.subpath,
 	}, resolver.err
 }
 
@@ -152,8 +154,8 @@ func TestServeNamespaceNotFound(t *testing.T) {
 				project: &serving.LookupPath{
 					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
-					SubPath:            "/unknown",
 				},
+				subpath: "/unknown",
 			},
 			expectedResponse: "Custom 404 group page",
 		},
@@ -167,6 +169,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 					IsNamespaceProject: true,
 					HasAccessControl:   false,
 				},
+				subpath: "/",
 			},
 			expectedResponse: "Custom 404 group page",
 		},
@@ -179,8 +182,8 @@ func TestServeNamespaceNotFound(t *testing.T) {
 					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 					HasAccessControl:   true,
-					SubPath:            "/",
 				},
+				subpath: "/",
 			},
 			expectedResponse: "The page you're looking for could not be found.",
 		},
@@ -190,6 +193,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 			path:   "/unknown",
 			resolver: &stubbedResolver{
 				project: nil,
+				subpath: "/",
 			},
 			expectedResponse: "The page you're looking for could not be found.",
 		},

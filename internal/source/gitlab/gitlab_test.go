@@ -44,7 +44,7 @@ func TestResolve(t *testing.T) {
 
 		require.Equal(t, "/my/pages/project/", response.LookupPath.Prefix)
 		require.Equal(t, "some/path/to/project/", response.LookupPath.Path)
-		require.Equal(t, "", response.LookupPath.SubPath)
+		require.Equal(t, "", response.SubPath)
 		require.False(t, response.LookupPath.IsNamespaceProject)
 	})
 
@@ -57,7 +57,7 @@ func TestResolve(t *testing.T) {
 
 		require.Equal(t, "/my/pages/project/", response.LookupPath.Prefix)
 		require.Equal(t, "some/path/to/project/", response.LookupPath.Path)
-		require.Equal(t, "path/index.html", response.LookupPath.SubPath)
+		require.Equal(t, "path/index.html", response.SubPath)
 		require.False(t, response.LookupPath.IsNamespaceProject)
 	})
 
@@ -70,7 +70,7 @@ func TestResolve(t *testing.T) {
 
 		require.Equal(t, "/", response.LookupPath.Prefix)
 		require.Equal(t, "some/path/to/project-3/", response.LookupPath.Path)
-		require.Equal(t, "", response.LookupPath.SubPath)
+		require.Equal(t, "", response.SubPath)
 		require.True(t, response.LookupPath.IsNamespaceProject)
 	})
 
@@ -82,7 +82,7 @@ func TestResolve(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, "/", response.LookupPath.Prefix)
-		require.Equal(t, "path/to/index.html", response.LookupPath.SubPath)
+		require.Equal(t, "path/to/index.html", response.SubPath)
 		require.Equal(t, "some/path/to/project-3/", response.LookupPath.Path)
 		require.True(t, response.LookupPath.IsNamespaceProject)
 	})
@@ -95,6 +95,6 @@ func TestResolve(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, "/my/pages/project/", response.LookupPath.Prefix)
-		require.Equal(t, "index.html", response.LookupPath.SubPath)
+		require.Equal(t, "index.html", response.SubPath)
 	})
 }
