@@ -156,7 +156,7 @@ func (a *zipArchive) readArchive() {
 
 // addPathDirectory adds a directory for a given path
 func (a *zipArchive) addPathDirectory(path string) {
-	// Split makes `path` with `/`
+	// Split dir and file from `path`
 	path, _ = filepath.Split(path)
 	if path == "" {
 		return
@@ -184,11 +184,7 @@ func (a *zipArchive) findFile(name string) *zip.File {
 func (a *zipArchive) findDirectory(name string) *zip.FileHeader {
 	name = filepath.Join(dirPrefix, name)
 
-	if dir := a.directories[name+"/"]; dir != nil {
-		return dir
-	}
-
-	return nil
+	return a.directories[name+"/"]
 }
 
 // Open finds the file by name inside the zipArchive and returns a reader that can be served by the VFS
