@@ -28,7 +28,7 @@ require (
 	github.com/tj/go-redirects v0.0.0-20180508180010-5c02ead0bbc5
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
-	gitlab.com/gitlab-org/labkit v0.0.0-20200520155818-96e583c57891
+	gitlab.com/gitlab-org/labkit v0.0.0-20201014124351-eb1fe6499318
 	gitlab.com/lupine/go-mimedb v0.0.0-20180307000149-e8af1d659877
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f
