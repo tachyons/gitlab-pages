@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewResource(t *testing.T) {
-	resource := Resource{
+	resource := &Resource{
 		url:          "/some/resource",
 		ETag:         "etag",
 		LastModified: "Wed, 21 Oct 2015 07:28:00 GMT",
@@ -22,7 +22,7 @@ func TestNewResource(t *testing.T) {
 		url            string
 		status         int
 		contentRange   string
-		want           Resource
+		want           *Resource
 		expectedErrMsg string
 	}{
 		"status_ok": {
@@ -34,10 +34,10 @@ func TestNewResource(t *testing.T) {
 			url:          "/some/resource",
 			status:       http.StatusPartialContent,
 			contentRange: "bytes 200-1000/67589",
-			want: func() Resource {
-				r := resource
+			want: func() *Resource {
+				r := *resource
 				r.Size = 67589
-				return r
+				return &r
 			}(),
 		},
 		"status_partial_content_invalid_content_range": {
@@ -45,26 +45,31 @@ func TestNewResource(t *testing.T) {
 			status:         http.StatusPartialContent,
 			contentRange:   "invalid",
 			expectedErrMsg: "invalid `Content-Range`:",
+			want:           resource,
 		},
 		"status_partial_content_content_range_not_a_number": {
 			url:            "/some/resource",
 			status:         http.StatusPartialContent,
 			contentRange:   "bytes 200-1000/notanumber",
 			expectedErrMsg: "invalid `Content-Range`:",
+			want:           resource,
 		},
 		"StatusRequestedRangeNotSatisfiable": {
 			url:            "/some/resource",
 			status:         http.StatusRequestedRangeNotSatisfiable,
 			expectedErrMsg: ErrRangeRequestsNotSupported.Error(),
+			want:           resource,
 		},
 		"not_found": {
 			url:            "/some/resource",
 			status:         http.StatusNotFound,
 			expectedErrMsg: fmt.Sprintf("httprange: new resource %d: %q", http.StatusNotFound, "404 Not Found"),
+			want:           resource,
 		},
 		"invalid_url": {
 			url:            "/%",
 			expectedErrMsg: "invalid URL escape",
+			want:           resource,
 		},
 	}
 
