@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -101,14 +102,15 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArc
 	fs.cacheLock.Lock()
 	defer fs.cacheLock.Unlock()
 
-	archive, expiry, found := fs.cache.GetWithExpiration(path)
+	key := strings.TrimRight(path, "?")
+	archive, expiry, found := fs.cache.GetWithExpiration(key)
 	if found {
 		metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
 
 		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
 		if time.Until(expiry) < defaultCacheRefreshInterval {
 			// refresh item
-			fs.cache.SetDefault(path, archive)
+			fs.cache.SetDefault(key, archive)
 		}
 	} else {
 		archive = newArchive(fs, path, DefaultOpenTimeout)
@@ -120,7 +122,7 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArc
 
 		// if adding the archive to the cache fails it means it's already been added before
 		// this is done to find concurrent additions.
-		if fs.cache.Add(path, archive, cache.DefaultExpiration) != nil {
+		if fs.cache.Add(key, archive, cache.DefaultExpiration) != nil {
 			return nil, errAlreadyCached
 		}
 
