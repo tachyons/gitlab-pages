@@ -118,6 +118,7 @@ func TestVFSFindOrCreateArchiveCacheEvict(t *testing.T) {
 	// inject into cache to be "expired"
 	// (we could as well wait `defaultCacheExpirationInterval`)
 	vfs.cache.Set(path, archive, time.Nanosecond)
+	time.Sleep(time.Nanosecond)
 
 	// a new object is created
 	archive2, err := vfs.findOrOpenArchive(context.Background(), path)
