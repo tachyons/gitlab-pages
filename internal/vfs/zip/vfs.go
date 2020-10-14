@@ -10,6 +10,7 @@ import (
 
 	"github.com/patrickmn/go-cache"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -109,8 +110,23 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArc
 
 		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
 		if time.Until(expiry) < defaultCacheRefreshInterval {
-			// refresh item
-			fs.cache.SetDefault(key, archive)
+
+			zipArchive := archive.(*zipArchive)
+
+			res, err := httprange.NewResource(ctx, path)
+			if err != nil {
+				err := zipArchive.openArchive(ctx)
+				if err != nil {
+					return nil, err
+				}
+				// do not refresh on error
+				return zipArchive, nil
+			}
+
+			if res.ETag != zipArchive.Hash() {
+				// refresh item with new path
+				fs.cache.SetDefault(key, archive)
+			}
 		}
 	} else {
 		archive = newArchive(fs, path, DefaultOpenTimeout)

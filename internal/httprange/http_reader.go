@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
@@ -76,11 +77,17 @@ func (r *Reader) ensureResponse() error {
 
 	metrics.HTTPRangeOpenRequests.Inc()
 
+	dreq, err := httputil.DumpRequestOut(req, true)
+	fmt.Printf("req: %s err: %+v\n", dreq, err)
+
 	res, err := httpClient.Do(req)
 	if err != nil {
 		metrics.HTTPRangeOpenRequests.Dec()
 		return err
 	}
+
+	dres, err := httputil.DumpResponse(res, false)
+	fmt.Printf("res: %s err: %+v\n", dres, err)
 
 	err = r.setResponse(res)
 	if err != nil {

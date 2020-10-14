@@ -247,3 +247,11 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 func (a *zipArchive) onEvicted() {
 	metrics.ZipArchiveEntriesCached.Sub(float64(len(a.files)))
 }
+
+func (a *zipArchive) Hash() string {
+	if a.resource == nil {
+		return ""
+	}
+
+	return a.resource.ETag
+}
