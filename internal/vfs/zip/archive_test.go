@@ -245,11 +245,11 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 	defer cleanup()
 
 	fs := New().(*zipVFS)
-	zip := newArchive(fs, testServerURL+"/public.zip", time.Second)
+	zip := newArchive(fs, time.Second)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := zip.openArchive(ctx)
+	err := zip.openArchive(ctx, testServerURL+"/public.zip")
 	require.EqualError(t, err, context.Canceled.Error())
 
 	<-zip.done
@@ -268,9 +268,9 @@ func TestReadArchiveFails(t *testing.T) {
 	defer cleanup()
 
 	fs := New().(*zipVFS)
-	zip := newArchive(fs, testServerURL+"/unkown.html", time.Second)
+	zip := newArchive(fs, time.Second)
 
-	err := zip.openArchive(context.Background())
+	err := zip.openArchive(context.Background(), testServerURL+"/unkown.html")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Not Found")
 
@@ -288,9 +288,9 @@ func openZipArchive(t *testing.T, requests *int64) (*zipArchive, func()) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", requests)
 
 	fs := New().(*zipVFS)
-	zip := newArchive(fs, testServerURL+"/public.zip", time.Second)
+	zip := newArchive(fs, time.Second)
 
-	err := zip.openArchive(context.Background())
+	err := zip.openArchive(context.Background(), testServerURL+"/public.zip")
 	require.NoError(t, err)
 
 	// public/ public/index.html public/404.html public/symlink.html

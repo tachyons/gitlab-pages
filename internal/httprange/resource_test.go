@@ -12,7 +12,7 @@ import (
 
 func TestNewResource(t *testing.T) {
 	resource := Resource{
-		URL:          "/some/resource",
+		url:          "/some/resource",
 		ETag:         "etag",
 		LastModified: "Wed, 21 Oct 2015 07:28:00 GMT",
 		Size:         1,
@@ -87,7 +87,7 @@ func TestNewResource(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Contains(t, got.URL, tt.want.URL)
+			require.Contains(t, got.url, tt.want.url)
 			require.Equal(t, tt.want.LastModified, got.LastModified)
 			require.Equal(t, tt.want.ETag, got.ETag)
 			require.Equal(t, tt.want.Size, got.Size)

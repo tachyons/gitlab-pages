@@ -102,21 +102,12 @@ func (r *Reader) prepareRequest() (*http.Request, error) {
 		return nil, ErrInvalidRange
 	}
 
-	req, err := http.NewRequest("GET", r.Resource.URL, nil)
+	req, err := r.Resource.Request()
 	if err != nil {
 		return nil, err
 	}
 
 	req = req.WithContext(r.ctx)
-
-	if r.Resource.ETag != "" {
-		req.Header.Set("ETag", r.Resource.ETag)
-	} else if r.Resource.LastModified != "" {
-		// Last-Modified should be a fallback mechanism in case ETag is not present
-		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Last-Modified
-		req.Header.Set("If-Range", r.Resource.LastModified)
-	}
-
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", r.offset, r.rangeStart+r.rangeSize-1))
 
 	return req, nil
@@ -129,12 +120,14 @@ func (r *Reader) setResponse(res *http.Response) error {
 		// some servers return 200 OK for bytes=0-
 		// TODO: should we handle r.Resource.Last-Modified as well?
 		if r.offset > 0 || r.Resource.ETag != "" && r.Resource.ETag != res.Header.Get("ETag") {
+			r.Resource.setError(ErrContentHasChanged)
 			return ErrContentHasChanged
 		}
 	case http.StatusPartialContent:
 		// Requested `Range` request succeeded https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/206
 		break
 	case http.StatusRequestedRangeNotSatisfiable:
+		r.Resource.setError(ErrRangeRequestsNotSupported)
 		return ErrRangeRequestsNotSupported
 	default:
 		return fmt.Errorf("httprange: read response %d: %q", res.StatusCode, res.Status)

@@ -62,6 +62,15 @@ func New() vfs.VFS {
 	return zipVFS
 }
 
+func (fs *zipVFS) keyFromURL(url *url.URL) string {
+	// We assume that our URL is https://.../artifacts.zip?content-sign=aaa
+	// our caching key is `https://.../artifacts.zip`
+	newURL := *url
+	newURL.RawQuery = ""
+	newURL.Fragment = ""
+	return newURL.String()
+}
+
 // Root opens an archive given a URL path and returns an instance of zipArchive
 // that implements the vfs.VFS interface.
 // To avoid using locks, the findOrOpenArchive function runs inside of a for
@@ -75,9 +84,11 @@ func (fs *zipVFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 		return nil, err
 	}
 
+	key := fs.keyFromURL(urlPath)
+
 	// we do it in loop to not use any additional locks
 	for {
-		root, err := fs.findOrOpenArchive(ctx, urlPath.String())
+		root, err := fs.findOrOpenArchive(ctx, key, urlPath.String())
 		if err == errAlreadyCached {
 			continue
 		}
@@ -94,37 +105,41 @@ func (fs *zipVFS) Name() string {
 // otherwise creates the archive entry in a cache and try to save it,
 // if saving fails it's because the archive has already been cached
 // (e.g. by another concurrent request)
-func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArchive, error) {
+func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArchive, error) {
 	// This needs to happen in lock to ensure that
 	// concurrent access will not remove it
 	// it is needed due to the bug https://github.com/patrickmn/go-cache/issues/48
 	fs.cacheLock.Lock()
 	defer fs.cacheLock.Unlock()
 
-	archive, expiry, found := fs.cache.GetWithExpiration(path)
-	if found {
+	archive, expiry, found := fs.cache.GetWithExpiration(key)
+	if found && archive.(*zipArchive).isValid() {
 		metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
 
 		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
 		if time.Until(expiry) < defaultCacheRefreshInterval {
 			// refresh item
-			fs.cache.SetDefault(path, archive)
+			fs.cache.SetDefault(key, archive)
 		}
 	} else {
-		archive = newArchive(fs, path, DefaultOpenTimeout)
+		archive = newArchive(fs, DefaultOpenTimeout)
 
 		// We call delete to ensure that expired item
 		// is properly evicted as there's a bug in a cache library:
 		// https://github.com/patrickmn/go-cache/issues/48
-		fs.cache.Delete(path)
+		fs.cache.Delete(key)
 
 		// if adding the archive to the cache fails it means it's already been added before
 		// this is done to find concurrent additions.
-		if fs.cache.Add(path, archive, cache.DefaultExpiration) != nil {
+		if fs.cache.Add(key, archive, cache.DefaultExpiration) != nil {
 			return nil, errAlreadyCached
 		}
 
-		metrics.ZipCacheRequests.WithLabelValues("archive", "miss").Inc()
+		if found {
+			metrics.ZipCacheRequests.WithLabelValues("archive", "invalid").Inc()
+		} else {
+			metrics.ZipCacheRequests.WithLabelValues("archive", "miss").Inc()
+		}
 		metrics.ZipCachedEntries.WithLabelValues("archive").Inc()
 	}
 
@@ -132,13 +147,13 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArc
 }
 
 // findOrOpenArchive gets archive from cache and tries to open it
-func (fs *zipVFS) findOrOpenArchive(ctx context.Context, path string) (*zipArchive, error) {
-	zipArchive, err := fs.findOrCreateArchive(ctx, path)
+func (fs *zipVFS) findOrOpenArchive(ctx context.Context, key, path string) (*zipArchive, error) {
+	zipArchive, err := fs.findOrCreateArchive(ctx, key)
 	if err != nil {
 		return nil, err
 	}
 
-	err = zipArchive.openArchive(ctx)
+	err = zipArchive.openArchive(ctx, key)
 	if err != nil {
 		return nil, err
 	}

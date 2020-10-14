@@ -41,7 +41,6 @@ var (
 type zipArchive struct {
 	fs *zipVFS
 
-	path        string
 	once        sync.Once
 	done        chan struct{}
 	openTimeout time.Duration
@@ -57,10 +56,9 @@ type zipArchive struct {
 	directories map[string]*zip.FileHeader
 }
 
-func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive {
+func newArchive(fs *zipVFS, openTimeout time.Duration) *zipArchive {
 	return &zipArchive{
 		fs:             fs,
-		path:           path,
 		done:           make(chan struct{}),
 		files:          make(map[string]*zip.File),
 		directories:    make(map[string]*zip.FileHeader),
@@ -69,7 +67,21 @@ func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive 
 	}
 }
 
-func (a *zipArchive) openArchive(parentCtx context.Context) (err error) {
+func (a *zipArchive) isValid() bool {
+	if a.resource != nil {
+		return a.resource.Err() == nil
+	}
+
+	// until resource is opened, it is valid
+	return true
+}
+
+func (a *zipArchive) openArchive(parentCtx context.Context, url string) (err error) {
+	// always try to update URL on resource
+	if a.resource != nil {
+		a.resource.SetURL(url)
+	}
+
 	// return early if openArchive was done already in a concurrent request
 	select {
 	case <-a.done:
@@ -84,7 +96,7 @@ func (a *zipArchive) openArchive(parentCtx context.Context) (err error) {
 	a.once.Do(func() {
 		// read archive once in its own routine with its own timeout
 		// if parentCtx is canceled, readArchive will continue regardless and will be cached in memory
-		go a.readArchive()
+		go a.readArchive(url)
 	})
 
 	// wait for readArchive to be done or return if the parent context is canceled
@@ -106,14 +118,14 @@ func (a *zipArchive) openArchive(parentCtx context.Context) (err error) {
 
 // readArchive creates an httprange.Resource that can read the archive's contents and stores a slice of *zip.Files
 // that can be accessed later when calling any of th vfs.VFS operations
-func (a *zipArchive) readArchive() {
+func (a *zipArchive) readArchive(url string) {
 	defer close(a.done)
 
 	// readArchive with a timeout separate from openArchive's
 	ctx, cancel := context.WithTimeout(context.Background(), a.openTimeout)
 	defer cancel()
 
-	a.resource, a.err = httprange.NewResource(ctx, a.path)
+	a.resource, a.err = httprange.NewResource(ctx, url)
 	if a.err != nil {
 		metrics.ZipOpened.WithLabelValues("error").Inc()
 		return

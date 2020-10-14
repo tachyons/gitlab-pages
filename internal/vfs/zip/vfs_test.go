@@ -94,7 +94,7 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 	}()
 
 	require.Eventually(t, func() bool {
-		_, err := vfs.findOrOpenArchive(context.Background(), path)
+		_, err := vfs.findOrOpenArchive(context.Background(), path, path)
 		return err == errAlreadyCached
 	}, time.Second, time.Nanosecond)
 }
@@ -111,7 +111,7 @@ func TestVFSFindOrCreateArchiveCacheEvict(t *testing.T) {
 	archivesCount := testutil.ToFloat64(archivesMetric)
 
 	// create a new archive and increase counters
-	archive, err := vfs.findOrOpenArchive(context.Background(), path)
+	archive, err := vfs.findOrOpenArchive(context.Background(), path, path)
 	require.NoError(t, err)
 	require.NotNil(t, archive)
 
@@ -121,7 +121,7 @@ func TestVFSFindOrCreateArchiveCacheEvict(t *testing.T) {
 	time.Sleep(time.Nanosecond)
 
 	// a new object is created
-	archive2, err := vfs.findOrOpenArchive(context.Background(), path)
+	archive2, err := vfs.findOrOpenArchive(context.Background(), path, path)
 	require.NoError(t, err)
 	require.NotNil(t, archive2)
 	require.NotEqual(t, archive, archive2, "a different archive is returned")
