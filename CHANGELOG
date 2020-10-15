@@ -1,3 +1,11 @@
+v 1.28.0
+
+- Implement basic redirects via _redirects text file !367
+- Add support for pre-compressed brotly files !359
+- Add serving type to log !369
+- Improve performance of ZIP serving !364
+- Fix support for archives without directory structure !373
+
 v 1.27.0
 
 - Add more metrics for zip serving !363 !338
