@@ -34,6 +34,7 @@ func newLruCache(op string, maxEntries uint32, duration time.Duration) *lruCache
 	})
 
 	return &lruCache{
+		op:       op,
 		cache:    ccache.New(configuration),
 		duration: duration,
 	}
