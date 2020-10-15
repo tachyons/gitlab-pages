@@ -53,7 +53,8 @@ type zipArchive struct {
 	archive  *zip.Reader
 	err      error
 
-	files map[string]*zip.File
+	files       map[string]*zip.File
+	directories map[string]*zip.FileHeader
 }
 
 func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive {
@@ -62,6 +63,7 @@ func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive 
 		path:           path,
 		done:           make(chan struct{}),
 		files:          make(map[string]*zip.File),
+		directories:    make(map[string]*zip.FileHeader),
 		openTimeout:    openTimeout,
 		cacheNamespace: strconv.FormatInt(atomic.AddInt64(&fs.archiveCount, 1), 10) + ":",
 	}
@@ -133,7 +135,14 @@ func (a *zipArchive) readArchive() {
 		if !strings.HasPrefix(file.Name, dirPrefix) {
 			continue
 		}
-		a.files[file.Name] = file
+
+		if file.Mode().IsDir() {
+			a.directories[file.Name] = &file.FileHeader
+		} else {
+			a.files[file.Name] = file
+		}
+
+		a.addPathDirectory(file.Name)
 	}
 
 	// recycle memory
@@ -145,6 +154,23 @@ func (a *zipArchive) readArchive() {
 	metrics.ZipArchiveEntriesCached.Add(fileCount)
 }
 
+// addPathDirectory adds a directory for a given path
+func (a *zipArchive) addPathDirectory(path string) {
+	// Split dir and file from `path`
+	path, _ = filepath.Split(path)
+	if path == "" {
+		return
+	}
+
+	if a.directories[path] != nil {
+		return
+	}
+
+	a.directories[path] = &zip.FileHeader{
+		Name: path,
+	}
+}
+
 func (a *zipArchive) findFile(name string) *zip.File {
 	name = filepath.Join(dirPrefix, name)
 
@@ -152,17 +178,22 @@ func (a *zipArchive) findFile(name string) *zip.File {
 		return file
 	}
 
-	if dir := a.files[name+"/"]; dir != nil {
-		return dir
-	}
-
 	return nil
+}
+
+func (a *zipArchive) findDirectory(name string) *zip.FileHeader {
+	name = filepath.Join(dirPrefix, name)
+
+	return a.directories[name+"/"]
 }
 
 // Open finds the file by name inside the zipArchive and returns a reader that can be served by the VFS
 func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 	file := a.findFile(name)
 	if file == nil {
+		if a.findDirectory(name) != nil {
+			return nil, errNotFile
+		}
 		return nil, os.ErrNotExist
 	}
 
@@ -193,17 +224,25 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 // Lstat finds the file by name inside the zipArchive and returns its FileInfo
 func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error) {
 	file := a.findFile(name)
-	if file == nil {
-		return nil, os.ErrNotExist
+	if file != nil {
+		return file.FileInfo(), nil
 	}
 
-	return file.FileInfo(), nil
+	directory := a.findDirectory(name)
+	if directory != nil {
+		return directory.FileInfo(), nil
+	}
+
+	return nil, os.ErrNotExist
 }
 
 // ReadLink finds the file by name inside the zipArchive and returns the contents of the symlink
 func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) {
 	file := a.findFile(name)
 	if file == nil {
+		if a.findDirectory(name) != nil {
+			return "", errNotSymlink
+		}
 		return "", os.ErrNotExist
 	}
 

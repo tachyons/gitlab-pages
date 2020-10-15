@@ -13,32 +13,60 @@ import (
 )
 
 func TestZip_ServeFileHTTP(t *testing.T) {
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip")
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip")
 	defer cleanup()
 
-	s := Instance()
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "http://zip.gitlab.io/zip/index.html", nil)
-	handler := serving.Handler{
-		Writer:  w,
-		Request: r,
-		LookupPath: &serving.LookupPath{
-			Prefix: "",
-			Path:   testServerURL + "/public.zip",
+	tests := map[string]struct {
+		path           string
+		expectedStatus int
+		expectedBody   string
+	}{
+		"accessing /index.html": {
+			path:           "/index.html",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
-		SubPath: "/index.html",
+		"accessing /": {
+			path:           "/",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
+		},
+		"accessing without /": {
+			path:           "",
+			expectedStatus: http.StatusFound,
+			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
+		},
 	}
 
-	require.True(t, s.ServeFileHTTP(handler))
+	s := Instance()
 
-	resp := w.Result()
-	defer resp.Body.Close()
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", "http://zip.gitlab.io/zip"+test.path, nil)
 
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	body, err := ioutil.ReadAll(resp.Body)
-	require.NoError(t, err)
+			handler := serving.Handler{
+				Writer:  w,
+				Request: r,
+				LookupPath: &serving.LookupPath{
+					Prefix: "/zip/",
+					Path:   testServerURL + "/public.zip",
+				},
+				SubPath: test.path,
+			}
 
-	require.Contains(t, string(body), "zip.gitlab.io/project/index.html\n")
+			require.True(t, s.ServeFileHTTP(handler))
+
+			resp := w.Result()
+			defer resp.Body.Close()
+
+			require.Equal(t, test.expectedStatus, resp.StatusCode)
+			body, err := ioutil.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			require.Contains(t, string(body), test.expectedBody)
+		})
+	}
 }
 
 var chdirSet = false
