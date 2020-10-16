@@ -34,11 +34,12 @@ func TestNewResource(t *testing.T) {
 			url:          "/some/resource",
 			status:       http.StatusPartialContent,
 			contentRange: "bytes 200-1000/67589",
-			want: func() *Resource {
-				r := *resource
-				r.Size = 67589
-				return &r
-			}(),
+			want: &Resource{
+				url:          "/some/resource",
+				ETag:         "etag",
+				LastModified: "Wed, 21 Oct 2015 07:28:00 GMT",
+				Size:         67589,
+			},
 		},
 		"status_partial_content_invalid_content_range": {
 			url:            "/some/resource",
