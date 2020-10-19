@@ -36,8 +36,9 @@ var (
 
 // zipVFS is a simple cached implementation of the vfs.VFS interface
 type zipVFS struct {
-	cache     *cache.Cache
-	cacheLock sync.Mutex
+	cache                *cache.Cache
+	cacheLock            sync.Mutex
+	cacheRefreshInterval time.Duration
 
 	dataOffsetCache *lruCache
 	readlinkCache   *lruCache
@@ -45,12 +46,27 @@ type zipVFS struct {
 	archiveCount int64
 }
 
+// Option function allows to override default values
+type Option func(*zipVFS)
+
+// WithCacheRefreshInterval when used it can override defaultCacheRefreshInterval
+func WithCacheRefreshInterval(cacheRefreshInterval time.Duration) Option {
+	return func(vfs *zipVFS) {
+		vfs.cacheRefreshInterval = cacheRefreshInterval
+	}
+}
+
 // New creates a zipVFS instance that can be used by a serving request
-func New() vfs.VFS {
+func New(options ...Option) vfs.VFS {
 	zipVFS := &zipVFS{
-		cache:           cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
-		dataOffsetCache: newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval),
-		readlinkCache:   newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval),
+		cache:                cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
+		cacheRefreshInterval: defaultCacheRefreshInterval,
+		dataOffsetCache:      newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval),
+		readlinkCache:        newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval),
+	}
+
+	for _, option := range options {
+		option(zipVFS)
 	}
 
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
@@ -105,7 +121,7 @@ func (fs *zipVFS) Name() string {
 // otherwise creates the archive entry in a cache and try to save it,
 // if saving fails it's because the archive has already been cached
 // (e.g. by another concurrent request)
-func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArchive, error) {
+func (fs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 	// This needs to happen in lock to ensure that
 	// concurrent access will not remove it
 	// it is needed due to the bug https://github.com/patrickmn/go-cache/issues/48
@@ -116,9 +132,8 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArch
 	if found && archive.(*zipArchive).isValid() {
 		metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
 
-		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
-		if time.Until(expiry) < defaultCacheRefreshInterval {
-			// refresh item
+		if time.Until(expiry) < fs.cacheRefreshInterval {
+			// refresh valid item
 			fs.cache.SetDefault(key, archive)
 		}
 	} else {
@@ -131,6 +146,8 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArch
 
 		// if adding the archive to the cache fails it means it's already been added before
 		// this is done to find concurrent additions.
+		// TODO: negative cache errored archives
+		// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/469
 		if fs.cache.Add(key, archive, cache.DefaultExpiration) != nil {
 			return nil, errAlreadyCached
 		}
@@ -147,13 +164,13 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArch
 }
 
 // findOrOpenArchive gets archive from cache and tries to open it
-func (fs *zipVFS) findOrOpenArchive(ctx context.Context, key, path string) (*zipArchive, error) {
-	zipArchive, err := fs.findOrCreateArchive(ctx, key)
+func (fs *zipVFS) findOrOpenArchive(ctx context.Context, key, url string) (*zipArchive, error) {
+	zipArchive, err := fs.findOrCreateArchive(key)
 	if err != nil {
 		return nil, err
 	}
 
-	err = zipArchive.openArchive(ctx, key)
+	err = zipArchive.openArchive(ctx, url)
 	if err != nil {
 		return nil, err
 	}
