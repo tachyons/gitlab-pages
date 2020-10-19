@@ -23,13 +23,6 @@ type Resource struct {
 	lock sync.RWMutex
 }
 
-func (r *Resource) GetURL() string {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	return r.url
-}
-
 func (r *Resource) SetURL(url string) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
