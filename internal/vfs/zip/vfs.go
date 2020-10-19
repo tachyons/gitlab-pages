@@ -81,6 +81,8 @@ func New(options ...Option) vfs.VFS {
 func (fs *zipVFS) keyFromURL(url *url.URL) string {
 	// We assume that our URL is https://.../artifacts.zip?content-sign=aaa
 	// our caching key is `https://.../artifacts.zip`
+	// TODO: replace caching key with file_sha256
+	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/489
 	newURL := *url
 	newURL.RawQuery = ""
 	newURL.Fragment = ""
