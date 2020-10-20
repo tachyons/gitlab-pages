@@ -15,7 +15,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
-	"gitlab.com/lupine/go-mimedb"
+	"gitlab.com/gitlab-org/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
@@ -474,8 +474,6 @@ func runApp(config appConfig) {
 	if err := mimedb.LoadTypes(); err != nil {
 		log.WithError(err).Warn("Loading extended MIME database failed")
 	}
-
-	addExtraMIMETypes()
 
 	a.Run()
 }
