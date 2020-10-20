@@ -26,8 +26,10 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/rate_limiting"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -352,6 +354,23 @@ func (a *theApp) Run() {
 
 	httpHandler := a.httpInitialMiddleware(commonHandlerPipeline)
 
+	tlsGetCertificate := a.ServeTLS
+
+	if a.appConfig.HostRateLimit > 0 {
+		hostRateLimiter := rate_limiting.NewRateLimiting(
+			a.appConfig.HostRateLimitWindow, a.appConfig.HostRateLimit)
+
+		httpHandler = hostRateLimiter.LimitHostHandler(httpHandler)
+		proxyHandler = hostRateLimiter.LimitHostHandler(proxyHandler)
+	}
+
+	if a.appConfig.TLSSNIRateLimit > 0 {
+		tlsRateLimiter := rate_limiting.NewRateLimiting(
+			a.appConfig.HostRateLimitWindow, a.appConfig.HostRateLimit)
+
+		tlsGetCertificate = tlsRateLimiter.LimitServeTLS(a.ServeTLS)
+	}
+
 	// Listen for HTTP
 	for _, fd := range a.ListenHTTP {
 		a.listenHTTPFD(&wg, fd, httpHandler, limiter)
@@ -359,7 +378,7 @@ func (a *theApp) Run() {
 
 	// Listen for HTTPS
 	for _, fd := range a.ListenHTTPS {
-		a.listenHTTPSFD(&wg, fd, httpHandler, limiter)
+		a.listenHTTPSFD(&wg, fd, httpHandler, tlsGetCertificate, limiter)
 	}
 
 	// Listen for HTTP proxy requests
@@ -388,11 +407,11 @@ func (a *theApp) listenHTTPFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.H
 	}()
 }
 
-func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, limiter *netutil.Limiter) {
+func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, tlsGetCertificate tlsconfig.GetCertificateFunc, limiter *netutil.Limiter) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
+		err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, tlsGetCertificate, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
