@@ -10,6 +10,12 @@ type appConfig struct {
 	RootKey                []byte
 	MaxConns               int
 
+	HostRateLimit       uint
+	HostRateLimitWindow time.Duration
+
+	TLSSNIRateLimit       uint
+	TLSSNIRateLimitWindow time.Duration
+
 	ListenHTTP      []uintptr
 	ListenHTTPS     []uintptr
 	ListenProxy     []uintptr
