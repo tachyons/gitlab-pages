@@ -12,10 +12,11 @@ import (
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
+
+	"gitlab.com/gitlab-org/go-mimedb"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
-	"gitlab.com/gitlab-org/go-mimedb"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
