@@ -75,6 +75,11 @@ var (
 	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tlsconfig.FlagUsage("min"))
 	tlsMaxVersion      = flag.String("tls-max-version", "", tlsconfig.FlagUsage("max"))
 
+	hostRateLimit         = flag.Uint("host-rate-limit", 0, "Set to non-zero value to enable host-based rate limiting. Requests over rate-limit will respond with 429.")
+	hostRateLimitWindow   = flag.Duration("host-rate-limit-window", 10*time.Minute, "Define a host-bassed rate limiting window")
+	tlsSniRateLimit       = flag.Uint("tls-sni-rate-limit", 0, "Set to non-zero value to enable tls-sni-based rate limiting. New connections over that limit will be rejected.")
+	tlsSniRateLimitWindow = flag.Duration("tls-sni-limit-window", 10*time.Minute, "Define a tls-sni-bassed rate limiting window")
+
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
 	// See init()
@@ -175,6 +180,10 @@ func configFromFlags() appConfig {
 	config.TLSMinVersion = tlsconfig.AllTLSVersions[*tlsMinVersion]
 	config.TLSMaxVersion = tlsconfig.AllTLSVersions[*tlsMaxVersion]
 	config.CustomHeaders = header
+	config.HostRateLimit = *hostRateLimit
+	config.HostRateLimitWindow = *hostRateLimitWindow
+	config.TLSSNIRateLimit = *tlsSniRateLimit
+	config.TLSSNIRateLimitWindow = *tlsSniRateLimitWindow
 
 	for _, file := range []struct {
 		contents *[]byte
