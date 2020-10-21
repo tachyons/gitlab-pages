@@ -658,10 +658,6 @@ func TestMIMETypes(t *testing.T) {
 			file:                "file.webmanifest",
 			expectedContentType: "application/manifest+json",
 		},
-		"avif": {
-			file:                "image.avif",
-			expectedContentType: "image/avif",
-		},
 	}
 
 	for name, tt := range tests {
