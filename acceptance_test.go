@@ -643,21 +643,35 @@ func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
 }
 
-func TestObscureMIMEType(t *testing.T) {
+func TestMIMETypes(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "")
 	defer teardown()
 
 	require.NoError(t, httpListener.WaitUntilRequestSucceeds(nil))
 
-	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/file.webmanifest")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
+	tests := map[string]struct {
+		file                string
+		expectedContentType string
+	}{
+		"manifest_json": {
+			file:                "file.webmanifest",
+			expectedContentType: "application/manifest+json",
+		},
+	}
 
-	require.Equal(t, http.StatusOK, rsp.StatusCode)
-	mt, _, err := mime.ParseMediaType(rsp.Header.Get("Content-Type"))
-	require.NoError(t, err)
-	require.Equal(t, "application/manifest+json", mt)
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/"+tt.file)
+			require.NoError(t, err)
+			defer rsp.Body.Close()
+
+			require.Equal(t, http.StatusOK, rsp.StatusCode)
+			mt, _, err := mime.ParseMediaType(rsp.Header.Get("Content-Type"))
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedContentType, mt)
+		})
+	}
 }
 
 func TestCompressedEncoding(t *testing.T) {

@@ -344,8 +344,8 @@ github.com/yudai/pp v2.0.1+incompatible/go.mod h1:PuxR/8QJ7cyCkFp/aUDS+JY727OFEZ
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 gitlab.com/gitlab-org/labkit v0.0.0-20201014124351-eb1fe6499318 h1:3xX/pl8dQjEtBZzHPCkex4Bwr7SGmVea/Zu4JdbZrKs=
 gitlab.com/gitlab-org/labkit v0.0.0-20201014124351-eb1fe6499318/go.mod h1:SNfxkfUwVNECgtmluVayv0GWFgEjjBs5AzgsowPQuo0=
-gitlab.com/lupine/go-mimedb v0.0.0-20180307000149-e8af1d659877 h1:k5N2m0IPaMuwWmFTO9fyTK4IEnSm35GC/p1S7VRgUyM=
-gitlab.com/lupine/go-mimedb v0.0.0-20180307000149-e8af1d659877/go.mod h1:Es0wDVbtgNqhpEXMb+yct6JKnGMrNsUSh9oio0bqqdU=
+gitlab.com/gitlab-org/go-mimedb v1.45.0 h1:PO8dx6HEWzPYU6MQTYnCbpQEJzhJLW/Bh43+2VUHTgc=
+gitlab.com/gitlab-org/go-mimedb v1.45.0/go.mod h1:wa9y/zOSFKmTXLyBs4clz2FNVhZQmmEQM9TxslPAjZ0=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2 h1:75k/FF0Q2YM8QYo07VPddOLBslDt1MZOdEslOHvmzAs=
