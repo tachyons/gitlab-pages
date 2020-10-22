@@ -5,6 +5,7 @@ ARG RUBY_MAJOR_VERSION=2.6
 ARG RUBY_MINOR_VERSION=2.6.6
 ARG RUBYGEMS_VERSION=2.7.10
 ARG BUNDLER_VERSION=1.17.3
+ARG JEMALLOC_VERSION=5.2.1
 
 ENV LANG=C.UTF-8
 
@@ -51,12 +52,17 @@ RUN buildDeps=' \
   && apt-get install -y --no-install-recommends $buildDeps \
   && rm -rf /var/lib/apt/lists/* \
   && cd ${BUILD_DIR} \
+  && curl --retry 6 -L -so jemalloc.tar.bz2 https://github.com/jemalloc/jemalloc/releases/download/${JEMALLOC_VERSION}/jemalloc-${JEMALLOC_VERSION}.tar.bz2 \
+  && tar -xjf jemalloc.tar.bz2 \
+  && cd jemalloc-${JEMALLOC_VERSION} \
+  && ./autogen.sh --prefix=/usr --enable-prof \
+  && make -j "$(nproc)" install \
+  && cd .. \
   && curl --retry 6 -so ruby.tar.xz https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.xz \
   && tar -xf ruby.tar.xz \
   && rm ruby.tar.xz \
   && cd ruby-${RUBY_MINOR_VERSION} \
   && ./configure --prefix=/usr --with-out-ext=dbm,readline --enable-shared --disable-install-rdoc --disable-install-doc  --without-gmp --without-gdbm --without-tk --disable-dtrace \
-  && make -j "$(nproc)" \
   && make -j "$(nproc)" install \
   && cd \
   && apt-get purge -y --auto-remove $buildDeps \
