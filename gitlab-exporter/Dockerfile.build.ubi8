@@ -9,11 +9,11 @@ ADD postgresql.tar.gz /
 
 RUN mkdir /assets \
     && mv /usr/local/postgresql/bin/* /usr/bin/ \
-    && mv /usr/local/postgresql/lib/* /usr/lib/ \
+    && cp -R /usr/local/postgresql/lib/* ${LIBDIR}/ \
     && mv /usr/local/postgresql/include/* /usr/include/ \
     && mv /usr/local/postgresql/share/* /usr/share/ \
     && gem install gitlab-exporter -v ${GITLAB_EXPORTER_VERSION} \
     && cp -R --parents \
-        /usr/lib/ruby/gems \
+        ${LIBDIR}/ruby/gems \
         /usr/bin/gitlab-exporter \
         /assets

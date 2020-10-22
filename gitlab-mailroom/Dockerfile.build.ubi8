@@ -13,8 +13,8 @@ RUN mkdir /assets \
       gitlab-mail_room:${MAILROOM_VERSION} \
       charlock_holmes:0.7.6 \
       redis:4.2.2 redis-namespace:1.6.0 \
-    && /build-scripts/cleanup-gems /usr/lib/ruby/gems \
+    && /build-scripts/cleanup-gems ${LIBDIR}/ruby/gems \
     && cp -R --parents \
-      /usr/lib/ruby/gems \
+      ${LIBDIR}/ruby/gems \
       /usr/bin/mail_room \
       /assets

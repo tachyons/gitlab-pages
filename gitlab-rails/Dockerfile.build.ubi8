@@ -25,7 +25,7 @@ ENV PRIVATE_TOKEN=${API_TOKEN}
 
 RUN mkdir /assets \
     && cp /usr/local/postgresql/bin/* /usr/bin/ \
-    && cp -R /usr/local/postgresql/lib/* /usr/lib/ \
+    && cp -R /usr/local/postgresql/lib/* ${LIBDIR}/ \
     && cp -R /usr/local/postgresql/include/* /usr/include/ \
     && cp -R /usr/local/postgresql/share/* /usr/share/ \
     && curl --retry 6 -L https://github.com/google/re2/archive/${LIBRE2_VERSION}.tar.gz | tar -xz \
@@ -66,10 +66,10 @@ RUN /gitlab-fetch \
 
 COPY --from=assets assets /srv/gitlab/public/assets/
 
-RUN mkdir -p /assets/usr/{bin,lib} \
+RUN mkdir -p /assets/usr/{bin,lib} /assets${LIBDIR} \
     && cp /usr/local/bin/gitlab-elasticsearch-indexer /assets/usr/bin/ \
     && cp /usr/local/postgresql/bin/* /assets/usr/bin/ \
-    && cp -R /usr/local/postgresql/lib/* /assets/usr/lib/ \
+    && cp -R /usr/local/postgresql/lib/* /assets${LIBDIR}/ \
     && cp -R --parents \
         /usr/local/lib/libre2.* \
         /srv/gitlab \
