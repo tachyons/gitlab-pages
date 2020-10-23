@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -71,30 +72,93 @@ func TestOpen(t *testing.T) {
 
 func TestOpenCached(t *testing.T) {
 	var requests int64
-	zip, cleanup := openZipArchive(t, &requests)
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", &requests)
 	defer cleanup()
 
-	t.Run("open file first time", func(t *testing.T) {
-		requestsStart := requests
-		f, err := zip.Open(context.Background(), "index.html")
-		require.NoError(t, err)
-		defer f.Close()
+	fs := New()
 
-		_, err = ioutil.ReadAll(f)
-		require.NoError(t, err)
-		require.Equal(t, int64(2), atomic.LoadInt64(&requests)-requestsStart, "we expect two requests to read file: data offset and content")
-	})
+	// We use array instead of map to ensure
+	// predictable ordering of test execution
+	tests := []struct {
+		name             string
+		vfsPath          string
+		filePath         string
+		expectedOpenErr  error
+		expectedReadErr  error
+		expectedRequests int64
+	}{
+		{
+			name:     "open file first time",
+			vfsPath:  testServerURL + "/public.zip",
+			filePath: "index.html",
+			// we expect five requests to:
+			// read resource and zip metadata
+			// read file: data offset and content
+			expectedRequests: 5,
+		},
+		{
+			name:     "open file second time",
+			vfsPath:  testServerURL + "/public.zip",
+			filePath: "index.html",
+			// we expect one request to read file with cached data offset
+			expectedRequests: 1,
+		},
+		{
+			name:             "when the URL changes",
+			vfsPath:          testServerURL + "/public.zip?new-secret",
+			filePath:         "index.html",
+			expectedRequests: 1,
+		},
+		{
+			name:             "when opening cached file and content changes",
+			vfsPath:          testServerURL + "/public.zip?changed-content=1",
+			filePath:         "index.html",
+			expectedRequests: 1,
+			// we receive an error on `read` as `open` offset is already cached
+			expectedReadErr: httprange.ErrRangeRequestsNotSupported,
+		},
+		{
+			name:             "after content change archive is reloaded",
+			vfsPath:          testServerURL + "/public.zip?new-secret",
+			filePath:         "index.html",
+			expectedRequests: 5,
+		},
+		{
+			name:             "when opening non-cached file and content changes",
+			vfsPath:          testServerURL + "/public.zip?changed-content=1",
+			filePath:         "subdir/hello.html",
+			expectedRequests: 1,
+			// we receive an error on `read` as `open` offset is already cached
+			expectedOpenErr: httprange.ErrRangeRequestsNotSupported,
+		},
+	}
 
-	t.Run("open file second time", func(t *testing.T) {
-		requestsStart := atomic.LoadInt64(&requests)
-		f, err := zip.Open(context.Background(), "index.html")
-		require.NoError(t, err)
-		defer f.Close()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			start := atomic.LoadInt64(&requests)
+			zip, err := fs.Root(context.Background(), test.vfsPath)
+			require.NoError(t, err)
 
-		_, err = ioutil.ReadAll(f)
-		require.NoError(t, err)
-		require.Equal(t, int64(1), atomic.LoadInt64(&requests)-requestsStart, "we expect one request to read file with cached data offset")
-	})
+			f, err := zip.Open(context.Background(), test.filePath)
+			if test.expectedOpenErr != nil {
+				require.Equal(t, test.expectedOpenErr, err)
+				return
+			}
+
+			require.NoError(t, err)
+			defer f.Close()
+
+			_, err = ioutil.ReadAll(f)
+			if test.expectedReadErr != nil {
+				require.Equal(t, test.expectedReadErr, err)
+				return
+			}
+			require.NoError(t, err)
+
+			end := atomic.LoadInt64(&requests)
+			require.Equal(t, test.expectedRequests, end-start)
+		})
+	}
 }
 
 func TestLstat(t *testing.T) {
@@ -311,6 +375,13 @@ func newZipFileServerURL(t *testing.T, zipFilePath string, requests *int64) (str
 
 	m := http.NewServeMux()
 	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+
+		if changedContent := r.Form.Get("changed-content"); changedContent != "" {
+			w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
+			return
+		}
+
 		http.ServeFile(w, r, zipFilePath)
 		if requests != nil {
 			atomic.AddInt64(requests, 1)

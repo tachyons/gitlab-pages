@@ -99,29 +99,29 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 	}, time.Second, time.Nanosecond)
 }
 
-func TestVFSFindOrCreateArchiveCacheEvict(t *testing.T) {
+func TestVFSArchiveCacheEvict(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
 	path := testServerURL + "/public.zip"
 
-	vfs := New().(*zipVFS)
+	vfs := New(
+		WithCacheExpirationInterval(time.Nanosecond),
+	).(*zipVFS)
 
 	archivesMetric := metrics.ZipCachedEntries.WithLabelValues("archive")
 	archivesCount := testutil.ToFloat64(archivesMetric)
 
 	// create a new archive and increase counters
-	archive, err := vfs.findOrOpenArchive(context.Background(), path, path)
+	archive, err := vfs.Root(context.Background(), path)
 	require.NoError(t, err)
 	require.NotNil(t, archive)
 
-	// inject into cache to be "expired"
-	// (we could as well wait `defaultCacheExpirationInterval`)
-	vfs.cache.Set(path, archive, time.Nanosecond)
+	// wait for archive to expire
 	time.Sleep(time.Nanosecond)
 
 	// a new object is created
-	archive2, err := vfs.findOrOpenArchive(context.Background(), path, path)
+	archive2, err := vfs.Root(context.Background(), path)
 	require.NoError(t, err)
 	require.NotNil(t, archive2)
 	require.NotEqual(t, archive, archive2, "a different archive is returned")
@@ -130,42 +130,33 @@ func TestVFSFindOrCreateArchiveCacheEvict(t *testing.T) {
 	require.Equal(t, float64(1), archivesCountEnd-archivesCount, "all expired archives are evicted")
 }
 
-func TestVFSFindOrCreateArchiveCacheRefresh(t *testing.T) {
+func TestVFSArchiveRefresh(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
-	path := testServerURL + "/public.zip"
+	pathSecret1 := testServerURL + "/public.zip?secret1"
+	pathSecret2 := testServerURL + "/public.zip?secret2"
 
 	// Setting the refresh interval as the cache expiration interval
 	// ensures that the archive will be refreshed
-
 	vfs := New(
 		WithCacheRefreshInterval(defaultCacheExpirationInterval),
 	).(*zipVFS)
 
 	openedMetric := metrics.ZipOpened.WithLabelValues("ok")
-	archivesCount := testutil.ToFloat64(openedMetric)
+	openedCount := testutil.ToFloat64(openedMetric)
 
 	// create a new archive and increase counters
-	archive, err := vfs.findOrOpenArchive(context.Background(), path, path)
+	archive, err := vfs.Root(context.Background(), pathSecret1)
 	require.NoError(t, err)
 	require.NotNil(t, archive)
 
-	_, exp1, ok := vfs.cache.GetWithExpiration(path)
-	require.True(t, ok)
-
-	// get another archive within the expiration limit with the same path
-	archive2, err := vfs.findOrOpenArchive(context.Background(), path, path)
+	// get another archive with different path (as keying)
+	archive2, err := vfs.Root(context.Background(), pathSecret2)
 	require.NoError(t, err)
 	require.NotNil(t, archive2)
 	require.Equal(t, archive, archive2, "same archive is returned")
 
-	_, exp2, ok := vfs.cache.GetWithExpiration(path)
-	require.True(t, ok)
-
-	// second archive has been refreshed
-	require.True(t, exp2.After(exp1), "archive has been refreshed with new expiry")
-
-	archivesCountEnd := testutil.ToFloat64(openedMetric)
-	require.Equal(t, float64(1), archivesCountEnd-archivesCount, "only one archive is opened")
+	openedCountEnd := testutil.ToFloat64(openedMetric)
+	require.Equal(t, float64(1), openedCountEnd-openedCount, "only one archive was opened")
 }

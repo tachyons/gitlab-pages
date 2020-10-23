@@ -15,14 +15,11 @@ import (
 
 var (
 	// ErrRangeRequestsNotSupported is returned by Seek and Read
-	// when the remote server does not allow range requests (Accept-Ranges was not set)
-	ErrRangeRequestsNotSupported = errors.New("range requests are not supported by the remote server")
+	// when the remote server does not allow range requests for a given request parameters
+	ErrRangeRequestsNotSupported = errors.New("requests range is not supported by the remote server")
 
 	// ErrInvalidRange is returned by Read when trying to read past the end of the file
 	ErrInvalidRange = errors.New("invalid range")
-
-	// ErrContentHasChanged is returned by Read when the content has changed since the first request
-	ErrContentHasChanged = errors.New("content has changed since first request")
 
 	// seek errors no need to export them
 	errSeekInvalidWhence = errors.New("invalid whence")
@@ -120,8 +117,8 @@ func (r *Reader) setResponse(res *http.Response) error {
 		// some servers return 200 OK for bytes=0-
 		// TODO: should we handle r.Resource.Last-Modified as well?
 		if r.offset > 0 || r.Resource.ETag != "" && r.Resource.ETag != res.Header.Get("ETag") {
-			r.Resource.setError(ErrContentHasChanged)
-			return ErrContentHasChanged
+			r.Resource.setError(ErrRangeRequestsNotSupported)
+			return ErrRangeRequestsNotSupported
 		}
 	case http.StatusPartialContent:
 		// Requested `Range` request succeeded https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/206

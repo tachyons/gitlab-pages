@@ -36,9 +36,11 @@ var (
 
 // zipVFS is a simple cached implementation of the vfs.VFS interface
 type zipVFS struct {
-	cache                *cache.Cache
-	cacheLock            sync.Mutex
-	cacheRefreshInterval time.Duration
+	cache                   *cache.Cache
+	cacheLock               sync.Mutex
+	cacheExpirationInterval time.Duration
+	cacheRefreshInterval    time.Duration
+	cacheCleanupInterval    time.Duration
 
 	dataOffsetCache *lruCache
 	readlinkCache   *lruCache
@@ -50,43 +52,64 @@ type zipVFS struct {
 type Option func(*zipVFS)
 
 // WithCacheRefreshInterval when used it can override defaultCacheRefreshInterval
-func WithCacheRefreshInterval(cacheRefreshInterval time.Duration) Option {
+func WithCacheRefreshInterval(interval time.Duration) Option {
 	return func(vfs *zipVFS) {
-		vfs.cacheRefreshInterval = cacheRefreshInterval
+		vfs.cacheRefreshInterval = interval
+	}
+}
+
+// WithCacheExpirationInterval when used it can override defaultCacheExpirationInterval
+func WithCacheExpirationInterval(interval time.Duration) Option {
+	return func(vfs *zipVFS) {
+		vfs.cacheExpirationInterval = interval
+	}
+}
+
+// WithCacheCleanupInterval when used it can override defaultCacheCleanupInterval
+func WithCacheCleanupInterval(interval time.Duration) Option {
+	return func(vfs *zipVFS) {
+		vfs.cacheCleanupInterval = interval
 	}
 }
 
 // New creates a zipVFS instance that can be used by a serving request
 func New(options ...Option) vfs.VFS {
 	zipVFS := &zipVFS{
-		cache:                cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
-		cacheRefreshInterval: defaultCacheRefreshInterval,
-		dataOffsetCache:      newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval),
-		readlinkCache:        newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval),
+		cacheExpirationInterval: defaultCacheExpirationInterval,
+		cacheRefreshInterval:    defaultCacheRefreshInterval,
+		cacheCleanupInterval:    defaultCacheCleanupInterval,
 	}
 
 	for _, option := range options {
 		option(zipVFS)
 	}
 
+	zipVFS.cache = cache.New(zipVFS.cacheExpirationInterval, zipVFS.cacheCleanupInterval)
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
 		metrics.ZipCachedEntries.WithLabelValues("archive").Dec()
 
 		i.(*zipArchive).onEvicted()
 	})
 
+	// TODO: To be removed by https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/375
+	zipVFS.dataOffsetCache = newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval)
+	zipVFS.readlinkCache = newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval)
+
 	return zipVFS
 }
 
-func (fs *zipVFS) keyFromURL(url *url.URL) string {
+func (fs *zipVFS) keyFromPath(path string) (string, error) {
 	// We assume that our URL is https://.../artifacts.zip?content-sign=aaa
 	// our caching key is `https://.../artifacts.zip`
 	// TODO: replace caching key with file_sha256
 	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/489
-	newURL := *url
-	newURL.RawQuery = ""
-	newURL.Fragment = ""
-	return newURL.String()
+	key, err := url.Parse(path)
+	if err != nil {
+		return "", err
+	}
+	key.RawQuery = ""
+	key.Fragment = ""
+	return key.String(), nil
 }
 
 // Root opens an archive given a URL path and returns an instance of zipArchive
@@ -97,16 +120,14 @@ func (fs *zipVFS) keyFromURL(url *url.URL) string {
 // to try and find the cached archive or return if there's an error, for example
 // if the context is canceled.
 func (fs *zipVFS) Root(ctx context.Context, path string) (vfs.Root, error) {
-	urlPath, err := url.Parse(path)
+	key, err := fs.keyFromPath(path)
 	if err != nil {
 		return nil, err
 	}
 
-	key := fs.keyFromURL(urlPath)
-
 	// we do it in loop to not use any additional locks
 	for {
-		root, err := fs.findOrOpenArchive(ctx, key, urlPath.String())
+		root, err := fs.findOrOpenArchive(ctx, key, path)
 		if err == errAlreadyCached {
 			continue
 		}
@@ -132,11 +153,12 @@ func (fs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 
 	archive, expiry, found := fs.cache.GetWithExpiration(key)
 	if found && archive.(*zipArchive).isValid() {
-		metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
-
 		if time.Until(expiry) < fs.cacheRefreshInterval {
 			// refresh valid item
 			fs.cache.SetDefault(key, archive)
+			metrics.ZipCacheRequests.WithLabelValues("archive", "hit-refresh").Inc()
+		} else {
+			metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
 		}
 	} else {
 		archive = newArchive(fs, DefaultOpenTimeout)
@@ -155,7 +177,7 @@ func (fs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 		}
 
 		if found {
-			metrics.ZipCacheRequests.WithLabelValues("archive", "invalid").Inc()
+			metrics.ZipCacheRequests.WithLabelValues("archive", "miss-invalid").Inc()
 		} else {
 			metrics.ZipCacheRequests.WithLabelValues("archive", "miss").Inc()
 		}

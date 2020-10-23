@@ -214,13 +214,13 @@ func TestReaderSetResponse(t *testing.T) {
 		"status_ok_previous_response_invalid_offset": {
 			status:         http.StatusOK,
 			offset:         1,
-			expectedErrMsg: ErrContentHasChanged.Error(),
+			expectedErrMsg: ErrRangeRequestsNotSupported.Error(),
 		},
 		"status_ok_previous_response_different_etag": {
 			status:         http.StatusOK,
 			prevETag:       "old",
 			resEtag:        "new",
-			expectedErrMsg: ErrContentHasChanged.Error(),
+			expectedErrMsg: ErrRangeRequestsNotSupported.Error(),
 		},
 		"requested_range_not_satisfiable": {
 			status:         http.StatusRequestedRangeNotSatisfiable,
