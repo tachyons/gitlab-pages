@@ -15,9 +15,10 @@ import (
 
 const (
 	// TODO: make these configurable https://gitlab.com/gitlab-org/gitlab-pages/-/issues/464
-	defaultCacheExpirationInterval = time.Minute
-	defaultCacheCleanupInterval    = time.Minute / 2
-	defaultCacheRefreshInterval    = time.Minute / 2
+	defaultCacheExpirationInterval         = time.Minute
+	defaultCacheCleanupInterval            = time.Minute / 2
+	defaultCacheRefreshInterval            = time.Minute / 2
+	defaultCacheNegativeExpirationInterval = 10 * time.Second
 
 	// we assume that each item costs around 100 bytes
 	// this gives around 5MB of raw memory needed without acceleration structures
@@ -153,8 +154,6 @@ func (fs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 
 	archive, expiry, found := fs.cache.GetWithExpiration(key)
 	if found && archive.(*zipArchive).isValid() {
-		// TODO: do not refreshed errored archives
-		// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/469
 		if time.Until(expiry) < fs.cacheRefreshInterval {
 			// refresh valid item
 			fs.cache.SetDefault(key, archive)
@@ -170,11 +169,15 @@ func (fs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 		// https://github.com/patrickmn/go-cache/issues/48
 		fs.cache.Delete(key)
 
+		// change expiration time if archive is invalid
+		expiry := cache.DefaultExpiration
+		if !archive.(*zipArchive).isValid() {
+			expiry = defaultCacheNegativeExpirationInterval
+		}
+
 		// if adding the archive to the cache fails it means it's already been added before
 		// this is done to find concurrent additions.
-		// TODO: negative cache errored archives
-		// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/469
-		if fs.cache.Add(key, archive, cache.DefaultExpiration) != nil {
+		if fs.cache.Add(key, archive, expiry) != nil {
 			return nil, errAlreadyCached
 		}
 
