@@ -43,6 +43,10 @@ func newInternalTransport() *http.Transport {
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 100,
 		IdleConnTimeout:     90 * time.Second,
+		// Set more timeouts https://gitlab.com/gitlab-org/gitlab-pages/-/issues/495
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 15 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
 }
 

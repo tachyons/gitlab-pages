@@ -92,4 +92,7 @@ func TestInternalTransportShouldHaveCustomConnectionPoolSettings(t *testing.T) {
 	require.EqualValues(t, 100, InternalTransport.MaxIdleConnsPerHost)
 	require.EqualValues(t, 0, InternalTransport.MaxConnsPerHost)
 	require.EqualValues(t, 90*time.Second, InternalTransport.IdleConnTimeout)
+	require.EqualValues(t, 10*time.Second, InternalTransport.TLSHandshakeTimeout)
+	require.EqualValues(t, 15*time.Second, InternalTransport.ResponseHeaderTimeout)
+	require.EqualValues(t, 1*time.Second, InternalTransport.ExpectContinueTimeout)
 }
