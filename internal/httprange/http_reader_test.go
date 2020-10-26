@@ -241,7 +241,10 @@ func TestReaderSetResponse(t *testing.T) {
 			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.expectedErrMsg)
-				require.Equal(t, err, r.Resource.err)
+				if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusRequestedRangeNotSatisfiable {
+					require.Equal(t, err, r.Resource.err)
+				}
+
 				return
 			}
 

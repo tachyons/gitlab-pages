@@ -153,6 +153,8 @@ func (fs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 
 	archive, expiry, found := fs.cache.GetWithExpiration(key)
 	if found && archive.(*zipArchive).isValid() {
+		// TODO: do not refreshed errored archives
+		// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/469
 		if time.Until(expiry) < fs.cacheRefreshInterval {
 			// refresh valid item
 			fs.cache.SetDefault(key, archive)

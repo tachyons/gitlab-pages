@@ -127,9 +127,7 @@ func (r *Reader) setResponse(res *http.Response) error {
 		r.Resource.setError(ErrRangeRequestsNotSupported)
 		return ErrRangeRequestsNotSupported
 	default:
-		err := fmt.Errorf("httprange: read response %d: %q", res.StatusCode, res.Status)
-		r.Resource.setError(err)
-		return err
+		return fmt.Errorf("httprange: read response %d: %q", res.StatusCode, res.Status)
 	}
 
 	r.res = res
