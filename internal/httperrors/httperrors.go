@@ -3,6 +3,10 @@ package httperrors
 import (
 	"fmt"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
+
+	"gitlab.com/gitlab-org/labkit/errortracking"
 )
 
 type content struct {
@@ -174,6 +178,16 @@ func Serve404(w http.ResponseWriter) {
 
 // Serve500 returns a 500 error response / HTML page to the http.ResponseWriter
 func Serve500(w http.ResponseWriter) {
+	serveErrorPage(w, content500)
+}
+
+// Serve500WithRequest returns a 500 error response / HTML page to the http.ResponseWriter
+func Serve500WithRequest(w http.ResponseWriter, r *http.Request, reason string, err error) {
+	log.WithFields(log.Fields{
+		"host": r.Host,
+		"path": r.URL.Path,
+	}).WithError(err).Error(reason)
+	errortracking.Capture(err, errortracking.WithRequest(r))
 	serveErrorPage(w, content500)
 }
 

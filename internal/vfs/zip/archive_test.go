@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -272,7 +273,7 @@ func TestReadArchiveFails(t *testing.T) {
 
 	err := zip.openArchive(context.Background())
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "Not Found")
+	require.Contains(t, err.Error(), httprange.ErrNotFound.Error())
 
 	_, err = zip.Open(context.Background(), "index.html")
 	require.EqualError(t, err, os.ErrNotExist.Error())

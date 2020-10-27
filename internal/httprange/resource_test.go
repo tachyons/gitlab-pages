@@ -2,7 +2,6 @@ package httprange
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -60,7 +59,7 @@ func TestNewResource(t *testing.T) {
 		"not_found": {
 			url:            "/some/resource",
 			status:         http.StatusNotFound,
-			expectedErrMsg: fmt.Sprintf("httprange: new resource %d: %q", http.StatusNotFound, "404 Not Found"),
+			expectedErrMsg: ErrNotFound.Error(),
 		},
 		"invalid_url": {
 			url:            "/%",

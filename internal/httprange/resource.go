@@ -71,6 +71,9 @@ func NewResource(ctx context.Context, url string) (*Resource, error) {
 	case http.StatusRequestedRangeNotSatisfiable:
 		return nil, ErrRangeRequestsNotSupported
 
+	case http.StatusNotFound:
+		return nil, ErrNotFound
+
 	default:
 		return nil, fmt.Errorf("httprange: new resource %d: %q", res.StatusCode, res.Status)
 	}

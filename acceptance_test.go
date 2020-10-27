@@ -2023,60 +2023,79 @@ func TestZipServing(t *testing.T) {
 	defer cleanup()
 
 	tests := map[string]struct {
+		host               string
 		urlSuffix          string
 		expectedStatusCode int
 		expectedContent    string
 	}{
 		"base_domain_no_suffix": {
+			host:               "zip.gitlab.io",
 			urlSuffix:          "/",
 			expectedStatusCode: http.StatusOK,
 			expectedContent:    "zip.gitlab.io/project/index.html\n",
 		},
 		"file_exists": {
+			host:               "zip.gitlab.io",
 			urlSuffix:          "/index.html",
 			expectedStatusCode: http.StatusOK,
 			expectedContent:    "zip.gitlab.io/project/index.html\n",
 		},
 		"file_exists_in_subdir": {
+			host:               "zip.gitlab.io",
 			urlSuffix:          "/subdir/hello.html",
 			expectedStatusCode: http.StatusOK,
 			expectedContent:    "zip.gitlab.io/project/subdir/hello.html\n",
 		},
 		"file_exists_symlink": {
+			host:               "zip.gitlab.io",
 			urlSuffix:          "/symlink.html",
 			expectedStatusCode: http.StatusOK,
 			expectedContent:    "symlink.html->subdir/linked.html\n",
 		},
 		"dir": {
+			host:               "zip.gitlab.io",
 			urlSuffix:          "/subdir/",
 			expectedStatusCode: http.StatusNotFound,
 			expectedContent:    "zip.gitlab.io/project/404.html\n",
 		},
 		"file_does_not_exist": {
+			host:               "zip.gitlab.io",
 			urlSuffix:          "/unknown.html",
 			expectedStatusCode: http.StatusNotFound,
 			expectedContent:    "zip.gitlab.io/project/404.html\n",
 		},
 		"bad_symlink": {
+			host:               "zip.gitlab.io",
 			urlSuffix:          "/bad-symlink.html",
 			expectedStatusCode: http.StatusNotFound,
 			expectedContent:    "zip.gitlab.io/project/404.html\n",
+		},
+		"with_not_found_zip": {
+			host:               "zip-not-found.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusNotFound,
+			expectedContent:    "The page you're looking for could not be found",
+		},
+		"with_malformed_zip": {
+			host:               "zip-malformed.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedContent:    "Something went wrong (500)",
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			response, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", tt.urlSuffix)
+			response, err := GetPageFromListener(t, httpListener, tt.host, tt.urlSuffix)
 			require.NoError(t, err)
 			defer response.Body.Close()
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
-			if tt.expectedStatusCode == http.StatusOK || tt.expectedStatusCode == http.StatusNotFound {
-				body, err := ioutil.ReadAll(response.Body)
-				require.NoError(t, err)
 
-				require.Equal(t, tt.expectedContent, string(body), "content mismatch")
-			}
+			body, err := ioutil.ReadAll(response.Body)
+			require.NoError(t, err)
+
+			require.Contains(t, string(body), tt.expectedContent, "content mismatch")
 		})
 	}
 }

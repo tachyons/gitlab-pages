@@ -9,6 +9,7 @@ import (
 
 	"github.com/patrickmn/go-cache"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -80,6 +81,11 @@ func (fs *zipVFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 		root, err := fs.findOrOpenArchive(ctx, urlPath.String())
 		if err == errAlreadyCached {
 			continue
+		}
+
+		// If archive is not found, return a known `vfs` error
+		if err == httprange.ErrNotFound {
+			err = &vfs.ErrNotExist{Inner: err}
 		}
 
 		return root, err

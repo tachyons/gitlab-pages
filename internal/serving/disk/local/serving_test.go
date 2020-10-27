@@ -15,29 +15,79 @@ import (
 func TestDisk_ServeFileHTTP(t *testing.T) {
 	defer setUpTests(t)()
 
-	s := Instance()
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "http://group.gitlab-example.com/serving/index.html", nil)
-	handler := serving.Handler{
-		Writer:  w,
-		Request: r,
-		LookupPath: &serving.LookupPath{
-			Prefix: "/serving",
-			Path:   "group/serving/public",
+	tests := map[string]struct {
+		vfsPath        string
+		path           string
+		expectedStatus int
+		expectedBody   string
+	}{
+		"accessing /index.html": {
+			vfsPath:        "group/serving/public",
+			path:           "/index.html",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "HTML Document",
 		},
-		SubPath: "/index.html",
+		"accessing /": {
+			vfsPath:        "group/serving/public",
+			path:           "/",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "HTML Document",
+		},
+		"accessing without /": {
+			vfsPath:        "group/serving/public",
+			path:           "",
+			expectedStatus: http.StatusFound,
+			expectedBody:   `<a href="//group.gitlab-example.com/serving/">Found</a>.`,
+		},
+		"accessing vfs path that is missing": {
+			vfsPath: "group/serving/public-missing",
+			path:    "/index.html",
+			// we expect the status to not be set
+			expectedStatus: 0,
+		},
+		"accessing vfs path that is forbidden (like file)": {
+			vfsPath:        "group/serving/public/index.html",
+			path:           "/index.html",
+			expectedStatus: http.StatusInternalServerError,
+		},
 	}
 
-	require.True(t, s.ServeFileHTTP(handler))
+	s := Instance()
 
-	resp := w.Result()
-	defer resp.Body.Close()
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			w.Code = 0 // ensure that code is not set, and it is being set by handler
+			r := httptest.NewRequest("GET", "http://group.gitlab-example.com/serving"+test.path, nil)
 
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	body, err := ioutil.ReadAll(resp.Body)
-	require.NoError(t, err)
+			handler := serving.Handler{
+				Writer:  w,
+				Request: r,
+				LookupPath: &serving.LookupPath{
+					Prefix: "/serving/",
+					Path:   test.vfsPath,
+				},
+				SubPath: test.path,
+			}
 
-	require.Contains(t, string(body), "HTML Document")
+			if test.expectedStatus == 0 {
+				require.False(t, s.ServeFileHTTP(handler))
+				require.Zero(t, w.Code, "we expect status to not be set")
+				return
+			}
+
+			require.True(t, s.ServeFileHTTP(handler))
+
+			resp := w.Result()
+			defer resp.Body.Close()
+
+			require.Equal(t, test.expectedStatus, resp.StatusCode)
+			body, err := ioutil.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			require.Contains(t, string(body), test.expectedBody)
+		})
+	}
 }
 
 var chdirSet = false

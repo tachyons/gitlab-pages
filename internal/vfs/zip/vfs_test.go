@@ -9,6 +9,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -25,7 +27,7 @@ func TestVFSRoot(t *testing.T) {
 		},
 		"zip_file_does_not_exist": {
 			path:           "/unknown",
-			expectedErrMsg: "404 Not Found",
+			expectedErrMsg: vfs.ErrNotExist{Inner: httprange.ErrNotFound}.Error(),
 		},
 		"invalid_url": {
 			path:           "/%",

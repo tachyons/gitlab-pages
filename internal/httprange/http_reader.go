@@ -14,6 +14,9 @@ import (
 )
 
 var (
+	// ErrNotFound is returned when servers responds with 404
+	ErrNotFound = errors.New("resource not found")
+
 	// ErrRangeRequestsNotSupported is returned by Seek and Read
 	// when the remote server does not allow range requests (Accept-Ranges was not set)
 	ErrRangeRequestsNotSupported = errors.New("range requests are not supported by the remote server")
@@ -131,6 +134,8 @@ func (r *Reader) setResponse(res *http.Response) error {
 		if r.offset > 0 || r.Resource.ETag != "" && r.Resource.ETag != res.Header.Get("ETag") {
 			return ErrContentHasChanged
 		}
+	case http.StatusNotFound:
+		return ErrNotFound
 	case http.StatusPartialContent:
 		// Requested `Range` request succeeded https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/206
 		break
