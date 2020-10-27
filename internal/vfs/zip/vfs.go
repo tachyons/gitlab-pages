@@ -158,10 +158,11 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArc
 	if found {
 		metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
 
-		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
-		if time.Until(expiry) < fs.cacheRefreshInterval {
-			// refresh item
-			fs.cache.SetDefault(path, archive)
+		if opened, err := archive.(*zipArchive).openStatus(); opened && err == nil {
+			if time.Until(expiry) < fs.cacheRefreshInterval {
+				// refresh item that has been opened successfully
+				fs.cache.SetDefault(path, archive)
+			}
 		}
 	} else {
 		archive = newArchive(fs, path, fs.openTimeout)
