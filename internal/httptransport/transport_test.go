@@ -1,6 +1,8 @@
 package httptransport
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -43,13 +45,7 @@ func Test_withRoundTripper(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			histVec := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-				Name: t.Name(),
-			}, []string{"status_code"})
-
-			counterVec := prometheus.NewCounterVec(prometheus.CounterOpts{
-				Name: t.Name(),
-			}, []string{"status_code"})
+			histVec, counterVec := newTestMetrics(t)
 
 			next := &mockRoundTripper{
 				res: &http.Response{
@@ -78,13 +74,54 @@ func Test_withRoundTripper(t *testing.T) {
 	}
 }
 
+func TestRoundTripTTFBTimeout(t *testing.T) {
+	histVec, counterVec := newTestMetrics(t)
+
+	next := &mockRoundTripper{
+		res: &http.Response{
+			StatusCode: http.StatusOK,
+		},
+		timeout: time.Millisecond,
+		err:     nil,
+	}
+
+	mtr := &meteredRoundTripper{next: next, durations: histVec, counter: counterVec, ttfbTimeout: time.Nanosecond}
+	req, err := http.NewRequest("GET", "https://gitlab.com", nil)
+	require.NoError(t, err)
+
+	res, err := mtr.RoundTrip(req)
+	require.Nil(t, res)
+	require.True(t, errors.Is(err, context.Canceled), "context must have been canceled after ttfb timeout")
+}
+
+func newTestMetrics(t *testing.T) (*prometheus.HistogramVec, *prometheus.CounterVec) {
+	t.Helper()
+
+	histVec := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: t.Name(),
+	}, []string{"status_code"})
+
+	counterVec := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: t.Name(),
+	}, []string{"status_code"})
+
+	return histVec, counterVec
+}
+
 type mockRoundTripper struct {
-	res *http.Response
-	err error
+	res     *http.Response
+	err     error
+	timeout time.Duration
 }
 
 func (mrt *mockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	return mrt.res, mrt.err
+	time.Sleep(mrt.timeout)
+	select {
+	case <-r.Context().Done():
+		return nil, r.Context().Err()
+	default:
+		return mrt.res, mrt.err
+	}
 }
 
 func TestInternalTransportShouldHaveCustomConnectionPoolSettings(t *testing.T) {
@@ -94,5 +131,5 @@ func TestInternalTransportShouldHaveCustomConnectionPoolSettings(t *testing.T) {
 	require.EqualValues(t, 90*time.Second, InternalTransport.IdleConnTimeout)
 	require.EqualValues(t, 10*time.Second, InternalTransport.TLSHandshakeTimeout)
 	require.EqualValues(t, 15*time.Second, InternalTransport.ResponseHeaderTimeout)
-	require.EqualValues(t, 1*time.Second, InternalTransport.ExpectContinueTimeout)
+	require.EqualValues(t, 15*time.Second, InternalTransport.ExpectContinueTimeout)
 }

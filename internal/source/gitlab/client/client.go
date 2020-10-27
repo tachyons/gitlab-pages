@@ -60,7 +60,9 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 				"gitlab_internal_api",
 				metrics.DomainsSourceAPITraceDuration,
 				metrics.DomainsSourceAPICallDuration,
-				metrics.DomainsSourceAPIReqTotal),
+				metrics.DomainsSourceAPIReqTotal,
+				15*time.Second,
+			),
 		},
 		jwtTokenExpiry: jwtTokenExpiry,
 	}, nil

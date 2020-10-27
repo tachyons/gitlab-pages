@@ -62,6 +62,7 @@ var httpClient = &http.Client{
 		metrics.HTTPRangeTraceDuration,
 		metrics.HTTPRangeRequestDuration,
 		metrics.HTTPRangeRequestsTotal,
+		15*time.Second,
 	),
 }
 
