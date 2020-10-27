@@ -1,0 +1,16 @@
+{
+    "certificate": "",
+    "key": "",
+    "lookup_paths": [
+        {
+            "access_control": false,
+            "https_only": false,
+            "prefix": "/",
+            "project_id": 123,
+            "source": {
+                "path": "http://127.0.0.1:37003/malformed.zip",
+                "type": "zip"
+            }
+        }
+    ]
+}

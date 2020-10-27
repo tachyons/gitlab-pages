@@ -226,9 +226,13 @@ func TestReaderSetResponse(t *testing.T) {
 			status:         http.StatusRequestedRangeNotSatisfiable,
 			expectedErrMsg: ErrRangeRequestsNotSupported.Error(),
 		},
-		"unhandled_status_code": {
+		"not_found": {
 			status:         http.StatusNotFound,
-			expectedErrMsg: "httprange: read response 404:",
+			expectedErrMsg: ErrNotFound.Error(),
+		},
+		"unhandled_status_code": {
+			status:         http.StatusInternalServerError,
+			expectedErrMsg: "httprange: read response 500:",
 		},
 	}
 	for name, tt := range tests {

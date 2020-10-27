@@ -20,12 +20,16 @@ func (fs VFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 	}
 
 	rootPath, err = filepath.EvalSymlinks(rootPath)
-	if err != nil {
+	if os.IsNotExist(err) {
+		return nil, &vfs.ErrNotExist{Inner: err}
+	} else if err != nil {
 		return nil, err
 	}
 
 	fi, err := os.Lstat(rootPath)
-	if err != nil {
+	if os.IsNotExist(err) {
+		return nil, &vfs.ErrNotExist{Inner: err}
+	} else if err != nil {
 		return nil, err
 	}
 

@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
@@ -25,39 +27,51 @@ type Reader struct {
 }
 
 // Show the user some validation messages for their _redirects file
-func (reader *Reader) serveRedirectsStatus(h serving.Handler, redirects *redirects.Redirects) error {
+func (reader *Reader) serveRedirectsStatus(h serving.Handler, redirects *redirects.Redirects) {
 	h.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	h.Writer.Header().Set("X-Content-Type-Options", "nosniff")
 	h.Writer.WriteHeader(http.StatusOK)
-	_, err := fmt.Fprintln(h.Writer, redirects.Status())
-	return err
+	fmt.Fprintln(h.Writer, redirects.Status())
 }
 
-func (reader *Reader) tryRedirects(h serving.Handler) error {
+// tryRedirects returns true if it successfully handled request
+func (reader *Reader) tryRedirects(h serving.Handler) bool {
 	ctx := h.Request.Context()
 	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
-	if err != nil {
-		return err
+	if vfs.IsNotExist(err) {
+		return false
+	} else if err != nil {
+		httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
+		return true
 	}
 
 	r := redirects.ParseRedirects(ctx, root)
 
 	rewrittenURL, status, err := r.Rewrite(h.Request.URL)
 	if err != nil {
-		return err
+		if err != redirects.ErrNoRedirect {
+			// We assume that rewrite failure is not fatal
+			// and we only capture the error
+			errortracking.Capture(err, errortracking.WithRequest(h.Request))
+		}
+		return false
 	}
 
 	http.Redirect(h.Writer, h.Request, rewrittenURL.Path, status)
-
-	return nil
+	return true
 }
 
-func (reader *Reader) tryFile(h serving.Handler) error {
+// tryFile returns true if it successfully handled request
+func (reader *Reader) tryFile(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
 	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
-	if err != nil {
-		return err
+	if vfs.IsNotExist(err) {
+		return false
+	} else if err != nil {
+		httperrors.Serve500WithRequest(h.Writer, h.Request,
+			"vfs.Root", err)
+		return true
 	}
 
 	fullPath, err := reader.resolvePath(ctx, root, h.SubPath)
@@ -80,7 +94,7 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 			// Ensure that there's always "/" at end
 			redirectPath = strings.TrimSuffix(redirectPath, "/") + "/"
 			http.Redirect(h.Writer, h.Request, redirectPath, 302)
-			return nil
+			return true
 		}
 	}
 
@@ -89,7 +103,9 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 	}
 
 	if err != nil {
-		return err
+		// We assume that this is mostly missing file type of the error
+		// and additional handlers should try to process the request
+		return false
 	}
 
 	// Serve status of `_redirects` under `_redirects`
@@ -97,34 +113,42 @@ func (reader *Reader) tryFile(h serving.Handler) error {
 	if fullPath == redirects.ConfigFile {
 		if os.Getenv("FF_ENABLE_REDIRECTS") != "false" {
 			r := redirects.ParseRedirects(ctx, root)
-			return reader.serveRedirectsStatus(h, r)
+			reader.serveRedirectsStatus(h, r)
+			return true
 		}
 
 		h.Writer.WriteHeader(http.StatusForbidden)
-		return nil
+		return true
 	}
 
 	return reader.serveFile(ctx, h.Writer, h.Request, root, fullPath, h.LookupPath.HasAccessControl)
 }
 
-func (reader *Reader) tryNotFound(h serving.Handler) error {
+func (reader *Reader) tryNotFound(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
 	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
-	if err != nil {
-		return err
+	if vfs.IsNotExist(err) {
+		return false
+	} else if err != nil {
+		httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
+		return true
 	}
 
 	page404, err := reader.resolvePath(ctx, root, "404.html")
 	if err != nil {
-		return err
+		// We assume that this is mostly missing file type of the error
+		// and additional handlers should try to process the request
+		return false
 	}
 
 	err = reader.serveCustomFile(ctx, h.Writer, h.Request, http.StatusNotFound, root, page404)
 	if err != nil {
-		return err
+		httperrors.Serve500WithRequest(h.Writer, h.Request, "serveCustomFile", err)
+		return true
 	}
-	return nil
+
+	return true
 }
 
 // Resolve the HTTP request to a path on disk, converting requests for
@@ -168,19 +192,21 @@ func (reader *Reader) resolvePath(ctx context.Context, root vfs.Root, subPath ..
 	return fullPath, nil
 }
 
-func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, origPath string, accessControl bool) error {
+func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, origPath string, accessControl bool) bool {
 	fullPath := reader.handleContentEncoding(ctx, w, r, root, origPath)
 
 	file, err := root.Open(ctx, fullPath)
 	if err != nil {
-		return err
+		httperrors.Serve500WithRequest(w, r, "root.Open", err)
+		return true
 	}
 
 	defer file.Close()
 
 	fi, err := root.Lstat(ctx, fullPath)
 	if err != nil {
-		return err
+		httperrors.Serve500WithRequest(w, r, "root.Lstat", err)
+		return true
 	}
 
 	if !accessControl {
@@ -191,7 +217,8 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 
 	contentType, err := reader.detectContentType(ctx, root, origPath)
 	if err != nil {
-		return err
+		httperrors.Serve500WithRequest(w, r, "detectContentType", err)
+		return true
 	}
 
 	w.Header().Set("Content-Type", contentType)
@@ -208,7 +235,7 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 		io.Copy(w, file)
 	}
 
-	return nil
+	return true
 }
 
 func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter, r *http.Request, code int, root vfs.Root, origPath string) error {

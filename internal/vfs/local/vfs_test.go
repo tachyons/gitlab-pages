@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
 var localVFS = &VFS{}
@@ -98,7 +100,7 @@ func TestVFSRoot(t *testing.T) {
 			rootVFS, err := localVFS.Root(context.Background(), filepath.Join(tmpDir, test.path))
 
 			if test.expectedIsNotExist {
-				require.Equal(t, test.expectedIsNotExist, os.IsNotExist(err))
+				require.Equal(t, test.expectedIsNotExist, vfs.IsNotExist(err))
 				return
 			}
 

@@ -542,6 +542,9 @@ func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
 	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, zipFilePath)
 	}))
+	m.HandleFunc("/malformed.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
 
 	// create a listener with the desired port.
 	l, err := net.Listen("tcp", objectStorageMockServer)
