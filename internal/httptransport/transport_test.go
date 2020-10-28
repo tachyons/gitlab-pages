@@ -115,11 +115,10 @@ type mockRoundTripper struct {
 }
 
 func (mrt *mockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	time.Sleep(mrt.timeout)
 	select {
 	case <-r.Context().Done():
 		return nil, r.Context().Err()
-	default:
+	case <-time.After(mrt.timeout):
 		return mrt.res, mrt.err
 	}
 }

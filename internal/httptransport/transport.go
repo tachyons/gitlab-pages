@@ -16,6 +16,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	// DefaultTTFBTimeout is the timeout used in the meteredRoundTripper
+	// when calling http.Transport.RoundTrip. The request will be cancelled
+	// if the response takes longer than this.
+	DefaultTTFBTimeout = 15 * time.Second
+)
+
 var (
 	sysPoolOnce = &sync.Once{}
 	sysPool     *x509.CertPool
@@ -98,9 +105,7 @@ func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 	ctx := httptrace.WithClientTrace(r.Context(), mrt.newTracer(start))
 	ctx, cancel := context.WithCancel(ctx)
 
-	timer := time.AfterFunc(mrt.ttfbTimeout, func() {
-		cancel()
-	})
+	timer := time.AfterFunc(mrt.ttfbTimeout, cancel)
 	defer timer.Stop()
 
 	r = r.WithContext(ctx)
