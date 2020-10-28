@@ -1,6 +1,7 @@
 package httptransport
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"net"
@@ -15,6 +16,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	// DefaultTTFBTimeout is the timeout used in the meteredRoundTripper
+	// when calling http.Transport.RoundTrip. The request will be cancelled
+	// if the response takes longer than this.
+	DefaultTTFBTimeout = 15 * time.Second
+)
+
 var (
 	sysPoolOnce = &sync.Once{}
 	sysPool     *x509.CertPool
@@ -26,11 +34,12 @@ var (
 )
 
 type meteredRoundTripper struct {
-	next      http.RoundTripper
-	name      string
-	tracer    *prometheus.HistogramVec
-	durations *prometheus.HistogramVec
-	counter   *prometheus.CounterVec
+	next        http.RoundTripper
+	name        string
+	tracer      *prometheus.HistogramVec
+	durations   *prometheus.HistogramVec
+	counter     *prometheus.CounterVec
+	ttfbTimeout time.Duration
 }
 
 func newInternalTransport() *http.Transport {
@@ -43,19 +52,24 @@ func newInternalTransport() *http.Transport {
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 100,
 		IdleConnTimeout:     90 * time.Second,
+		// Set more timeouts https://gitlab.com/gitlab-org/gitlab-pages/-/issues/495
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 15 * time.Second,
+		ExpectContinueTimeout: 15 * time.Second,
 	}
 }
 
 // NewTransportWithMetrics will create a custom http.RoundTripper that can be used with an http.Client.
 // The RoundTripper will report metrics based on the collectors passed.
 func NewTransportWithMetrics(name string, tracerVec, durationsVec *prometheus.
-	HistogramVec, counterVec *prometheus.CounterVec) http.RoundTripper {
+	HistogramVec, counterVec *prometheus.CounterVec, ttfbTimeout time.Duration) http.RoundTripper {
 	return &meteredRoundTripper{
-		next:      InternalTransport,
-		name:      name,
-		tracer:    tracerVec,
-		durations: durationsVec,
-		counter:   counterVec,
+		next:        InternalTransport,
+		name:        name,
+		tracer:      tracerVec,
+		durations:   durationsVec,
+		counter:     counterVec,
+		ttfbTimeout: ttfbTimeout,
 	}
 }
 
@@ -88,7 +102,13 @@ func loadPool() {
 func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	start := time.Now()
 
-	r = r.WithContext(httptrace.WithClientTrace(r.Context(), mrt.newTracer(start)))
+	ctx := httptrace.WithClientTrace(r.Context(), mrt.newTracer(start))
+	ctx, cancel := context.WithCancel(ctx)
+
+	timer := time.AfterFunc(mrt.ttfbTimeout, cancel)
+	defer timer.Stop()
+
+	r = r.WithContext(ctx)
 
 	resp, err := mrt.next.RoundTrip(r)
 	if err != nil {
