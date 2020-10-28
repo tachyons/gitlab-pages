@@ -51,10 +51,11 @@ func Test_withRoundTripper(t *testing.T) {
 				res: &http.Response{
 					StatusCode: tt.statusCode,
 				},
-				err: tt.err,
+				err:     tt.err,
+				timeout: time.Nanosecond,
 			}
 
-			mtr := &meteredRoundTripper{next: next, durations: histVec, counter: counterVec}
+			mtr := &meteredRoundTripper{next: next, durations: histVec, counter: counterVec, ttfbTimeout: DefaultTTFBTimeout}
 			r := httptest.NewRequest("GET", "/", nil)
 
 			res, err := mtr.RoundTrip(r)
