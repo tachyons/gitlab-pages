@@ -101,29 +101,29 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 	}, time.Second, time.Nanosecond)
 }
 
-func TestVFSFindOrCreateArchiveCacheEvict(t *testing.T) {
+func TestVFSArchiveCacheEvict(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
 	path := testServerURL + "/public.zip"
 
-	vfs := New().(*zipVFS)
+	vfs := New(
+		WithCacheExpirationInterval(time.Nanosecond),
+	).(*zipVFS)
 
 	archivesMetric := metrics.ZipCachedEntries.WithLabelValues("archive")
 	archivesCount := testutil.ToFloat64(archivesMetric)
 
 	// create a new archive and increase counters
-	archive, err := vfs.findOrOpenArchive(context.Background(), path)
+	archive, err := vfs.Root(context.Background(), path)
 	require.NoError(t, err)
 	require.NotNil(t, archive)
 
-	// inject into cache to be "expired"
-	// (we could as well wait `defaultCacheExpirationInterval`)
-	vfs.cache.Set(path, archive, time.Nanosecond)
+	// wait for archive to expire
 	time.Sleep(time.Nanosecond)
 
 	// a new object is created
-	archive2, err := vfs.findOrOpenArchive(context.Background(), path)
+	archive2, err := vfs.Root(context.Background(), path)
 	require.NoError(t, err)
 	require.NotNil(t, archive2)
 	require.NotEqual(t, archive, archive2, "a different archive is returned")

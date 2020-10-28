@@ -19,6 +19,7 @@ const (
 	defaultCacheExpirationInterval = time.Minute
 	defaultCacheCleanupInterval    = time.Minute / 2
 	defaultCacheRefreshInterval    = time.Minute / 2
+	defaultOpenTimeout             = time.Minute / 2
 
 	// we assume that each item costs around 100 bytes
 	// this gives around 5MB of raw memory needed without acceleration structures
@@ -40,25 +41,71 @@ type zipVFS struct {
 	cache     *cache.Cache
 	cacheLock sync.Mutex
 
+	openTimeout             time.Duration
+	cacheExpirationInterval time.Duration
+	cacheRefreshInterval    time.Duration
+	cacheCleanupInterval    time.Duration
+
 	dataOffsetCache *lruCache
 	readlinkCache   *lruCache
 
 	archiveCount int64
 }
 
+// Option function allows to override default values
+type Option func(*zipVFS)
+
+// WithCacheRefreshInterval when used it can override defaultCacheRefreshInterval
+func WithCacheRefreshInterval(interval time.Duration) Option {
+	return func(vfs *zipVFS) {
+		vfs.cacheRefreshInterval = interval
+	}
+}
+
+// WithCacheExpirationInterval when used it can override defaultCacheExpirationInterval
+func WithCacheExpirationInterval(interval time.Duration) Option {
+	return func(vfs *zipVFS) {
+		vfs.cacheExpirationInterval = interval
+	}
+}
+
+// WithCacheCleanupInterval when used it can override defaultCacheCleanupInterval
+func WithCacheCleanupInterval(interval time.Duration) Option {
+	return func(vfs *zipVFS) {
+		vfs.cacheCleanupInterval = interval
+	}
+}
+
+// WithOpenTimeout when used it can override openTimeout
+func WithOpenTimeout(interval time.Duration) Option {
+	return func(vfs *zipVFS) {
+		vfs.openTimeout = interval
+	}
+}
+
 // New creates a zipVFS instance that can be used by a serving request
-func New() vfs.VFS {
+func New(options ...Option) vfs.VFS {
 	zipVFS := &zipVFS{
-		cache:           cache.New(defaultCacheExpirationInterval, defaultCacheCleanupInterval),
-		dataOffsetCache: newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval),
-		readlinkCache:   newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval),
+		cacheExpirationInterval: defaultCacheExpirationInterval,
+		cacheRefreshInterval:    defaultCacheRefreshInterval,
+		cacheCleanupInterval:    defaultCacheCleanupInterval,
+		openTimeout:             defaultOpenTimeout,
 	}
 
+	for _, option := range options {
+		option(zipVFS)
+	}
+
+	zipVFS.cache = cache.New(zipVFS.cacheExpirationInterval, zipVFS.cacheCleanupInterval)
 	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
 		metrics.ZipCachedEntries.WithLabelValues("archive").Dec()
 
 		i.(*zipArchive).onEvicted()
 	})
+
+	// TODO: To be removed with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/480
+	zipVFS.dataOffsetCache = newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval)
+	zipVFS.readlinkCache = newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval)
 
 	return zipVFS
 }
@@ -112,12 +159,12 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArc
 		metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
 
 		// TODO: do not refreshed errored archives https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/351
-		if time.Until(expiry) < defaultCacheRefreshInterval {
+		if time.Until(expiry) < fs.cacheRefreshInterval {
 			// refresh item
 			fs.cache.SetDefault(path, archive)
 		}
 	} else {
-		archive = newArchive(fs, path, DefaultOpenTimeout)
+		archive = newArchive(fs, path, fs.openTimeout)
 
 		// We call delete to ensure that expired item
 		// is properly evicted as there's a bug in a cache library:
@@ -126,7 +173,7 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArc
 
 		// if adding the archive to the cache fails it means it's already been added before
 		// this is done to find concurrent additions.
-		if fs.cache.Add(path, archive, cache.DefaultExpiration) != nil {
+		if fs.cache.Add(path, archive, fs.cacheExpirationInterval) != nil {
 			return nil, errAlreadyCached
 		}
 

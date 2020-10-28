@@ -24,9 +24,6 @@ import (
 const (
 	dirPrefix      = "public/"
 	maxSymlinkSize = 256
-
-	// DefaultOpenTimeout to request an archive and read its contents the first time
-	DefaultOpenTimeout = 30 * time.Second
 )
 
 var (
