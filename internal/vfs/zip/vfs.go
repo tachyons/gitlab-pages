@@ -40,7 +40,7 @@ type zipVFS struct {
 	cache     *cache.Cache
 	cacheLock sync.Mutex
 
-	defaultOpenTimeout      time.Duration
+	openTimeout             time.Duration
 	cacheExpirationInterval time.Duration
 	cacheRefreshInterval    time.Duration
 	cacheCleanupInterval    time.Duration
@@ -75,10 +75,10 @@ func WithCacheCleanupInterval(interval time.Duration) Option {
 	}
 }
 
-// WithDefaultOpenTimeout when used it can override defaultOpenTimeout
-func WithDefaultOpenTimeout(interval time.Duration) Option {
+// WithOpenTimeout when used it can override openTimeout
+func WithOpenTimeout(interval time.Duration) Option {
 	return func(vfs *zipVFS) {
-		vfs.defaultOpenTimeout = interval
+		vfs.openTimeout = interval
 	}
 }
 
@@ -88,7 +88,7 @@ func New(options ...Option) vfs.VFS {
 		cacheExpirationInterval: defaultCacheExpirationInterval,
 		cacheRefreshInterval:    defaultCacheRefreshInterval,
 		cacheCleanupInterval:    defaultCacheCleanupInterval,
-		defaultOpenTimeout:      defaultOpenTimeout,
+		openTimeout:             defaultOpenTimeout,
 	}
 
 	for _, option := range options {
@@ -158,7 +158,7 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, path string) (*zipArc
 			fs.cache.SetDefault(path, archive)
 		}
 	} else {
-		archive = newArchive(fs, path, fs.defaultOpenTimeout)
+		archive = newArchive(fs, path, fs.openTimeout)
 
 		// We call delete to ensure that expired item
 		// is properly evicted as there's a bug in a cache library:
