@@ -132,41 +132,66 @@ func TestVFSArchiveCacheEvict(t *testing.T) {
 	require.Equal(t, float64(1), archivesCountEnd-archivesCount, "all expired archives are evicted")
 }
 
-func TestVFSFindOrCreateArchiveErrored(t *testing.T) {
+func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
-	path := testServerURL + "/unknown.zip"
+	vfs := New(
+		// using defaultCacheExpirationInterval ensures refresh would be called
+		WithCacheRefreshInterval(defaultCacheExpirationInterval),
+	).(*zipVFS)
 
-	vfs := New().(*zipVFS)
+	tests := map[string]struct {
+		path              string
+		expectOpenError   bool
+		expectEqualExpiry bool
+	}{
+		"successful_refresh": {path: "/public.zip", expectOpenError: false, expectEqualExpiry: false},
+		"errored_archive":    {path: "/unknown.zip", expectOpenError: true, expectEqualExpiry: true},
+	}
 
-	archivesMetric := metrics.ZipCachedEntries.WithLabelValues("archive")
-	archivesCount := testutil.ToFloat64(archivesMetric)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			archivesMetric := metrics.ZipCachedEntries.WithLabelValues("archive")
+			archivesCount := testutil.ToFloat64(archivesMetric)
 
-	// create a new archive and increase counters
-	archive, err := vfs.findOrOpenArchive(context.Background(), path)
-	require.Error(t, err)
-	require.Nil(t, archive)
+			path := testServerURL + test.path
 
-	item, exp1, found := vfs.cache.GetWithExpiration(path)
-	require.True(t, found)
+			// create a new archive and increase counters
+			archive1, err1 := vfs.findOrOpenArchive(context.Background(), path)
+			if test.expectOpenError {
+				require.Error(t, err1)
+				require.Nil(t, archive1)
+			} else {
+				require.NoError(t, err1)
+			}
 
-	// item has been opened and has an error
-	opened, err1 := item.(*zipArchive).openStatus()
-	require.True(t, opened)
-	require.Error(t, err1)
-	require.Equal(t, err, err1, "same error as findOrOpenArchive")
+			item1, exp1, found := vfs.cache.GetWithExpiration(path)
+			require.True(t, found)
 
-	// should return errored archive
-	archive2, err2 := vfs.findOrOpenArchive(context.Background(), path)
-	require.Error(t, err2)
-	require.Nil(t, archive2)
-	require.Equal(t, err1, err2, "same error for the same archive")
+			// should return errored archive
+			archive2, err2 := vfs.findOrOpenArchive(context.Background(), path)
+			if test.expectOpenError {
+				require.Error(t, err2)
+				require.Nil(t, archive2)
+			} else {
+				require.NoError(t, err2)
+			}
 
-	_, exp2, found := vfs.cache.GetWithExpiration(path)
-	require.True(t, found)
-	require.Equal(t, exp1, exp2, "archive has not been refreshed")
+			require.Equal(t, err1, err2, "same error for the same archive")
 
-	archivesCountEnd := testutil.ToFloat64(archivesMetric)
-	require.Equal(t, float64(1), archivesCountEnd-archivesCount, "only one archive cached")
+			item2, exp2, found := vfs.cache.GetWithExpiration(path)
+			require.True(t, found)
+			require.Equal(t, item1, item2, "same item is returned")
+
+			if test.expectEqualExpiry {
+				require.True(t, exp1.Equal(exp2), "archive has not been refreshed")
+			} else {
+				require.True(t, exp2.After(exp1), "exp2 should be after exp1 due to refresh")
+			}
+
+			archivesCountEnd := testutil.ToFloat64(archivesMetric)
+			require.Equal(t, float64(1), archivesCountEnd-archivesCount, "only one archive cached")
+		})
+	}
 }
