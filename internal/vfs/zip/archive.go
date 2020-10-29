@@ -68,11 +68,8 @@ func newArchive(fs *zipVFS, path string, openTimeout time.Duration) *zipArchive 
 
 func (a *zipArchive) openArchive(parentCtx context.Context) (err error) {
 	// return early if openArchive was done already in a concurrent request
-	select {
-	case <-a.done:
-		return a.err
-
-	default:
+	if ok, err := a.openStatus(); ok {
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(parentCtx, a.openTimeout)
@@ -282,4 +279,14 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 // onEvicted called by the zipVFS.cache when an archive is removed from the cache
 func (a *zipArchive) onEvicted() {
 	metrics.ZipArchiveEntriesCached.Sub(float64(len(a.files)))
+}
+
+func (a *zipArchive) openStatus() (bool, error) {
+	select {
+	case <-a.done:
+		return true, a.err
+
+	default:
+		return false, nil
+	}
 }
