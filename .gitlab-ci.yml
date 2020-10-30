@@ -240,6 +240,33 @@ gitlab-ruby:
     - build_if_needed
     - push_tags
 
+build:gitlab-logger:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  script:
+    - import_assets artifacts/ubi/gitlab-go.tar.gz
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GLOGGER_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed --build-arg "GLOGGER_VERSION=$GLOGGER_VERSION"
+                      --build-arg "GLOGGER_SHA256=${GLOGGER_SHA256}"
+    - copy_assets
+
+gitlab-logger:
+  <<: *job-base
+  <<: *except-deps
+  stage: phase-three
+  script:
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GLOGGER_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed --build-arg "GLOGGER_VERSION=$GLOGGER_VERSION"
+                      --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GLOGGER_SHA256=${GLOGGER_SHA256}"
+    - push_tags
+    - push_tags $GLOGGER_VERSION${IMAGE_TAG_EXT}
+    - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-logger_container.txt
+
 build:gitlab-graphicsmagick:
   <<: *build-job-base
   stage: prepare:phase-one
@@ -1079,6 +1106,7 @@ ubi-assets-release:
     - build:gitlab-ruby
     - build:gitlab-go
     - build:git-base
+    - build:gitlab-logger
     - build:gitlab-container-registry
     - build:gitlab-mailroom
     - build:gitlab-exporter

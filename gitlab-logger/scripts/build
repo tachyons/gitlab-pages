@@ -1,0 +1,15 @@
+#!/bin/bash
+set -exo pipefail
+
+src_path="/build/gitlab-logger"
+mkdir -p "/target" "${src_path}"
+
+mv "/build/gitlab-logger-${GLOGGER_VERSION}/main.go" "${src_path}"
+pushd "${src_path}"
+
+export GOPATH="${src_path}"
+export GOBIN="/target"
+go get
+go build .
+
+popd # from /build/gitlab-logger

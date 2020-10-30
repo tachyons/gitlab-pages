@@ -1,0 +1,18 @@
+#!/bin/bash
+# This script designed to download and verify the sources of GitLab Logger
+# Items from environment:
+# - GLOGGER_SOURCE_URL - complete URL of the source tarball
+# - GLOGGER_SHA256 - The shasum of the tarball
+
+set -exo pipefail
+
+pushd /build
+# Downloads sources
+curl --retry 6 -LOsS "${GLOGGER_SOURCE_URL}"
+
+# Verify source tarball
+echo "${GLOGGER_SHA256} $(basename "${GLOGGER_SOURCE_URL}")" > SHASUM
+sha256sum -c SHASUM
+tar xzf "$(basename "${GLOGGER_SOURCE_URL}")"
+
+popd # from /build
