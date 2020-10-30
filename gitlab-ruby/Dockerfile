@@ -62,7 +62,7 @@ RUN buildDeps=' \
   && tar -xf ruby.tar.xz \
   && rm ruby.tar.xz \
   && cd ruby-${RUBY_MINOR_VERSION} \
-  && ./configure --prefix=/usr --with-out-ext=dbm,readline --enable-shared --disable-install-rdoc --disable-install-doc  --without-gmp --without-gdbm --without-tk --disable-dtrace \
+  && ./configure --prefix=/usr --with-jemalloc --with-out-ext=dbm,readline --enable-shared --disable-install-rdoc --disable-install-doc  --without-gmp --without-gdbm --without-tk --disable-dtrace \
   && make -j "$(nproc)" install \
   && cd \
   && apt-get purge -y --auto-remove $buildDeps \
