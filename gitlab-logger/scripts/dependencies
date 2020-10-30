@@ -1,0 +1,7 @@
+#!/bin/bash
+DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+
+# Install tools and libaries needed for compilation
+apt-get install -q -y --no-install-recommends git curl
