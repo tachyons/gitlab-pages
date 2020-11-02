@@ -28,7 +28,10 @@ gemnasium-dependency_scanning:
   <<: *rules-for-scanners
 
 secret_detection:
-  <<: *rules-for-scanners
+  stage: prepare
+  rules:
+    # For merge requests, create a pipeline.
+    - if: '$CI_MERGE_REQUEST_IID'
 
 gosec-sast:
   <<: *rules-for-scanners
