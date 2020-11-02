@@ -1,3 +1,12 @@
+v 1.29.0
+
+- Fix LRU cache metrics !379
+- Upgrade go-mimedb to support new types including avif images !353
+- Return 5xx instead of 404 if pages zip serving is unavailable !381
+- Make timeouts for ZIP VFS configurable !385
+- Improve httprange timeouts !382
+- Fix caching for errored ZIP VFS archives !384
+
 v 1.28.0
 
 - Implement basic redirects via _redirects text file !367
