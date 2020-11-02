@@ -1,0 +1,23 @@
+ARG BUILD_IMAGE=
+
+FROM ${BUILD_IMAGE}
+
+ENV LANG=C.UTF-8
+
+ARG GLOGGER_VERSION=1.0
+ARG GLOGGER_SHA256=f37acfd5cdbcc940f541bb2cde5468778db60c6eb4d2e5f368207cafefcdb66f
+
+ADD gitlab-go.tar.gz /
+
+ENV GLOGGER_SOURCE_URL="https://github.com/jbguerraz/gitlab-logger/archive/v${GLOGGER_VERSION}.tar.gz"
+
+RUN mkdir -p /build /target \
+    && ln -sf /usr/local/go/bin/* /usr/local/bin
+COPY scripts/ /scripts
+
+RUN /scripts/dependencies.ubi8
+RUN /scripts/download
+RUN /scripts/build
+
+# The contents of /assets will be extracted by copy_assets in build.sh
+RUN mv /target /assets
