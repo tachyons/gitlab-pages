@@ -1104,6 +1104,3 @@ ubi-assets-release:
     - export AWS_SECRET_ACCESS_KEY="${UBI_ASSETS_AWS_SECRET_ACCESS_KEY}"
     - bash build-scripts/ubi-offline/assets-release.sh
     - rm -rf artifacts/*
-  artifacts:
-    paths:
-      - artifacts/
