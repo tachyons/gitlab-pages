@@ -29,7 +29,7 @@ require (
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	gitlab.com/gitlab-org/go-mimedb v1.45.0
-	gitlab.com/gitlab-org/labkit v0.0.0-20201014124351-eb1fe6499318
+	gitlab.com/gitlab-org/labkit v0.0.0-20201103065832-70e1551419eb
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
