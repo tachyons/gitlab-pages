@@ -22,7 +22,7 @@ COPY sshd_config /etc/ssh/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs procps openssh \
+    && dnf ${DNF_OPTS} install -by --nodocs procps fipscheck-lib \
     && rpm --import /usr/local/tmp/openssh-server-rpm-key.pub \
     && dnf ${DNF_OPTS} install -by --disablerepo="*" --nodocs /usr/local/tmp/openssh*.rpm \
     && rm -r /usr/local/tmp /usr/libexec/openssh/ssh-keysign \
