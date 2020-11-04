@@ -15,7 +15,7 @@ COPY shared/build-scripts/ /build-scripts
 RUN mkdir /assets \
     && curl --retry 6 -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.gz | tar -xz \
     && cd ruby-${RUBY_MINOR_VERSION} \
-    && ./configure --prefix=/usr --disable-dtrace --disable-install-doc --disable-install-rdoc --enable-shared --with-out-ext=dbm,readline --without-gmp --without-gdbm --without-tk \
+    && ./configure --prefix=/usr --libdir=${LIBDIR} --disable-dtrace --disable-install-doc --disable-install-rdoc --enable-shared --with-out-ext=dbm,readline --without-gmp --without-gdbm --without-tk \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install \
     && gem update --no-document --system ${RUBYGEMS_VERSION} \
@@ -23,9 +23,9 @@ RUN mkdir /assets \
     && cd .. \
     && curl --retry 6 -sL https://github.com/connoratherton/rb-readline/archive/v${RBREADLINE_VERSION}.tar.gz | tar -xz \
     && ruby rb-readline-${RBREADLINE_VERSION}/setup.rb \
-    && /build-scripts/cleanup-gems /usr/lib/ruby/gems \
+    && /build-scripts/cleanup-gems ${LIBDIR}/ruby/gems \
     && cp -R --parents \
       /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} \
-      /usr/lib/{ruby/,libruby.*} \
+      ${LIBDIR}/{ruby/,libruby.*} \
       /usr/include/ruby-*/ \
       /assets
