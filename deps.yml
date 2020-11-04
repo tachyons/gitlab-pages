@@ -50,10 +50,10 @@ dependencies:
         replace_in_files:
         - filename: gitlab-ruby/Dockerfile
           pattern: 'ARG RUBYGEMS_VERSION=(\S+)'
-          range: '<= 2.x'
+          range: '<= 3.x'
         - filename: gitlab-ruby/Dockerfile.build.ubi8
           pattern: 'ARG RUBYGEMS_VERSION=(\S+)'
-          range: '<= 2.x'
+          range: '<= 3.x'
       # redis gem
       https://github.com/redis/redis-rb.git:
         replace_in_files:
