@@ -24,7 +24,7 @@ end
 [database_thread, redis_thread].map(&:join)
 
 if redis_thread.value && database_thread.value
-  Bundler.clean_exec ARGV.join(' ') unless ARGV.empty?
+  Bundler.original_exec ARGV.join(' ') unless ARGV.empty?
 else
   puts 'WARNING: Not all services were operational, with data migrations completed.'
 
