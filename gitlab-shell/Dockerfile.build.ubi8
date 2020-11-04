@@ -19,8 +19,8 @@ ENV PRIVATE_TOKEN=${API_TOKEN}
 
 RUN mkdir -p /assets/usr/local/tmp \
     && dnf ${DNF_OPTS} config-manager --add-repo /tmp/centos-8-base.repo  \
-    && dnf ${DNF_OPTS} --enablerepo=centos-8-* --disablerepo=ubi-8-* download openssh-server \
-    && mv openssh-server-*.rpm /assets/usr/local/tmp \
+    && dnf ${DNF_OPTS} --enablerepo=centos-8-* --disablerepo=ubi-8-* download openssh openssh-server \
+    && mv openssh*.rpm /assets/usr/local/tmp \
     && curl -L https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official -o /assets/usr/local/tmp/openssh-server-rpm-key.pub \
     && mkdir -p /assets/srv/gitlab-shell \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
