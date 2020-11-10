@@ -68,9 +68,10 @@ CNG repository for the given component, alongside the standard **Dockerfile**.
     - If dependencies from the internet are required, they will be pulled from the image
       created from **Dockerfile.build.ubi8**.
 
-The presence of these files will trigger the UBI image build, given that either:
+The presence of these files will trigger the UBI image build, given one of the following conditions is met:
 
 - The pipeline is running for a tag ending in `-ubi8`, or
+- The pipeline is running for a branch name ending in `-ubi8`, or
 - The pipeline is running with an environment variable matching `UBI_PIPELINE='true'`
 
 If one of these conditions is met, additional pipeline jobs and stages will appear and the UBI
