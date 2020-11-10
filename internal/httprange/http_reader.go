@@ -63,6 +63,7 @@ var httpClient = &http.Client{
 		metrics.HTTPRangeRequestDuration,
 		metrics.HTTPRangeRequestsTotal,
 		httptransport.DefaultTTFBTimeout,
+		"/Users/jaime/dev/gitlab/ee/gitlab-pages/shared/pages",
 	),
 }
 

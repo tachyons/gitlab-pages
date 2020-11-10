@@ -62,9 +62,14 @@ func newInternalTransport() *http.Transport {
 // NewTransportWithMetrics will create a custom http.RoundTripper that can be used with an http.Client.
 // The RoundTripper will report metrics based on the collectors passed.
 func NewTransportWithMetrics(name string, tracerVec, durationsVec *prometheus.
-	HistogramVec, counterVec *prometheus.CounterVec, ttfbTimeout time.Duration) http.RoundTripper {
+	HistogramVec, counterVec *prometheus.CounterVec, ttfbTimeout time.Duration, fsDir string) http.RoundTripper {
+	transport := InternalTransport
+	if fsDir != "" {
+		transport.RegisterProtocol("file", http.NewFileTransport(http.Dir(fsDir)))
+	}
+
 	return &meteredRoundTripper{
-		next:        InternalTransport,
+		next:        transport,
 		name:        name,
 		tracer:      tracerVec,
 		durations:   durationsVec,

@@ -62,6 +62,7 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 				metrics.DomainsSourceAPICallDuration,
 				metrics.DomainsSourceAPIReqTotal,
 				httptransport.DefaultTTFBTimeout,
+				"",
 			),
 		},
 		jwtTokenExpiry: jwtTokenExpiry,
@@ -86,6 +87,29 @@ func (gc *Client) Resolve(ctx context.Context, host string) *api.Lookup {
 func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	params := url.Values{}
 	params.Set("host", host)
+	if host == "zip.pages.test" {
+		return api.Lookup{
+			Name:  "zip.pages.test",
+			Error: nil,
+			Domain: &api.VirtualDomain{
+				Certificate: "",
+				Key:         "",
+				LookupPaths: []api.LookupPath{
+					api.LookupPath{
+						ProjectID:     1234,
+						AccessControl: false,
+						HTTPSOnly:     false,
+						Prefix:        "/",
+						Source: api.Source{
+							Type:       "zip",
+							Path:       "file:///group/zip.gitlab.io/public.zip",
+							Serverless: api.Serverless{},
+						},
+					},
+				},
+			},
+		}
+	}
 
 	resp, err := gc.get(ctx, "/api/v4/internal/pages", params)
 	if err != nil {
