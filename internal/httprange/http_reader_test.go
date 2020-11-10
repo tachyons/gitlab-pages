@@ -199,49 +199,61 @@ func TestSeekAndRead(t *testing.T) {
 
 func TestReaderSetResponse(t *testing.T) {
 	tests := map[string]struct {
-		status         int
-		offset         int64
-		prevETag       string
-		resEtag        string
-		expectedErrMsg string
+		status          int
+		offset          int64
+		prevETag        string
+		resEtag         string
+		expectedErrMsg  string
+		expectedIsValid bool
 	}{
 		"partial_content_success": {
-			status: http.StatusPartialContent,
+			status:          http.StatusPartialContent,
+			expectedIsValid: true,
 		},
 		"status_ok_success": {
-			status: http.StatusOK,
+			status:          http.StatusOK,
+			expectedIsValid: true,
 		},
 		"status_ok_previous_response_invalid_offset": {
-			status:         http.StatusOK,
-			offset:         1,
-			expectedErrMsg: ErrContentHasChanged.Error(),
+			status:          http.StatusOK,
+			offset:          1,
+			expectedErrMsg:  ErrRangeRequestsNotSupported.Error(),
+			expectedIsValid: false,
 		},
 		"status_ok_previous_response_different_etag": {
-			status:         http.StatusOK,
-			prevETag:       "old",
-			resEtag:        "new",
-			expectedErrMsg: ErrContentHasChanged.Error(),
+			status:          http.StatusOK,
+			prevETag:        "old",
+			resEtag:         "new",
+			expectedErrMsg:  ErrRangeRequestsNotSupported.Error(),
+			expectedIsValid: false,
 		},
 		"requested_range_not_satisfiable": {
-			status:         http.StatusRequestedRangeNotSatisfiable,
-			expectedErrMsg: ErrRangeRequestsNotSupported.Error(),
+			status:          http.StatusRequestedRangeNotSatisfiable,
+			expectedErrMsg:  ErrRangeRequestsNotSupported.Error(),
+			expectedIsValid: false,
 		},
 		"not_found": {
-			status:         http.StatusNotFound,
-			expectedErrMsg: ErrNotFound.Error(),
+			status:          http.StatusNotFound,
+			expectedErrMsg:  ErrNotFound.Error(),
+			expectedIsValid: false,
 		},
 		"unhandled_status_code": {
-			status:         http.StatusInternalServerError,
-			expectedErrMsg: "httprange: read response 500:",
+			status:          http.StatusInternalServerError,
+			expectedErrMsg:  "httprange: read response 500:",
+			expectedIsValid: true,
 		},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			r := NewReader(context.Background(), &Resource{ETag: tt.prevETag}, tt.offset, 0)
+			resource := &Resource{ETag: tt.prevETag}
+			reader := NewReader(context.Background(), resource, tt.offset, 0)
 			res := &http.Response{StatusCode: tt.status, Header: map[string][]string{}}
 			res.Header.Set("ETag", tt.resEtag)
 
-			err := r.setResponse(res)
+			err := reader.setResponse(res)
+
+			require.Equal(t, tt.expectedIsValid, resource.Valid())
+
 			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.expectedErrMsg)
@@ -249,7 +261,6 @@ func TestReaderSetResponse(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, r.res, res)
 		})
 	}
 }

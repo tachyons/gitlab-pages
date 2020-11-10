@@ -8,15 +8,63 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 // Resource represents any HTTP resource that can be read by a GET operation.
 // It holds the resource's URL and metadata about it.
 type Resource struct {
-	URL          string
 	ETag         string
 	LastModified string
 	Size         int64
+
+	url atomic.Value
+	err atomic.Value
+}
+
+func (r *Resource) URL() string {
+	url, _ := r.url.Load().(string)
+	return url
+}
+
+func (r *Resource) SetURL(url string) {
+	if r.URL() == url {
+		// We want to avoid cache lines invalidation
+		// on CPU due to value change
+		return
+	}
+
+	r.url.Store(url)
+}
+
+func (r *Resource) Err() error {
+	err, _ := r.err.Load().(error)
+	return err
+}
+
+func (r *Resource) Valid() bool {
+	return r.Err() == nil
+}
+
+func (r *Resource) setError(err error) {
+	r.err.Store(err)
+}
+
+func (r *Resource) Request() (*http.Request, error) {
+	req, err := http.NewRequest("GET", r.URL(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.ETag != "" {
+		req.Header.Set("ETag", r.ETag)
+	} else if r.LastModified != "" {
+		// Last-Modified should be a fallback mechanism in case ETag is not present
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Last-Modified
+		req.Header.Set("If-Range", r.LastModified)
+	}
+
+	return req, nil
 }
 
 func NewResource(ctx context.Context, url string) (*Resource, error) {
@@ -44,10 +92,11 @@ func NewResource(ctx context.Context, url string) (*Resource, error) {
 	}()
 
 	resource := &Resource{
-		URL:          url,
 		ETag:         res.Header.Get("ETag"),
 		LastModified: res.Header.Get("Last-Modified"),
 	}
+
+	resource.SetURL(url)
 
 	switch res.StatusCode {
 	case http.StatusOK:
