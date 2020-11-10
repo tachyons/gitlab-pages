@@ -96,7 +96,7 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 	}()
 
 	require.Eventually(t, func() bool {
-		_, err := vfs.findOrOpenArchive(context.Background(), path)
+		_, err := vfs.findOrOpenArchive(context.Background(), path, path)
 		return err == errAlreadyCached
 	}, time.Second, time.Nanosecond)
 }
@@ -166,7 +166,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 				path := testServerURL + test.path
 
 				// create a new archive and increase counters
-				archive1, err1 := vfs.findOrOpenArchive(context.Background(), path)
+				archive1, err1 := vfs.findOrOpenArchive(context.Background(), path, path)
 				if test.expectOpenError {
 					require.Error(t, err1)
 					require.Nil(t, archive1)
@@ -182,7 +182,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 
 				if test.expectNewArchive {
 					// should return a new archive
-					archive2, err2 := vfs.findOrOpenArchive(context.Background(), path)
+					archive2, err2 := vfs.findOrOpenArchive(context.Background(), path, path)
 					if test.expectOpenError {
 						require.Error(t, err2)
 						require.Nil(t, archive2)
@@ -194,7 +194,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 				}
 
 				// should return exactly the same archive
-				archive2, err2 := vfs.findOrOpenArchive(context.Background(), path)
+				archive2, err2 := vfs.findOrOpenArchive(context.Background(), path, path)
 				require.Equal(t, archive1, archive2, "same archive is returned")
 				require.Equal(t, err1, err2, "same error for the same archive")
 

@@ -4,14 +4,21 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
+func urlValue(url string) atomic.Value {
+	v := atomic.Value{}
+	v.Store(url)
+	return v
+}
+
 func TestNewResource(t *testing.T) {
-	resource := Resource{
-		URL:          "/some/resource",
+	resource := &Resource{
+		url:          urlValue("/some/resource"),
 		ETag:         "etag",
 		LastModified: "Wed, 21 Oct 2015 07:28:00 GMT",
 		Size:         1,
@@ -21,7 +28,7 @@ func TestNewResource(t *testing.T) {
 		url            string
 		status         int
 		contentRange   string
-		want           Resource
+		want           *Resource
 		expectedErrMsg string
 	}{
 		"status_ok": {
@@ -33,37 +40,43 @@ func TestNewResource(t *testing.T) {
 			url:          "/some/resource",
 			status:       http.StatusPartialContent,
 			contentRange: "bytes 200-1000/67589",
-			want: func() Resource {
-				r := resource
-				r.Size = 67589
-				return r
-			}(),
+			want: &Resource{
+				url:          urlValue("/some/resource"),
+				ETag:         "etag",
+				LastModified: "Wed, 21 Oct 2015 07:28:00 GMT",
+				Size:         67589,
+			},
 		},
 		"status_partial_content_invalid_content_range": {
 			url:            "/some/resource",
 			status:         http.StatusPartialContent,
 			contentRange:   "invalid",
 			expectedErrMsg: "invalid `Content-Range`:",
+			want:           resource,
 		},
 		"status_partial_content_content_range_not_a_number": {
 			url:            "/some/resource",
 			status:         http.StatusPartialContent,
 			contentRange:   "bytes 200-1000/notanumber",
 			expectedErrMsg: "invalid `Content-Range`:",
+			want:           resource,
 		},
 		"StatusRequestedRangeNotSatisfiable": {
 			url:            "/some/resource",
 			status:         http.StatusRequestedRangeNotSatisfiable,
 			expectedErrMsg: ErrRangeRequestsNotSupported.Error(),
+			want:           resource,
 		},
 		"not_found": {
 			url:            "/some/resource",
 			status:         http.StatusNotFound,
 			expectedErrMsg: ErrNotFound.Error(),
+			want:           resource,
 		},
 		"invalid_url": {
 			url:            "/%",
 			expectedErrMsg: "invalid URL escape",
+			want:           resource,
 		},
 	}
 
@@ -86,7 +99,7 @@ func TestNewResource(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Contains(t, got.URL, tt.want.URL)
+			require.Contains(t, got.URL(), tt.want.URL())
 			require.Equal(t, tt.want.LastModified, got.LastModified)
 			require.Equal(t, tt.want.ETag, got.ETag)
 			require.Equal(t, tt.want.Size, got.Size)
