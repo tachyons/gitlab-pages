@@ -12,11 +12,23 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 var chdirSet = false
+
+var zipCfg = &config.ZipServing{
+	ExpirationInterval:           time.Minute,
+	CleanupInterval:              time.Minute / 2,
+	RefreshInterval:              time.Minute / 2,
+	OpenTimeout:                  time.Minute / 2,
+	DataOffsetItems:              1000,
+	DataOffsetExpirationInterval: time.Hour,
+	ReadlinkItems:                500,
+	ReadlinkExpirationInterval:   time.Hour,
+}
 
 func TestOpen(t *testing.T) {
 	zip, cleanup := openZipArchive(t, nil)
@@ -75,7 +87,7 @@ func TestOpenCached(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", &requests)
 	defer cleanup()
 
-	fs := New()
+	fs := New(zipCfg)
 
 	// We use array instead of map to ensure
 	// predictable ordering of test execution
@@ -322,7 +334,7 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
-	fs := New().(*zipVFS)
+	fs := New(zipCfg).(*zipVFS)
 	zip := newArchive(fs, time.Second)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -345,7 +357,7 @@ func TestReadArchiveFails(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
-	fs := New().(*zipVFS)
+	fs := New(zipCfg).(*zipVFS)
 	zip := newArchive(fs, time.Second)
 
 	err := zip.openArchive(context.Background(), testServerURL+"/unkown.html")
@@ -365,7 +377,7 @@ func openZipArchive(t *testing.T, requests *int64) (*zipArchive, func()) {
 
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", requests)
 
-	fs := New().(*zipVFS)
+	fs := New(zipCfg).(*zipVFS)
 	zip := newArchive(fs, time.Second)
 
 	err := zip.openArchive(context.Background(), testServerURL+"/public.zip")

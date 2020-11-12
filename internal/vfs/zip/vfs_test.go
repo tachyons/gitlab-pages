@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -35,7 +36,7 @@ func TestVFSRoot(t *testing.T) {
 		},
 	}
 
-	vfs := New()
+	vfs := New(zipCfg)
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -73,7 +74,11 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 
 	path := testServerURL + "/public.zip"
 
-	vfs := New().(*zipVFS)
+	vfs := New(config.ZipServing{
+		OpenTimeout:     time.Second,
+		DataOffsetItems: 20,
+		ReadlinkItems:   20,
+	}).(*zipVFS)
 	root, err := vfs.Root(context.Background(), path)
 	require.NoError(t, err)
 
@@ -158,10 +163,11 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			withExpectedArchiveCount(t, 1, func(t *testing.T) {
-				vfs := New(
-					WithCacheExpirationInterval(test.expirationInterval),
-					WithCacheRefreshInterval(test.refreshInterval),
-				).(*zipVFS)
+				cfg := *zipCfg
+				cfg.ExpirationInterval = test.expirationInterval
+				cfg.RefreshInterval = test.refreshInterval
+
+				vfs := New(&cfg).(*zipVFS)
 
 				path := testServerURL + test.path
 

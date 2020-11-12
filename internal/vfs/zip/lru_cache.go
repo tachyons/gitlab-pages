@@ -24,10 +24,10 @@ type lruCache struct {
 	cache    *ccache.Cache
 }
 
-func newLruCache(op string, maxEntries uint32, duration time.Duration) *lruCache {
+func newLruCache(op string, maxEntries int64, duration time.Duration) *lruCache {
 	configuration := ccache.Configure()
-	configuration.MaxSize(int64(maxEntries))
-	configuration.ItemsToPrune(maxEntries / lruCacheItemsToPruneDiv)
+	configuration.MaxSize(maxEntries)
+	configuration.ItemsToPrune(uint32(maxEntries) / lruCacheItemsToPruneDiv)
 	configuration.GetsPerPromote(lruCacheGetsPerPromote) // if item gets requested frequently promote it
 	configuration.OnDelete(func(*ccache.Item) {
 		metrics.ZipCachedEntries.WithLabelValues(op).Dec()
