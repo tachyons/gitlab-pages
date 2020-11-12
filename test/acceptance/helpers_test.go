@@ -1,5 +1,3 @@
-// +build acceptance
-
 package acceptance_test
 
 import (
@@ -21,23 +19,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
-type tWriter struct {
-	t *testing.T
-}
-
-func (t *tWriter) Write(b []byte) (int, error) {
-	t.t.Log(string(bytes.TrimRight(b, "\r\n")))
-
-	return len(b), nil
-}
-
-// The HTTPS certificate isn't signed by anyone. This http client is set up
-// so it can talk to servers using it.
 var (
+	// The HTTPS certificate isn't signed by anyone. This http client is set up
+	// so it can talk to servers using it.
 	TestHTTPSClient = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{RootCAs: TestCertPool},
@@ -54,39 +41,19 @@ var (
 	}
 
 	TestCertPool = x509.NewCertPool()
+
+	existingAcmeTokenPath    = "/.well-known/acme-challenge/existingtoken"
+	notExistingAcmeTokenPath = "/.well-known/acme-challenge/notexistingtoken"
 )
 
-func init() {
-	if ok := TestCertPool.AppendCertsFromPEM([]byte(fixture.Certificate)); !ok {
-		fmt.Println("Failed to load cert!")
-	}
+type tWriter struct {
+	t *testing.T
 }
 
-func CreateHTTPSFixtureFiles(t *testing.T) (key string, cert string) {
-	keyfile, err := ioutil.TempFile("", "https-fixture")
-	require.NoError(t, err)
-	key = keyfile.Name()
-	keyfile.Close()
+func (t *tWriter) Write(b []byte) (int, error) {
+	t.t.Log(string(bytes.TrimRight(b, "\r\n")))
 
-	certfile, err := ioutil.TempFile("", "https-fixture")
-	require.NoError(t, err)
-	cert = certfile.Name()
-	certfile.Close()
-
-	require.NoError(t, ioutil.WriteFile(key, []byte(fixture.Key), 0644))
-	require.NoError(t, ioutil.WriteFile(cert, []byte(fixture.Certificate), 0644))
-
-	return keyfile.Name(), certfile.Name()
-}
-
-func CreateGitLabAPISecretKeyFixtureFile(t *testing.T) (filepath string) {
-	secretfile, err := ioutil.TempFile("", "gitlab-api-secret")
-	require.NoError(t, err)
-	secretfile.Close()
-
-	require.NoError(t, ioutil.WriteFile(secretfile.Name(), []byte(fixture.GitLabAPISecretKey), 0644))
-
-	return secretfile.Name()
+	return len(b), nil
 }
 
 // ListenSpec is used to point at a gitlab-pages http server, preserving the
@@ -309,6 +276,7 @@ func contains(slice []string, s string) bool {
 	}
 	return false
 }
+
 func getPagesDaemonArgs(t *testing.T) []string {
 	mode := os.Getenv("TEST_DAEMONIZE")
 	if mode == "" {
@@ -547,35 +515,4 @@ func copyFile(dest, src string) error {
 
 	_, err = io.Copy(destFile, srcFile)
 	return err
-}
-
-func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
-	t.Helper()
-
-	m := http.NewServeMux()
-	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, zipFilePath)
-	}))
-	m.HandleFunc("/malformed.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-
-	// create a listener with the desired port.
-	l, err := net.Listen("tcp", objectStorageMockServer)
-	require.NoError(t, err)
-
-	testServer := httptest.NewUnstartedServer(m)
-
-	// NewUnstartedServer creates a listener. Close that listener and replace
-	// with the one we created.
-	testServer.Listener.Close()
-	testServer.Listener = l
-
-	// Start the server.
-	testServer.Start()
-
-	return testServer.URL, func() {
-		// Cleanup.
-		testServer.Close()
-	}
 }
