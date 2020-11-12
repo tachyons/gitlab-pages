@@ -1,4 +1,6 @@
-package main
+// +build acceptance
+
+package acceptance_test
 
 import (
 	"crypto/tls"
@@ -19,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var pagesBinary = flag.String("gitlab-pages-binary", "./gitlab-pages", "Path to the gitlab-pages binary")
+var pagesBinary = flag.String("gitlab-pages-binary", "../../gitlab-pages", "Path to the gitlab-pages binary")
 
 const (
 	objectStorageMockServer = "127.0.0.1:37003"
@@ -452,7 +454,7 @@ func TestHttpsOnlyDomainDisabled(t *testing.T) {
 func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, cleanup := newZipFileServerURL(t, "shared/pages/group/zip.gitlab.io/public.zip")
+	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
 	teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, listeners, ":42345", []string{})
@@ -621,7 +623,7 @@ func TestStatusPage(t *testing.T) {
 
 func TestStatusNotYetReady(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-status=/@statuscheck", "-pages-root=shared/invalid-pages")
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-status=/@statuscheck", "-pages-root=../../shared/invalid-pages")
 	defer teardown()
 
 	waitForRoundtrips(t, listeners, 5*time.Second)
@@ -633,7 +635,7 @@ func TestStatusNotYetReady(t *testing.T) {
 
 func TestPageNotAvailableIfNotLoaded(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-root=shared/invalid-pages")
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, listeners, "", "-pages-root=../../shared/invalid-pages")
 	defer teardown()
 	waitForRoundtrips(t, listeners, 5*time.Second)
 
@@ -2019,7 +2021,7 @@ func TestZipServing(t *testing.T) {
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
 	defer teardown()
 
-	_, cleanup := newZipFileServerURL(t, "shared/pages/group/zip.gitlab.io/public.zip")
+	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
 	tests := map[string]struct {
