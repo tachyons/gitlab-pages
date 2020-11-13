@@ -1,4 +1,4 @@
-package main
+package acceptance_test
 
 import (
 	"bytes"
@@ -19,23 +19,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
-type tWriter struct {
-	t *testing.T
-}
-
-func (t *tWriter) Write(b []byte) (int, error) {
-	t.t.Log(string(bytes.TrimRight(b, "\r\n")))
-
-	return len(b), nil
-}
-
-// The HTTPS certificate isn't signed by anyone. This http client is set up
-// so it can talk to servers using it.
 var (
+	// The HTTPS certificate isn't signed by anyone. This http client is set up
+	// so it can talk to servers using it.
 	TestHTTPSClient = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{RootCAs: TestCertPool},
@@ -52,39 +41,19 @@ var (
 	}
 
 	TestCertPool = x509.NewCertPool()
+
+	existingAcmeTokenPath    = "/.well-known/acme-challenge/existingtoken"
+	notExistingAcmeTokenPath = "/.well-known/acme-challenge/notexistingtoken"
 )
 
-func init() {
-	if ok := TestCertPool.AppendCertsFromPEM([]byte(fixture.Certificate)); !ok {
-		fmt.Println("Failed to load cert!")
-	}
+type tWriter struct {
+	t *testing.T
 }
 
-func CreateHTTPSFixtureFiles(t *testing.T) (key string, cert string) {
-	keyfile, err := ioutil.TempFile("", "https-fixture")
-	require.NoError(t, err)
-	key = keyfile.Name()
-	keyfile.Close()
+func (t *tWriter) Write(b []byte) (int, error) {
+	t.t.Log(string(bytes.TrimRight(b, "\r\n")))
 
-	certfile, err := ioutil.TempFile("", "https-fixture")
-	require.NoError(t, err)
-	cert = certfile.Name()
-	certfile.Close()
-
-	require.NoError(t, ioutil.WriteFile(key, []byte(fixture.Key), 0644))
-	require.NoError(t, ioutil.WriteFile(cert, []byte(fixture.Certificate), 0644))
-
-	return keyfile.Name(), certfile.Name()
-}
-
-func CreateGitLabAPISecretKeyFixtureFile(t *testing.T) (filepath string) {
-	secretfile, err := ioutil.TempFile("", "gitlab-api-secret")
-	require.NoError(t, err)
-	secretfile.Close()
-
-	require.NoError(t, ioutil.WriteFile(secretfile.Name(), []byte(fixture.GitLabAPISecretKey), 0644))
-
-	return secretfile.Name()
+	return len(b), nil
 }
 
 // ListenSpec is used to point at a gitlab-pages http server, preserving the
@@ -147,30 +116,30 @@ func (l ListenSpec) JoinHostPort() string {
 // GetPageFromProcess to do a HTTP GET against a listener.
 //
 // If run as root via sudo, the gitlab-pages process will drop privileges
-func RunPagesProcess(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil, extraArgs...)
+func RunPagesProcess(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
+	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
 }
 
-func RunPagesProcessWithoutWait(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, false, pagesPath, listeners, promPort, nil, extraArgs...)
+func RunPagesProcessWithoutWait(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
+	return runPagesProcess(t, false, pagesBinary, listeners, promPort, nil, extraArgs...)
 }
 
-func RunPagesProcessWithSSLCertFile(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
+func RunPagesProcessWithSSLCertFile(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, extraArgs ...string) (teardown func()) {
+	return runPagesProcess(t, true, pagesBinary, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
 }
 
-func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
-	return runPagesProcess(t, wait, pagesPath, listeners, promPort, envs, extraArgs...)
+func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
+	return runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, extraArgs...)
 }
 
-func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
+func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
 	var apiCalled bool
 	source := NewGitlabDomainsSourceStub(t, &apiCalled)
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	pagesArgs := append([]string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
 
-	cleanup := runPagesProcess(t, wait, pagesPath, listeners, promPort, envs, pagesArgs...)
+	cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, pagesArgs...)
 
 	return func() {
 		source.Close()
@@ -178,27 +147,27 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesPath stri
 	}
 }
 
-func RunPagesProcessWithAuth(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string) func() {
+func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string) func() {
 	configFile, cleanup := defaultConfigFileWith(t,
 		"auth-server=https://gitlab-auth.com",
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
 	defer cleanup()
 
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, nil,
+	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil,
 		"-config="+configFile,
 	)
 }
 
-func RunPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, authServer string) func() {
-	return runPagesProcessWithAuthServer(t, pagesPath, listeners, promPort, nil, authServer)
+func RunPagesProcessWithAuthServer(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, authServer string) func() {
+	return runPagesProcessWithAuthServer(t, pagesBinary, listeners, promPort, nil, authServer)
 }
 
-func RunPagesProcessWithAuthServerWithSSLCertFile(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
-	return runPagesProcessWithAuthServer(t, pagesPath, listeners, promPort,
+func RunPagesProcessWithAuthServerWithSSLCertFile(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
+	return runPagesProcessWithAuthServer(t, pagesBinary, listeners, promPort,
 		[]string{"SSL_CERT_FILE=" + sslCertFile}, authServer)
 }
 
-func RunPagesProcessWithAuthServerWithSSLCertDir(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
+func RunPagesProcessWithAuthServerWithSSLCertDir(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func() {
 	// Create temporary cert dir
 	sslCertDir, err := ioutil.TempDir("", "pages-test-SSL_CERT_DIR")
 	require.NoError(t, err)
@@ -207,7 +176,7 @@ func RunPagesProcessWithAuthServerWithSSLCertDir(t *testing.T, pagesPath string,
 	err = copyFile(sslCertDir+"/"+path.Base(sslCertFile), sslCertFile)
 	require.NoError(t, err)
 
-	innerCleanup := runPagesProcessWithAuthServer(t, pagesPath, listeners, promPort,
+	innerCleanup := runPagesProcessWithAuthServer(t, pagesBinary, listeners, promPort,
 		[]string{"SSL_CERT_DIR=" + sslCertDir}, authServer)
 
 	return func() {
@@ -216,29 +185,29 @@ func RunPagesProcessWithAuthServerWithSSLCertDir(t *testing.T, pagesPath string,
 	}
 }
 
-func runPagesProcessWithAuthServer(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, extraEnv []string, authServer string) func() {
+func runPagesProcessWithAuthServer(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, authServer string) func() {
 	configFile, cleanup := defaultConfigFileWith(t,
 		"auth-server="+authServer,
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
 	defer cleanup()
 
-	return runPagesProcess(t, true, pagesPath, listeners, promPort, extraEnv,
+	return runPagesProcess(t, true, pagesBinary, listeners, promPort, extraEnv,
 		"-config="+configFile)
 }
 
-func runPagesProcess(t *testing.T, wait bool, pagesPath string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (teardown func()) {
+func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (teardown func()) {
 	t.Helper()
 
-	_, err := os.Stat(pagesPath)
+	_, err := os.Stat(pagesBinary)
 	require.NoError(t, err)
 
 	args, tempfiles := getPagesArgs(t, listeners, promPort, extraArgs)
-	cmd := exec.Command(pagesPath, args...)
+	cmd := exec.Command(pagesBinary, args...)
 	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = &tWriter{t}
 	cmd.Stderr = &tWriter{t}
 	require.NoError(t, cmd.Start())
-	t.Logf("Running %s %v", pagesPath, args)
+	t.Logf("Running %s %v", pagesBinary, args)
 
 	waitCh := make(chan struct{})
 	go func() {
@@ -285,6 +254,10 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 		args = append(args, "-root-key", key, "-root-cert", cert)
 	}
 
+	if !contains(args, "pages-root") {
+		args = append(args, "-pages-root", "../../shared/pages")
+	}
+
 	if promPort != "" {
 		args = append(args, "-metrics-address", promPort)
 	}
@@ -293,6 +266,15 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 	args = append(args, extraArgs...)
 
 	return
+}
+
+func contains(slice []string, s string) bool {
+	for _, e := range slice {
+		if e == s {
+			return true
+		}
+	}
+	return false
 }
 
 func getPagesDaemonArgs(t *testing.T) []string {
@@ -457,7 +439,7 @@ func NewGitlabDomainsSourceStub(t *testing.T, apiCalled *bool) *httptest.Server 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		*apiCalled = true
 		domain := r.URL.Query().Get("host")
-		path := "shared/lookups/" + domain + ".json"
+		path := "../../shared/lookups/" + domain + ".json"
 
 		fixture, err := os.Open(path)
 		if os.IsNotExist(err) {
@@ -533,35 +515,4 @@ func copyFile(dest, src string) error {
 
 	_, err = io.Copy(destFile, srcFile)
 	return err
-}
-
-func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
-	t.Helper()
-
-	m := http.NewServeMux()
-	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, zipFilePath)
-	}))
-	m.HandleFunc("/malformed.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-
-	// create a listener with the desired port.
-	l, err := net.Listen("tcp", objectStorageMockServer)
-	require.NoError(t, err)
-
-	testServer := httptest.NewUnstartedServer(m)
-
-	// NewUnstartedServer creates a listener. Close that listener and replace
-	// with the one we created.
-	testServer.Listener.Close()
-	testServer.Listener = l
-
-	// Start the server.
-	testServer.Start()
-
-	return testServer.URL, func() {
-		// Cleanup.
-		testServer.Close()
-	}
 }
