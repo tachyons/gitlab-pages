@@ -14,7 +14,7 @@ var instance serving.Serving
 // from a zip archives opened from a URL, most likely stored in object storage
 func Instance() serving.Serving {
 	if instance == nil {
-		instance = disk.New(vfs.Instrumented(zip.New(config.ZipVFSConfig)))
+		instance = disk.New(vfs.Instrumented(zip.New(config.DefaultConfig.GetZip())))
 	}
 
 	return instance

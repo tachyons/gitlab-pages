@@ -9,7 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -74,11 +73,7 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 
 	path := testServerURL + "/public.zip"
 
-	vfs := New(config.ZipServing{
-		OpenTimeout:     time.Second,
-		DataOffsetItems: 20,
-		ReadlinkItems:   20,
-	}).(*zipVFS)
+	vfs := New(zipCfg).(*zipVFS)
 	root, err := vfs.Root(context.Background(), path)
 	require.NoError(t, err)
 

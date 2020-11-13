@@ -15,6 +15,18 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
+const (
+	// we assume that each item costs around 100 bytes
+	// this gives around 5MB of raw memory needed without acceleration structures
+	defaultDataOffsetItems              = 50000
+	defaultDataOffsetExpirationInterval = time.Hour
+
+	// we assume that each item costs around 200 bytes
+	// this gives around 2MB of raw memory needed without acceleration structures
+	defaultReadlinkItems              = 10000
+	defaultReadlinkExpirationInterval = time.Hour
+)
+
 var (
 	errAlreadyCached = errors.New("archive already cached")
 )
@@ -52,8 +64,8 @@ func New(cfg *config.ZipServing) vfs.VFS {
 	})
 
 	// TODO: To be removed with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/480
-	zipVFS.dataOffsetCache = newLruCache("data-offset", cfg.DataOffsetItems, cfg.DataOffsetExpirationInterval)
-	zipVFS.readlinkCache = newLruCache("readlink", cfg.ReadlinkItems, cfg.ReadlinkExpirationInterval)
+	zipVFS.dataOffsetCache = newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval)
+	zipVFS.readlinkCache = newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval)
 
 	return zipVFS
 }

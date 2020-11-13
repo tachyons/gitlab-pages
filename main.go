@@ -84,17 +84,7 @@ var (
 	zipCacheExpiration = flag.Duration("zip-cache-expiration", 60*time.Second, "Zip serving archive cache expiration interval (default: 60s)")
 	zipCacheCleanup    = flag.Duration("zip-cache-cleanup", 30*time.Second, "Zip serving archive cache cleanup interval (default: 30s)")
 	zipCacheRefresh    = flag.Duration("zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval (default: 30s)")
-
-	// we assume that each item costs around 100 bytes
-	// this gives around 5MB of raw memory needed without acceleration structures
-	zipCacheDataOffsetItems       = flag.Int64("zip-cache-dataoffset-items", 50000, "Zip serving number of files to cache per archive (default: 50,000)")
-	zipCachetDataOffsetExpiration = flag.Duration("zip-cache-dataoffset-expiration", time.Hour, "Zip serving cached files expiration interval (default: 1h)")
-	// we assume that each item costs around 200 bytes
-	// this gives around 2MB of raw memory needed without acceleration structures
-	zipCacheReadlinkItems              = flag.Int64("zip-cache-readlink-items", 10000, "Zip serving number of symbolic links to cache per archive (default: 10,000)")
-	zipCacheReadlinkExpirationInterval = flag.Duration("zip-cache-readlink-expiration", time.Hour, "Zip serving cached symbolic links expiration interval (default: 1h)")
-
-	zipOpenTimeout = flag.Duration("zip-open-timeout", 30*time.Second, "Zip archive open timeout (default: 30s)")
+	zipOpenTimeout     = flag.Duration("zip-open-timeout", 30*time.Second, "Zip archive open timeout (default: 30s)")
 
 	// See init()
 	listenHTTP         MultiStringFlag
@@ -230,18 +220,13 @@ func configFromFlags() appConfig {
 
 	checkAuthenticationConfig(config)
 
-	cfg.ZipVFSConfig = &cfg.ZipServing{
-		ExpirationInterval:           *zipCacheExpiration,
-		CleanupInterval:              *zipCacheCleanup,
-		RefreshInterval:              *zipCacheRefresh,
-		OpenTimeout:                  *zipOpenTimeout,
-		DataOffsetItems:              *zipCacheDataOffsetItems,
-		DataOffsetExpirationInterval: *zipCachetDataOffsetExpiration,
-		ReadlinkItems:                *zipCacheReadlinkItems,
-		ReadlinkExpirationInterval:   *zipCacheReadlinkExpirationInterval,
-	}
+	cfg.DefaultConfig.SetZip(&cfg.ZipServing{
+		ExpirationInterval: *zipCacheExpiration,
+		CleanupInterval:    *zipCacheCleanup,
+		RefreshInterval:    *zipCacheRefresh,
+		OpenTimeout:        *zipOpenTimeout,
+	})
 
-	fmt.Printf("THE CONFIG FIRST:\n%+v\n", cfg.ZipVFSConfig)
 	return config
 }
 

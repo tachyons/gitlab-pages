@@ -20,14 +20,10 @@ import (
 var chdirSet = false
 
 var zipCfg = &config.ZipServing{
-	ExpirationInterval:           time.Minute,
-	CleanupInterval:              time.Minute / 2,
-	RefreshInterval:              time.Minute / 2,
-	OpenTimeout:                  time.Minute / 2,
-	DataOffsetItems:              1000,
-	DataOffsetExpirationInterval: time.Hour,
-	ReadlinkItems:                500,
-	ReadlinkExpirationInterval:   time.Hour,
+	ExpirationInterval: time.Minute,
+	CleanupInterval:    time.Minute / 2,
+	RefreshInterval:    time.Minute / 2,
+	OpenTimeout:        time.Minute / 2,
 }
 
 func TestOpen(t *testing.T) {
