@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
 // Retriever is an utility type that performs an HTTP request with backoff in
@@ -55,7 +56,7 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domain string) <-cha
 		for i := 1; i <= r.maxRetrievalRetries; i++ {
 			lookup = r.client.GetLookup(ctx, domain)
 
-			if lookup.Error != nil {
+			if lookup.Error != nil && !errors.Is(lookup.Error, client.ErrDomainDoesNotExist) {
 				time.Sleep(r.maxRetrievalInterval)
 			} else {
 				break

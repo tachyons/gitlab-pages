@@ -18,6 +18,9 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
+// ErrDomainDoesNotExist is returned by
+var ErrDomainDoesNotExist = errors.New("domain does not exist")
+
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
@@ -55,19 +58,14 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 
 	// Domain does not exist
 	if lookup.Domain == nil {
-		return nil, nil
+		return nil, ErrDomainDoesNotExist
 	}
 
 	// TODO introduce a second-level cache for domains, invalidate using etags
 	// from first-level cache
-	domain := domain.Domain{
-		Name:            name,
-		CertificateCert: lookup.Domain.Certificate,
-		CertificateKey:  lookup.Domain.Key,
-		Resolver:        g,
-	}
+	d := domain.New(name, lookup.Domain.Certificate, lookup.Domain.Key, g)
 
-	return &domain, nil
+	return d, nil
 }
 
 // Resolve is supposed to return the serving request containing lookup path,
@@ -78,7 +76,7 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 
 	response := g.client.Resolve(r.Context(), host)
 	if response.Error != nil {
-		return &serving.Request{Serving: defaultServing()}, response.Error
+		return nil, response.Error
 	}
 
 	urlPath := path.Clean(r.URL.Path)

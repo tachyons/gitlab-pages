@@ -36,15 +36,15 @@ func (dm Map) updateDomainMap(domainName string, domain *domain.Domain) {
 }
 
 func (dm Map) addDomain(rootDomain, groupName, projectName string, config *domainConfig) {
-	newDomain := &domain.Domain{
-		Name:            strings.ToLower(config.Domain),
-		CertificateCert: config.Certificate,
-		CertificateKey:  config.Key,
-		Resolver: &customProjectResolver{
+	newDomain := domain.New(
+		strings.ToLower(config.Domain),
+		config.Certificate,
+		config.Key,
+		&customProjectResolver{
 			config: config,
 			path:   filepath.Join(groupName, projectName, "public"),
 		},
-	}
+	)
 
 	dm.updateDomainMap(newDomain.Name, newDomain)
 }
@@ -60,10 +60,7 @@ func (dm Map) updateGroupDomain(rootDomain, groupName, projectPath string, https
 			subgroups: make(subgroups),
 		}
 
-		groupDomain = &domain.Domain{
-			Name:     domainName,
-			Resolver: groupResolver,
-		}
+		groupDomain = domain.New(domainName, "", "", groupResolver)
 	}
 
 	split := strings.SplitN(strings.ToLower(projectPath), "/", maxProjectDepth)

@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"errors"
 	"net/http"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -14,6 +15,10 @@ type customProjectResolver struct {
 }
 
 func (p *customProjectResolver) Resolve(r *http.Request) (*serving.Request, error) {
+	if p.config == nil {
+		return nil, errors.New("domain not found")
+	}
+
 	lookupPath := &serving.LookupPath{
 		ServingType:        "file",
 		Prefix:             "/",

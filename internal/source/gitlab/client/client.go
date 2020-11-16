@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"time"
 
@@ -22,6 +23,10 @@ import (
 // fails to connect to the internal GitLab API, times out
 // or a 401 given that the credentials used are wrong
 const ConnectionErrorMsg = "failed to connect to internal Pages API"
+
+// ErrDomainDoesNotExist should be returned when we get a 204 from the API when
+// GetLookup is called
+var ErrDomainDoesNotExist = errors.New("domain does not exist")
 
 // Client is a HTTP client to access Pages internal API
 type Client struct {
@@ -92,10 +97,8 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 		return api.Lookup{Name: host, Error: err}
 	}
 
-	if resp == nil {
-		return api.Lookup{Name: host}
-	}
-
+	dres, err := httputil.DumpResponse(resp, true)
+	fmt.Printf("dres: %s\n%+v\n", dres, err)
 	// ensure that entire response body has been read and close it, to make it
 	// possible to reuse HTTP connection. In case of a JSON being invalid and
 	// larger than 512 bytes, the response body will not be closed properly, thus
@@ -106,6 +109,10 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	}()
 
 	lookup := api.Lookup{Name: host}
+	if resp.StatusCode == http.StatusNoContent {
+		lookup.Error = ErrDomainDoesNotExist
+	}
+
 	lookup.Error = json.NewDecoder(resp.Body).Decode(&lookup.Domain)
 
 	return lookup
@@ -148,21 +155,17 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 	}
 
 	// StatusOK means we should return the API response
-	if resp.StatusCode == http.StatusOK {
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
 		return resp, nil
 	}
 
-	// nolint: errcheck
-	// best effort to discard and close the response body
-	io.Copy(ioutil.Discard, resp.Body)
-	resp.Body.Close()
-
-	// StatusNoContent means that a domain does not exist, it is not an error
-	if resp.StatusCode == http.StatusNoContent {
-		return nil, nil
+	var apiErr *Err
+	if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("HTTP status: %d", resp.StatusCode)
+	// return nil, fmt.Errorf("HTTP status: %d", resp.StatusCode)
+	return nil, apiErr
 }
 
 func (gc *Client) endpoint(path string, params url.Values) (*url.URL, error) {
@@ -190,6 +193,8 @@ func (gc *Client) request(ctx context.Context, method string, endpoint *url.URL)
 	}
 	req.Header.Set("Gitlab-Pages-Api-Request", token)
 
+	dreq, err := httputil.DumpRequestOut(req, true)
+	fmt.Printf("dreq: %s\n%+v\n", dreq, err)
 	return req, nil
 }
 
@@ -205,4 +210,19 @@ func (gc *Client) token() (string, error) {
 	}
 
 	return token, nil
+}
+
+// Err describes any error response received from the API
+type Err struct {
+	Status  int
+	Message string `json:"message"`
+	Err     string `json:"error"`
+}
+
+func (e *Err) Error() string {
+	if e.Err != "" {
+		return fmt.Sprintf("status: %d error: %s", e.Status, e.Err)
+	}
+
+	return fmt.Sprintf("status: %d error: %s", e.Status, e.Message)
 }
