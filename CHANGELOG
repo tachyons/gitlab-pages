@@ -1,3 +1,7 @@
+v 1.30.0
+
+- Allow to refresh an existing cached archive when accessed !375
+
 v 1.29.0
 
 - Fix LRU cache metrics !379
