@@ -21,11 +21,11 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
-	headerConfig "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/middleware"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
@@ -186,7 +186,7 @@ func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, erro
 // customHeadersMiddleware will inject custom headers into the response
 func (a *theApp) customHeadersMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		headerConfig.AddCustomHeaders(w, a.CustomHeaders)
+		middleware.AddCustomHeaders(w, a.CustomHeaders)
 
 		handler.ServeHTTP(w, r)
 	})
@@ -493,7 +493,7 @@ func runApp(config appConfig) {
 	}
 
 	if len(config.CustomHeaders) != 0 {
-		customHeaders, err := headerConfig.ParseHeaderString(config.CustomHeaders)
+		customHeaders, err := middleware.ParseHeaderString(config.CustomHeaders)
 		if err != nil {
 			log.WithError(err).Fatal("Unable to parse header string")
 		}

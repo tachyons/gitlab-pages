@@ -1,4 +1,4 @@
-package config
+package middleware
 
 import (
 	"errors"
@@ -9,13 +9,12 @@ import (
 var errInvalidHeaderParameter = errors.New("invalid syntax specified as header parameter")
 
 // AddCustomHeaders adds a map of Headers to a Response
-func AddCustomHeaders(w http.ResponseWriter, headers http.Header) error {
+func AddCustomHeaders(w http.ResponseWriter, headers http.Header) {
 	for k, v := range headers {
 		for _, value := range v {
 			w.Header().Add(k, value)
 		}
 	}
-	return nil
 }
 
 // ParseHeaderString parses a string of key values into a map
