@@ -3,4 +3,4 @@
 set -e
 
 # Check that sshd is running
-/usr/bin/pgrep "sshd"
+/bin/ps "$(cat /srv/sshd/sshd.pid)"
