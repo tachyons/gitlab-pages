@@ -12,7 +12,6 @@ import (
 	"golang.org/x/net/http2"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 )
 
 type keepAliveListener struct {
@@ -62,13 +61,4 @@ func listenAndServe(fd uintptr, handler http.Handler, useHTTP2 bool, tlsConfig *
 		return server.Serve(tlsListener)
 	}
 	return server.Serve(&keepAliveListener{l})
-}
-
-func listenAndServeTLS(fd uintptr, cert, key []byte, handler http.Handler, getCertificate tlsconfig.GetCertificateFunc, insecureCiphers bool, tlsMinVersion uint16, tlsMaxVersion uint16, useHTTP2 bool, limiter *netutil.Limiter) error {
-	tlsConfig, err := tlsconfig.Create(cert, key, getCertificate, insecureCiphers, tlsMinVersion, tlsMaxVersion)
-	if err != nil {
-		return err
-	}
-
-	return listenAndServe(fd, handler, useHTTP2, tlsConfig, limiter)
 }
