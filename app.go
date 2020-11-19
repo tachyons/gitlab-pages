@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
+	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -503,6 +504,11 @@ func runApp(config appConfig) {
 	if err := mimedb.LoadTypes(); err != nil {
 		log.WithError(err).Warn("Loading extended MIME database failed")
 	}
+
+	cfg.Default.Zip.ExpirationInterval = config.ZipCacheExpiry
+	cfg.Default.Zip.CleanupInterval = config.ZipCacheCleanup
+	cfg.Default.Zip.RefreshInterval = config.ZipCacheRefresh
+	cfg.Default.Zip.OpenTimeout = config.ZipeOpenTimeout
 
 	a.Run()
 }

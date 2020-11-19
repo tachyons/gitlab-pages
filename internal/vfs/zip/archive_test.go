@@ -23,7 +23,6 @@ var (
 )
 
 func init() {
-	config.Init()
 	zipCfg = config.Default.Zip
 }
 

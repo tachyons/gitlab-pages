@@ -8,14 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
-
-func init() {
-	cfg.Init()
-}
 
 func TestZip_ServeFileHTTP(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip")

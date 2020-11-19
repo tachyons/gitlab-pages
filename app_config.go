@@ -41,6 +41,11 @@ type appConfig struct {
 	SentryDSN                 string
 	SentryEnvironment         string
 	CustomHeaders             []string
+
+	ZipCacheExpiry  time.Duration
+	ZipCacheRefresh time.Duration
+	ZipCacheCleanup time.Duration
+	ZipeOpenTimeout time.Duration
 }
 
 // InternalGitLabServerURL returns URL to a GitLab instance.
