@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/namsral/flag"
@@ -10,7 +11,7 @@ import (
 var Default *Config
 
 // TODO: move all flags to this package, including flag.Parse()
-func init() {
+func Init() {
 	Default = &Config{
 		Zip: &ZipServing{},
 	}
@@ -19,6 +20,9 @@ func init() {
 	flag.DurationVar(&Default.Zip.CleanupInterval, "zip-cache-cleanup", 30*time.Second, "Zip serving archive cache cleanup interval")
 	flag.DurationVar(&Default.Zip.RefreshInterval, "zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval")
 	flag.DurationVar(&Default.Zip.OpenTimeout, "zip-open-timeout", 30*time.Second, "Zip archive open timeout")
+
+	// flag.Parse()
+	fmt.Printf("init: CONFIG: %+v\n", Default.Zip)
 }
 
 type Config struct {

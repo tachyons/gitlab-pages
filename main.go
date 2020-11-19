@@ -16,6 +16,7 @@ import (
 
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
+	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
@@ -295,6 +296,10 @@ func loadConfig() appConfig {
 		"api-secret-key":                *gitLabAPISecretKey,
 		"domain-config-source":          config.DomainConfigurationSource,
 		"auth-redirect-uri":             config.RedirectURI,
+		"zip-cache-expiration":          cfg.Default.Zip.ExpirationInterval,
+		"zip-cache-cleanup":             cfg.Default.Zip.CleanupInterval,
+		"zip-cache-refresh":             cfg.Default.Zip.RefreshInterval,
+		"zip-open-timeout":              cfg.Default.Zip.OpenTimeout,
 	}).Debug("Start daemon with configuration")
 
 	return config
@@ -306,6 +311,8 @@ func appMain() {
 	// read from -config=/path/to/gitlab-pages-config
 	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
 	flag.Parse()
+
+	fmt.Printf("appMain: CONFIG: %+v\n", cfg.Default.Zip)
 	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
 		fatal(err, "invalid TLS version")
 	}
@@ -440,6 +447,7 @@ func main() {
 
 	metrics.MustRegister()
 
+	cfg.Init()
 	daemonMain()
 	appMain()
 }

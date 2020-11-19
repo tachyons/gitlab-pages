@@ -19,8 +19,13 @@ import (
 
 var (
 	chdirSet = false
-	zipCfg   = config.Default.Zip
+	zipCfg   *config.ZipServing
 )
+
+func init() {
+	config.Init()
+	zipCfg = config.Default.Zip
+}
 
 func TestOpen(t *testing.T) {
 	zip, cleanup := openZipArchive(t, nil)
