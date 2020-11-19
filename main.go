@@ -16,7 +16,6 @@ import (
 
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
-	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
@@ -79,12 +78,6 @@ var (
 	tlsMaxVersion      = flag.String("tls-max-version", "", tlsconfig.FlagUsage("max"))
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
-
-	// zip serving settings
-	zipCacheExpiration = flag.Duration("zip-cache-expiration", 60*time.Second, "Zip serving archive cache expiration interval (default: 60s)")
-	zipCacheCleanup    = flag.Duration("zip-cache-cleanup", 30*time.Second, "Zip serving archive cache cleanup interval (default: 30s)")
-	zipCacheRefresh    = flag.Duration("zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval (default: 30s)")
-	zipOpenTimeout     = flag.Duration("zip-open-timeout", 30*time.Second, "Zip archive open timeout (default: 30s)")
 
 	// See init()
 	listenHTTP         MultiStringFlag
@@ -219,13 +212,6 @@ func configFromFlags() appConfig {
 	config.SentryEnvironment = *sentryEnvironment
 
 	checkAuthenticationConfig(config)
-
-	cfg.DefaultConfig.SetZip(&cfg.ZipServing{
-		ExpirationInterval: *zipCacheExpiration,
-		CleanupInterval:    *zipCacheCleanup,
-		RefreshInterval:    *zipCacheRefresh,
-		OpenTimeout:        *zipOpenTimeout,
-	})
 
 	return config
 }

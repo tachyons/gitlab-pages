@@ -17,9 +17,10 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
-var chdirSet = false
-
-var zipCfg = config.DefaultConfig.GetZip()
+var (
+	chdirSet = false
+	zipCfg   = config.Default.Zip
+)
 
 func TestOpen(t *testing.T) {
 	zip, cleanup := openZipArchive(t, nil)

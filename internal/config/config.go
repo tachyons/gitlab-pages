@@ -2,24 +2,27 @@ package config
 
 import (
 	"time"
+
+	"github.com/namsral/flag"
 )
 
-// TODO: refactor config flags in main.go and find a better way to handle all settings
+// Default configuration that can be accessed by different packages
+var Default *Config
 
-type Config struct {
-	zip *ZipServing
+// TODO: move all flags to this package, including flag.Parse()
+func init() {
+	Default = &Config{
+		Zip: &ZipServing{},
+	}
+
+	flag.DurationVar(&Default.Zip.ExpirationInterval, "zip-cache-expiration", 60*time.Second, "Zip serving archive cache expiration interval")
+	flag.DurationVar(&Default.Zip.CleanupInterval, "zip-cache-cleanup", 30*time.Second, "Zip serving archive cache cleanup interval")
+	flag.DurationVar(&Default.Zip.RefreshInterval, "zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval")
+	flag.DurationVar(&Default.Zip.OpenTimeout, "zip-open-timeout", 30*time.Second, "Zip archive open timeout")
 }
 
-// DefaultConfig struct that can be accessed by different packages to share
-// configuration parameters
-var DefaultConfig = &Config{
-	// TODO: think of a way to not repeat these here and in main.go
-	zip: &ZipServing{
-		ExpirationInterval: time.Minute,
-		CleanupInterval:    time.Minute / 2,
-		RefreshInterval:    time.Minute / 2,
-		OpenTimeout:        time.Minute / 2,
-	},
+type Config struct {
+	Zip *ZipServing
 }
 
 // ZipServing stores all configuration values to be used by the zip VFS opening and
@@ -29,13 +32,4 @@ type ZipServing struct {
 	CleanupInterval    time.Duration
 	RefreshInterval    time.Duration
 	OpenTimeout        time.Duration
-}
-
-// SetZip config to the global config
-func (c *Config) SetZip(zip *ZipServing) {
-	c.zip = zip
-}
-
-func (c *Config) GetZip() *ZipServing {
-	return c.zip
 }
