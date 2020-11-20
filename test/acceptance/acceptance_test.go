@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	objectStorageMockServer = "127.0.0.1:37003"
+	objectStorageMockServer = "127.0.0.1:38001"
 )
 
 var (
@@ -27,11 +27,14 @@ var (
 		{"https", "::1", "37001"},
 		{"proxy", "127.0.0.1", "37002"},
 		{"proxy", "::1", "37002"},
+		{"https-proxyv2", "127.0.0.1", "37003"},
+		{"https-proxyv2", "::1", "37003"},
 	}
 
-	httpListener  = listeners[0]
-	httpsListener = listeners[2]
-	proxyListener = listeners[4]
+	httpListener         = listeners[0]
+	httpsListener        = listeners[2]
+	proxyListener        = listeners[4]
+	httpsProxyv2Listener = listeners[6]
 )
 
 func TestMain(m *testing.M) {

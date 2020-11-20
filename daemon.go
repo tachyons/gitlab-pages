@@ -330,6 +330,7 @@ func updateFds(config *appConfig, cmd *exec.Cmd) {
 		config.ListenHTTP,
 		config.ListenHTTPS,
 		config.ListenProxy,
+		config.ListenHTTPSProxyv2,
 	} {
 		daemonUpdateFds(cmd, fds)
 	}

@@ -32,6 +32,7 @@ func init() {
 	flag.Var(&listenHTTP, "listen-http", "The address(es) to listen on for HTTP requests")
 	flag.Var(&listenHTTPS, "listen-https", "The address(es) to listen on for HTTPS requests")
 	flag.Var(&listenProxy, "listen-proxy", "The address(es) to listen on for proxy requests")
+	flag.Var(&ListenHTTPSProxyv2, "listen-https-proxyv2", "The address(es) to listen on for HTTPS PROXYv2 requests (https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt)")
 	flag.Var(&header, "header", "The additional http header(s) that should be send to the client")
 }
 
@@ -78,9 +79,10 @@ var (
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
 	// See init()
-	listenHTTP  MultiStringFlag
-	listenHTTPS MultiStringFlag
-	listenProxy MultiStringFlag
+	listenHTTP         MultiStringFlag
+	listenHTTPS        MultiStringFlag
+	listenProxy        MultiStringFlag
+	ListenHTTPSProxyv2 MultiStringFlag
 
 	header MultiStringFlag
 )
@@ -274,6 +276,7 @@ func loadConfig() appConfig {
 		"listen-http":                   strings.Join(listenHTTP, ","),
 		"listen-https":                  strings.Join(listenHTTPS, ","),
 		"listen-proxy":                  strings.Join(listenProxy, ","),
+		"listen-https-proxyv2":          strings.Join(ListenHTTPSProxyv2, ","),
 		"log-format":                    *logFormat,
 		"metrics-address":               *metricsAddress,
 		"pages-domain":                  *pagesDomain,
@@ -387,6 +390,17 @@ func createAppListeners(config *appConfig) []io.Closer {
 		}).Debug("Set up proxy listener")
 
 		config.ListenProxy = append(config.ListenProxy, f.Fd())
+	}
+
+	for _, addr := range ListenHTTPSProxyv2.Split() {
+		l, f := createSocket(addr)
+		closers = append(closers, l, f)
+
+		log.WithFields(log.Fields{
+			"listener": addr,
+		}).Debug("Set up https proxyv2 listener")
+
+		config.ListenHTTPSProxyv2 = append(config.ListenHTTPSProxyv2, f.Fd())
 	}
 
 	return closers

@@ -185,6 +185,34 @@ We use `gorilla/handlers.ProxyHeaders` middleware. For more information please r
 
 > NOTE: This middleware should only be used when behind a reverse proxy like nginx, HAProxy or Apache. Reverse proxies that don't (or are configured not to) strip these headers from client requests, or where these headers are accepted "as is" from a remote client (e.g. when Go is not behind a proxy), can manifest as a vulnerability if your application uses these headers for validating the 'trustworthiness' of a request.
 
+### PROXY protocol for HTTPS
+
+The above `listen-proxy` option only works for plaintext HTTP, where the reverse
+proxy was already able to parse the incoming HTTP traffic and inject a header for
+the remote client IP.
+
+This does not work for HTTPS which is generally proxied at the TCP level. In
+order to propagate the remote client IP in this case, you can use the
+[PROXY protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt).
+This is supported by HAProxy and some third party services such as Cloudflare.
+
+To configure PROXY protocol support, run `gitlab-pages` with the
+`listen-https-proxyv2` flag.
+
+If you are using HAProxy as your TCP load balancer, you can configure the backend
+with the `send-proxy-v2` option, like so:
+
+```
+frontend fe
+    bind 127.0.0.1:12340
+    mode tcp
+    default_backend be
+
+backend be
+    mode tcp
+    server app1 127.0.0.1:1234 send-proxy-v2
+```
+
 ### GitLab access control
 
 GitLab access control is configured with properties `auth-client-id`, `auth-client-secret`, `auth-redirect-uri`, `auth-server` and `auth-secret`. Client ID, secret and redirect uri are configured in the GitLab and should match. `auth-server` points to a GitLab instance used for authentication. `auth-redirect-uri` should be `http(s)://pages-domain/auth`. Note that if the pages-domain is not handled by GitLab pages, then the `auth-redirect-uri` should use some reserved namespace prefix (such as `http(s)://projects.pages-domain/auth`). Using HTTPS is _strongly_ encouraged. `auth-secret` is used to encrypt the session cookie, and it should be strong enough.

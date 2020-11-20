@@ -213,7 +213,7 @@ func TestCORSWhenDisabled(t *testing.T) {
 
 	for _, spec := range listeners {
 		for _, method := range []string{"GET", "OPTIONS"} {
-			rsp := doCrossOriginRequest(t, method, method, spec.URL("project/"))
+			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("project/"))
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode)
 			require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
@@ -229,7 +229,7 @@ func TestCORSAllowsGET(t *testing.T) {
 
 	for _, spec := range listeners {
 		for _, method := range []string{"GET", "OPTIONS"} {
-			rsp := doCrossOriginRequest(t, method, method, spec.URL("project/"))
+			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("project/"))
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode)
 			require.Equal(t, "*", rsp.Header.Get("Access-Control-Allow-Origin"))
@@ -245,7 +245,7 @@ func TestCORSForbidsPOST(t *testing.T) {
 	defer teardown()
 
 	for _, spec := range listeners {
-		rsp := doCrossOriginRequest(t, "OPTIONS", "POST", spec.URL("project/"))
+		rsp := doCrossOriginRequest(t, spec, "OPTIONS", "POST", spec.URL("project/"))
 
 		require.Equal(t, http.StatusOK, rsp.StatusCode)
 		require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
@@ -502,7 +502,7 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 	}
 }
 
-func doCrossOriginRequest(t *testing.T, method, reqMethod, url string) *http.Response {
+func doCrossOriginRequest(t *testing.T, spec ListenSpec, method, reqMethod, url string) *http.Response {
 	req, err := http.NewRequest(method, url, nil)
 	require.NoError(t, err)
 
@@ -513,7 +513,7 @@ func doCrossOriginRequest(t *testing.T, method, reqMethod, url string) *http.Res
 	var rsp *http.Response
 	err = fmt.Errorf("no request was made")
 	for start := time.Now(); time.Since(start) < 1*time.Second; {
-		rsp, err = DoPagesRequest(t, req)
+		rsp, err = DoPagesRequest(t, spec, req)
 		if err == nil {
 			break
 		}

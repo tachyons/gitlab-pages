@@ -10,13 +10,14 @@ type appConfig struct {
 	RootKey                []byte
 	MaxConns               int
 
-	ListenHTTP      []uintptr
-	ListenHTTPS     []uintptr
-	ListenProxy     []uintptr
-	ListenMetrics   uintptr
-	InsecureCiphers bool
-	TLSMinVersion   uint16
-	TLSMaxVersion   uint16
+	ListenHTTP         []uintptr
+	ListenHTTPS        []uintptr
+	ListenProxy        []uintptr
+	ListenHTTPSProxyv2 []uintptr
+	ListenMetrics      uintptr
+	InsecureCiphers    bool
+	TLSMinVersion      uint16
+	TLSMaxVersion      uint16
 
 	HTTP2        bool
 	RedirectHTTP bool
