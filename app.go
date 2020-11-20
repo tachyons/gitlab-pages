@@ -29,6 +29,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -393,7 +394,12 @@ func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := listenAndServeTLS(fd, a.RootCertificate, a.RootKey, httpHandler, a.ServeTLS, a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion, a.HTTP2, limiter)
+		tlsConfig, err := a.TLSConfig()
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
+		}
+
+		err = listenAndServe(fd, httpHandler, a.HTTP2, tlsConfig, limiter)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
@@ -482,4 +488,9 @@ func runApp(config appConfig) {
 // fatal will log a fatal error and exit.
 func fatal(err error, message string) {
 	log.WithError(err).Fatal(message)
+}
+
+func (a *theApp) TLSConfig() (*tls.Config, error) {
+	return tlsconfig.Create(a.RootCertificate, a.RootKey, a.ServeTLS,
+		a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion)
 }
