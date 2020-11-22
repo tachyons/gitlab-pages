@@ -16,7 +16,6 @@ import (
 
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
-	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
