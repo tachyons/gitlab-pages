@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
@@ -53,6 +55,12 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 		},
 	}
 
+	config.Default.Zip = &config.ZipServing{
+		ExpirationInterval: 10 * time.Second,
+		CleanupInterval:    5 * time.Second,
+		RefreshInterval:    5 * time.Second,
+		OpenTimeout:        5 * time.Second,
+	}
 	s := Instance()
 
 	for name, test := range tests {

@@ -98,7 +98,7 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 	require.Eventually(t, func() bool {
 		_, err := vfs.findOrOpenArchive(context.Background(), path, path)
 		return err == errAlreadyCached
-	}, time.Second, time.Nanosecond)
+	}, 3*time.Second, time.Nanosecond)
 }
 
 func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {

@@ -3,7 +3,6 @@ package zip
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/url"
 	"sync"
 	"time"
@@ -50,7 +49,6 @@ type zipVFS struct {
 
 // New creates a zipVFS instance that can be used by a serving request
 func New(cfg *config.ZipServing) vfs.VFS {
-	fmt.Printf("\n\n\n what the config?: %+v\n\n\n", cfg)
 	zipVFS := &zipVFS{
 		cacheExpirationInterval: cfg.ExpirationInterval,
 		cacheRefreshInterval:    cfg.RefreshInterval,

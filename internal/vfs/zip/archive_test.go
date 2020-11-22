@@ -19,12 +19,13 @@ import (
 
 var (
 	chdirSet = false
-	zipCfg   *config.ZipServing
+	zipCfg   = &config.ZipServing{
+		ExpirationInterval: 10 * time.Second,
+		CleanupInterval:    5 * time.Second,
+		RefreshInterval:    5 * time.Second,
+		OpenTimeout:        5 * time.Second,
+	}
 )
-
-func init() {
-	zipCfg = config.Default.Zip
-}
 
 func TestOpen(t *testing.T) {
 	zip, cleanup := openZipArchive(t, nil)
