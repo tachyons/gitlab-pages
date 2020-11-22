@@ -325,7 +325,6 @@ func appMain() {
 
 	flag.Parse()
 
-	fmt.Printf("appMain: CONFIG: %+v\n", cfg.Default.Zip)
 	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
 		fatal(err, "invalid TLS version")
 	}
