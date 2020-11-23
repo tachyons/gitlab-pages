@@ -15,7 +15,7 @@ RUN apt-get update \
   bzip2 \
   ca-certificates \
   libffi-dev \
-  libgdbm3 \
+  libgdbm6 \
   libssl-dev \
   libyaml-dev \
   procps \
