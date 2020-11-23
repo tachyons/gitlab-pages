@@ -1,6 +1,6 @@
 ### Cloud native GitLab Docker Images
 
-Most images are based on the [Debian Linux](https://debian.org), using the [official stretch-slim image](https://hub.docker.com/_/debian). A few smaller, quick running tasks are based on [Alpine Linux](https://alpinelinux.org/), using the [official image](https://hub.docker.com/_/alpine/).
+Most images are based on the [Debian Linux](https://debian.org), using the [official buster-slim image](https://hub.docker.com/_/debian). A few smaller, quick running tasks are based on [Alpine Linux](https://alpinelinux.org/), using the [official image](https://hub.docker.com/_/alpine/).
 
 Built using [the official source installation instructions](http://docs.gitlab.com/ee/install/installation.html) with some Alpine specific fixes
 and some dependency compilation tweaks picked up from from the [omnibus build packages](https://gitlab.com/gitlab-org/omnibus-gitlab).

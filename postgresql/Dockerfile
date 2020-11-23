@@ -1,5 +1,5 @@
 ARG FROM_IMAGE="debian"
-FROM ${FROM_IMAGE}:stretch-slim
+FROM ${FROM_IMAGE}:buster-slim
 
 ARG BUILD_DIR=/tmp/build
 ARG PG_VERSION=12.3
@@ -12,7 +12,7 @@ RUN apt-get update \
   bzip2 \
   ca-certificates \
   libffi-dev \
-  libssl1.0-dev \
+  libssl-dev \
   libyaml-dev \
   busybox \
   zlib1g-dev \

@@ -1,4 +1,4 @@
-FROM debian:stretch-slim
+FROM debian:buster-slim
 
 ARG BUILD_DIR=/tmp/build
 ARG RUBY_MAJOR_VERSION=2.7
@@ -16,7 +16,7 @@ RUN apt-get update \
   ca-certificates \
   libffi-dev \
   libgdbm3 \
-  libssl1.0-dev \
+  libssl-dev \
   libyaml-dev \
   procps \
 	busybox \
