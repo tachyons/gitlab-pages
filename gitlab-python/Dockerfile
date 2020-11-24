@@ -1,5 +1,5 @@
 ARG FROM_IMAGE="debian"
-FROM ${FROM_IMAGE}:stretch-slim
+FROM ${FROM_IMAGE}:buster-slim
 
 ARG BUILD_DIR=/tmp/build
 ARG PYTHON_VERSION="3.7.3"
@@ -11,7 +11,7 @@ RUN buildDeps=' \
   file \
   gcc \
   libffi-dev \
-  libssl1.0-dev \
+  libssl-dev \
   make \
   zlib1g-dev' && \
   apt-get update && \

@@ -7,7 +7,7 @@ variables:
   AUTO_DEPLOY_BRANCH_REGEX: '^[0-9]+-[0-9]+-auto-deploy-[0-9]+$'
   RUBY_VERSION: 2.7.2
   # Suffix to the cache key of gitlab-rails-* where Gem vendor bundles are stored. Enables easy cache busting.
-  RAILS_CACHE_SUFFIX: 20201023
+  RAILS_CACHE_SUFFIX: 20201123
   DNF_OPTS: '--disableplugin=subscription-manager'
 
 stages:
@@ -666,14 +666,17 @@ gitlab-webservice-ce:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ce.txt)
+    - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
                       --build-arg "TAG=$rails_container"
+                      --build-arg "PYTHON_TAG=${python_version}"
     - push_tags $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
+    - gitlab-python
 
 build:gitlab-sidekiq-ee:
   <<: *build-job-base
@@ -723,14 +726,17 @@ gitlab-sidekiq-ce:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ce.txt)
+    - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
+                      --build-arg "PYTHON_TAG=${python_version}"
                       --build-arg "TAG=$rails_container"
     - push_tags $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
+    - gitlab-python
 
 build:gitlab-exporter:
   <<: *build-job-base

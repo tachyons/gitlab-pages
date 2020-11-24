@@ -25,7 +25,7 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
-FROM ${DEPENDENCY_PROXY}debian:stretch-slim
+FROM ${DEPENDENCY_PROXY}debian:buster-slim
 
 ARG GITLAB_USER=git
 
