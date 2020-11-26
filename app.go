@@ -453,10 +453,7 @@ func runApp(config appConfig) {
 		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
 	}
 
-	if config.ClientID != "" {
-		a.Auth = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
-			config.RedirectURI, config.GitLabServer)
-	}
+	a.setAuth(config)
 
 	a.Handlers = handlers.New(a.Auth, a.Artifact)
 
@@ -477,6 +474,19 @@ func runApp(config appConfig) {
 	}
 
 	a.Run()
+}
+
+func (a *theApp) setAuth(config appConfig) {
+	if config.ClientID == "" {
+		return
+	}
+
+	var err error
+	a.Auth, err = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
+		config.RedirectURI, config.GitLabServer)
+	if err != nil {
+		log.WithError(err).Fatal("could not initialize auth package")
+	}
 }
 
 // fatal will log a fatal error and exit.

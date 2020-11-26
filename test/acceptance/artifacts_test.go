@@ -245,7 +245,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			)
 			defer teardown()
 
-			resp, err := GetRedirectPage(t, httpListener, tt.host, tt.path)
+			resp, err := GetRedirectPage(t, httpsListener, tt.host, tt.path)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
