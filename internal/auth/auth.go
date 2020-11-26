@@ -16,14 +16,14 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/hkdf"
+
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
-
-	"golang.org/x/crypto/hkdf"
 )
 
 // nolint: gosec
@@ -47,17 +47,23 @@ var (
 	errFailAuth          = errors.New("Failed to authenticate request")
 	errAuthNotConfigured = errors.New("Authentication is not configured")
 	errQueryParameter    = errors.New("Failed to parse domain query parameter")
+
+	errGenerateKeys = errors.New("could not generate auth keys")
 )
 
 // Auth handles authenticating users with GitLab API
 type Auth struct {
-	pagesDomain  string
-	clientID     string
-	clientSecret string
-	redirectURI  string
-	gitLabServer string
-	apiClient    *http.Client
-	store        sessions.Store
+	pagesDomain   string
+	clientID      string
+	clientSecret  string
+	redirectURI   string
+	gitLabServer  string
+	authSecret    string
+	jwtSigningKey []byte
+	jwtExpiry     time.Duration
+	apiClient     *http.Client
+	store         sessions.Store
+	now           func() time.Time // allows to stub time.Now() easily in tests
 }
 
 type tokenResponse struct {
@@ -111,7 +117,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 	return session, nil
 }
 
-// TryAuthenticate tries to authenticate user and fetch access token if request is a callback to auth
+// TryAuthenticate tries to authenticate user and fetch access token if request is a callback to /auth?
 func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains source.Source) bool {
 	if a == nil {
 		return false
@@ -166,11 +172,18 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 		return
 	}
 
-	// Fetch access token with authorization code
-	token, err := a.fetchAccessToken(r.URL.Query().Get("code"))
-
-	// Fetching token not OK
+	decryptedCode, err := a.DecryptCode(r.URL.Query().Get("code"), getRequestDomain(r))
 	if err != nil {
+		logRequest(r).WithError(err).Error("failed to decrypt secure code")
+		errortracking.Capture(err, errortracking.WithRequest(r))
+		httperrors.Serve500(w)
+		return
+	}
+
+	// Fetch access token with authorization code
+	token, err := a.fetchAccessToken(decryptedCode)
+	if err != nil {
+		// Fetching token not OK
 		logRequest(r).WithError(err).WithField(
 			"redirect_uri", redirectURI,
 		).Error(errFetchAccessToken)
@@ -216,8 +229,8 @@ func (a *Auth) domainAllowed(name string, domains source.Source) bool {
 }
 
 func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domains source.Source) bool {
-	// If request is for authenticating via custom domain
-	if shouldProxyAuth(r) {
+	// handle auth callback e.g. https://gitlab.io/auth?domain&domain&state=state
+	if shouldProxyAuthToGitlab(r) {
 		domain := r.URL.Query().Get("domain")
 		state := r.URL.Query().Get("state")
 
@@ -266,6 +279,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 	}
 
 	// If auth request callback should be proxied to custom domain
+	// redirect to originating domain set in the cookie as proxy_auth_domain
 	if shouldProxyCallbackToCustomDomain(r, session) {
 		// Get domain started auth process
 		proxyDomain := session.Values["proxy_auth_domain"].(string)
@@ -283,9 +297,30 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			return true
 		}
 
-		// Redirect pages under custom domain
-		http.Redirect(w, r, proxyDomain+r.URL.Path+"?"+r.URL.RawQuery, 302)
+		query := r.URL.Query()
 
+		// prevent https://tools.ietf.org/html/rfc6749#section-10.6 and
+		// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/262 by encrypting
+		// and signing the OAuth code
+		signedCode, err := a.EncryptAndSignCode(proxyDomain, query.Get("code"))
+		if err != nil {
+			logRequest(r).WithError(err).Error(errSaveSession)
+			errortracking.Capture(err, errortracking.WithRequest(r))
+
+			httperrors.Serve503(w)
+			return true
+		}
+
+		// prevent forwarding access token, more context on the security issue
+		// https://gitlab.com/gitlab-org/gitlab/-/issues/285244#note_451266051
+		query.Del("token")
+
+		// replace code with signed code
+		query.Set("code", signedCode)
+
+		// Redirect pages to originating domain with code and state to finish
+		// authentication process
+		http.Redirect(w, r, proxyDomain+r.URL.Path+"?"+query.Encode(), 302)
 		return true
 	}
 
@@ -306,7 +341,7 @@ func getRequestDomain(r *http.Request) string {
 	return "http://" + r.Host
 }
 
-func shouldProxyAuth(r *http.Request) bool {
+func shouldProxyAuthToGitlab(r *http.Request) bool {
 	return r.URL.Query().Get("domain") != "" && r.URL.Query().Get("state") != ""
 }
 
@@ -376,6 +411,7 @@ func (a *Auth) checkSessionIsValid(w http.ResponseWriter, r *http.Request) *sess
 		return nil
 	}
 
+	// redirect to /auth?domain=%s&state=%s
 	if a.checkTokenExists(session, w, r) {
 		return nil
 	}
@@ -586,28 +622,37 @@ func logRequest(r *http.Request) *log.Entry {
 	})
 }
 
-// generateKeyPair returns key pair for secure cookie: signing and encryption key
-func generateKeyPair(storeSecret string) ([]byte, []byte) {
-	hash := sha256.New
-	hkdf := hkdf.New(hash, []byte(storeSecret), []byte{}, []byte("PAGES_SIGNING_AND_ENCRYPTION_KEY"))
-	var keys [][]byte
-	for i := 0; i < 2; i++ {
-		key := make([]byte, 32)
-		if _, err := io.ReadFull(hkdf, key); err != nil {
-			log.WithError(err).Fatal("Can't generate key pair for secure cookies")
-		}
-		keys = append(keys, key)
-	}
-	return keys[0], keys[1]
-}
+// generateKeys derives count hkdf keys from a secret, ensuring the key is
+// the same for the same secret used across multiple instances
+func generateKeys(secret string, count int) ([][]byte, error) {
+	keys := make([][]byte, count)
+	hkdfReader := hkdf.New(sha256.New, []byte(secret), []byte{}, []byte("PAGES_SIGNING_AND_ENCRYPTION_KEY"))
 
-func createCookieStore(storeSecret string) sessions.Store {
-	return sessions.NewCookieStore(generateKeyPair(storeSecret))
+	for i := 0; i < count; i++ {
+		key := make([]byte, 32)
+		if _, err := io.ReadFull(hkdfReader, key); err != nil {
+			return nil, err
+		}
+
+		keys[i] = key
+	}
+
+	if len(keys) < count {
+		return nil, errGenerateKeys
+	}
+
+	return keys, nil
 }
 
 // New when authentication supported this will be used to create authentication handler
 func New(pagesDomain string, storeSecret string, clientID string, clientSecret string,
-	redirectURI string, gitLabServer string) *Auth {
+	redirectURI string, gitLabServer string) (*Auth, error) {
+	// generate 3 keys, 2 for the cookie store and 1 for JWT signing
+	keys, err := generateKeys(storeSecret, 3)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Auth{
 		pagesDomain:  pagesDomain,
 		clientID:     clientID,
@@ -618,6 +663,10 @@ func New(pagesDomain string, storeSecret string, clientID string, clientSecret s
 			Timeout:   5 * time.Second,
 			Transport: httptransport.InternalTransport,
 		},
-		store: createCookieStore(storeSecret),
-	}
+		store:         sessions.NewCookieStore(keys[0], keys[1]),
+		authSecret:    storeSecret,
+		jwtSigningKey: keys[2],
+		jwtExpiry:     time.Minute,
+		now:           time.Now,
+	}, nil
 }
