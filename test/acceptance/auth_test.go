@@ -88,7 +88,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, authrsp.StatusCode)
 }
 
-func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
+func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
 	defer teardown()
@@ -110,8 +110,8 @@ func TestWhenLoginCallbackWithCorrectStateWithoutEndpoint(t *testing.T) {
 	require.NoError(t, err)
 	defer authrsp.Body.Close()
 
-	// Will cause 503 because token endpoint is not available
-	require.Equal(t, http.StatusServiceUnavailable, authrsp.StatusCode)
+	// Will cause 500 because the code is not encrypted
+	require.Equal(t, http.StatusInternalServerError, authrsp.StatusCode)
 }
 
 func handleAccessControlArtifactRequests(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
@@ -219,11 +219,13 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 
 	// Will redirect to custom domain
 	require.Equal(t, "private.domain.com", url.Host)
-	require.Equal(t, "1", url.Query().Get("code"))
+	// code must have changed since it's encrypted
+	code := url.Query().Get("code")
+	require.NotEqual(t, "1", code)
 	require.Equal(t, state, url.Query().Get("state"))
 
 	// Run auth callback in custom domain
-	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/auth?code=1&state="+
+	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/auth?code="+code+"&state="+
 		state, cookie)
 
 	require.NoError(t, err)
@@ -319,11 +321,13 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 
 			// Will redirect to custom domain
 			require.Equal(t, tt.domain, url.Host)
-			require.Equal(t, "1", url.Query().Get("code"))
+			// code must have changed since it's encrypted
+			code := url.Query().Get("code")
+			require.NotEqual(t, "1", code)
 			require.Equal(t, state, url.Query().Get("state"))
 
 			// Run auth callback in custom domain
-			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, "/auth?code=1&state="+
+			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, "/auth?code="+code+"&state="+
 				state, cookie)
 
 			require.NoError(t, err)
@@ -392,12 +396,14 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 
 	// Will redirect to custom domain
 	require.Equal(t, "private.domain.com", url.Host)
-	require.Equal(t, "1", url.Query().Get("code"))
+	// code must have changed since it's encrypted
+	code := url.Query().Get("code")
+	require.NotEqual(t, "1", code)
 	require.Equal(t, state, url.Query().Get("state"))
 
 	// Run auth callback in custom domain
 	authrsp, err = GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com",
-		"/auth?code=1&state="+state, cookie, true)
+		"/auth?code="+code+"&state="+state, cookie, true)
 
 	require.NoError(t, err)
 	defer authrsp.Body.Close()
@@ -623,4 +629,88 @@ func TestAccessControlWithSSLCertFile(t *testing.T) {
 
 func TestAccessControlWithSSLCertDir(t *testing.T) {
 	testAccessControl(t, RunPagesProcessWithAuthServerWithSSLCertDir)
+}
+
+// This proves the fix for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/262
+// Read the issue description if any changes to internal/auth/ break this test.
+// Related to https://tools.ietf.org/html/rfc6749#section-10.6.
+func TestHijackedCode(t *testing.T) {
+	skipUnlessEnabled(t, "not-inplace-chroot")
+
+	testServer := makeGitLabPagesAccessStub(t)
+	testServer.Start()
+	defer testServer.Close()
+
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
+	defer teardown()
+
+	/****ATTACKER******/
+	// get valid cookie for a different private project
+	targetDomain := "private.domain.com"
+	attackersDomain := "group.auth.gitlab-example.com"
+	attackerCookie, attackerState := getValidCookieAndState(t, targetDomain)
+
+	/****TARGET******/
+	// fool target to click on modified URL with attacker's domain for redirect with a valid state
+	hackedURL := fmt.Sprintf("/auth?domain=http://%s&state=%s", attackersDomain, "irrelevant")
+	maliciousResp, err := GetProxyRedirectPageWithCookie(t, proxyListener, "projects.gitlab-example.com", hackedURL, "", true)
+	require.NoError(t, err)
+	defer maliciousResp.Body.Close()
+
+	pagesCookie := maliciousResp.Header.Get("Set-Cookie")
+
+	/*
+	   OAuth flow happens here...
+	*/
+	maliciousRespURL, err := url.Parse(maliciousResp.Header.Get("Location"))
+	require.NoError(t, err)
+	maliciousState := maliciousRespURL.Query().Get("state")
+
+	// Go to auth page with correct state and code "obtained" from GitLab
+	authrsp, err := GetProxyRedirectPageWithCookie(t, proxyListener,
+		"projects.gitlab-example.com", "/auth?code=1&state="+maliciousState,
+		pagesCookie, true)
+
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	/****ATTACKER******/
+	// Target is redirected to attacker's domain and attacker receives the proper code
+	require.Equal(t, http.StatusFound, authrsp.StatusCode, "should redirect to attacker's domain")
+	authrspURL, err := url.Parse(authrsp.Header.Get("Location"))
+	require.NoError(t, err)
+	require.Contains(t, authrspURL.String(), attackersDomain)
+
+	// attacker's got the code
+	hijackedCode := authrspURL.Query().Get("code")
+	require.NotEmpty(t, hijackedCode)
+
+	// attacker tries to access private pages content
+	impersonatingRes, err := GetProxyRedirectPageWithCookie(t, proxyListener, targetDomain,
+		"/auth?code="+hijackedCode+"&state="+attackerState, attackerCookie, true)
+	require.NoError(t, err)
+	defer authrsp.Body.Close()
+
+	require.Equal(t, impersonatingRes.StatusCode, http.StatusInternalServerError, "should fail to decode code")
+}
+
+func getValidCookieAndState(t *testing.T, domain string) (string, string) {
+	t.Helper()
+
+	// follow flow to get a valid cookie
+	// visit https://<domain>/
+	rsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, domain, "/", "", true)
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	cookie := rsp.Header.Get("Set-Cookie")
+	require.NotEmpty(t, cookie)
+
+	redirectURL, err := url.Parse(rsp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	state := redirectURL.Query().Get("state")
+	require.NotEmpty(t, state)
+
+	return cookie, state
 }
