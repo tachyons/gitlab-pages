@@ -25,7 +25,14 @@ production: &base
     object_store:
       enabled: false
   pages:
-    enabled: false
+    enabled: true
+    access_control: false
+    artifacts_server: true
+    path: /srv/gitlab/shared/pages
+    host: pages.127.0.0.1.nip.io
+    port: 80
+    https: false
+    secret_file: /srv/gitlab/.gitlab_pages_secret
   mattermost:
     enabled: false
   gravatar:

@@ -40,7 +40,9 @@ services:
       - ./dev/webservice-config:/var/opt/gitlab/config/templates
       - ./dev/shell-secret:/var/opt/gitlab/config/secrets
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/srv/gitlab/.gitlab_workhorse_secret
+      - ./dev/pages-secret/.gitlab_pages_secret:/srv/gitlab/.gitlab_pages_secret
       - uploads:/srv/gitlab/public/uploads
+      - pages:/srv/gitlab/shared/pages
   workhorse:
     image: ${GITLAB_WORKHORSE_IMAGE}
     environment:
@@ -85,6 +87,21 @@ services:
       - "${GITALY_HOST_PORT}:8075"
     volumes:
       - ./dev/gitaly-config:/etc/gitaly
+  pages:
+    image: ${GITLAB_PAGES_IMAGE}
+    command: "/scripts/start-pages"
+    depends_on:
+      - webservice
+    ports:
+      - "${PAGES_HOST_PORT}:8090"
+    environment:
+      - "CONFIG_TEMPLATE_DIRECTORY=/etc/gitlab-pages/templates"
+      - "CONFIG_DIRECTORY=/etc/gitlab-pages"
+      - "PAGES_CONFIG_FILE=/etc/gitlab-pages/pages-config"
+    volumes:
+      - ./dev/pages-config/pages-config.erb:/etc/gitlab-pages/templates/pages-config.erb
+      - ./dev/pages-secret/.gitlab_pages_secret:/etc/gitlab-pages/.gitlab_pages_secret
+      - pages:/srv/gitlab/shared/pages
 volumes:
   db-upgrade:
     driver: local
@@ -93,6 +110,12 @@ volumes:
       device: tmpfs
       o: "size=10M"
   uploads:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=100M"
+  pages:
     driver: local
     driver_opts:
       type: tmpfs
