@@ -80,14 +80,14 @@ func (j *Jail) Build() error {
 	for _, dir := range j.directories {
 		if err := os.Mkdir(dir.path, dir.mode); err != nil {
 			j.removeAll()
-			return fmt.Errorf("Can't create directory %q. %s", dir.path, err)
+			return fmt.Errorf("can't create directory %q. %s", dir.path, err)
 		}
 	}
 
 	for dest, src := range j.files {
 		if err := handleFile(dest, src); err != nil {
 			j.removeAll()
-			return fmt.Errorf("Can't copy %q -> %q. %s", src.path, dest, err)
+			return fmt.Errorf("can't copy %q -> %q. %s", src.path, dest, err)
 		}
 	}
 
@@ -106,12 +106,12 @@ func (j *Jail) removeAll() error {
 	// to traverse files and directories
 	if j.deleteRoot {
 		if err := os.RemoveAll(j.Path()); err != nil {
-			return fmt.Errorf("Can't delete jail %q. %s", j.Path(), err)
+			return fmt.Errorf("can't delete jail %q. %s", j.Path(), err)
 		}
 	} else {
 		for path := range j.files {
 			if err := os.Remove(path); err != nil {
-				return fmt.Errorf("Can't delete file in jail %q: %s", path, err)
+				return fmt.Errorf("can't delete file in jail %q: %s", path, err)
 			}
 		}
 
@@ -119,7 +119,7 @@ func (j *Jail) removeAll() error {
 		for i := len(j.directories) - 1; i >= 0; i-- {
 			dest := j.directories[i]
 			if err := os.Remove(dest.path); err != nil {
-				return fmt.Errorf("Can't delete directory in jail %q: %s", dest.path, err)
+				return fmt.Errorf("can't delete directory in jail %q: %s", dest.path, err)
 			}
 		}
 	}
@@ -134,7 +134,7 @@ func (j *Jail) Dispose() error {
 	}
 
 	if err := j.removeAll(); err != nil {
-		return fmt.Errorf("Can't delete jail %q. %s", j.Path(), err)
+		return fmt.Errorf("can't delete jail %q. %s", j.Path(), err)
 	}
 
 	return nil
@@ -150,17 +150,17 @@ func (j *Jail) MkDir(path string, perm os.FileMode) {
 func (j *Jail) CharDev(path string) error {
 	fi, err := os.Stat(path)
 	if err != nil {
-		return fmt.Errorf("Can't stat %q: %s", path, err)
+		return fmt.Errorf("can't stat %q: %s", path, err)
 	}
 
 	if (fi.Mode() & os.ModeCharDevice) == 0 {
-		return fmt.Errorf("Can't mknod %q: not a character device", path)
+		return fmt.Errorf("can't mknod %q: not a character device", path)
 	}
 
 	// Read the device number from the underlying unix implementation of stat()
 	sys, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {
-		return fmt.Errorf("Couldn't determine rdev for %q", path)
+		return fmt.Errorf("couldn't determine rdev for %q", path)
 	}
 
 	jailedDest := j.ExternalPath(path)
@@ -177,11 +177,11 @@ func (j *Jail) CharDev(path string) error {
 func (j *Jail) CopyTo(dest, src string) error {
 	fi, err := os.Stat(src)
 	if err != nil {
-		return fmt.Errorf("Can't stat %q. %s", src, err)
+		return fmt.Errorf("can't stat %q. %s", src, err)
 	}
 
 	if fi.IsDir() {
-		return fmt.Errorf("Can't copy directories. %s", src)
+		return fmt.Errorf("can't copy directories. %s", src)
 	}
 
 	jailedDest := j.ExternalPath(dest)

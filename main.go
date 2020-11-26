@@ -155,7 +155,7 @@ func setGitLabAPISecretKey(secretFile string, config *appConfig) {
 	}
 
 	if secretLength != 32 {
-		log.WithError(fmt.Errorf("Expected 32 bytes GitLab API secret but got %d bytes", secretLength)).Fatal("Failed to decode GitLab API secret")
+		log.WithError(fmt.Errorf("expected 32 bytes GitLab API secret but got %d bytes", secretLength)).Fatal("Failed to decode GitLab API secret")
 	}
 
 	config.GitLabAPISecretKey = decoded

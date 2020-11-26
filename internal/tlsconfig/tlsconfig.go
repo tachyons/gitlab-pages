@@ -73,13 +73,13 @@ func ValidateTLSVersions(min, max string) error {
 	tlsMax, tlsMaxOk := AllTLSVersions[max]
 
 	if !tlsMinOk {
-		return fmt.Errorf("Invalid minimum TLS version: %s", min)
+		return fmt.Errorf("invalid minimum TLS version: %s", min)
 	}
 	if !tlsMaxOk {
-		return fmt.Errorf("Invalid maximum TLS version: %s", max)
+		return fmt.Errorf("invalid maximum TLS version: %s", max)
 	}
 	if tlsMin > tlsMax && tlsMax > 0 {
-		return fmt.Errorf("Invalid maximum TLS version: %s; Should be at least %s", max, min)
+		return fmt.Errorf("invalid maximum TLS version: %s; should be at least %s", max, min)
 	}
 
 	return nil
