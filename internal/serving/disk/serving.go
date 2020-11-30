@@ -3,6 +3,7 @@ package disk
 import (
 	"os"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
@@ -38,6 +39,11 @@ func (s *Disk) ServeNotFoundHTTP(h serving.Handler) {
 
 	// Generic 404
 	httperrors.Serve404(h.Writer)
+}
+
+// Reconfigure VFS
+func (s *Disk) Reconfigure(cfg *config.Config) error {
+	return s.reader.vfs.Reconfigure(cfg)
 }
 
 // New returns a serving instance that is capable of reading files

@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -13,6 +14,7 @@ import (
 type VFS interface {
 	Root(ctx context.Context, path string) (Root, error)
 	Name() string
+	Reconfigure(config *config.Config) error
 }
 
 func Instrumented(fs VFS) VFS {
@@ -49,4 +51,8 @@ func (i *instrumentedVFS) Root(ctx context.Context, path string) (Root, error) {
 
 func (i *instrumentedVFS) Name() string {
 	return i.fs.Name()
+}
+
+func (i *instrumentedVFS) Reconfigure(cfg *config.Config) error {
+	return i.fs.Reconfigure(cfg)
 }

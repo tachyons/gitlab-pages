@@ -56,18 +56,38 @@ func New(cfg *config.ZipServing) vfs.VFS {
 		openTimeout:             cfg.OpenTimeout,
 	}
 
-	zipVFS.cache = cache.New(zipVFS.cacheExpirationInterval, zipVFS.cacheCleanupInterval)
-	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
-		metrics.ZipCachedEntries.WithLabelValues("archive").Dec()
-
-		i.(*zipArchive).onEvicted()
-	})
+	zipVFS.resetCache()
 
 	// TODO: To be removed with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/480
 	zipVFS.dataOffsetCache = newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval)
 	zipVFS.readlinkCache = newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval)
 
 	return zipVFS
+}
+
+// Reconfigure will update the zipVFS configuration values and will reset the
+// cache
+func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
+	fs.cacheLock.Lock()
+	defer fs.cacheLock.Unlock()
+
+	fs.openTimeout = cfg.Zip.OpenTimeout
+	fs.cacheExpirationInterval = cfg.Zip.ExpirationInterval
+	fs.cacheRefreshInterval = cfg.Zip.RefreshInterval
+	fs.cacheCleanupInterval = cfg.Zip.CleanupInterval
+
+	fs.resetCache()
+
+	return nil
+}
+
+func (fs *zipVFS) resetCache() {
+	fs.cache = cache.New(fs.cacheExpirationInterval, fs.cacheCleanupInterval)
+	fs.cache.OnEvicted(func(s string, i interface{}) {
+		metrics.ZipCachedEntries.WithLabelValues("archive").Dec()
+
+		i.(*zipArchive).onEvicted()
+	})
 }
 
 func (fs *zipVFS) keyFromPath(path string) (string, error) {
