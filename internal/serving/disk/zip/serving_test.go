@@ -62,6 +62,8 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 		OpenTimeout:        5 * time.Second,
 	}
 	s := Instance()
+	err := s.Reconfigure(config.Default)
+	require.NoError(t, err)
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

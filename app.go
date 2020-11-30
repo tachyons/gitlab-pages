@@ -29,6 +29,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/middleware"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -509,6 +510,10 @@ func runApp(config appConfig) {
 	cfg.Default.Zip.CleanupInterval = config.ZipCacheCleanup
 	cfg.Default.Zip.RefreshInterval = config.ZipCacheRefresh
 	cfg.Default.Zip.OpenTimeout = config.ZipeOpenTimeout
+
+	if err := zip.Instance().Reconfigure(cfg.Default); err != nil {
+		fatal(err, "failed to reconfigure zip VFS")
+	}
 
 	a.Run()
 }
