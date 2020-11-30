@@ -55,14 +55,17 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 		},
 	}
 
-	config.Default.Zip = &config.ZipServing{
-		ExpirationInterval: 10 * time.Second,
-		CleanupInterval:    5 * time.Second,
-		RefreshInterval:    5 * time.Second,
-		OpenTimeout:        5 * time.Second,
+	cfg := &config.Config{
+		Zip: &config.ZipServing{
+			ExpirationInterval: 10 * time.Second,
+			CleanupInterval:    5 * time.Second,
+			RefreshInterval:    5 * time.Second,
+			OpenTimeout:        5 * time.Second,
+		},
 	}
+
 	s := Instance()
-	err := s.Reconfigure(config.Default)
+	err := s.Reconfigure(cfg)
 	require.NoError(t, err)
 
 	for name, test := range tests {

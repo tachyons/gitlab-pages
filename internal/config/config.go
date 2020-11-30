@@ -4,11 +4,6 @@ import (
 	"time"
 )
 
-// Default configuration that can be accessed by different packages
-var Default = &Config{
-	Zip: &ZipServing{},
-}
-
 type Config struct {
 	Zip *ZipServing
 }

@@ -506,12 +506,18 @@ func runApp(config appConfig) {
 		log.WithError(err).Warn("Loading extended MIME database failed")
 	}
 
-	cfg.Default.Zip.ExpirationInterval = config.ZipCacheExpiry
-	cfg.Default.Zip.CleanupInterval = config.ZipCacheCleanup
-	cfg.Default.Zip.RefreshInterval = config.ZipCacheRefresh
-	cfg.Default.Zip.OpenTimeout = config.ZipeOpenTimeout
+	c := &cfg.Config{
+		Zip: &cfg.ZipServing{
+			ExpirationInterval: config.ZipCacheExpiry,
+			CleanupInterval:    config.ZipCacheCleanup,
+			RefreshInterval:    config.ZipCacheRefresh,
+			OpenTimeout:        config.ZipeOpenTimeout,
+		},
+	}
 
-	if err := zip.Instance().Reconfigure(cfg.Default); err != nil {
+	// TODO: reconfigure all VFS'
+	//  https://gitlab.com/gitlab-org/gitlab-pages/-/issues/512
+	if err := zip.Instance().Reconfigure(c); err != nil {
 		fatal(err, "failed to reconfigure zip VFS")
 	}
 
