@@ -306,6 +306,8 @@ gitlab-pages:
                       --build-arg "DEPENDENCY_PROXY=${DEPENDENCY_PROXY}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GLOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
+                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
+                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
     - push_tags
     - push_tags $GITLAB_PAGES_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-pages_container.txt
