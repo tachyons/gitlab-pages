@@ -273,6 +273,47 @@ gitlab-logger:
     - push_tags $GLOGGER_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-logger_container.txt
 
+build:gitlab-pages:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  script:
+    - import_assets artifacts/ubi/gitlab-go.tar.gz
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GITLAB_PAGES_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed --build-arg "VERSION=${GITLAB_PAGES_VERSION}"
+                      --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "API_URL=${CI_API_V4_URL}"
+                      --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
+                      --build-arg "BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-go:$go_version${IMAGE_TAG_EXT}"
+    - copy_assets
+
+gitlab-pages:
+  <<: *job-base
+  <<: *except-deps
+  stage: phase-three
+  script:
+    - import_assets artifacts/ubi/gitlab-logger.tar.gz
+    - logger_target_version=$(get_version gitlab-logger)
+    - ruby_version=$(get_version gitlab-ruby)
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GLOGGER_VERSION$(date -u +%D)" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed --build-arg "GITLAB_PAGES_VERSION=$GITLAB_PAGES_VERSION"
+                      --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
+                      --build-arg "DEPENDENCY_PROXY=${DEPENDENCY_PROXY}"
+                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
+                      --build-arg "GLOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
+    - push_tags
+    - push_tags $GITLAB_PAGES_VERSION${IMAGE_TAG_EXT}
+    - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-pages_container.txt
+  dependencies:
+    - gitlab-go
+    - build:gitlab-logger
+    - build:gitlab-pages
+
 build:gitlab-graphicsmagick:
   <<: *build-job-base
   stage: prepare:phase-one
@@ -1119,6 +1160,7 @@ ubi-assets-release:
     - build:gitlab-go
     - build:git-base
     - build:gitlab-logger
+    - build:gitlab-pages
     - build:gitlab-container-registry
     - build:gitlab-mailroom
     - build:gitlab-exporter
