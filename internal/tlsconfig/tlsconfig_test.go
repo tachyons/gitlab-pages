@@ -35,9 +35,9 @@ func TestValidateTLSVersions(t *testing.T) {
 		tlsMax string
 		err    string
 	}{
-		"invalid minimum TLS version": {tlsMin: "tls123", tlsMax: "", err: "Invalid minimum TLS version: tls123"},
-		"invalid maximum TLS version": {tlsMin: "", tlsMax: "tls123", err: "Invalid maximum TLS version: tls123"},
-		"TLS versions conflict":       {tlsMin: "tls1.2", tlsMax: "tls1.1", err: "Invalid maximum TLS version: tls1.1; Should be at least tls1.2"},
+		"invalid minimum TLS version": {tlsMin: "tls123", tlsMax: "", err: "invalid minimum TLS version: tls123"},
+		"invalid maximum TLS version": {tlsMin: "", tlsMax: "tls123", err: "invalid maximum TLS version: tls123"},
+		"TLS versions conflict":       {tlsMin: "tls1.2", tlsMax: "tls1.1", err: "invalid maximum TLS version: tls1.1; should be at least tls1.2"},
 	}
 
 	for name, tc := range tests {
@@ -53,7 +53,7 @@ func TestInvalidKeyPair(t *testing.T) {
 	require.EqualError(t, err, "tls: failed to find any PEM data in certificate input")
 }
 
-func TestInsecureCihers(t *testing.T) {
+func TestInsecureCiphers(t *testing.T) {
 	tlsConfig, err := Create(cert, key, getCertificate, true, tls.VersionTLS11, tls.VersionTLS12)
 	require.NoError(t, err)
 	require.False(t, tlsConfig.PreferServerCipherSuites)
