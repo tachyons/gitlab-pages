@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/serverless"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
@@ -59,6 +58,8 @@ func TestFabricateServing(t *testing.T) {
 			},
 		}
 
-		require.IsType(t, &serverless.Serverless{}, fabricateServing(lookup))
+		// Serverless serving has been deprecated.
+		// require.IsType(t, &serverless.Serverless{}, fabricateServing(lookup))
+		require.IsType(t, &disk.Disk{}, fabricateServing(lookup))
 	})
 }

@@ -6,7 +6,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/serverless"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
@@ -35,14 +34,19 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 	case "zip":
 		return zip.Instance()
 	case "serverless":
-		serving, err := serverless.NewFromAPISource(source.Serverless)
-		if err != nil {
-			log.WithError(err).Errorf("could not fabricate serving for project %d", lookup.ProjectID)
+		log.Errorf("attempted to fabricate serverless serving for project %d", lookup.ProjectID)
 
-			break
-		}
-
-		return serving
+		// This feature has been disalbed, for more details see
+		//   https://gitlab.com/gitlab-org/gitlab-pages/-/issues/467
+		//
+		// serving, err := serverless.NewFromAPISource(source.Serverless)
+		// if err != nil {
+		// 	log.WithError(err).Errorf("could not fabricate serving for project %d", lookup.ProjectID)
+		//
+		// 	break
+		// }
+		//
+		// return serving
 	}
 
 	return defaultServing()
