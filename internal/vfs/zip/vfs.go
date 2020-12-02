@@ -9,18 +9,13 @@ import (
 
 	"github.com/patrickmn/go-cache"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
-	// TODO: make these configurable https://gitlab.com/gitlab-org/gitlab-pages/-/issues/464
-	defaultCacheExpirationInterval = time.Minute
-	defaultCacheCleanupInterval    = time.Minute / 2
-	defaultCacheRefreshInterval    = time.Minute / 2
-	defaultOpenTimeout             = time.Minute / 2
-
 	// we assume that each item costs around 100 bytes
 	// this gives around 5MB of raw memory needed without acceleration structures
 	defaultDataOffsetItems              = 50000
@@ -52,62 +47,47 @@ type zipVFS struct {
 	archiveCount int64
 }
 
-// Option function allows to override default values
-type Option func(*zipVFS)
-
-// WithCacheRefreshInterval when used it can override defaultCacheRefreshInterval
-func WithCacheRefreshInterval(interval time.Duration) Option {
-	return func(vfs *zipVFS) {
-		vfs.cacheRefreshInterval = interval
-	}
-}
-
-// WithCacheExpirationInterval when used it can override defaultCacheExpirationInterval
-func WithCacheExpirationInterval(interval time.Duration) Option {
-	return func(vfs *zipVFS) {
-		vfs.cacheExpirationInterval = interval
-	}
-}
-
-// WithCacheCleanupInterval when used it can override defaultCacheCleanupInterval
-func WithCacheCleanupInterval(interval time.Duration) Option {
-	return func(vfs *zipVFS) {
-		vfs.cacheCleanupInterval = interval
-	}
-}
-
-// WithOpenTimeout when used it can override openTimeout
-func WithOpenTimeout(interval time.Duration) Option {
-	return func(vfs *zipVFS) {
-		vfs.openTimeout = interval
-	}
-}
-
 // New creates a zipVFS instance that can be used by a serving request
-func New(options ...Option) vfs.VFS {
+func New(cfg *config.ZipServing) vfs.VFS {
 	zipVFS := &zipVFS{
-		cacheExpirationInterval: defaultCacheExpirationInterval,
-		cacheRefreshInterval:    defaultCacheRefreshInterval,
-		cacheCleanupInterval:    defaultCacheCleanupInterval,
-		openTimeout:             defaultOpenTimeout,
+		cacheExpirationInterval: cfg.ExpirationInterval,
+		cacheRefreshInterval:    cfg.RefreshInterval,
+		cacheCleanupInterval:    cfg.CleanupInterval,
+		openTimeout:             cfg.OpenTimeout,
 	}
 
-	for _, option := range options {
-		option(zipVFS)
-	}
-
-	zipVFS.cache = cache.New(zipVFS.cacheExpirationInterval, zipVFS.cacheCleanupInterval)
-	zipVFS.cache.OnEvicted(func(s string, i interface{}) {
-		metrics.ZipCachedEntries.WithLabelValues("archive").Dec()
-
-		i.(*zipArchive).onEvicted()
-	})
+	zipVFS.resetCache()
 
 	// TODO: To be removed with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/480
 	zipVFS.dataOffsetCache = newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval)
 	zipVFS.readlinkCache = newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval)
 
 	return zipVFS
+}
+
+// Reconfigure will update the zipVFS configuration values and will reset the
+// cache
+func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
+	fs.cacheLock.Lock()
+	defer fs.cacheLock.Unlock()
+
+	fs.openTimeout = cfg.Zip.OpenTimeout
+	fs.cacheExpirationInterval = cfg.Zip.ExpirationInterval
+	fs.cacheRefreshInterval = cfg.Zip.RefreshInterval
+	fs.cacheCleanupInterval = cfg.Zip.CleanupInterval
+
+	fs.resetCache()
+
+	return nil
+}
+
+func (fs *zipVFS) resetCache() {
+	fs.cache = cache.New(fs.cacheExpirationInterval, fs.cacheCleanupInterval)
+	fs.cache.OnEvicted(func(s string, i interface{}) {
+		metrics.ZipCachedEntries.WithLabelValues("archive").Dec()
+
+		i.(*zipArchive).onEvicted()
+	})
 }
 
 func (fs *zipVFS) keyFromPath(path string) (string, error) {

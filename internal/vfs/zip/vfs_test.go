@@ -35,7 +35,7 @@ func TestVFSRoot(t *testing.T) {
 		},
 	}
 
-	vfs := New()
+	vfs := New(zipCfg)
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 
 	path := testServerURL + "/public.zip"
 
-	vfs := New().(*zipVFS)
+	vfs := New(zipCfg).(*zipVFS)
 	root, err := vfs.Root(context.Background(), path)
 	require.NoError(t, err)
 
@@ -98,7 +98,7 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 	require.Eventually(t, func() bool {
 		_, err := vfs.findOrOpenArchive(context.Background(), path, path)
 		return err == errAlreadyCached
-	}, time.Second, time.Nanosecond)
+	}, 3*time.Second, time.Nanosecond)
 }
 
 func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
@@ -158,10 +158,11 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			withExpectedArchiveCount(t, 1, func(t *testing.T) {
-				vfs := New(
-					WithCacheExpirationInterval(test.expirationInterval),
-					WithCacheRefreshInterval(test.refreshInterval),
-				).(*zipVFS)
+				cfg := *zipCfg
+				cfg.ExpirationInterval = test.expirationInterval
+				cfg.RefreshInterval = test.refreshInterval
+
+				vfs := New(&cfg).(*zipVFS)
 
 				path := testServerURL + test.path
 

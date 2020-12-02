@@ -104,6 +104,31 @@ func TestZipServing(t *testing.T) {
 	}
 }
 
+func TestZipServingConfigShortTimeout(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	var apiCalled bool
+	source := NewGitlabDomainsSourceStub(t, &apiCalled)
+	defer source.Close()
+
+	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab",
+		"-zip-open-timeout=1ns"} // <- test purpose
+
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
+	defer teardown()
+
+	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
+	defer cleanup()
+
+	response, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", "/")
+	require.NoError(t, err)
+	defer response.Body.Close()
+
+	require.Equal(t, http.StatusInternalServerError, response.StatusCode, "should fail to serve")
+}
+
 func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
 	t.Helper()
 

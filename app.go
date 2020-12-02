@@ -21,13 +21,15 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
-	headerConfig "gitlab.com/gitlab-org/gitlab-pages/internal/config"
+	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/middleware"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -186,7 +188,7 @@ func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, erro
 // customHeadersMiddleware will inject custom headers into the response
 func (a *theApp) customHeadersMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		headerConfig.AddCustomHeaders(w, a.CustomHeaders)
+		middleware.AddCustomHeaders(w, a.CustomHeaders)
 
 		handler.ServeHTTP(w, r)
 	})
@@ -493,7 +495,7 @@ func runApp(config appConfig) {
 	}
 
 	if len(config.CustomHeaders) != 0 {
-		customHeaders, err := headerConfig.ParseHeaderString(config.CustomHeaders)
+		customHeaders, err := middleware.ParseHeaderString(config.CustomHeaders)
 		if err != nil {
 			log.WithError(err).Fatal("Unable to parse header string")
 		}
@@ -502,6 +504,21 @@ func runApp(config appConfig) {
 
 	if err := mimedb.LoadTypes(); err != nil {
 		log.WithError(err).Warn("Loading extended MIME database failed")
+	}
+
+	c := &cfg.Config{
+		Zip: &cfg.ZipServing{
+			ExpirationInterval: config.ZipCacheExpiry,
+			CleanupInterval:    config.ZipCacheCleanup,
+			RefreshInterval:    config.ZipCacheRefresh,
+			OpenTimeout:        config.ZipeOpenTimeout,
+		},
+	}
+
+	// TODO: reconfigure all VFS'
+	//  https://gitlab.com/gitlab-org/gitlab-pages/-/issues/512
+	if err := zip.Instance().Reconfigure(c); err != nil {
+		fatal(err, "failed to reconfigure zip VFS")
 	}
 
 	a.Run()

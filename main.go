@@ -13,6 +13,7 @@ import (
 
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
@@ -29,6 +30,7 @@ var VERSION = "dev"
 var REVISION = "HEAD"
 
 func init() {
+	// TODO: move all flags to config pkg https://gitlab.com/gitlab-org/gitlab-pages/-/issues/507
 	flag.Var(&listenHTTP, "listen-http", "The address(es) to listen on for HTTP requests")
 	flag.Var(&listenHTTPS, "listen-https", "The address(es) to listen on for HTTPS requests")
 	flag.Var(&listenProxy, "listen-proxy", "The address(es) to listen on for proxy requests")
@@ -37,6 +39,7 @@ func init() {
 }
 
 var (
+	// TODO: move all flags to config pkg https://gitlab.com/gitlab-org/gitlab-pages/-/issues/507
 	pagesRootCert           = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
 	pagesRootKey            = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 	redirectHTTP            = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
@@ -75,6 +78,11 @@ var (
 	insecureCiphers    = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
 	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tlsconfig.FlagUsage("min"))
 	tlsMaxVersion      = flag.String("tls-max-version", "", tlsconfig.FlagUsage("max"))
+	// TODO: move all flags to config pkg https://gitlab.com/gitlab-org/gitlab-pages/-/issues/507
+	zipCacheExpiration = flag.Duration("zip-cache-expiration", 60*time.Second, "Zip serving archive cache expiration interval")
+	zipCacheCleanup    = flag.Duration("zip-cache-cleanup", 30*time.Second, "Zip serving archive cache cleanup interval")
+	zipCacheRefresh    = flag.Duration("zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval")
+	zipOpenTimeout     = flag.Duration("zip-open-timeout", 30*time.Second, "Zip archive open timeout")
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
@@ -210,6 +218,11 @@ func configFromFlags() appConfig {
 	config.SentryDSN = *sentryDSN
 	config.SentryEnvironment = *sentryEnvironment
 
+	config.ZipCacheExpiry = *zipCacheExpiration
+	config.ZipCacheCleanup = *zipCacheCleanup
+	config.ZipCacheRefresh = *zipCacheRefresh
+	config.ZipeOpenTimeout = *zipOpenTimeout
+
 	checkAuthenticationConfig(config)
 
 	return config
@@ -294,6 +307,10 @@ func loadConfig() appConfig {
 		"api-secret-key":                *gitLabAPISecretKey,
 		"domain-config-source":          config.DomainConfigurationSource,
 		"auth-redirect-uri":             config.RedirectURI,
+		"zip-cache-expiration":          config.ZipCacheExpiry,
+		"zip-cache-cleanup":             config.ZipCacheCleanup,
+		"zip-cache-refresh":             config.ZipCacheRefresh,
+		"zip-open-timeout":              config.ZipeOpenTimeout,
 	}).Debug("Start daemon with configuration")
 
 	return config
@@ -304,7 +321,9 @@ func appMain() {
 
 	// read from -config=/path/to/gitlab-pages-config
 	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
+
 	flag.Parse()
+
 	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
 		fatal(err, "invalid TLS version")
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http/httputil"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
@@ -64,4 +65,9 @@ func (s *Serverless) ServeFileHTTP(h serving.Handler) bool {
 // ServeNotFoundHTTP responds with 404
 func (s *Serverless) ServeNotFoundHTTP(h serving.Handler) {
 	httperrors.Serve404(h.Writer)
+}
+
+// Reconfigure noop
+func (s *Serverless) Reconfigure(*config.Config) error {
+	return nil
 }

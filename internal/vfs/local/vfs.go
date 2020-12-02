@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
@@ -42,4 +43,9 @@ func (fs VFS) Root(ctx context.Context, path string) (vfs.Root, error) {
 
 func (fs *VFS) Name() string {
 	return "local"
+}
+
+func (fs *VFS) Reconfigure(*config.Config) error {
+	// noop
+	return nil
 }
