@@ -7,10 +7,8 @@ export PAGES_CONFIG_FILE="${PAGES_CONFIG_FILE:-$CONFIG_TEMPLATE_DIRECTORY/pages-
 
 touch /var/log/gitlab/pages.log
 
+/usr/local/bin/gitlab-logger /var/log/gitlab &
+
 gitlab-pages \
   -log-format=${GITLAB_PAGES_LOG_FORMAT} \
-  -config="${PAGES_CONFIG_FILE}" 2>&1 > /var/log/gitlab/pages.log &
-
-/usr/local/bin/gitlab-logger /var/log/gitlab
-
-wait
+  -config="${PAGES_CONFIG_FILE}" 2>&1 > /var/log/gitlab/pages.log
