@@ -21,8 +21,17 @@ else
   fi
 fi
 
-/usr/local/bin/gitlab-logger /var/log/gitlab-shell &
+echo "Starting OpenSSH"
+/usr/sbin/sshd -E /var/log/gitlab-shell/ssh.log &
 
-/usr/sbin/sshd -D -E /var/log/gitlab-shell/ssh.log
+echo "Tailing Logs"
+
+if command -v xtail >/dev/null; then
+    xtail /var/log/gitlab-shell
+else
+    touch /var/log/gitlab-shell/ssh.log
+    tail -f /var/log/gitlab-shell/*
+fi
+
 
 wait

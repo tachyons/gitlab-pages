@@ -2,7 +2,6 @@ ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG="master"
 
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
-ARG GLOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
 
 FROM ${FROM_IMAGE}:${TAG} as builder
 
@@ -16,7 +15,7 @@ ARG CI_API_V4_URL
 RUN buildDeps=' \
     gcc make' \
     && apt-get update \
-    && apt-get install -y --no-install-recommends $buildDeps \
+    && apt-get install -y --no-install-recommends $buildDeps xtail \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p ${BUILD_DIR}
 
@@ -30,8 +29,6 @@ RUN mkdir /srv/gitlab-shell && \
     rm gitlab-shell.tar.bz2 && \
     make build && \
     rm -rf go go_build internal/testhelper/testdata
-
-FROM ${GLOGGER_IMAGE} as glogger
 
 FROM ${FROM_IMAGE}:${TAG}
 
@@ -59,10 +56,6 @@ RUN mkdir -p /var/log/gitlab-shell && \
 COPY --from=builder /srv/gitlab-shell/ /srv/gitlab-shell/
 COPY scripts/  /scripts/
 COPY sshd_config /etc/ssh/
-
-
-# Pull in gitlab-logger
-COPY --from=glogger /gitlab-logger /usr/local/bin/gitlab-logger
 
 # AuthrorizedKeysCommand must be owned by root, and have all parent paths owned as root
 RUN mv /scripts/authorized_keys /authorized_keys && chmod 0755 /authorized_keys
