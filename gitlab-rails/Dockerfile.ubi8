@@ -6,6 +6,15 @@ ARG GITLAB_USER=git
 ARG GITLAB_DATA=/var/opt/gitlab
 ARG DNF_OPTS
 
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-rails" \
+      name="GitLab Rails" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="Rails container for GitLab." \
+      description="Rails container for GitLab."
+
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
     && dnf ${DNF_OPTS} install -by --nodocs \

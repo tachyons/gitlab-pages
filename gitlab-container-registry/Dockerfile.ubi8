@@ -5,7 +5,7 @@ FROM ${UBI_IMAGE}
 ARG REGISTRY_VERSION
 ARG GITLAB_USER=git
 
-LABEL source="https://gitlab.com/gitlab-org/container-registry" \
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-container-registry" \
       name="Container Registry" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \

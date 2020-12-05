@@ -6,7 +6,7 @@ ARG GITALY_SERVER_VERSION
 ARG GITLAB_USER=git
 ARG DNF_OPTS
 
-LABEL source="https://gitlab.com/gitlab-org/gitaly" \
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitaly" \
       name="Gitaly" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \
