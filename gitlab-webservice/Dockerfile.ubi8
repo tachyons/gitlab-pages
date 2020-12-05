@@ -7,7 +7,7 @@ ARG GITLAB_VERSION
 ARG GITLAB_USER=git
 ARG DNF_OPTS
 
-LABEL source="https://gitlab.com/gitlab-org/gitlab" \
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-webservice" \
       name="GitLab Web Service" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \

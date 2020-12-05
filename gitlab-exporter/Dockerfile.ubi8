@@ -6,7 +6,7 @@ ARG GITLAB_EXPORTER_VERSION
 ARG GITLAB_USER=git
 ARG DNF_OPTS
 
-LABEL source="https://gitlab.com/gitlab-org/gitlab-exporter" \
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-exporter" \
       name="GitLab Exporter" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \
