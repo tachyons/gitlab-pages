@@ -70,7 +70,7 @@ var (
 	gitlabClientHTTPTimeout = flag.Duration("gitlab-client-http-timeout", 10*time.Second, "GitLab API HTTP client connection timeout in seconds (default: 10s)")
 	gitlabClientJWTExpiry   = flag.Duration("gitlab-client-jwt-expiry", 30*time.Second, "JWT Token expiry time in seconds (default: 30s)")
 	// TODO: implement functionality for disk, auto and gitlab https://gitlab.com/gitlab-org/gitlab/-/issues/217912
-	domainConfigSource = flag.String("domain-config-source", "disk", "Domain configuration source 'disk', 'auto' or 'gitlab' (default: 'disk')")
+	domainConfigSource = flag.String("domain-config-source", "auto", "Domain configuration source 'disk', 'auto' or 'gitlab' (default: 'auto')")
 	clientID           = flag.String("auth-client-id", "", "GitLab application Client ID")
 	clientSecret       = flag.String("auth-client-secret", "", "GitLab application Client Secret")
 	redirectURI        = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")

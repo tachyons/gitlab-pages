@@ -60,7 +60,6 @@ func TestNewDomains(t *testing.T) {
 			expectDiskNil:   false,
 		},
 		{
-			// TODO: https://gitlab.com/gitlab-org/gitlab/-/issues/218358
 			name:            "auto_without_api_config",
 			sourceConfig:    sourceConfig{domainSource: "auto"},
 			expectGitlabNil: true,
