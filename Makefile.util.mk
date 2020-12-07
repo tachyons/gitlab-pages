@@ -57,5 +57,5 @@ deps-check: .GOPATH/.ok
 deps-download: .GOPATH/.ok
 	go mod download
 
-junit-report: bin/go-junit-report
+junit-report: .GOPATH/.ok bin/go-junit-report
 	cat tests.out | ./bin/go-junit-report -set-exit-code > junit-test-report.xml

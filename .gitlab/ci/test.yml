@@ -8,6 +8,19 @@
     - echo "Running all tests without daemonizing..."
     - make test
     - make junit-report
+  artifacts:
+    paths:
+      - bin/gitlab-pages
+    reports:
+      junit: junit-test-report.xml
+
+.tests-acceptance-deamon:
+  extends: .go-mod-cache
+  stage: test
+  tags:
+    - gitlab-org-docker
+  needs: [ 'download deps' ]
+  script:
     - echo "Running just the acceptance tests daemonized (tmpdir)...."
     - TEST_DAEMONIZE=tmpdir make acceptance
     - echo "Running just the acceptance tests daemonized (inplace)...."
@@ -15,19 +28,28 @@
   artifacts:
     paths:
       - bin/gitlab-pages
-    reports:
-      junit: junit-test-report.xml
 
 test:1.13:
   extends: .tests
+  image: golang:1.13
+
+test-acceptance:1.13:
+  extends: .tests-acceptance-deamon
   image: golang:1.13
 
 test:1.14:
   extends: .tests
   image: golang:1.14
 
+test-acceptance:1.14:
+  extends: .tests-acceptance-deamon
+  image: golang:1.14
+
 test:1.15:
   extends: .tests
+  image: golang:1.15
+test-acceptance:1.15:
+  extends: .tests-acceptance-deamon
   image: golang:1.15
 
 race:
@@ -77,14 +99,3 @@ check deps:
   needs: ['download deps']
   script:
     - make deps-check
-
-## Use https://github.com/jstemmer/go-junit-report to generate a JUnit report format XML file with go
-golang:
-  stage: test
-  script:
-    - go get -u github.com/jstemmer/go-junit-report
-    - go test -v 2>&1 | go-junit-report -set-exit-code > report.xml
-  artifacts:
-    when: always
-    reports:
-      junit: report.xml
