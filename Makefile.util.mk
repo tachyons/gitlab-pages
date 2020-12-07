@@ -10,7 +10,8 @@ lint: .GOPATH/.ok bin/golangci-lint
 	$Q ./bin/golangci-lint run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
 
 test: .GOPATH/.ok gitlab-pages
-	go test $(if $V,-v) $(allpackages)
+	rm tests.out || true
+	go test $(if $V,-v) $(allpackages) 2>&1 | tee tests.out
 
 race: .GOPATH/.ok gitlab-pages
 	CGO_ENABLED=1 go test -race $(if $V,-v) $(allpackages)
@@ -55,3 +56,6 @@ deps-check: .GOPATH/.ok
 
 deps-download: .GOPATH/.ok
 	go mod download
+
+junit-report: bin/go-junit-report
+	cat tests.out | ./bin/go-junit-report -set-exit-code > junit-test-report.xml

@@ -7,6 +7,7 @@
   script:
     - echo "Running all tests without daemonizing..."
     - make test
+    - make junit-report
     - echo "Running just the acceptance tests daemonized (tmpdir)...."
     - TEST_DAEMONIZE=tmpdir make acceptance
     - echo "Running just the acceptance tests daemonized (inplace)...."
@@ -74,3 +75,14 @@ check deps:
   needs: ['download deps']
   script:
     - make deps-check
+
+## Use https://github.com/jstemmer/go-junit-report to generate a JUnit report format XML file with go
+golang:
+  stage: test
+  script:
+    - go get -u github.com/jstemmer/go-junit-report
+    - go test -v 2>&1 | go-junit-report -set-exit-code > report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
