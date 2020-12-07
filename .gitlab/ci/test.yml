@@ -6,6 +6,7 @@
   needs: ['download deps']
   script:
     - echo "Running all tests without daemonizing..."
+    - make setup
     - make test
     - make junit-report
   artifacts:
