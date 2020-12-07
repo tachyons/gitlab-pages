@@ -7,5 +7,6 @@ ARG GO_VERSION=1.12.13
 RUN mkdir -p /assets/usr/local \
     && curl --retry 6 https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz -o go${GO_VERSION}.linux-amd64.tar.gz \
     && curl --retry 6 https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz.asc -o go${GO_VERSION}.linux-amd64.tar.gz.asc \
-    && gpg2 --keyserver keyserver.ubuntu.com --auto-key-retrieve --verify go${GO_VERSION}.linux-amd64.tar.gz.asc go${GO_VERSION}.linux-amd64.tar.gz \
+    && gpg2 --locate-keys linux-packages-keymaster@google.com \
+    && gpg2 --auto-key-retrieve --verify go${GO_VERSION}.linux-amd64.tar.gz.asc go${GO_VERSION}.linux-amd64.tar.gz \
     && tar -C /assets/usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
