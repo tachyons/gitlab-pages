@@ -6,7 +6,7 @@ ARG GITLAB_VERSION
 ARG GITLAB_USER=git
 ARG DNF_OPTS
 
-LABEL source="https://github.com/mperham/sidekiq" \
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-sidekiq" \
       name="GitLab Sidekiq" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \

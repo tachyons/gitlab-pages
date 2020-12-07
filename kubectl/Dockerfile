@@ -1,7 +1,7 @@
 # ARGS for entire build
 ARG KUBECTL_VERSION="1.14.10"
 ARG FROM_IMAGE="debian"
-FROM ${FROM_IMAGE}:stretch-slim
+FROM ${FROM_IMAGE}:buster-slim
 
 # ARG must be redeclared after each FROM
 ARG KUBECTL_VERSION
@@ -11,7 +11,7 @@ ARG YQ_VERSION="2.4.1"
 ENV KUBECTL_VERSION ${KUBECTL_VERSION}
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl ca-certificates libssl1.0.2 openssh-client \
+  && apt-get install -y --no-install-recommends curl ca-certificates libssl1.1 openssh-client \
   && curl --retry 6 -LsO https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl \
   && chmod +x kubectl \
   && mv kubectl /usr/local/bin/kubectl \

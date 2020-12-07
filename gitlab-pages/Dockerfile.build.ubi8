@@ -1,0 +1,25 @@
+ARG BUILD_IMAGE=
+
+FROM ${BUILD_IMAGE}
+
+ARG NAMESPACE=gitlab-org
+ARG PROJECT=gitlab-pages
+ARG VERSION=master
+ARG API_URL=
+ARG API_TOKEN=
+
+ADD gitlab-go.tar.gz /
+
+ENV PRIVATE_TOKEN=${API_TOKEN}
+
+RUN ldconfig \
+    && mkdir /assets \
+    && ln -sf /usr/local/go/bin/* /usr/local/bin \
+    && /gitlab-fetch \
+        "${API_URL}" \
+        "${NAMESPACE}" \
+        "${PROJECT}" \
+        "${VERSION}" \
+    && cd ${PROJECT}-${VERSION} \
+    && make 'gitlab-pages' \
+    && install -D -m +x ./gitlab-pages /assets/usr/local/bin/gitlab-pages

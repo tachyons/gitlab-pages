@@ -4,6 +4,15 @@ FROM ${UBI_IMAGE}
 
 ARG DNF_OPTS
 
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/kubectl" \
+      name="GitLab kubectl" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="GitLab kubectl used to configure Kubernetes." \
+      description="GitLab kubectl used to configure Kubernetes."
+
 ADD kubectl.tar.gz /
 
 RUN chmod +x /usr/local/bin/{kubectl,yq} \

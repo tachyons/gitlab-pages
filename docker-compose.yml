@@ -7,6 +7,7 @@ services:
     volumes:
     - ./dev/omnibus-config/gitlab.rb:/etc/gitlab/gitlab.rb
     - db-upgrade:/tmp/db-upgrade
+    - shared-dir:/opt/gitlab/embedded/service/gitlab-rails/shared
   migrations:
     image: ${GITLAB_RAILS_IMAGE}
     environment:
@@ -40,7 +41,9 @@ services:
       - ./dev/webservice-config:/var/opt/gitlab/config/templates
       - ./dev/shell-secret:/var/opt/gitlab/config/secrets
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/srv/gitlab/.gitlab_workhorse_secret
+      - ./dev/pages-secret/.gitlab_pages_secret:/srv/gitlab/.gitlab_pages_secret
       - uploads:/srv/gitlab/public/uploads
+      - shared-dir:/srv/gitlab/shared
   workhorse:
     image: ${GITLAB_WORKHORSE_IMAGE}
     environment:
@@ -56,6 +59,7 @@ services:
       - ./dev/workhorse-config:/var/opt/gitlab/config/templates
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/etc/gitlab/gitlab-workhorse/secret
       - uploads:/srv/gitlab/public/uploads
+      - shared-dir:/srv/gitlab/shared
   sidekiq:
     image: ${GITLAB_SIDEKIQ_IMAGE}
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
@@ -69,6 +73,7 @@ services:
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
     volumes:
       - ./dev/sidekiq-config:/var/opt/gitlab/config/templates
+      - shared-dir:/srv/gitlab/shared
   shell:
     image: ${GITLAB_SHELL_IMAGE}
     environment:
@@ -85,6 +90,21 @@ services:
       - "${GITALY_HOST_PORT}:8075"
     volumes:
       - ./dev/gitaly-config:/etc/gitaly
+  pages:
+    image: ${GITLAB_PAGES_IMAGE}
+    command: "/scripts/start-pages"
+    depends_on:
+      - webservice
+    ports:
+      - "${PAGES_HOST_PORT}:8090"
+    environment:
+      - "CONFIG_TEMPLATE_DIRECTORY=/etc/gitlab-pages/templates"
+      - "CONFIG_DIRECTORY=/etc/gitlab-pages"
+      - "PAGES_CONFIG_FILE=/etc/gitlab-pages/pages-config"
+    volumes:
+      - ./dev/pages-config/pages-config.erb:/etc/gitlab-pages/templates/pages-config.erb
+      - ./dev/pages-secret/.gitlab_pages_secret:/etc/gitlab-pages/.gitlab_pages_secret
+      - shared-dir:/srv/gitlab/shared
 volumes:
   db-upgrade:
     driver: local
@@ -93,6 +113,12 @@ volumes:
       device: tmpfs
       o: "size=10M"
   uploads:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=100M"
+  shared-dir:
     driver: local
     driver_opts:
       type: tmpfs

@@ -1,0 +1,39 @@
+ARG RUBY_IMAGE=
+
+FROM ${RUBY_IMAGE}
+
+ARG GITLAB_PAGES_VERSION
+ARG GITLAB_USER=git
+ARG CONFIG_DIRECTORY=/etc/gitlab-pages
+ARG DATA_DIRECTORY=/srv/gitlab-pages
+ARG DNF_OPTS
+
+LABEL source="https://gitlab.com/gitlab-org/gitlab-pages" \
+      name="GitLab Pages" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_PAGES_VERSION} \
+      release=${GITLAB_Pages_VERSION} \
+      summary="Serve static websites from GitLab repositories." \
+      description="Serve static websites from GitLab repositories."
+
+ADD gitlab-pages.tar.gz /
+ADD gitlab-logger.tar.gz /usr/local/bin
+
+COPY scripts/ /scripts
+
+RUN dnf clean all \
+    && rm -r /var/cache/dnf \
+    && dnf ${DNF_OPTS} install -by --nodocs procps libicu tzdata \
+    && adduser -m ${GITLAB_USER} \
+    && mkdir -p ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab \
+    && chown -R ${GITLAB_USER}:${GITLAB_USER} ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab
+
+USER $GITLAB_USER:$GITLAB_USER
+
+ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitlab-pages
+
+CMD /scripts/start-pages
+
+HEALTHCHECK --interval=30s --timeout=30s --retries=5 \
+CMD /scripts/healthcheck

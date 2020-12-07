@@ -147,12 +147,12 @@ graph TD;
   git-base-->gitlab-go;
   gitlab-elasticsearch-indexer-->git-base;
   gitlab-go-->gitlab-ruby;
-  gitlab-python-->debian:stretch-slim;
+  gitlab-python-->debian:buster-slim;
   gitlab-rails-->gitlab-elasticsearch-indexer;
   gitlab-rails-->postgresql;
-  gitlab-ruby-->debian:stretch-slim;
-  kubectl-->debian:stretch-slim;
-  postgresql-->debian:stretch-slim;
+  gitlab-ruby-->debian:buster-slim;
+  kubectl-->debian:buster-slim;
+  postgresql-->debian:buster-slim;
   gitlab-rails-->gitlab-ruby;
   gitlab-rails-->registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee
 ```
@@ -164,7 +164,7 @@ graph TD;
   alpine-certificates-->alpine;
   cfssl-self-sign-->alpine;
   gitaly-->gitlab-shell;
-  gitlab-container-registry-->debian:stretch-slim;
+  gitlab-container-registry-->debian:buster-slim;
   gitlab-container-registry-->git-base;
   gitlab-exporter-->gitlab-ruby;
   gitlab-mailroom-->gitlab-ruby;

@@ -5,7 +5,7 @@ ARG GIT_TAG=2.29.0
 FROM ${FROM_IMAGE}:${GIT_TAG} as builder
 
 ARG DOCKER_BUILDTAGS="include_oss include_gcs continuous_profiler_stackdriver"
-ARG REGISTRY_VERSION=v2.11.0-gitlab
+ARG REGISTRY_VERSION=v2.12.0-gitlab
 ARG REGISTRY_NAMESPACE=gitlab-org
 ARG REGISTRY_PROJECT=container-registry
 ARG GOPATH=/go
@@ -25,7 +25,7 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
-FROM ${DEPENDENCY_PROXY}debian:stretch-slim
+FROM ${DEPENDENCY_PROXY}debian:buster-slim
 
 ARG GITLAB_USER=git
 

@@ -2,6 +2,15 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.3
 
 FROM ${UBI_IMAGE}
 
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/alpine-certificates" \
+      name="alpine-certificates" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="alpine-certificates is a base container that organizes public CA certificates" \
+      description="alpine-certificates is a base container that organizes public CA certificates"
+
 COPY scripts/bundle-certificates-ubi /scripts/bundle-certificates
 
 # Ensure that update-ca-trust has permission when non-root user
