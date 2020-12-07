@@ -1,3 +1,10 @@
+v 1.31.0
+
+- Support for HTTPS over PROXYv2 protocol !278
+- Update LabKit library to v1.0.0 !397
+- Add zip serving configuration flags !392
+- Disable deprecated serverless serving and proxy !400
+
 v 1.30.0
 
 - Allow to refresh an existing cached archive when accessed !375
