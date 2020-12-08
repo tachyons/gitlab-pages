@@ -1,37 +1,33 @@
-.tests:
+.tests-common:
   extends: .go-mod-cache
   stage: test
   tags:
     - gitlab-org-docker
   needs: ['download deps']
   script:
-    - echo "Running all tests without daemonizing..."
     - make setup
-    - make test
-    - make junit-report
   artifacts:
-    paths:
-      - bin/gitlab-pages
     reports:
       junit: junit-test-report.xml
 
+.tests-unit:
+  extends: .tests-common
+  script:
+    - echo "Running all tests without daemonizing..."
+    - make test
+    - make junit-report
+
 .tests-acceptance-deamon:
-  extends: .go-mod-cache
-  stage: test
-  tags:
-    - gitlab-org-docker
-  needs: [ 'download deps' ]
+  extends: .tests-common
   script:
     - echo "Running just the acceptance tests daemonized (tmpdir)...."
     - TEST_DAEMONIZE=tmpdir make acceptance
     - echo "Running just the acceptance tests daemonized (inplace)...."
     - TEST_DAEMONIZE=inplace make acceptance
-  artifacts:
-    paths:
-      - bin/gitlab-pages
+    - make junit-report
 
 test:1.13:
-  extends: .tests
+  extends: .tests-unit
   image: golang:1.13
 
 test-acceptance:1.13:
@@ -39,7 +35,7 @@ test-acceptance:1.13:
   image: golang:1.13
 
 test:1.14:
-  extends: .tests
+  extends: .tests-unit
   image: golang:1.14
 
 test-acceptance:1.14:
@@ -47,28 +43,21 @@ test-acceptance:1.14:
   image: golang:1.14
 
 test:1.15:
-  extends: .tests
+  extends: .tests-unit
   image: golang:1.15
 test-acceptance:1.15:
   extends: .tests-acceptance-deamon
   image: golang:1.15
 
 race:
-  extends: .go-mod-cache
-  stage: test
-  needs: ['download deps']
-  tags:
-    - gitlab-org-docker
+  extends: .tests-common
   script:
     - echo "Running race detector"
     - make race
 
 cover:
-  stage: test
-  extends: .go-mod-cache
-  needs: ['download deps']
+  extends: .tests-common
   script:
-    - make setup
     - make generate-mocks
     - make cover
   coverage: '/total:.+\(statements\).+\d+\.\d+/'
@@ -77,9 +66,7 @@ cover:
       - coverage.html
 
 code_quality:
-  stage: test
-  extends: .go-mod-cache
-  needs: ['download deps']
+  extends: .tests-common
   image: golangci/golangci-lint:v1.27.0
   variables:
     REPORT_FILE: gl-code-quality-report.json
@@ -95,8 +82,6 @@ code_quality:
       - ${REPORT_FILE}
 
 check deps:
-  stage: test
-  extends: .go-mod-cache
-  needs: ['download deps']
+  extends: .tests-common
   script:
     - make deps-check
