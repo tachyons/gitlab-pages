@@ -4,8 +4,6 @@
   tags:
     - gitlab-org-docker
   needs: ['download deps']
-  script:
-    - make setup
   artifacts:
     reports:
       junit: junit-test-report.xml
@@ -14,12 +12,14 @@
   extends: .tests-common
   script:
     - echo "Running all tests without daemonizing..."
+    - make setup
     - make test
     - make junit-report
 
 .tests-acceptance-deamon:
   extends: .tests-common
   script:
+    - make setup
     - echo "Running just the acceptance tests daemonized (tmpdir)...."
     - TEST_DAEMONIZE=tmpdir make acceptance
     - echo "Running just the acceptance tests daemonized (inplace)...."
@@ -58,6 +58,7 @@ race:
 cover:
   extends: .tests-common
   script:
+    - make setup
     - make generate-mocks
     - make cover
   coverage: '/total:.+\(statements\).+\d+\.\d+/'
