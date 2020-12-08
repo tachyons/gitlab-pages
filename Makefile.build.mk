@@ -10,6 +10,7 @@ setup: clean .GOPATH/.ok
 	go get github.com/wadey/gocovmerge@v0.0.0-20160331181800-b5bfa59ec0ad
 	go get github.com/golang/mock/mockgen@v1.3.1
 	go get github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	go get github.com/jstemmer/go-junit-report
 
 generate-mocks: .GOPATH/.ok
 	$Q bin/mockgen -source=internal/interface.go -destination=internal/mocks/mocks.go -package=mocks
