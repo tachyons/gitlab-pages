@@ -223,7 +223,7 @@ func RunPagesProcessWithOutput(t *testing.T, pagesBinary string, listeners []Lis
 
 func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
 	var apiCalled bool
-	source := NewGitlabDomainsSourceStub(t, &apiCalled)
+	source := NewGitlabDomainsSourceStub(t, &apiCalled, 0)
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	pagesArgs := append([]string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
@@ -536,10 +536,16 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 	require.Equal(t, len(listeners), nListening, "all listeners must be accepting TCP connections")
 }
 
-func NewGitlabDomainsSourceStub(t *testing.T, apiCalled *bool) *httptest.Server {
+func NewGitlabDomainsSourceStub(t *testing.T, apiCalled *bool, readyCount int) *httptest.Server {
 	*apiCalled = false
+	currentStatusCount := 0
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v4/internal/pages/status", func(w http.ResponseWriter, r *http.Request) {
+		if currentStatusCount < readyCount {
+			w.WriteHeader(http.StatusBadGateway)
+		}
+
 		w.WriteHeader(http.StatusNoContent)
 	})
 

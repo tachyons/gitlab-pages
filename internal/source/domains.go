@@ -51,14 +51,11 @@ func NewDomains(config Config) (*Domains, error) {
 // returns error if -domain-config-source is not valid
 // returns error if -domain-config-source=gitlab and init fails
 func (d *Domains) setConfigSource(config Config) error {
-	// TODO: Handle domain-config-source=auto https://gitlab.com/gitlab-org/gitlab/-/issues/218358
-	// attach gitlab by default when source is not disk (auto, gitlab)
 	switch config.DomainConfigSource() {
 	case "gitlab":
 		d.configSource = sourceGitlab
 		return d.setGitLabClient(config)
 	case "auto":
-		// TODO: handle DomainConfigSource == "auto" https://gitlab.com/gitlab-org/gitlab/-/issues/218358
 		d.configSource = sourceAuto
 		// enable disk for auto for now
 		d.disk = disk.New()
@@ -122,18 +119,18 @@ func (d *Domains) IsReady() bool {
 	case sourceDisk:
 		return d.disk.IsReady()
 	case sourceAuto:
-		// TODO: implement auto https://gitlab.com/gitlab-org/gitlab/-/issues/218358, default to disk for now
-		return d.disk.IsReady()
-	}
+		// if gitlab is configured and is ready
+		if d.gitlab != nil && d.gitlab.IsReady() {
+			return true
+		}
 
-	return false
+		return d.disk.IsReady()
+	default:
+		return false
+	}
 }
 
 func (d *Domains) source(domain string) Source {
-	if d.gitlab == nil {
-		return d.disk
-	}
-
 	// This check is only needed until we enable `d.gitlab` source in all
 	// environments (including on-premises installations) followed by removal of
 	// `d.disk` source. This can be safely removed afterwards.
@@ -141,17 +138,18 @@ func (d *Domains) source(domain string) Source {
 		return d.gitlab
 	}
 
-	if d.configSource == sourceDisk {
+	switch d.configSource {
+	case sourceDisk:
+		return d.disk
+	case sourceGitlab:
+		return d.gitlab
+	default:
+		if d.gitlab != nil && d.gitlab.IsReady() {
+			return d.gitlab
+		}
+
 		return d.disk
 	}
-
-	// TODO: handle sourceAuto https://gitlab.com/gitlab-org/gitlab/-/issues/218358
-	// check IsReady for sourceAuto for now
-	if d.configSource == sourceGitlab || d.gitlab.IsReady() {
-		return d.gitlab
-	}
-
-	return d.disk
 }
 
 // IsServerlessDomain checks if a domain requested is a serverless domain we
