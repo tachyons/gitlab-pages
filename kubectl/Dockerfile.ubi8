@@ -8,8 +8,8 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/kubectl" \
       name="GitLab kubectl" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \
-      version=${GITLAB_VERSION} \
-      release=${GITLAB_VERSION} \
+      version=${KUBECTL_VERSION} \
+      release=${KUBECTL_VERSION} \
       summary="GitLab kubectl used to configure Kubernetes." \
       description="GitLab kubectl used to configure Kubernetes."
 
