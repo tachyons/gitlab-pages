@@ -1,9 +1,9 @@
 package disk
 
 import (
-	"errors"
 	"net/http"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 )
@@ -16,7 +16,7 @@ type customProjectResolver struct {
 
 func (p *customProjectResolver) Resolve(r *http.Request) (*serving.Request, error) {
 	if p.config == nil {
-		return nil, errors.New("domain not found")
+		return nil, domain.ErrDomainDoesNotExist
 	}
 
 	lookupPath := &serving.LookupPath{

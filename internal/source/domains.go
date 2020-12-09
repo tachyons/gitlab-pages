@@ -97,11 +97,7 @@ func (d *Domains) setGitLabClient(config Config) error {
 // for some subset of domains, to test / PoC the new GitLab Domains Source that
 // we plan to use to replace the disk source.
 func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
-	ddd, err := d.source(name).GetDomain(name)
-	if err != nil {
-		fmt.Printf("name: %q - d.configSource: %d\n", name, d.configSource)
-	}
-	return ddd, err
+	return d.source(name).GetDomain(name)
 }
 
 // Read starts the disk domain source. It is DEPRECATED, because we want to

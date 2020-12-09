@@ -18,9 +18,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
-// ErrDomainDoesNotExist is returned by
-var ErrDomainDoesNotExist = errors.New("domain does not exist")
-
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
@@ -58,7 +55,7 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 
 	// Domain does not exist
 	if lookup.Domain == nil {
-		return nil, ErrDomainDoesNotExist
+		return nil, domain.ErrDomainDoesNotExist
 	}
 
 	// TODO introduce a second-level cache for domains, invalidate using etags

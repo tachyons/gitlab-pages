@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -150,8 +151,8 @@ func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// if we could not retrieve a domain from domains source we break the
 		// middleware chain and simply respond with 502 after logging this
-		host, domain, err := a.getHostAndDomain(r)
-		if err != nil {
+		host, d, err := a.getHostAndDomain(r)
+		if err != nil && !errors.Is(err, domain.ErrDomainDoesNotExist) {
 			metrics.DomainsSourceFailures.Inc()
 			log.WithError(err).Error("could not fetch domain information from a source")
 
@@ -159,7 +160,7 @@ func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
 			return
 		}
 
-		r = request.WithHostAndDomain(r, host, domain)
+		r = request.WithHostAndDomain(r, host, d)
 
 		handler.ServeHTTP(w, r)
 	})

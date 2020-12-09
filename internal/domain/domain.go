@@ -11,8 +11,11 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
+
+// ErrDomainDoesNotExist returned when a domain is not found or when a lookup path
+// for a domain could not be resolved
+var ErrDomainDoesNotExist = errors.New("domain does not exist")
 
 // Domain is a domain that gitlab-pages can serve.
 type Domain struct {
@@ -51,13 +54,10 @@ func (d *Domain) isUnconfigured() bool {
 }
 func (d *Domain) resolve(r *http.Request) (*serving.Request, error) {
 	if d.Resolver == nil {
-		return nil, errors.New("no resolver")
+		return nil, ErrDomainDoesNotExist
 	}
-	req, err := d.Resolver.Resolve(r)
-	if err != nil {
-		panic("WTFFFFFF- " + err.Error())
-	}
-	return req, nil
+
+	return d.Resolver.Resolve(r)
 }
 
 // GetLookupPath returns a project details based on the request. It returns nil
@@ -144,14 +144,8 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 // ServeFileHTTP returns true if something was served, false if not.
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	request, err := d.resolve(r)
-	if request == nil {
-		// TODO this seems wrong
-		httperrors.Serve404(w)
-		return true
-	}
-
 	if err != nil {
-		if errors.Is(err, client.ErrDomainDoesNotExist) {
+		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
 			httperrors.Serve404(w)
 			return true
@@ -162,15 +156,19 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
+	if request.LookupPath == nil {
+		// return and let ServeNotFoundHTTP serve the 404 page
+		return false
+	}
+
 	return request.ServeFileHTTP(w, r)
 }
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
 func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	request, err := d.resolve(r)
-
 	if err != nil {
-		if errors.Is(err, client.ErrDomainDoesNotExist) {
+		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
 			httperrors.Serve404(w)
 			return
@@ -178,6 +176,11 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 
 		errortracking.Capture(err, errortracking.WithRequest(r))
 		httperrors.Serve503(w)
+		return
+	}
+
+	if request.LookupPath == nil {
+		httperrors.Serve404(w)
 		return
 	}
 
