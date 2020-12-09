@@ -21,7 +21,7 @@ ENV LANG=C.UTF-8
 ADD gitlab-workhorse-ee.tar.gz /
 
 COPY scripts/ /scripts/
-COPY ../licenses /licenses
+COPY licenses /licenses
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \

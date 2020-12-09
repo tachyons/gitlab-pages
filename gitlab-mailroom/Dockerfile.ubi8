@@ -18,7 +18,7 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-mailr
 ADD gitlab-mailroom.tar.gz /
 
 COPY scripts/ /scripts/
-COPY ../licenses /licenses
+COPY licenses /licenses
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \

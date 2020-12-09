@@ -22,7 +22,7 @@ ENV CONFIG_FILENAME=gitlab-exporter.yml
 ADD gitlab-exporter.tar.gz /
 
 COPY scripts/ /scripts/
-COPY ../licenses /licenses
+COPY licenses /licenses
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \

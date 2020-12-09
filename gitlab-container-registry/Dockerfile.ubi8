@@ -17,7 +17,7 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-conta
 ADD gitlab-container-registry.tar.gz /
 
 COPY scripts/ /scripts/
-COPY ../licenses /licenses
+COPY licenses /licenses
 
 RUN adduser -m ${GITLAB_USER} \
     && ln -sf /usr/local/bin/registry /bin/registry
