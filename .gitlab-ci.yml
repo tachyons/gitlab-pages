@@ -381,6 +381,8 @@ build:kubectl:
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"
+    - echo $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
     - copy_assets
 
 kubectl:
