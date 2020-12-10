@@ -11,11 +11,8 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
-
-// ErrDomainDoesNotExist returned when a domain is not found or when a lookup path
-// for a domain could not be resolved
-var ErrDomainDoesNotExist = errors.New("domain does not exist")
 
 // Domain is a domain that gitlab-pages can serve.
 type Domain struct {
@@ -54,7 +51,7 @@ func (d *Domain) isUnconfigured() bool {
 }
 func (d *Domain) resolve(r *http.Request) (*serving.Request, error) {
 	if d.Resolver == nil {
-		return nil, ErrDomainDoesNotExist
+		return nil, client.ErrDomainDoesNotExist
 	}
 
 	return d.Resolver.Resolve(r)
@@ -145,7 +142,7 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	request, err := d.resolve(r)
 	if err != nil {
-		if errors.Is(err, ErrDomainDoesNotExist) {
+		if errors.Is(err, client.ErrDomainDoesNotExist) {
 			// serve generic 404
 			httperrors.Serve404(w)
 			return true
@@ -168,7 +165,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	request, err := d.resolve(r)
 	if err != nil {
-		if errors.Is(err, ErrDomainDoesNotExist) {
+		if errors.Is(err, client.ErrDomainDoesNotExist) {
 			// serve generic 404
 			httperrors.Serve404(w)
 			return

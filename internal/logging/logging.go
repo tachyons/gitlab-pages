@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
-
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -61,13 +60,14 @@ func getExtraLogFields(r *http.Request) log.Fields {
 
 	if d := request.GetDomain(r); d != nil {
 		lp, err := d.GetLookupPath(r)
-		if lp != nil {
-			logFields["pages_project_serving_type"] = lp.ServingType
-			logFields["pages_project_prefix"] = lp.Prefix
-			logFields["pages_project_id"] = lp.ProjectID
-		} else if err != nil {
+		if err != nil {
 			logFields["error"] = err.Error()
+			return logFields
 		}
+
+		logFields["pages_project_serving_type"] = lp.ServingType
+		logFields["pages_project_prefix"] = lp.Prefix
+		logFields["pages_project_id"] = lp.ProjectID
 	}
 
 	return logFields

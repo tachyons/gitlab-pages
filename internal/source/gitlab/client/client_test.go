@@ -14,7 +14,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
 
@@ -178,7 +177,7 @@ func TestMissingDomain(t *testing.T) {
 
 	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
-	require.True(t, errors.Is(lookup.Error, domain.ErrDomainDoesNotExist))
+	require.True(t, errors.Is(lookup.Error, ErrDomainDoesNotExist))
 	require.Nil(t, lookup.Domain)
 }
 

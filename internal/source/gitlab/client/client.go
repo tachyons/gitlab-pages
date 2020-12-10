@@ -13,7 +13,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -23,6 +22,10 @@ import (
 // fails to connect to the internal GitLab API, times out
 // or a 401 given that the credentials used are wrong
 const ConnectionErrorMsg = "failed to connect to internal Pages API"
+
+// ErrDomainDoesNotExist returned when a domain is not found or when a lookup path
+// for a domain could not be resolved
+var ErrDomainDoesNotExist = errors.New("domain does not exist")
 
 // Client is a HTTP client to access Pages internal API
 type Client struct {
@@ -94,7 +97,7 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	}
 
 	if resp == nil {
-		return api.Lookup{Name: host, Error: domain.ErrDomainDoesNotExist}
+		return api.Lookup{Name: host, Error: ErrDomainDoesNotExist}
 	}
 
 	// ensure that entire response body has been read and close it, to make it

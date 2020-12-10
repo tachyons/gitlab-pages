@@ -55,7 +55,7 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 
 	// Domain does not exist
 	if lookup.Domain == nil {
-		return nil, domain.ErrDomainDoesNotExist
+		return nil, client.ErrDomainDoesNotExist
 	}
 
 	// TODO introduce a second-level cache for domains, invalidate using etags

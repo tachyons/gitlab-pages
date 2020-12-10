@@ -73,7 +73,7 @@ func TestGroupServeHTTP(t *testing.T) {
 	defer cleanup()
 
 	t.Run("group.test.io", func(t *testing.T) { testGroupServeHTTPHost(t, "group.test.io") })
-	// t.Run("group.test.io:8080", func(t *testing.T) { testGroupServeHTTPHost(t, "group.test.io:8080") })
+	t.Run("group.test.io:8080", func(t *testing.T) { testGroupServeHTTPHost(t, "group.test.io:8080") })
 }
 
 func TestDomainServeHTTP(t *testing.T) {
@@ -435,13 +435,12 @@ func TestGroupCertificate(t *testing.T) {
 }
 
 func TestDomainNoCertificate(t *testing.T) {
-	testDomain :=
-		&domain.Domain{
-			Resolver: &customProjectResolver{
-				path:   "group/project2/public",
-				config: &domainConfig{Domain: "test.domain.com"},
-			},
-		}
+	testDomain := &domain.Domain{
+		Resolver: &customProjectResolver{
+			path:   "group/project2/public",
+			config: &domainConfig{Domain: "test.domain.com"},
+		},
+	}
 
 	tls, err := testDomain.EnsureCertificate()
 	require.Nil(t, tls)
