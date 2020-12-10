@@ -538,32 +538,70 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 func TestDomainResolverError(t *testing.T) {
 	skipUnlessEnabled(t)
 
+	domainName := "new-source-test.gitlab.io"
 	opts := &stubOpts{
-		apiCalled:        false,
-		statusReadyCount: 0,
-		pagesHandler: func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusGatewayTimeout)
+		apiCalled: false,
+	}
+
+	tests := map[string]struct {
+		status  int
+		panic   bool
+		timeout time.Duration
+	}{
+		"internal_server_errror": {
+			status: http.StatusInternalServerError,
+		},
+		"timeout": {
+			timeout: 100 * time.Millisecond,
+		},
+		"server_fails": {
+			panic: true,
 		},
 	}
 
-	source := NewGitlabDomainsSourceStub(t, opts)
-	defer source.Close()
-	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// handler setup
+			opts.pagesHandler = func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Query().Get("host") != domainName {
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
 
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
-	defer teardown()
+				opts.apiCalled = true
+				if test.panic {
+					panic("server failed")
+				}
 
-	response, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
-	require.NoError(t, err)
+				time.Sleep(2 * test.timeout)
+				w.WriteHeader(test.status)
+			}
 
-	require.True(t, opts.apiCalled, "api must have been called")
-	require.Equal(t, http.StatusBadGateway, response.StatusCode)
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
-	require.NoError(t, err)
+			source := NewGitlabDomainsSourceStub(t, opts)
+			defer source.Close()
+			gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-	require.Equal(t, "Something went wrong (502)", string(body), "content mismatch")
+			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
+			if test.timeout != 0 {
+				pagesArgs = append(pagesArgs, "-gitlab-client-http-timeout", test.timeout.String())
+			}
+
+			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
+			defer teardown()
+
+			response, err := GetPageFromListener(t, httpListener, domainName, "/my/pages/project/")
+			require.NoError(t, err)
+			defer response.Body.Close()
+
+			require.True(t, opts.apiCalled, "api must have been called")
+			require.Equal(t, http.StatusBadGateway, response.StatusCode)
+
+			body, err := ioutil.ReadAll(response.Body)
+			require.NoError(t, err)
+
+			require.Contains(t, string(body), "Something went wrong (502)", "content mismatch")
+		})
+	}
 }
 
 func doCrossOriginRequest(t *testing.T, spec ListenSpec, method, reqMethod, url string) *http.Response {
