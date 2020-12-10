@@ -222,8 +222,7 @@ func RunPagesProcessWithOutput(t *testing.T, pagesBinary string, listeners []Lis
 }
 
 func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
-	var apiCalled bool
-	source := NewGitlabDomainsSourceStub(t, &apiCalled, 0)
+	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	pagesArgs := append([]string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
@@ -536,21 +535,37 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 	require.Equal(t, len(listeners), nListening, "all listeners must be accepting TCP connections")
 }
 
-func NewGitlabDomainsSourceStub(t *testing.T, apiCalled *bool, readyCount int) *httptest.Server {
-	*apiCalled = false
+type stubOpts struct {
+	apiCalled        bool
+	statusReadyCount int
+	statusHandler    http.HandlerFunc
+	pagesHandler     http.HandlerFunc
+}
+
+func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
+	t.Helper()
+	require.NotNil(t, opts)
+
+	opts.apiCalled = false
 	currentStatusCount := 0
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v4/internal/pages/status", func(w http.ResponseWriter, r *http.Request) {
-		if currentStatusCount < readyCount {
+	statusHandler := func(w http.ResponseWriter, r *http.Request) {
+		if currentStatusCount < opts.statusReadyCount {
 			w.WriteHeader(http.StatusBadGateway)
 		}
 
 		w.WriteHeader(http.StatusNoContent)
-	})
+	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		*apiCalled = true
+	if opts.statusHandler != nil {
+		statusHandler = opts.statusHandler
+	}
+
+	mux.HandleFunc("/api/v4/internal/pages/status", statusHandler)
+
+	pagesHandler := func(w http.ResponseWriter, r *http.Request) {
+		opts.apiCalled = true
 		domain := r.URL.Query().Get("host")
 		path := "../../shared/lookups/" + domain + ".json"
 
@@ -570,7 +585,11 @@ func NewGitlabDomainsSourceStub(t *testing.T, apiCalled *bool, readyCount int) *
 
 		t.Logf("GitLab domain %s source stub served lookup", domain)
 	}
-	mux.HandleFunc("/api/v4/internal/pages", handler)
+	if opts.pagesHandler != nil {
+		pagesHandler = opts.pagesHandler
+	}
+
+	mux.HandleFunc("/api/v4/internal/pages", pagesHandler)
 
 	return httptest.NewServer(mux)
 }

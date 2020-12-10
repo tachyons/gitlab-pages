@@ -483,8 +483,12 @@ func TestDomainsSource(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var apiCalled bool
-			source := NewGitlabDomainsSourceStub(t, &apiCalled, tt.args.readyCount)
+			opts := &stubOpts{
+				apiCalled:        false,
+				statusReadyCount: tt.args.readyCount,
+			}
+
+			source := NewGitlabDomainsSourceStub(t, opts)
 			defer source.Close()
 
 			gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
@@ -505,7 +509,7 @@ func TestDomainsSource(t *testing.T) {
 				require.Equal(t, tt.want.content, string(body), "content mismatch")
 			}
 
-			require.Equal(t, tt.want.apiCalled, apiCalled, "api called mismatch")
+			require.Equal(t, tt.want.apiCalled, opts.apiCalled, "api called mismatch")
 		})
 	}
 }
@@ -529,6 +533,37 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 		rsp.Body.Close()
 		require.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
+}
+
+func TestDomainResolverError(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	opts := &stubOpts{
+		apiCalled:        false,
+		statusReadyCount: 0,
+		pagesHandler: func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusGatewayTimeout)
+		},
+	}
+
+	source := NewGitlabDomainsSourceStub(t, opts)
+	defer source.Close()
+	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
+	defer teardown()
+
+	response, err := GetPageFromListener(t, httpListener, "new-source-test.gitlab.io", "/my/pages/project/")
+	require.NoError(t, err)
+
+	require.True(t, opts.apiCalled, "api must have been called")
+	require.Equal(t, http.StatusBadGateway, response.StatusCode)
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	require.NoError(t, err)
+
+	require.Equal(t, "Something went wrong (502)", string(body), "content mismatch")
 }
 
 func doCrossOriginRequest(t *testing.T, spec ListenSpec, method, reqMethod, url string) *http.Response {
