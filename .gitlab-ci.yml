@@ -163,6 +163,7 @@ workflow:
     - fi
     - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
     - export TARGET_VERSION=$(get_target_version)
+    - docker login -u "$CI_DEPENDENCY_PROXY_USER" -p "$CI_DEPENDENCY_PROXY_PASSWORD" "$CI_DEPENDENCY_PROXY_SERVER"
     - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
   artifacts:
     paths:
@@ -194,6 +195,7 @@ workflow:
     - export CONTAINER_VERSION="${TARGET_VERSION}"
     - BUILD_IMAGE_VERSION="$(get_version gitlab-ubi-builder)"
     - export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:${BUILD_IMAGE_VERSION}-ubi8"
+    - docker login -u "$CI_DEPENDENCY_PROXY_USER" -p "$CI_DEPENDENCY_PROXY_PASSWORD" "$CI_DEPENDENCY_PROXY_SERVER"
     - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
   artifacts:
     paths:
