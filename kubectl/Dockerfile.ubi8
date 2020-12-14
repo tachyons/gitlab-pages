@@ -3,6 +3,7 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.3
 FROM ${UBI_IMAGE}
 
 ARG DNF_OPTS
+ARG KUBECTL_VERSION
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/kubectl" \
       name="GitLab kubectl" \
