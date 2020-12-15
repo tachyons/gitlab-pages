@@ -373,7 +373,7 @@ func (a *theApp) Run() {
 
 	// Listen for HTTPS PROXYv2 requests
 	for _, fd := range a.ListenHTTPSProxyv2 {
-		a.ListenHTTPSProxyv2FD(&wg, fd, proxyHandler, limiter)
+		a.ListenHTTPSProxyv2FD(&wg, fd, httpHandler, limiter)
 	}
 
 	// Serve metrics for Prometheus
