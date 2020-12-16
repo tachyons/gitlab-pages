@@ -1,3 +1,8 @@
+v 1.32.0
+
+- Try to automatically use gitlab API as a source for domain information !402
+- Fix https redirect loop for PROXYv2 protocol !405
+
 v 1.31.0
 
 - Support for HTTPS over PROXYv2 protocol !278
