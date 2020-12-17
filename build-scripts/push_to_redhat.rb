@@ -45,8 +45,18 @@ if ARGV.length < 1
   exit 1
 end
 
+puts "Startup debugging"
+puts "version = #{ARGV[0]}"
+puts "secrets = #{ENV['REDHAT_SECRETS_YAML']}"
+
 version = ARGV[0]
-secrets = YAML.load(ENV['REDHAT_SECRETS_YAML'])
+begin
+  secrets = YAML.load(ENV['REDHAT_SECRETS_YAML'])
+rescue => e
+  puts "Unable to parse YAML: #{e.message}"
+  puts e.backtrace
+  raise
+end
 
 puts "Using #{version} as the docker tag to pull"
 

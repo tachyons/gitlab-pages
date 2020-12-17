@@ -1227,3 +1227,11 @@ ubi-release-for-certification:
   script:
     - ruby build-scripts/push_to_redhat.rb "${CI_COMMIT_REF_NAME}"
 
+push-script-debug:
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
+  services:
+  - docker:19.03.0-dind
+  stage: prepare
+  retry: 1
+  script:
+    - ruby build-scripts/push_to_redhat.rb "${CI_COMMIT_REF_NAME}"
