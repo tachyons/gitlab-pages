@@ -18,6 +18,7 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-webse
 
 ADD gitlab-webservice-ee.tar.gz /
 ADD gitlab-python.tar.gz /
+ADD gitlab-logger.tar.gz /usr/local/bin
 
 COPY scripts/ /scripts
 COPY --chown=git configuration/ ${GITLAB_CONFIG}/
