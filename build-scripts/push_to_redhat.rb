@@ -51,7 +51,7 @@ puts "secrets = #{ENV['REDHAT_SECRETS_YAML']}"
 
 version = ARGV[0]
 begin
-  secrets = YAML.load(ENV['REDHAT_SECRETS_YAML'])
+  secrets = YAML.load_file(ENV['REDHAT_SECRETS_YAML'])
 rescue => e
   puts "Unable to parse YAML: #{e.message}"
   puts e.backtrace
