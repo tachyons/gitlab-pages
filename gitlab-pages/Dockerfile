@@ -2,7 +2,7 @@ ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
 ARG GO_TAG="master"
 ARG RUBY_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ruby:master"
-ARG GLOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
+ARG GITLAB_LOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
 
 FROM ${FROM_IMAGE}:${GO_TAG} as builder
 
@@ -30,7 +30,7 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
-FROM ${GLOGGER_IMAGE} as glogger
+FROM ${GITLAB_LOGGER_IMAGE} as glogger
 FROM ${RUBY_IMAGE}
 
 ARG GITLAB_USER=git

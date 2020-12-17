@@ -255,9 +255,9 @@ build:gitlab-logger:
     - import_assets artifacts/ubi/gitlab-go.tar.gz
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GLOGGER_VERSION$(date -u +%D)" | sha1sum))
-    - build_if_needed --build-arg "GLOGGER_VERSION=$GLOGGER_VERSION"
-                      --build-arg "GLOGGER_SHA256=${GLOGGER_SHA256}"
+    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed --build-arg "GITLAB_LOGGER_VERSION=$GITLAB_LOGGER_VERSION"
+                      --build-arg "GITLAB_LOGGER_SHA256=${GITLAB_LOGGER_SHA256}"
     - copy_assets
 
 gitlab-logger:
@@ -267,12 +267,12 @@ gitlab-logger:
   script:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GLOGGER_VERSION$(date -u +%D)" | sha1sum))
-    - build_if_needed --build-arg "GLOGGER_VERSION=$GLOGGER_VERSION"
+    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed --build-arg "GITLAB_LOGGER_VERSION=$GITLAB_LOGGER_VERSION"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
-                      --build-arg "GLOGGER_SHA256=${GLOGGER_SHA256}"
+                      --build-arg "GITLAB_LOGGER_SHA256=${GITLAB_LOGGER_SHA256}"
     - push_tags
-    - push_tags $GLOGGER_VERSION${IMAGE_TAG_EXT}
+    - push_tags $GITLAB_LOGGER_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-logger_container.txt
 
 build:gitlab-pages:
@@ -300,14 +300,14 @@ gitlab-pages:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GLOGGER_VERSION$(date -u +%D)" | sha1sum))
+    - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - build_if_needed --build-arg "GITLAB_PAGES_VERSION=$GITLAB_PAGES_VERSION"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "DEPENDENCY_PROXY=${DEPENDENCY_PROXY}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
-                      --build-arg "GLOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
     - push_tags
@@ -682,11 +682,16 @@ gitlab-webservice-ee:
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
+    - import_assets artifacts/ubi/gitlab-logger.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - logger_target_version=$(get_version gitlab-logger)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
     - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
+    - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
@@ -696,32 +701,41 @@ gitlab-webservice-ee:
                       --build-arg "PYTHON_TAG=${python_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
     - build:gitlab-webservice-ee
     - build:gitlab-python
+    - build:gitlab-logger
 
 gitlab-webservice-ce:
   <<: *job-base
   <<: *except-ee
   stage: phase-six
   script:
+    - import_assets artifacts/ubi/gitlab-logger.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - logger_target_version=$(get_version gitlab-logger)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ce.txt)
     - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
+    - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
                       --build-arg "TAG=$rails_container"
                       --build-arg "PYTHON_TAG=${python_version}"
+                      --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
     - gitlab-python
+    - build:gitlab-logger
 
 build:gitlab-sidekiq-ee:
   <<: *build-job-base
