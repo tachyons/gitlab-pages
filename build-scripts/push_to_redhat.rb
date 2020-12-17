@@ -40,13 +40,15 @@ def push_image(image)
   %x(docker push #{image})
 end
 
-if ARGV.length < 2
-  puts "Need to specify a version (i.e. v13.5.4) and secrets file"
+if ARGV.length < 1
+  puts "Need to specify a version (i.e. v13.5.4)"
   exit 1
 end
 
 version = ARGV[0]
 secrets = YAML.load(ENV['REDHAT_SECRETS_YAML'])
+
+puts "Using #{version} as the docker tag to pull"
 
 $CONTAINER_NAMES.each do |name|
   if secrets.has_key? name
