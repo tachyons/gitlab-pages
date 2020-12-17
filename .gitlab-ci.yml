@@ -1225,5 +1225,5 @@ ubi-release-for-certification:
   stage: release
   retry: 1
   script:
-    - ruby build-scripts/push_to_redhat.rb ${CI_COMMIT_TAG}
+    - ruby build-scripts/push_to_redhat.rb "${CI_COMMIT_REF_NAME}"
 
