@@ -55,6 +55,7 @@ begin
 rescue => e
   puts "Unable to parse YAML: #{e.message}"
   puts e.backtrace
+  puts File.read(ENV['REDHAT_SECRETS_YAML'])
   raise
 end
 
