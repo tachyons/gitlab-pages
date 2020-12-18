@@ -6,7 +6,7 @@
 # values are found in the REDHAT_SECRETS_JSON variable with is an encoded
 # JSON string.
 
-require 'yaml'
+require 'json'
 
 $GITLAB_REGISTRY = 'registry.gitlab.com/gitlab-org/build/cng'
 $REDHAT_REGISTRY = 'scan.connect.rehat.com'
@@ -47,15 +47,13 @@ end
 
 puts "Startup debugging"
 puts "version = #{ARGV[0]}"
-puts "secrets = #{ENV['REDHAT_SECRETS_YAML']}"
 
 version = ARGV[0]
 begin
-  secrets = YAML.load_file(ENV['REDHAT_SECRETS_YAML'])
+  secrets = JSON.parse(ENV['REDHAT_SECRETS_JSON'])
 rescue => e
-  puts "Unable to parse YAML: #{e.message}"
+  puts "Unable to parse JSON: #{e.message}"
   puts e.backtrace
-  puts File.read(ENV['REDHAT_SECRETS_YAML'])
   raise
 end
 
