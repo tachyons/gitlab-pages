@@ -21,7 +21,7 @@ ADD gitlab-pages.tar.gz /
 ADD gitlab-logger.tar.gz /usr/local/bin
 
 COPY scripts/ /scripts
-COPY licenses /licenses
+ADD https://gitlab.com/gitlab-org/gitlab-pages/-/blob/master/LICENSE /licenses/GitLab.txt
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \

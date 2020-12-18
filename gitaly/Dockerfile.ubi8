@@ -20,7 +20,7 @@ ADD gitaly.tar.gz /
 COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
 COPY gitconfig /usr/local/etc/gitconfig
-COPY licenses /licenses
+ADD https://gitlab.com/gitlab-org/gitaly/-/raw/master/LICENSE /licenses/GitLab.txt
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \

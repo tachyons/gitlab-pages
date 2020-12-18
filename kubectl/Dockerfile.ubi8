@@ -13,7 +13,7 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/kubectl" \
       summary="GitLab kubectl used to configure Kubernetes." \
       description="GitLab kubectl used to configure Kubernetes."
 
-COPY licenses /licenses
+ADD https://raw.githubusercontent.com/kubernetes/kubectl/master/LICENSE /licenses/kubectl.txt
 
 ADD kubectl.tar.gz /
 
