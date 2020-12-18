@@ -31,8 +31,8 @@ def set_credentials(secret)
 end
 
 def pull_image(image)
-  puts "Pulling #{image}"
-  %x(docker pull #{image})
+  puts "Pulling #{image}-ubi8"
+  %x(docker pull #{image}-ubi8)
 end
 
 def push_image(image)
@@ -44,9 +44,6 @@ if ARGV.length < 1
   puts "Need to specify a version (i.e. v13.5.4)"
   exit 1
 end
-
-puts "Startup debugging"
-puts "version = #{ARGV[0]}"
 
 version = ARGV[0]
 begin
@@ -61,7 +58,12 @@ puts "Using #{version} as the docker tag to pull"
 
 $CONTAINER_NAMES.each do |name|
   if secrets.has_key? name
-    pull_image("#{$GITLAB_REGISTRY}/#{name}:#{version}")
+    response = pull_image("#{$GITLAB_REGISTRY}/#{name}:#{version}")
+    if response.empty?
+      puts "Skipping #{$GITLAB_REGISTRY}/#{name}:#{version}-ubi8 (Not Found)"
+      next
+    end
+
     container_name = tag_image(name, version, secrets[name]['id'])
     set_credentials(secrets[name]['pull_secret'])
     push_image(container_name)
