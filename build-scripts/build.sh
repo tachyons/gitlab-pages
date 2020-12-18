@@ -70,9 +70,6 @@ function build_if_needed(){
     # Bring in shared scripts
     cp -r ../shared/ shared/
 
-    # Bring in LICENSE files
-    cp -r ../licenses licenses/
-
     # Skip the build cache if $DISABLE_DOCKER_BUILD_CACHE is set to any value
     if [ -z ${DISABLE_DOCKER_BUILD_CACHE+x} ]; then
       CACHE_IMAGE="$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}"
