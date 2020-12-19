@@ -27,6 +27,7 @@ end
 
 def set_credentials(secret)
   puts "Setting credentials"
+  puts secret
   %x(echo #{secret} | docker login -u unused --password-stdin scan.connect.redhat.com)
 end
 
