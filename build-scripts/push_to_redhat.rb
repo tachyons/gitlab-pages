@@ -54,20 +54,38 @@ rescue => e
   raise
 end
 
-puts "Using #{version} as the docker tag to pull"
+puts "Using #{version}-ubi8 as the docker tag to pull"
 
+errors = []
 $CONTAINER_NAMES.each do |name|
   if secrets.has_key? name
     response = pull_image("#{$GITLAB_REGISTRY}/#{name}:#{version}")
     if response.empty?
       puts "Skipping #{$GITLAB_REGISTRY}/#{name}:#{version}-ubi8 (Not Found)"
+      errors << "#{name}: image not found with #{version}-ubi8 tag"
       next
     end
 
+    # retag the image with the Red Hat registry information
     container_name = tag_image(name, version, secrets[name]['id'])
-    set_credentials(secrets[name]['pull_secret'])
-    push_image(container_name)
+
+    if set_credentials(secrets[name]['pull_secret']) != 'Login Succeeded'
+      puts "***** Failed to authenticate to registry for #{name} *****"
+      errors << "#{name}: Unable to authentcate to registry (bad pull secret?)"
+      next
+    end
+
+    puts push_image(container_name)
   else
-    puts "No entry for #{name} in secrets file".yellow
+    puts "No entry for #{name} in secrets file"
+    errors << "#{name}: No pull secret listed in $REDHAT_SECRETS_JSON"
   end
+end
+
+unless errors.empty?
+  puts "\n\nThe following errors have been collected:"
+  errors.each { |err|
+    puts "\t- #{err}"
+  }
+  exit(1)
 end
