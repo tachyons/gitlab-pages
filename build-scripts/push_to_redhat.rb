@@ -27,8 +27,8 @@ end
 
 def set_credentials(secret)
   puts "Setting credentials"
-  puts secret
-  %x(echo #{secret} | docker login -u unused --password-stdin scan.connect.redhat.com)
+  #%x(echo #{secret} | docker login -u unused --password-stdin scan.connect.redhat.com)
+  %x(docker login -u unused -p #{secret} scan.connect.redhat.com)
 end
 
 def pull_image(image)
