@@ -70,10 +70,10 @@ $CONTAINER_NAMES.each do |name|
     # retag the image with the Red Hat registry information
     container_name = tag_image(name, version, secrets[name]['id'])
 
-    result = set_credentials(secrets[name]['pull_secret'])
+    result = set_credentials(secrets[name]['pull_secret']).chomp
     if result != 'Login Succeeded'
       puts "***** Failed to authenticate to registry for #{name} *****"
-      puts result
+      puts "#{result}\n"
       errors << "#{name}: Unable to authentcate to registry (bad pull secret?)"
       next
     end
