@@ -199,6 +199,13 @@ var (
 			Help: "The number of files per zip archive total count over time",
 		},
 	)
+
+	RejectedRequestsCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "gitlab_pages_unknown_method_rejected_requests",
+			Help: "The number of requests with unknown HTTP method which were rejected",
+		},
+	)
 )
 
 // MustRegister collectors with the Prometheus client
