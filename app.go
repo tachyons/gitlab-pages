@@ -28,6 +28,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/middleware"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
@@ -336,6 +337,12 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	// Custom response headers
 	handler = a.customHeadersMiddleware(handler)
+
+	// This MUST be the last handler!
+	// This handler blocks unknown HTTP methods,
+	// being the last means it will be evaluated first
+	// preventing any operation on bogus requests.
+	handler = rejectmethods.NewMiddleware(handler)
 
 	return handler, nil
 }
