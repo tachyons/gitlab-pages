@@ -1,3 +1,8 @@
+v 1.28.1
+
+- Reject requests with unknown HTTP methods
+- Encrypt OAuth code during auth flow
+
 v 1.28.0
 
 - Implement basic redirects via _redirects text file !367
