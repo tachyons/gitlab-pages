@@ -1,3 +1,8 @@
+v 1.33.0
+
+- Reject requests with unknown HTTP methods
+- Encrypt OAuth code during auth flow
+
 v 1.32.0
 
 - Try to automatically use gitlab API as a source for domain information !402
@@ -9,6 +14,11 @@ v 1.31.0
 - Update LabKit library to v1.0.0 !397
 - Add zip serving configuration flags !392
 - Disable deprecated serverless serving and proxy !400
+
+v 1.30.1
+
+- Reject requests with unknown HTTP methods
+- Encrypt OAuth code during auth flow
 
 v 1.30.0
 
@@ -22,6 +32,11 @@ v 1.29.0
 - Make timeouts for ZIP VFS configurable !385
 - Improve httprange timeouts !382
 - Fix caching for errored ZIP VFS archives !384
+
+v 1.28.1
+
+- Reject requests with unknown HTTP methods
+- Encrypt OAuth code during auth flow
 
 v 1.28.0
 
