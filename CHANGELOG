@@ -1,3 +1,7 @@
+v 1.28.2
+
+- Allow DELETE HTTP method
+
 v 1.28.1
 
 - Reject requests with unknown HTTP methods
