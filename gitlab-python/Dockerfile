@@ -2,7 +2,7 @@ ARG FROM_IMAGE="debian"
 FROM ${FROM_IMAGE}:buster-slim
 
 ARG BUILD_DIR=/tmp/build
-ARG PYTHON_VERSION="3.7.3"
+ARG PYTHON_VERSION="3.8.4"
 
 RUN buildDeps=' \
   build-essential \
@@ -24,10 +24,10 @@ RUN buildDeps=' \
   make install && \
   ldconfig && \
   pip3 install --upgrade pip setuptools && \
-  rm -rf /usr/local/lib/python/3.7/lib-dynload/dbm.* && \
-  rm -rf /usr/local/lib/python/3.7/lib-dynload/_sqlite3.* && \
-  rm -rf /usr/local/lib/python/3.7/test && \
-  find /usr/local/lib/python3.7 -name '__pycache__' -type d -print -exec rm -r {} + && \
+  rm -rf /usr/local/lib/python.3.8/lib-dynload/dbm.* && \
+  rm -rf /usr/local/lib/python.3.8/lib-dynload/_sqlite3.* && \
+  rm -rf /usr/local/lib/python.3.8/test && \
+  find /usr/local/lib/python3.8 -name '__pycache__' -type d -print -exec rm -r {} + && \
   apt-get purge -y $buildDeps && \
   rm -rf /var/lib/apt/list/* && \
   rm -rf ${BUILD_DIR}
