@@ -38,17 +38,17 @@ const (
 	callbackPath           = "/auth"
 	authorizeProxyTemplate = "%s?domain=%s&state=%s"
 	authSessionMaxAge      = 60 * 10 // 10 minutes
+
+	failAuthErrMsg         = "failed to authenticate request"
+	fetchAccessTokenErrMsg = "fetching access token failed"
+	queryParameterErrMsg   = "failed to parse domain query parameter"
+	saveSessionErrMsg      = "failed to save the session"
 )
 
 var (
-	errSaveSession       = errors.New("Failed to save the session")
-	errFetchAccessToken  = errors.New("Fetching access token failed")
-	errResponseNotOk     = errors.New("Response was not ok")
-	errFailAuth          = errors.New("Failed to authenticate request")
-	errAuthNotConfigured = errors.New("Authentication is not configured")
-	errQueryParameter    = errors.New("Failed to parse domain query parameter")
-
-	errGenerateKeys = errors.New("could not generate auth keys")
+	errResponseNotOk     = errors.New("response was not ok")
+	errAuthNotConfigured = errors.New("authentication is not configured")
+	errGenerateKeys      = errors.New("could not generate auth keys")
 )
 
 // Auth handles authenticating users with GitLab API
@@ -104,7 +104,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 		// Save cookie again
 		errsave := session.Save(r, w)
 		if errsave != nil {
-			logRequest(r).WithError(errsave).Error(errSaveSession)
+			logRequest(r).WithError(errsave).Error(saveSessionErrMsg)
 			errortracking.Capture(errsave, errortracking.WithRequest(r))
 			httperrors.Serve500(w)
 			return nil, errsave
@@ -186,7 +186,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 		// Fetching token not OK
 		logRequest(r).WithError(err).WithField(
 			"redirect_uri", redirectURI,
-		).Error(errFetchAccessToken)
+		).Error(fetchAccessTokenErrMsg)
 		errortracking.Capture(
 			err,
 			errortracking.WithRequest(r),
@@ -200,7 +200,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	session.Values["access_token"] = token.AccessToken
 	err = session.Save(r, w)
 	if err != nil {
-		logRequest(r).WithError(err).Error(errSaveSession)
+		logRequest(r).WithError(err).Error(saveSessionErrMsg)
 		errortracking.Capture(err, errortracking.WithRequest(r))
 
 		httperrors.Serve500(w)
@@ -236,7 +236,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 
 		proxyurl, err := url.Parse(domain)
 		if err != nil {
-			logRequest(r).WithField("domain", domain).Error(errQueryParameter)
+			logRequest(r).WithField("domain", domain).Error(queryParameterErrMsg)
 			errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithField("domain", domain))
 
 			httperrors.Serve500(w)
@@ -259,7 +259,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 
 		err = session.Save(r, w)
 		if err != nil {
-			logRequest(r).WithError(err).Error(errSaveSession)
+			logRequest(r).WithError(err).Error(saveSessionErrMsg)
 			errortracking.Capture(err, errortracking.WithRequest(r))
 
 			httperrors.Serve500(w)
@@ -290,7 +290,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		delete(session.Values, "proxy_auth_domain")
 		err := session.Save(r, w)
 		if err != nil {
-			logRequest(r).WithError(err).Error(errSaveSession)
+			logRequest(r).WithError(err).Error(saveSessionErrMsg)
 			errortracking.Capture(err, errortracking.WithRequest(r))
 
 			httperrors.Serve500(w)
@@ -304,7 +304,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		// and signing the OAuth code
 		signedCode, err := a.EncryptAndSignCode(proxyDomain, query.Get("code"))
 		if err != nil {
-			logRequest(r).WithError(err).Error(errSaveSession)
+			logRequest(r).WithError(err).Error(saveSessionErrMsg)
 			errortracking.Capture(err, errortracking.WithRequest(r))
 
 			httperrors.Serve503(w)
@@ -434,7 +434,7 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 
 		err := session.Save(r, w)
 		if err != nil {
-			logRequest(r).WithError(err).Error(errSaveSession)
+			logRequest(r).WithError(err).Error(saveSessionErrMsg)
 			errortracking.Capture(err, errortracking.WithRequest(r))
 
 			httperrors.Serve500(w)
@@ -461,7 +461,7 @@ func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Re
 	delete(session.Values, "access_token")
 	err := session.Save(r, w)
 	if err != nil {
-		logRequest(r).WithError(err).Error(errSaveSession)
+		logRequest(r).WithError(err).Error(saveSessionErrMsg)
 		errortracking.Capture(err, errortracking.WithRequest(r))
 
 		httperrors.Serve500(w)
@@ -493,7 +493,7 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
-		logRequest(r).WithError(err).Error(errFailAuth)
+		logRequest(r).WithError(err).Error(failAuthErrMsg)
 		errortracking.Capture(err, errortracking.WithRequest(req))
 
 		httperrors.Serve500(w)

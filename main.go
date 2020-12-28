@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -95,15 +94,14 @@ var (
 	header MultiStringFlag
 )
 
-var (
-	errArtifactSchemaUnsupported   = errors.New("artifacts-server scheme must be either http:// or https://")
-	errArtifactsServerTimeoutValue = errors.New("artifacts-server-timeout must be greater than or equal to 1")
-
-	errSecretNotDefined       = errors.New("auth-secret must be defined if authentication is supported")
-	errClientIDNotDefined     = errors.New("auth-client-id must be defined if authentication is supported")
-	errClientSecretNotDefined = errors.New("auth-client-secret must be defined if authentication is supported")
-	errGitLabServerNotDefined = errors.New("gitlab-server must be defined if authentication is supported")
-	errRedirectURINotDefined  = errors.New("auth-redirect-uri must be defined if authentication is supported")
+const (
+	artifactSchemaUnsupportedErrMsg   = "artifacts-server scheme must be either http:// or https://"
+	artifactsServerTimeoutValueErrMsg = "artifacts-server-timeout must be greater than or equal to 1"
+	clientIDNotDefinedErrMsg          = "auth-client-id must be defined if authentication is supported"
+	clientSecretNotDefinedErrMsg      = "auth-client-secret must be defined if authentication is supported" // #nosec
+	gitLabServerNotDefinedErrMsg      = "gitlab-server must be defined if authentication is supported"
+	redirectURINotDefinedErrMsg       = "auth-redirect-uri must be defined if authentication is supported"
+	secretNotDefinedErrMsg            = "auth-secret must be defined if authentication is supported"
 )
 
 func gitlabServerFromFlags() string {
@@ -141,12 +139,12 @@ func setArtifactsServer(artifactsServer string, artifactsServerTimeout int, conf
 	// url.Parse ensures that the Scheme attribute is always lower case.
 	if u.Scheme != request.SchemeHTTP && u.Scheme != request.SchemeHTTPS {
 		errortracking.Capture(err)
-		log.Fatal(errArtifactSchemaUnsupported)
+		log.Fatal(artifactSchemaUnsupportedErrMsg)
 	}
 
 	if artifactsServerTimeout < 1 {
 		errortracking.Capture(err)
-		log.Fatal(errArtifactsServerTimeoutValue)
+		log.Fatal(artifactsServerTimeoutValueErrMsg)
 	}
 
 	config.ArtifactsServerTimeout = artifactsServerTimeout
@@ -238,19 +236,19 @@ func checkAuthenticationConfig(config appConfig) {
 
 func assertAuthConfig(config appConfig) {
 	if config.StoreSecret == "" {
-		log.Fatal(errSecretNotDefined)
+		log.Fatal(secretNotDefinedErrMsg)
 	}
 	if config.ClientID == "" {
-		log.Fatal(errClientIDNotDefined)
+		log.Fatal(clientIDNotDefinedErrMsg)
 	}
 	if config.ClientSecret == "" {
-		log.Fatal(errClientSecretNotDefined)
+		log.Fatal(clientSecretNotDefinedErrMsg)
 	}
 	if config.GitLabServer == "" {
-		log.Fatal(errGitLabServerNotDefined)
+		log.Fatal(gitLabServerNotDefinedErrMsg)
 	}
 	if config.RedirectURI == "" {
-		log.Fatal(errRedirectURINotDefined)
+		log.Fatal(redirectURINotDefinedErrMsg)
 	}
 }
 

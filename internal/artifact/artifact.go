@@ -26,14 +26,15 @@ const (
 
 	minStatusCode = 200
 	maxStatusCode = 299
+
+	createArtifactRequestErrMsg = "failed to create the artifact request"
+	artifactRequestErrMsg       = "failed to request the artifact"
 )
 
 var (
 	// Captures subgroup + project, job ID and artifacts path
-	pathExtractor            = regexp.MustCompile(`(?i)\A/-/(.*)/-/jobs/(\d+)/artifacts(/[^?]*)\z`)
-	errCreateArtifactRequest = errors.New("Failed to create the artifact request")
-	errArtifactRequest       = errors.New("Failed to request the artifact")
-	errArtifactResponse      = errors.New("Artifact request response was not successful")
+	pathExtractor       = regexp.MustCompile(`(?i)\A/-/(.*)/-/jobs/(\d+)/artifacts(/[^?]*)\z`)
+	errArtifactResponse = errors.New("artifact request response was not successful")
 )
 
 // Artifact proxies requests for artifact files to the GitLab artifacts API
@@ -78,7 +79,7 @@ func (a *Artifact) TryMakeRequest(host string, w http.ResponseWriter, r *http.Re
 func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *url.URL, token string, additionalHandler func(*http.Response) bool) {
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
-		logging.LogRequest(r).WithError(err).Error(errCreateArtifactRequest)
+		logging.LogRequest(r).WithError(err).Error(createArtifactRequestErrMsg)
 		errortracking.Capture(err, errortracking.WithRequest(r))
 		httperrors.Serve500(w)
 		return
@@ -90,7 +91,7 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 	resp, err := a.client.Do(req)
 
 	if err != nil {
-		logging.LogRequest(r).WithError(err).Error(errArtifactRequest)
+		logging.LogRequest(r).WithError(err).Error(artifactRequestErrMsg)
 		errortracking.Capture(err, errortracking.WithRequest(r))
 		httperrors.Serve502(w)
 		return
