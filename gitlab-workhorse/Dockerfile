@@ -1,15 +1,22 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
+ARG GIT_TAG=2.29.0
 ARG GITLAB_EDITION=gitlab-rails-ee
 ARG RAILS_VERSION="master"
 ARG RUBY_VERSION="master"
 
 FROM ${CI_REGISTRY_IMAGE}/${GITLAB_EDITION}:${RAILS_VERSION} as rails
+FROM ${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG} as builder
+
+ARG BUILD_DIR=/tmp/build
+RUN mkdir -p ${BUILD_DIR}
+COPY --from=rails /srv/gitlab/workhorse/ ${BUILD_DIR}/
 
 RUN buildDeps=' \
   make' \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && make -C /srv/gitlab/workhorse install \
+  && make -C ${BUILD_DIR} install \
+  && rm -rf ${BUILD_DIR} \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
@@ -25,7 +32,7 @@ RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
   install -d -o ${GITLAB_USER} ${DATADIR} && \
   install -d -o ${GITLAB_USER} ${CONFIG}
 
-COPY --from=rails /usr/local/bin/gitlab-* /usr/local/bin/
+COPY --from=builder /usr/local/bin/gitlab-* /usr/local/bin/
 
 COPY --from=rails --chown=git /srv/gitlab/public/ /srv/gitlab/public/
 
