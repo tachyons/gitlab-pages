@@ -552,3 +552,22 @@ func doCrossOriginRequest(t *testing.T, spec ListenSpec, method, reqMethod, url 
 	rsp.Body.Close()
 	return rsp
 }
+
+func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
+	skipUnlessEnabled(t)
+	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	defer teardown()
+
+	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "project?q=test")
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+
+	require.Equal(t, http.StatusFound, rsp.StatusCode)
+	require.Equal(t, 1, len(rsp.Header["Location"]))
+	require.Equal(t, "//group.gitlab-example.com/project/?q=test", rsp.Header.Get("Location"))
+
+	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/?q=test")
+	require.NoError(t, err)
+	defer rsp.Body.Close()
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
+}
