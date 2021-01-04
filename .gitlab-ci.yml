@@ -1096,12 +1096,8 @@ gitlab-workhorse-ee:
     - fi
     - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
-                      --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
                       --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
-                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
-                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
@@ -1125,12 +1121,8 @@ gitlab-workhorse-ce:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
     - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
-                      --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
                       --build-arg "RAILS_VERSION=${rails_container}"
                       --build-arg "RUBY_VERSION=$ruby_version"
-                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
-                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ce"
     - push_tags $GITLAB_REF_SLUG
   dependencies:
