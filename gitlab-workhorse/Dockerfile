@@ -9,13 +9,13 @@ FROM ${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG} as builder
 
 ARG BUILD_DIR=/tmp/build
 RUN mkdir -p ${BUILD_DIR}
-COPY --from=rails /srv/gitlab/workhorse/ ${BUILD_DIR}/
+COPY --from=rails /srv/gitlab/ ${BUILD_DIR}/
 
 RUN buildDeps=' \
   make' \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && make -C ${BUILD_DIR} install \
+  && make -C ${BUILD_DIR}/workhorse install \
   && rm -rf ${BUILD_DIR} \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
