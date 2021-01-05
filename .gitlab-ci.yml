@@ -11,17 +11,17 @@ variables:
   DNF_OPTS: '--disableplugin=subscription-manager'
 
 stages:
-  - prepare
-  - prepare:phase-one
-  - prepare:phase-two
-  - prepare:phase-three
-  - prepare:phase-four
-  - phase-one
-  - phase-two
-  - phase-three
-  - phase-four
-  - phase-five
-  - phase-six
+  # - prepare
+  # - prepare:phase-one
+  # - prepare:phase-two
+  # - prepare:phase-three
+  # - prepare:phase-four
+  # - phase-one
+  # - phase-two
+  # - phase-three
+  # - phase-four
+  # - phase-five
+  # - phase-six
   - release
 
 workflow:
@@ -1137,74 +1137,74 @@ gitlab-workhorse-ce:
     - git-base
     - gitlab-rails-ce
 
-sync-images:
-  image: "${DEPENDENCY_PROXY}docker:git"
-  variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_HOST: tcp://docker:2375
-  services:
-    - docker:dind
-  stage: release
-  allow_failure: false
-  script:
-    - cat artifacts/images/* > image_versions.txt
-    - rm -rf artifacts/*
-    - sh build-scripts/docker_image_sync.sh image_versions.txt
-    - if $(echo $CI_COMMIT_TAG | grep -Eq 'v*-ubi8'); then
-    -   apk add curl
-    -   UBI_IMAGES=$(cat artifacts/cng_images.txt | xargs printf ', %s')
-    -   curl -fS
-          --request POST
-          --form ref=master
-          --form "variables[IMAGES]=${UBI_IMAGES:2}"
-          --form "token=${SCANNING_TRIGGER_TOKEN}"
-          "${SCANNING_TRIGGER_PIPELINE}"
-    - fi
-  artifacts:
-    paths:
-      - artifacts/
-  rules:
-    - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
-      when: manual
-
-ubi-assets-release:
-  image: registry.gitlab.com/gitlab-org/gitlab-build-images:ubi-release
-  stage: release
-  dependencies:
-    - build:kubectl
-    - build:postgresql
-    - build:gitlab-python
-    - build:gitlab-ruby
-    - build:gitlab-go
-    - build:git-base
-    - build:gitlab-logger
-    - build:gitlab-pages
-    - build:gitlab-container-registry
-    - build:gitlab-mailroom
-    - build:gitlab-exporter
-    - build:gitlab-shell
-    - build:gitaly
-    - build:gitlab-elasticsearch-indexer
-    - build:gitlab-workhorse-ee
-    - build:gitlab-rails-ee
-    - build:gitlab-task-runner-ee
-    - build:gitlab-webservice-ee
-    - build:gitlab-sidekiq-ee
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/ && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
-      when: manual
-  before_script:
-    - export UBI_RELEASE_TAG=${CI_COMMIT_TAG:-master}
-    - export AWS_ACCESS_KEY_ID="${GPG_KEY_AWS_ACCESS_KEY_ID}"
-    - export AWS_SECRET_ACCESS_KEY="${GPG_KEY_AWS_SECRET_ACCESS_KEY}"
-    - aws s3 cp --quiet ${GPG_KEY_LOCATION} /tmp/private.pem
-    - gpg --batch --import /tmp/private.pem
-    - rm /tmp/private.pem
-  script:
-    - export AWS_ACCESS_KEY_ID="${UBI_ASSETS_AWS_ACCESS_KEY_ID}"
-    - export AWS_SECRET_ACCESS_KEY="${UBI_ASSETS_AWS_SECRET_ACCESS_KEY}"
-    - bash build-scripts/ubi-offline/assets-release.sh
-    - rm -rf artifacts/*
+# sync-images:
+#   image: "${DEPENDENCY_PROXY}docker:git"
+#   variables:
+#     DOCKER_DRIVER: overlay2
+#     DOCKER_HOST: tcp://docker:2375
+#   services:
+#     - docker:dind
+#   stage: release
+#   allow_failure: false
+#   script:
+#     - cat artifacts/images/* > image_versions.txt
+#     - rm -rf artifacts/*
+#     - sh build-scripts/docker_image_sync.sh image_versions.txt
+#     - if $(echo $CI_COMMIT_TAG | grep -Eq 'v*-ubi8'); then
+#     -   apk add curl
+#     -   UBI_IMAGES=$(cat artifacts/cng_images.txt | xargs printf ', %s')
+#     -   curl -fS
+#           --request POST
+#           --form ref=master
+#           --form "variables[IMAGES]=${UBI_IMAGES:2}"
+#           --form "token=${SCANNING_TRIGGER_TOKEN}"
+#           "${SCANNING_TRIGGER_PIPELINE}"
+#     - fi
+#   artifacts:
+#     paths:
+#       - artifacts/
+#   rules:
+#     - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
+#       when: manual
+#
+# ubi-assets-release:
+#   image: registry.gitlab.com/gitlab-org/gitlab-build-images:ubi-release
+#   stage: release
+#   dependencies:
+#     - build:kubectl
+#     - build:postgresql
+#     - build:gitlab-python
+#     - build:gitlab-ruby
+#     - build:gitlab-go
+#     - build:git-base
+#     - build:gitlab-logger
+#     - build:gitlab-pages
+#     - build:gitlab-container-registry
+#     - build:gitlab-mailroom
+#     - build:gitlab-exporter
+#     - build:gitlab-shell
+#     - build:gitaly
+#     - build:gitlab-elasticsearch-indexer
+#     - build:gitlab-workhorse-ee
+#     - build:gitlab-rails-ee
+#     - build:gitlab-task-runner-ee
+#     - build:gitlab-webservice-ee
+#     - build:gitlab-sidekiq-ee
+#   rules:
+#     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/ && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
+#       when: manual
+#   before_script:
+#     - export UBI_RELEASE_TAG=${CI_COMMIT_TAG:-master}
+#     - export AWS_ACCESS_KEY_ID="${GPG_KEY_AWS_ACCESS_KEY_ID}"
+#     - export AWS_SECRET_ACCESS_KEY="${GPG_KEY_AWS_SECRET_ACCESS_KEY}"
+#     - aws s3 cp --quiet ${GPG_KEY_LOCATION} /tmp/private.pem
+#     - gpg --batch --import /tmp/private.pem
+#     - rm /tmp/private.pem
+#   script:
+#     - export AWS_ACCESS_KEY_ID="${UBI_ASSETS_AWS_ACCESS_KEY_ID}"
+#     - export AWS_SECRET_ACCESS_KEY="${UBI_ASSETS_AWS_SECRET_ACCESS_KEY}"
+#     - bash build-scripts/ubi-offline/assets-release.sh
+#     - rm -rf artifacts/*
 
 ubi-release-for-certification:
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
