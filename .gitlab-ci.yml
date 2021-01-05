@@ -1225,6 +1225,7 @@ ubi-release-for-certification:
   stage: release
   retry: 1
   script:
+    - docker login -u "$CI_DEPENDENCY_PROXY_USER" -p "$CI_DEPENDENCY_PROXY_PASSWORD" "$CI_DEPENDENCY_PROXY_SERVER"
     - ruby build-scripts/push_to_redhat.rb "${CI_COMMIT_REF_NAME}"
 
 # push-script-debug:
