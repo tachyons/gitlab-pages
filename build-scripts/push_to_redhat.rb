@@ -10,7 +10,7 @@ require 'json'
 require 'digest'
 
 $GITLAB_REGISTRY = 'registry.gitlab.com/gitlab-org/build/cng'
-$REDHAT_REGISTRY = 'scan.connect.rehat.com'
+$REDHAT_REGISTRY = 'scan.connect.redhat.com'
 $CONTAINER_NAMES = ['kubectl', 'gitlab-workhorse-ee', 'gitlab-webservice-ee',
                     'gitlab-task-runner-ee', 'gitlab-sidekiq-ee', 'gitlab-shell',
                     'gitlab-rails-ee', 'gitlab-mailroom', 'gitlab-exporter',
@@ -28,8 +28,8 @@ end
 
 def set_credentials(secret)
   puts "Setting credentials"
-  puts "secret hash = #{Digest::SHA1.hexdigest secret}"
-  %x(echo -n '#{secret}' | docker login -u unused --password-stdin scan.connect.redhat.com)
+  puts "checksum = #{Digest::SHA1.hexdigest secret}"
+  %x(echo '#{secret}' | docker login -u unused --password-stdin #{$REDHAT_REGISTRY})
   #%x(docker login -u unused -p #{secret} scan.connect.redhat.com)
 end
 
