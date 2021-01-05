@@ -1210,18 +1210,18 @@ ubi-release-for-certification:
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
   services:
   - docker:19.03.0-dind
-  dependencies:
-    - build:kubectl
-    - build:gitlab-container-registry
-    - build:gitlab-mailroom
-    - build:gitlab-exporter
-    - build:gitlab-shell
-    - build:gitaly
-    - build:gitlab-workhorse-ee
-    - build:gitlab-task-runner-ee
-    - build:gitlab-webservice-ee
-    - build:gitlab-sidekiq-ee
-    #- ubi-assets-release
+  # dependencies:
+  #   - build:kubectl
+  #   - build:gitlab-container-registry
+  #   - build:gitlab-mailroom
+  #   - build:gitlab-exporter
+  #   - build:gitlab-shell
+  #   - build:gitaly
+  #   - build:gitlab-workhorse-ee
+  #   - build:gitlab-task-runner-ee
+  #   - build:gitlab-webservice-ee
+  #   - build:gitlab-sidekiq-ee
+  #   #- ubi-assets-release
   stage: release
   retry: 1
   script:
