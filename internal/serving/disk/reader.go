@@ -77,23 +77,13 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	fullPath, err := reader.resolvePath(ctx, root, h.SubPath)
 
 	request := h.Request
-	host := request.Host
 	urlPath := request.URL.Path
 
 	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
 		if endsWithSlash(urlPath) {
 			fullPath, err = reader.resolvePath(ctx, root, h.SubPath, "index.html")
 		} else {
-			// TODO why are we doing that? In tests it redirects to HTTPS. This seems wrong,
-			// issue about this: https://gitlab.com/gitlab-org/gitlab-pages/issues/273
-
-			// Concat Host with URL.Path
-			redirectPath := "//" + host + "/"
-			redirectPath += strings.TrimPrefix(urlPath, "/")
-
-			// Ensure that there's always "/" at end
-			redirectPath = strings.TrimSuffix(redirectPath, "/") + "/"
-			http.Redirect(h.Writer, h.Request, redirectPath, 302)
+			http.Redirect(h.Writer, h.Request, redirectPath(h.Request), 302)
 			return true
 		}
 	}
@@ -122,6 +112,17 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	}
 
 	return reader.serveFile(ctx, h.Writer, h.Request, root, fullPath, h.LookupPath.HasAccessControl)
+}
+
+func redirectPath(request *http.Request) string {
+	url := *request.URL
+
+	// This ensures that path starts with `//<host>/`
+	url.Scheme = ""
+	url.Host = request.Host
+	url.Path = strings.TrimPrefix(url.Path, "/") + "/"
+
+	return strings.TrimSuffix(url.String(), "?")
 }
 
 func (reader *Reader) tryNotFound(h serving.Handler) bool {

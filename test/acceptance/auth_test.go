@@ -189,62 +189,76 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
 	defer teardown()
 
-	rsp, err := GetRedirectPage(t, httpListener, "private.domain.com", "/")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
+	tests := map[string]struct {
+		domain string
+		path   string
+	}{
+		"private_domain": {
+			domain: "private.domain.com",
+			path:   "",
+		},
+		"private_domain_with_query": {
+			domain: "private.domain.com",
+			path:   "?q=test",
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			rsp, err := GetRedirectPage(t, httpListener, tt.domain, tt.path)
+			require.NoError(t, err)
+			defer rsp.Body.Close()
 
-	cookie := rsp.Header.Get("Set-Cookie")
+			cookie := rsp.Header.Get("Set-Cookie")
 
-	url, err := url.Parse(rsp.Header.Get("Location"))
-	require.NoError(t, err)
+			url, err := url.Parse(rsp.Header.Get("Location"))
+			require.NoError(t, err)
 
-	state := url.Query().Get("state")
-	require.Equal(t, url.Query().Get("domain"), "http://private.domain.com")
+			state := url.Query().Get("state")
+			require.Equal(t, "http://"+tt.domain, url.Query().Get("domain"))
 
-	pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
-	require.NoError(t, err)
-	defer pagesrsp.Body.Close()
+			pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
+			require.NoError(t, err)
+			defer pagesrsp.Body.Close()
 
-	pagescookie := pagesrsp.Header.Get("Set-Cookie")
+			pagescookie := pagesrsp.Header.Get("Set-Cookie")
 
-	// Go to auth page with correct state will cause fetching the token
-	authrsp, err := GetRedirectPageWithCookie(t, httpListener, "projects.gitlab-example.com", "/auth?code=1&state="+
-		state, pagescookie)
+			// Go to auth page with correct state will cause fetching the token
+			authrsp, err := GetRedirectPageWithCookie(t, httpListener, tt.domain, "/auth?code=1&state="+
+				state, pagescookie)
 
-	require.NoError(t, err)
-	defer authrsp.Body.Close()
+			require.NoError(t, err)
+			defer authrsp.Body.Close()
 
-	url, err = url.Parse(authrsp.Header.Get("Location"))
-	require.NoError(t, err)
+			url, err = url.Parse(authrsp.Header.Get("Location"))
+			require.NoError(t, err)
 
-	// Will redirect to custom domain
-	require.Equal(t, "private.domain.com", url.Host)
-	// code must have changed since it's encrypted
-	code := url.Query().Get("code")
-	require.NotEqual(t, "1", code)
-	require.Equal(t, state, url.Query().Get("state"))
+			// Will redirect to custom domain
+			require.Equal(t, tt.domain, url.Host)
+			code := url.Query().Get("code")
+			require.NotEqual(t, "1", code)
 
-	// Run auth callback in custom domain
-	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/auth?code="+code+"&state="+
-		state, cookie)
+			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, "/auth?code="+code+"&state="+
+				state, cookie)
 
-	require.NoError(t, err)
-	defer authrsp.Body.Close()
+			require.NoError(t, err)
+			defer authrsp.Body.Close()
 
-	// Will redirect to the page
-	cookie = authrsp.Header.Get("Set-Cookie")
-	require.Equal(t, http.StatusFound, authrsp.StatusCode)
+			// Will redirect to the page
+			cookie = authrsp.Header.Get("Set-Cookie")
+			require.Equal(t, http.StatusFound, authrsp.StatusCode)
 
-	url, err = url.Parse(authrsp.Header.Get("Location"))
-	require.NoError(t, err)
+			url, err = url.Parse(authrsp.Header.Get("Location"))
+			require.NoError(t, err)
 
-	// Will redirect to custom domain
-	require.Equal(t, "http://private.domain.com/", url.String())
+			// Will redirect to custom domain
+			require.Equal(t, "http://"+tt.domain+"/"+tt.path, url.String())
 
-	// Fetch page in custom domain
-	authrsp, err = GetRedirectPageWithCookie(t, httpListener, "private.domain.com", "/", cookie)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, authrsp.StatusCode)
+			// Fetch page in custom domain
+			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, tt.path, cookie)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, authrsp.StatusCode)
+		})
+	}
 }
 
 func TestCustomErrorPageWithAuth(t *testing.T) {
