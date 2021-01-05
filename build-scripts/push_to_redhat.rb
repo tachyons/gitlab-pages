@@ -7,6 +7,7 @@
 # JSON string.
 
 require 'json'
+require 'digest'
 
 $GITLAB_REGISTRY = 'registry.gitlab.com/gitlab-org/build/cng'
 $REDHAT_REGISTRY = 'scan.connect.rehat.com'
@@ -27,8 +28,9 @@ end
 
 def set_credentials(secret)
   puts "Setting credentials"
-  #%x(echo #{secret} | docker login -u unused --password-stdin scan.connect.redhat.com)
-  %x(docker login -u unused -p #{secret} scan.connect.redhat.com)
+  puts "secret hash = #{Digest::SHA1.hexdigest secret}"
+  %x(echo -n '#{secret}' | docker login -u unused --password-stdin scan.connect.redhat.com)
+  #%x(docker login -u unused -p #{secret} scan.connect.redhat.com)
 end
 
 def pull_image(image)
