@@ -255,9 +255,9 @@ build:gitlab-logger:
     - import_assets artifacts/ubi/gitlab-go.tar.gz
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GLOGGER_VERSION$(date -u +%D)" | sha1sum))
-    - build_if_needed --build-arg "GLOGGER_VERSION=$GLOGGER_VERSION"
-                      --build-arg "GLOGGER_SHA256=${GLOGGER_SHA256}"
+    - export CONTAINER_VERSION=($(echo -n "$go_version$TARGET_VERSION$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
+    - build_if_needed --build-arg "GITLAB_LOGGER_VERSION=$GITLAB_LOGGER_VERSION"
+                      --build-arg "GITLAB_LOGGER_SHA256=${GITLAB_LOGGER_SHA256}"
     - copy_assets
 
 gitlab-logger:
