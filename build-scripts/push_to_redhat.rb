@@ -72,18 +72,18 @@ $CONTAINER_NAMES.each do |name|
     # retag the image with the Red Hat registry information
     container_name = tag_image(name, version, secrets[name]['id'])
 
-    result = set_credentials(secrets[name]['pull_secret']).chomp
+    result = set_credentials(secrets[name]['secret']).chomp
     if result != 'Login Succeeded'
       puts "***** Failed to authenticate to registry for #{name} *****"
       puts "#{result}\n"
-      errors << "#{name}: Unable to authentcate to registry (bad pull secret?)"
+      errors << "#{name}: Unable to authentcate to registry (bad secret?)"
       next
     end
 
     puts push_image(container_name)
   else
     puts "No entry for #{name} in secrets file"
-    errors << "#{name}: No pull secret listed in $REDHAT_SECRETS_JSON"
+    errors << "#{name}: No secret listed in $REDHAT_SECRETS_JSON"
   end
 end
 
