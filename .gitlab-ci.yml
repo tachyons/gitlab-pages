@@ -136,7 +136,7 @@ workflow:
     - <<: *if_ubi_branch
 
 .job-base: &job-base
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
   services:
   - docker:19.03.0-dind
   dependencies: []
@@ -170,7 +170,7 @@ workflow:
       - artifacts/
 
 .build-job-base: &build-job-base
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
   services:
   - docker:19.03.0-dind
   retry: 1
