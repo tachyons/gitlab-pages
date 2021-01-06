@@ -1136,6 +1136,7 @@ gitlab-workhorse-ce:
   dependencies:
     - git-base
     - gitlab-rails-ce
+
 sync-images:
   image: "${DEPENDENCY_PROXY}docker:git"
   variables:
