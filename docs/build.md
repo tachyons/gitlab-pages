@@ -75,7 +75,11 @@ The presence of these files will trigger the UBI image build, given one of the f
 - The pipeline is running with an environment variable matching `UBI_PIPELINE='true'`
 
 If one of these conditions is met, additional pipeline jobs and stages will appear and the UBI
-images will be built and pushed.
+images will be built and pushed. The UBI images are pushed to Red Hat for
+certification for the OpenShift environments. This adds a final job in the
+`release` stage which executes the `build-scripts/push_to_redhat.rb` script. This
+script will gather the appropriate UBI images and push them to a Red Hat
+registry for the certification process to be initiated.
 
 ### Offline builds
 
@@ -84,7 +88,7 @@ In such an environment, the build scripts must download the binary dependencies 
 [GitLab CNG Releases](https://gitlab.com/gitlab-org/build/CNG/-/releases). They also need
 access the official UBI software repositories.
 
-### Build stages
+## Build stages
 
 The CNG images can be built in three stages. This is because some images use the images
 from prior stages as their base. Not all the CNG images are final images. Some are
