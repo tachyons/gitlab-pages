@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -19,8 +20,6 @@ import (
 
 const (
 	daemonRunProgram = "gitlab-pages-unprivileged"
-
-	pagesRootInChroot = "/pages"
 )
 
 func daemonMain() {
@@ -249,30 +248,32 @@ func jailCreate(cmd *exec.Cmd) (*jail.Jail, error) {
 	return cage, nil
 }
 
-func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
+func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 	cage, err := jailCreate(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	wd, err := os.Getwd()
+	// ensure pagesRoot is an absolute path
+	pagesRoot, err = filepath.Abs(pagesRoot)
 	if err != nil {
 		return nil, err
 	}
 
 	// Bind mount shared folder
-	cage.MkDir(pagesRootInChroot, 0755)
-	cage.Bind(pagesRootInChroot, wd)
+	cage.MkDir(pagesRoot, 0755)
+	cage.Bind(pagesRoot, pagesRoot)
 
 	// Update command to use chroot
 	cmd.SysProcAttr.Chroot = cage.Path()
 	cmd.Path = "/gitlab-pages"
-	cmd.Dir = pagesRootInChroot
+	cmd.Dir = pagesRoot
 
 	return cage, nil
 }
 
-func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
+// func ensureRootPagesRoot()
+func daemonize(config appConfig, uid, gid uint, inPlace bool, pagesRoot string) error {
 	log.WithFields(log.Fields{
 		"uid":      uid,
 		"gid":      gid,
@@ -290,7 +291,7 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool) error {
 	if inPlace {
 		wrapper, err = chrootDaemon(cmd)
 	} else {
-		wrapper, err = jailDaemon(cmd)
+		wrapper, err = jailDaemon(pagesRoot, cmd)
 	}
 	if err != nil {
 		log.WithError(err).Print("chroot failed")
