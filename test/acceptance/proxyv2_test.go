@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +47,11 @@ func TestProxyv2(t *testing.T) {
 
 			require.Contains(t, string(body), tt.expectedContent, "content mismatch")
 
-			require.Contains(t, logBuf.String(), tt.expectedLog, "log mismatch")
+			// give the process enough time to write the log message
+			require.Eventually(t, func() bool {
+				require.Contains(t, logBuf.String(), tt.expectedLog, "log mismatch")
+				return true
+			}, time.Second, time.Millisecond)
 		})
 	}
 }
