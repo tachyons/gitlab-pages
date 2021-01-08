@@ -1073,7 +1073,7 @@ build:gitlab-workhorse-ee:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
-    - build_if_needed --build-arg "VERSION=$GITLAB_WORKHORSE_VERSION"
+    - build_if_needed --build-arg "VERSION=$GITLAB_VERSION"
                       --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "API_URL=${CI_API_V4_URL}"
                       --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
