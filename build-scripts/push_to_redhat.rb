@@ -16,7 +16,7 @@ $CONTAINER_NAMES = ['kubectl', 'gitlab-workhorse-ee', 'gitlab-webservice-ee',
                     'gitlab-rails-ee', 'gitlab-mailroom', 'gitlab-exporter',
                     'gitlab-container-registry', 'gitaly', 'alpine-certificates', ]
 
-def tag_image(name, version, proj_id)
+def retag_image(name, version, proj_id)
   gitlab_tag = "#{version}-ubi8"
   redhat_tag = version.gsub(/^v/, '')
   new_container_name = "#{$REDHAT_REGISTRY}/#{proj_id}/#{name}:#{redhat_tag}"
@@ -70,7 +70,7 @@ $CONTAINER_NAMES.each do |name|
     end
 
     # retag the image with the Red Hat registry information
-    container_name = tag_image(name, version, secrets[name]['id'])
+    container_name = retag_image(name, version, secrets[name]['id'])
 
     result = set_credentials(secrets[name]['secret']).chomp
     if result != 'Login Succeeded'
