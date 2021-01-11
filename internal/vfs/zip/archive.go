@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -161,34 +161,30 @@ func (a *zipArchive) readArchive(url string) {
 }
 
 // addPathDirectory adds a directory for a given path
-func (a *zipArchive) addPathDirectory(path string) {
+func (a *zipArchive) addPathDirectory(pathname string) {
 	// Split dir and file from `path`
-	path, _ = filepath.Split(path)
-	if path == "" {
+	pathname, _ = path.Split(pathname)
+	if pathname == "" {
 		return
 	}
 
-	if a.directories[path] != nil {
+	if a.directories[pathname] != nil {
 		return
 	}
 
-	a.directories[path] = &zip.FileHeader{
-		Name: path,
+	a.directories[pathname] = &zip.FileHeader{
+		Name: pathname,
 	}
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {
-	name = filepath.Join(dirPrefix, name)
+	name = path.Clean(dirPrefix + name)
 
-	if file := a.files[name]; file != nil {
-		return file
-	}
-
-	return nil
+	return a.files[name]
 }
 
 func (a *zipArchive) findDirectory(name string) *zip.FileHeader {
-	name = filepath.Join(dirPrefix, name)
+	name = path.Clean(dirPrefix + name)
 
 	return a.directories[name+"/"]
 }
