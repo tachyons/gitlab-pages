@@ -21,17 +21,15 @@ else
   fi
 fi
 
-echo "Starting OpenSSH"
-/usr/sbin/sshd -E /var/log/gitlab-shell/ssh.log &
-
-echo "Tailing Logs"
-
-if command -v xtail >/dev/null; then
-    xtail /var/log/gitlab-shell
+if [ "${USE_GITLAB_LOGGER-0}" -eq 1 ]; then
+  /usr/local/bin/gitlab-logger /var/log/gitlab-shell &
 else
+  if command -v xtail >/dev/null; then
+    xtail /var/log/gitlab-shell &
+  else
     touch /var/log/gitlab-shell/ssh.log
-    tail -f /var/log/gitlab-shell/*
+    tail -f /var/log/gitlab-shell/* &
+  fi
 fi
 
-
-wait
+/usr/sbin/sshd -D -E /var/log/gitlab-shell/ssh.log
