@@ -515,7 +515,8 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 
 	var listeners = []ListenSpec{
 		{"proxy", "127.0.0.1", "37002"},
-		{"proxy", "::1", "37002"},
+		// TODO:  re-enable https://gitlab.com/gitlab-org/gitlab-pages/-/issues/528
+		// {"proxy", "::1", "37002"},
 	}
 
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")

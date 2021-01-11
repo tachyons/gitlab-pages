@@ -17,24 +17,31 @@ const (
 var (
 	pagesBinary = flag.String("gitlab-pages-binary", "../../gitlab-pages", "Path to the gitlab-pages binary")
 
+	httpPort        = "36000"
+	httpsPort       = "37000"
+	httpProxyPort   = "38000"
+	httpProxyV2Port = "39000"
+
 	// TODO: Use TCP port 0 everywhere to avoid conflicts. The binary could output
 	// the actual port (and type of listener) for us to read in place of the
 	// hardcoded values below.
 	listeners = []ListenSpec{
-		{"http", "127.0.0.1", "37000"},
-		{"http", "::1", "37000"},
-		{"https", "127.0.0.1", "37001"},
-		{"https", "::1", "37001"},
-		{"proxy", "127.0.0.1", "37002"},
-		{"proxy", "::1", "37002"},
-		{"https-proxyv2", "127.0.0.1", "37003"},
-		{"https-proxyv2", "::1", "37003"},
+		{"http", "127.0.0.1", httpPort},
+		{"https", "127.0.0.1", httpsPort},
+		{"proxy", "127.0.0.1", httpProxyPort},
+		{"https-proxyv2", "127.0.0.1", httpProxyV2Port},
+		// TODO: re-enable IPv6 listeners once https://gitlab.com/gitlab-com/gl-infra/infrastructure/-/issues/12258 is resolved
+		//  https://gitlab.com/gitlab-org/gitlab-pages/-/issues/528
+		// {"http", "::1", httpPort},
+		// {"https", "::1", httpsPort},
+		// {"proxy", "::1", httpProxyPort},
+		// {"https-proxyv2", "::1", httpProxyV2Port},
 	}
 
 	httpListener         = listeners[0]
-	httpsListener        = listeners[2]
-	proxyListener        = listeners[4]
-	httpsProxyv2Listener = listeners[6]
+	httpsListener        = listeners[1]
+	proxyListener        = listeners[2]
+	httpsProxyv2Listener = listeners[3]
 )
 
 func TestMain(m *testing.M) {
