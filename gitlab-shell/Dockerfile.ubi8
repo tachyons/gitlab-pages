@@ -16,6 +16,7 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-shell
       description="SSH access and repository management app for GitLab."
 
 ADD gitlab-shell.tar.gz /
+ADD gitlab-logger.tar.gz /usr/local/bin
 
 COPY scripts/ /scripts/
 COPY sshd_config /etc/ssh/

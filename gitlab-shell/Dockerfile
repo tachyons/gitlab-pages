@@ -2,6 +2,7 @@ ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG="master"
 
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
+ARG GITLAB_LOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
 
 FROM ${FROM_IMAGE}:${TAG} as builder
 
@@ -30,6 +31,8 @@ RUN mkdir /srv/gitlab-shell && \
     make build && \
     rm -rf go go_build internal/testhelper/testdata
 
+FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
+
 FROM ${FROM_IMAGE}:${TAG}
 
 ARG GITLAB_USER=git
@@ -56,6 +59,10 @@ RUN mkdir -p /var/log/gitlab-shell && \
 COPY --from=builder /srv/gitlab-shell/ /srv/gitlab-shell/
 COPY scripts/  /scripts/
 COPY sshd_config /etc/ssh/
+
+
+# Pull in gitlab-logger
+COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
 
 # AuthrorizedKeysCommand must be owned by root, and have all parent paths owned as root
 RUN mv /scripts/authorized_keys /authorized_keys && chmod 0755 /authorized_keys
