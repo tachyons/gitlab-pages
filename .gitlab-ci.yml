@@ -1096,6 +1096,7 @@ gitlab-workhorse-ee:
     - fi
     - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_VERSION=$GITLAB_VERSION"
                       --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
@@ -1121,6 +1122,7 @@ gitlab-workhorse-ce:
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
     - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_VERSION=$GITLAB_VERSION"
                       --build-arg "RAILS_VERSION=${rails_container}"
                       --build-arg "RUBY_VERSION=$ruby_version"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ce"
