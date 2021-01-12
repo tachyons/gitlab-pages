@@ -81,6 +81,13 @@ certification for the OpenShift environments. This adds a final job in the
 script will gather the appropriate UBI images and push them to a Red Hat
 registry for the certification process to be initiated.
 
+The `build-scripts/push_to_redhat.rb` script requires the variable
+`REDHAT_SECRETS_JSON` to be declared when it runs. The value is a JSON
+document that indexed by image name and has an `id` and `secret` attribute
+for each image which corresponds to the OSPID and push secret assigned to
+each image by Red Hat. In addition, the variables `GITLAB_REGISTRY_BASE_URL`
+(base URL where the CNG images reside) and `REDHAT_REGISTRY_HOSTNAME`
+(host name of Red Hat registry) can be defined to override their default locations.
 ### Offline builds
 
 UBI-based images can be built in an isolated environment with limited access to the internet.

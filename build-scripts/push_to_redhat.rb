@@ -9,8 +9,8 @@
 require 'json'
 require 'digest'
 
-$GITLAB_REGISTRY = 'registry.gitlab.com/gitlab-org/build/cng'
-$REDHAT_REGISTRY = 'scan.connect.redhat.com'
+$GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] || 'registry.gitlab.com/gitlab-org/build/cng'
+$REDHAT_REGISTRY = ENV['REDHAT_REGISTRY_HOSTNAME'] || 'scan.connect.redhat.com'
 $CONTAINER_NAMES = ['kubectl', 'gitlab-workhorse-ee', 'gitlab-webservice-ee',
                     'gitlab-task-runner-ee', 'gitlab-sidekiq-ee', 'gitlab-shell',
                     'gitlab-rails-ee', 'gitlab-mailroom', 'gitlab-exporter',
