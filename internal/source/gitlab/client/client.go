@@ -69,6 +69,7 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 				metrics.DomainsSourceAPICallDuration,
 				metrics.DomainsSourceAPIReqTotal,
 				httptransport.DefaultTTFBTimeout,
+				"",
 			),
 		},
 		jwtTokenExpiry: jwtTokenExpiry,

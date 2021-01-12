@@ -51,16 +51,25 @@ var _ vfs.SeekableFile = &Reader{}
 
 // TODO: make this configurable/take an http client when creating a reader/ranged reader
 //  instead https://gitlab.com/gitlab-org/gitlab-pages/-/issues/457
-var httpClient = &http.Client{
-	// The longest time the request can be executed
-	Timeout: 30 * time.Minute,
-	Transport: httptransport.NewTransportWithMetrics(
-		"httprange_client",
-		metrics.HTTPRangeTraceDuration,
-		metrics.HTTPRangeRequestDuration,
-		metrics.HTTPRangeRequestsTotal,
-		httptransport.DefaultTTFBTimeout,
-	),
+var httpClient *http.Client
+
+// InitClient explicitly with a -pages-root directory to serve
+// zip files from disk
+func InitClient(pagesRoot string) {
+	pagesRootDir = pagesRoot
+
+	httpClient = &http.Client{
+		// The longest time the request can be executed
+		Timeout: 30 * time.Minute,
+		Transport: httptransport.NewTransportWithMetrics(
+			"httprange_client",
+			metrics.HTTPRangeTraceDuration,
+			metrics.HTTPRangeRequestDuration,
+			metrics.HTTPRangeRequestsTotal,
+			httptransport.DefaultTTFBTimeout,
+			pagesRoot,
+		),
+	}
 }
 
 // ensureResponse is set before reading from it.

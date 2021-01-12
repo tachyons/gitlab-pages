@@ -11,6 +11,8 @@ import (
 	"sync/atomic"
 )
 
+var pagesRootDir string
+
 // Resource represents any HTTP resource that can be read by a GET operation.
 // It holds the resource's URL and metadata about it.
 type Resource struct {
@@ -24,7 +26,7 @@ type Resource struct {
 
 func (r *Resource) URL() string {
 	url, _ := r.url.Load().(string)
-	return url
+	return cleanFileURL(url)
 }
 
 func (r *Resource) SetURL(url string) {
@@ -67,8 +69,21 @@ func (r *Resource) Request() (*http.Request, error) {
 	return req, nil
 }
 
+// cleanFileURL removes the -pages-root portion out of the url since the
+// httpClient mounts the file system directory into -pages-root directly,
+// serving files relative to -pages-root
+func cleanFileURL(url string) string {
+	if strings.Contains(url, "file://") {
+		url = strings.Replace(url, pagesRootDir, "", -1)
+	}
+
+	return url
+}
+
 func NewResource(ctx context.Context, url string) (*Resource, error) {
-	// the `h.URL` is likely pre-signed URL that only supports GET requests
+	url = cleanFileURL(url)
+
+	// the `h.URL` is likely pre-signed URL or a file:// scheme that only supports GET requests
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
