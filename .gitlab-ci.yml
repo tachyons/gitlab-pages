@@ -1213,17 +1213,6 @@ ubi-release-for-certification:
   rules:
     - <<: *if_ubi_pipeline
     - <<: *if_ubi_tag
-  dependencies:
-    - build:kubectl
-    - build:gitlab-container-registry
-    - build:gitlab-mailroom
-    - build:gitlab-exporter
-    - build:gitlab-shell
-    - build:gitaly
-    - build:gitlab-workhorse-ee
-    - build:gitlab-task-runner-ee
-    - build:gitlab-webservice-ee
-    - build:gitlab-sidekiq-ee
   stage: release
   retry: 1
   script:
