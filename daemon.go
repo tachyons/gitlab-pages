@@ -274,10 +274,17 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 
 // func ensureRootPagesRoot()
 func daemonize(config appConfig, uid, gid uint, inPlace bool, pagesRoot string) error {
+	// ensure pagesRoot is an absolute path
+	pagesRoot, err := filepath.Abs(pagesRoot)
+	if err != nil {
+		return err
+	}
+
 	log.WithFields(log.Fields{
-		"uid":      uid,
-		"gid":      gid,
-		"in-place": inPlace,
+		"uid":        uid,
+		"gid":        gid,
+		"in-place":   inPlace,
+		"pages-root": pagesRoot,
 	}).Info("running the daemon as unprivileged user")
 
 	cmd, err := daemonReexec(uid, gid, daemonRunProgram)

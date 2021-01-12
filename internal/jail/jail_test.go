@@ -160,9 +160,8 @@ func TestJailWithFiles(t *testing.T) {
 			directories: []string{"/tmp", "/tmp/foo", "/bar"},
 		},
 		{
-			name:        "Missing direcories in path",
+			name:        "Missing directories in path creates them",
 			directories: []string{"/tmp/foo/bar"},
-			error:       true,
 		},
 		{
 			name:        "copy /etc/resolv.conf",
