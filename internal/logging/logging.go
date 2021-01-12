@@ -88,6 +88,7 @@ func BasicAccessLogger(handler http.Handler, format string, extraFields log.Extr
 	return log.AccessLogger(handler,
 		log.WithExtraFields(extraFields),
 		log.WithAccessLogger(accessLogger),
+		log.WithXFFAllowed(func(sip string) bool { return false }),
 	), nil
 }
 
