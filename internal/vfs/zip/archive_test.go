@@ -1,11 +1,16 @@
 package zip
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"crypto/rand"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -417,5 +422,53 @@ func newZipFileServerURL(t *testing.T, zipFilePath string, requests *int64) (str
 	return testServer.URL, func() {
 		chdir()
 		testServer.Close()
+	}
+}
+
+func benchmarkArchiveRead(b *testing.B, size int64) {
+	zbuf := new(bytes.Buffer)
+
+	// create zip file of specified size
+	zw := zip.NewWriter(zbuf)
+	w, err := zw.Create("public/file.txt")
+	require.NoError(b, err)
+	_, err = io.CopyN(w, rand.Reader, size)
+	require.NoError(b, err)
+	require.NoError(b, zw.Close())
+
+	modtime := time.Now().Add(-time.Hour)
+
+	m := http.NewServeMux()
+	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeContent(w, r, "public.zip", modtime, bytes.NewReader(zbuf.Bytes()))
+	}))
+
+	ts := httptest.NewServer(m)
+	defer ts.Close()
+
+	fs := New(zipCfg).(*zipVFS)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		z := newArchive(fs, time.Second)
+		err := z.openArchive(context.Background(), ts.URL+"/public.zip")
+		require.NoError(b, err)
+
+		f, err := z.Open(context.Background(), "file.txt")
+		require.NoError(b, err)
+
+		_, err = io.Copy(ioutil.Discard, f)
+		require.NoError(b, err)
+
+		require.NoError(b, f.Close())
+	}
+}
+
+func BenchmarkArchiveRead(b *testing.B) {
+	for _, size := range []int{32 * 1024, 64 * 1024, 1024 * 1024} {
+		b.Run(strconv.Itoa(size), func(b *testing.B) {
+			benchmarkArchiveRead(b, int64(size))
+		})
 	}
 }
