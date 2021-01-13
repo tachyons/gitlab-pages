@@ -6,6 +6,7 @@ ARG GITLAB_EXPORTER_VERSION=7.1.2
 
 ADD gitlab-ruby.tar.gz /
 ADD postgresql.tar.gz /
+ADD https://gitlab.com/gitlab-org/gitlab-exporter/-/raw/master/LICENSE /licenses/GitLab.txt
 
 RUN mkdir /assets \
     && install /usr/local/postgresql/bin/* /usr/bin/ \
@@ -16,4 +17,5 @@ RUN mkdir /assets \
     && cp -R --parents \
         ${LIBDIR}/ruby/gems \
         /usr/bin/gitlab-exporter \
+        /licenses \
         /assets

@@ -5,6 +5,7 @@ FROM ${BUILD_IMAGE}
 ARG MAILROOM_VERSION=0.0.8
 
 ADD gitlab-ruby.tar.gz /
+ADD https://gitlab.com/gitlab-org/gitlab-mail_room/-/raw/master/LICENSE.txt /licenses/GitLab.txt
 
 COPY shared/build-scripts/ /build-scripts
 
@@ -17,4 +18,5 @@ RUN mkdir /assets \
     && cp -R --parents \
       ${LIBDIR}/ruby/gems \
       /usr/bin/mail_room \
+      /licenses \
       /assets

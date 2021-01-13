@@ -18,8 +18,8 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-shell
 ADD gitlab-shell.tar.gz /
 
 COPY scripts/ /scripts/
-ADD https://gitlab.com/gitlab-org/gitlab-shell/-/raw/main/LICENSE /licenses/GitLab.txt
 COPY sshd_config /etc/ssh/
+COPY /assets/licenses/GitLab.txt /licenses/GitLab.txt
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \

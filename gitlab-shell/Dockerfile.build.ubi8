@@ -12,6 +12,7 @@ ARG DNF_OPTS
 ADD git-base.tar.gz /
 ADD gitlab-ruby.tar.gz /
 ADD gitlab-go.tar.gz /
+ADD https://gitlab.com/gitlab-org/gitlab-shell/-/raw/main/LICENSE /assets/licenses/GitLab.txt
 
 COPY centos-8-base.repo /tmp/
 
