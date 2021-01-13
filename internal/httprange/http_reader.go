@@ -53,7 +53,8 @@ var _ vfs.SeekableFile = &Reader{}
 //  instead https://gitlab.com/gitlab-org/gitlab-pages/-/issues/457
 var httpClient *http.Client
 
-// InitClient explicitly with a -pages-root directory to serve
+// InitClient explicitly with a -pages-root directory that will be used
+//  to register the file:// protocol with a http.Dir to be able to serve
 // zip files from disk
 func InitClient(pagesRoot string) {
 	pagesRootDir = pagesRoot

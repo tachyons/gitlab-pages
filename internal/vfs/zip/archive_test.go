@@ -22,6 +22,10 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
+func init() {
+	httprange.InitClient("")
+}
+
 var (
 	chdirSet = false
 	zipCfg   = &config.ZipServing{

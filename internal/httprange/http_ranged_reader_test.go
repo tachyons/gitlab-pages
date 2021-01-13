@@ -18,6 +18,10 @@ const (
 	testDataLen = len(testData)
 )
 
+func init() {
+	InitClient("")
+}
+
 func TestSectionReader(t *testing.T) {
 	tests := map[string]struct {
 		sectionOffset   int
