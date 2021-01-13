@@ -254,12 +254,6 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 		return nil, err
 	}
 
-	// ensure pagesRoot is an absolute path
-	pagesRoot, err = filepath.Abs(pagesRoot)
-	if err != nil {
-		return nil, err
-	}
-
 	// Bind mount shared folder
 	cage.MkDir(pagesRoot, 0755)
 	cage.Bind(pagesRoot, pagesRoot)
@@ -272,9 +266,11 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 	return cage, nil
 }
 
-// func ensureRootPagesRoot()
 func daemonize(config appConfig, uid, gid uint, inPlace bool, pagesRoot string) error {
-	// ensure pagesRoot is an absolute path
+	// Ensure pagesRoot is an absolute path. This will produce a different path
+	// if any component of pagesRoot is a symlink (not likely). For example,
+	// -pages-root=/some-path where ln -s /other-path /some-path
+	// pagesPath will become: /other-path and we will fail to serve files from /some-path.
 	pagesRoot, err := filepath.Abs(pagesRoot)
 	if err != nil {
 		return err
