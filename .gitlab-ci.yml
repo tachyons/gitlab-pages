@@ -226,8 +226,11 @@ danger-review:
   stage: prepare
   cache: {}
   rules:
+    # source not a push, this is not a tag, not the default or stable branches
+    - if: '$CI_PIPELINE_SOURCE != "push" || $CI_COMMIT_TAG || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH =~ /^[0-9]+-[0-9]+-stable$/'
+      when: never
+    # unless above, if API token defined, run Danger
     - if: '$DANGER_GITLAB_API_TOKEN'
-    - when: never
   script:
     - danger --fail-on-errors=true
 
