@@ -24,4 +24,4 @@ RUN ldconfig \
     && cd ${PROJECT}-${VERSION} \
     && make 'gitlab-pages' \
     && install -D -m +x ./gitlab-pages /assets/usr/local/bin/gitlab-pages \
-    && install -D /licenses /assets/licenses
+    && mkdir /assets/licenses && cp -a /licenses/* /assets/licenses

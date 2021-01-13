@@ -20,7 +20,6 @@ ADD gitlab-python.tar.gz /
 
 COPY scripts/bin/* /usr/local/bin/
 COPY scripts/lib/* ${LIBDIR}/ruby/vendor_ruby/
-COPY /assets/licenses/GitLab.txt /licenses/GitLab.txt
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \

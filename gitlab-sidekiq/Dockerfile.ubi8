@@ -22,7 +22,6 @@ ADD gitlab-sidekiq-ee.tar.gz /
 ADD gitlab-python.tar.gz /
 
 COPY scripts/ /scripts/
-COPY /assets/licenses/GitLab.txt /licenses/GitLab.txt
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \

@@ -19,7 +19,6 @@ ADD gitlab-shell.tar.gz /
 
 COPY scripts/ /scripts/
 COPY sshd_config /etc/ssh/
-COPY /assets/licenses/GitLab.txt /licenses/GitLab.txt
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
