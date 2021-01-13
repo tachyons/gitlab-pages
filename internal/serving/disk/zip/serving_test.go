@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -16,10 +17,16 @@ import (
 )
 
 func TestZip_ServeFileHTTP(t *testing.T) {
-	httprange.InitClient("")
-
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip")
 	defer cleanup()
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	httprange.InitClient(wd)
+
+	httpURL := testServerURL + "/public.zip"
+	fileURL := "file:///group/zip.gitlab.io/public-without-dirs.zip"
 
 	tests := map[string]struct {
 		vfsPath        string
@@ -28,19 +35,37 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 		expectedBody   string
 	}{
 		"accessing /index.html": {
-			vfsPath:        testServerURL + "/public.zip",
+			vfsPath:        httpURL,
+			path:           "/index.html",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
+		},
+		"accessing /index.html from file://": {
+			vfsPath:        fileURL,
 			path:           "/index.html",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
 		"accessing /": {
-			vfsPath:        testServerURL + "/public.zip",
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
+		},
+		"accessing / from file://": {
+			vfsPath:        fileURL,
 			path:           "/",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
 		"accessing without /": {
-			vfsPath:        testServerURL + "/public.zip",
+			vfsPath:        httpURL,
+			path:           "",
+			expectedStatus: http.StatusFound,
+			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
+		},
+		"accessing without / from file://": {
+			vfsPath:        fileURL,
 			path:           "",
 			expectedStatus: http.StatusFound,
 			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
@@ -68,7 +93,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 	}
 
 	s := Instance()
-	err := s.Reconfigure(cfg)
+	err = s.Reconfigure(cfg)
 	require.NoError(t, err)
 
 	for name, test := range tests {

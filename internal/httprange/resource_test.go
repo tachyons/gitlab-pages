@@ -17,6 +17,8 @@ func urlValue(url string) atomic.Value {
 }
 
 func TestNewResource(t *testing.T) {
+	InitClient("")
+
 	resource := &Resource{
 		url:          urlValue("/some/resource"),
 		ETag:         "etag",

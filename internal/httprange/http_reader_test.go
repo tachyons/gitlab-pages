@@ -13,6 +13,8 @@ func TestSeekAndRead(t *testing.T) {
 	testServer := newTestServer(t, nil)
 	defer testServer.Close()
 
+	InitClient("")
+
 	resource, err := NewResource(context.Background(), testServer.URL+"/data")
 	require.NoError(t, err)
 
@@ -267,7 +269,6 @@ func TestReaderSetResponse(t *testing.T) {
 
 func TestReaderSeek(t *testing.T) {
 	type fields struct {
-		Resource   *Resource
 		res        *http.Response
 		rangeStart int64
 		rangeSize  int64

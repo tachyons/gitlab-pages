@@ -22,10 +22,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
-func init() {
-	httprange.InitClient("")
-}
-
 var (
 	chdirSet = false
 	zipCfg   = &config.ZipServing{
@@ -90,7 +86,7 @@ func TestOpen(t *testing.T) {
 
 func TestOpenCached(t *testing.T) {
 	var requests int64
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", &requests)
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", &requests, false)
 	defer cleanup()
 
 	fs := New(zipCfg)
@@ -337,7 +333,7 @@ func TestReadlinkCached(t *testing.T) {
 }
 
 func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil, false)
 	defer cleanup()
 
 	fs := New(zipCfg).(*zipVFS)
@@ -360,7 +356,7 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 }
 
 func TestReadArchiveFails(t *testing.T) {
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil, false)
 	defer cleanup()
 
 	fs := New(zipCfg).(*zipVFS)
@@ -381,7 +377,7 @@ func openZipArchive(t *testing.T, requests *int64) (*zipArchive, func()) {
 		requests = new(int64)
 	}
 
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", requests)
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", requests, false)
 
 	fs := New(zipCfg).(*zipVFS)
 	zip := newArchive(fs, time.Second)
@@ -400,10 +396,19 @@ func openZipArchive(t *testing.T, requests *int64) (*zipArchive, func()) {
 	}
 }
 
-func newZipFileServerURL(t *testing.T, zipFilePath string, requests *int64) (string, func()) {
+func newZipFileServerURL(t *testing.T, zipFilePath string, requests *int64, fileSupport bool) (string, func()) {
 	t.Helper()
 
 	chdir := testhelpers.ChdirInPath(t, "../../../shared/pages", &chdirSet)
+
+	fsDir := ""
+	if fileSupport {
+		wd, err := os.Getwd()
+		require.NoError(t, err)
+		fsDir = wd
+	}
+
+	httprange.InitClient(fsDir)
 
 	m := http.NewServeMux()
 	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

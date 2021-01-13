@@ -15,7 +15,7 @@ import (
 )
 
 func TestVFSRoot(t *testing.T) {
-	url, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
+	url, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil, false)
 	defer cleanup()
 
 	tests := map[string]struct {
@@ -68,7 +68,7 @@ func TestVFSRoot(t *testing.T) {
 }
 
 func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil, false)
 	defer cleanup()
 
 	path := testServerURL + "/public.zip"
@@ -102,7 +102,7 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 }
 
 func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
-	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
+	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil, false)
 	defer cleanup()
 
 	// It should be large enough to not have flaky executions
