@@ -226,6 +226,7 @@ danger-review:
   stage: prepare
   cache: {}
   rules:
+    # run only if an MR pipeline, and token is exposed.
     - if: '$DANGER_GITLAB_API_TOKEN && $CI_MERGE_REQUEST_IID'
   script:
     - danger --fail-on-errors=true
