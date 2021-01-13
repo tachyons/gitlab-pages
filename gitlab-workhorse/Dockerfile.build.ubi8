@@ -22,7 +22,7 @@ RUN ldconfig \
     && perl Makefile.PL \
     && make install \
     && cd .. \
-    && make -C /srv/gitlab/workhorse install
+    && make -C /srv/gitlab/workhorse install \
     && cp -R --parents \
         /usr/local/bin/gitlab-* \
         /usr/local/bin/exiftool \
