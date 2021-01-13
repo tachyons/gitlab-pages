@@ -12,7 +12,7 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/alpine-certi
       description="alpine-certificates is a base container that organizes public CA certificates"
 
 COPY scripts/bundle-certificates-ubi /scripts/bundle-certificates
-COPY ../LICENSE /licenses/GitLab.txt
+COPY LICENSE /licenses/GitLab.txt
 
 # Ensure that update-ca-trust has permission when non-root user
 RUN chmod -R 775 /etc/pki/ca-trust/extracted && \
