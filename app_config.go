@@ -3,6 +3,7 @@ package main
 import "time"
 
 type appConfig struct {
+	PagesRoot              string
 	Domain                 string
 	ArtifactsServer        string
 	ArtifactsServerTimeout int

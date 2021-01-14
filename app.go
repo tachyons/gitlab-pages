@@ -528,7 +528,7 @@ func runApp(config appConfig) {
 	}
 
 	// must init http client for httprange package
-	httprange.InitClient(*pagesRoot)
+	httprange.InitClient(config.PagesRoot)
 
 	a.Run()
 }

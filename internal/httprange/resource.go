@@ -73,6 +73,8 @@ func (r *Resource) Request() (*http.Request, error) {
 // httpClient mounts the file system directory into -pages-root directly,
 // serving files relative to -pages-root
 func cleanFileURL(url string) string {
+	// TODO: Need to find a reliable way of cleaning this URL in jail mode
+	// maybe we need to
 	if strings.Contains(url, "file://") {
 		url = strings.Replace(url, pagesRootDir, "", -1)
 	}
