@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -57,6 +59,7 @@ var httpClient *http.Client
 //  to register the file:// protocol with a http.Dir to be able to serve
 // zip files from disk
 func InitClient(pagesRoot string) {
+	log.Debugf("init http-client for httprange with pages-root:%q", pagesRoot)
 	pagesRootDir = pagesRoot
 
 	httpClient = &http.Client{

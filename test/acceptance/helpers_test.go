@@ -347,7 +347,7 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 		args = append(args, "-root-key", key, "-root-cert", cert)
 	}
 
-	if !contains(args, "pages-root") {
+	if !contains(extraArgs, "-pages-root") {
 		args = append(args, "-pages-root", "../../shared/pages")
 	}
 
