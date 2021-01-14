@@ -30,7 +30,7 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
-FROM ${GITLAB_LOGGER_IMAGE} as glogger
+FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
 FROM ${RUBY_IMAGE}
 
 ARG GITLAB_USER=git
@@ -45,7 +45,7 @@ RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} \
 COPY --from=builder /usr/local/bin/gitlab-pages /bin/gitlab-pages
 
 # Pull in gitlab-logger
-COPY --from=glogger /gitlab-logger /usr/local/bin/gitlab-logger
+COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
 
 ENV CONFIG_TEMPLATE_DIRECTORY=${CONFIG_DIRECTORY}
 
