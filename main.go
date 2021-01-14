@@ -15,7 +15,6 @@ import (
 
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
@@ -333,9 +332,6 @@ func appMain() {
 	if err := os.Chdir(*pagesRoot); err != nil {
 		fatal(err, "could not change directory into pagesRoot")
 	}
-
-	// must init http client for httprange package
-	httprange.InitClient(*pagesRoot)
 
 	config := loadConfig()
 

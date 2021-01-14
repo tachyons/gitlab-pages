@@ -26,6 +26,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/middleware"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -525,6 +526,9 @@ func runApp(config appConfig) {
 	if err := zip.Instance().Reconfigure(c); err != nil {
 		fatal(err, "failed to reconfigure zip VFS")
 	}
+
+	// must init http client for httprange package
+	httprange.InitClient(*pagesRoot)
 
 	a.Run()
 }

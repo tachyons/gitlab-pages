@@ -59,7 +59,7 @@ var httpClient *http.Client
 //  to register the file:// protocol with a http.Dir to be able to serve
 // zip files from disk
 func InitClient(pagesRoot string) {
-	log.Debugf("init http-client for httprange with pages-root:%q", pagesRoot)
+	log.Debugf("init http-client for httprange with pages-root: %s", pagesRoot)
 	pagesRootDir = pagesRoot
 
 	httpClient = &http.Client{
