@@ -104,7 +104,7 @@ func TestZipServing(t *testing.T) {
 }
 
 func TestZipServingFromDisk(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, "not-inplace-chroot")
 
 	var apiCalled bool
 	source := NewGitlabDomainsSourceStub(t, &apiCalled, 0)
