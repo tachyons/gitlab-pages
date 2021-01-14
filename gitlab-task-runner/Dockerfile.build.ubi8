@@ -7,7 +7,6 @@ ARG GSUTIL_VERSION=4.42
 ARG DNF_OPTS
 
 ADD gitlab-python.tar.gz /
-ADD https://gitlab.com/gitlab-org/gitlab/-/raw/master/LICENSE /licenses/GitLab.txt
 
 RUN dnf ${DNF_OPTS} install -by --nodocs gcc \
     && mkdir /assets \

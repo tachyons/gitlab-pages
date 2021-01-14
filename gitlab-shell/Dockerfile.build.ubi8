@@ -12,7 +12,6 @@ ARG DNF_OPTS
 ADD git-base.tar.gz /
 ADD gitlab-ruby.tar.gz /
 ADD gitlab-go.tar.gz /
-ADD https://gitlab.com/gitlab-org/gitlab-shell/-/raw/main/LICENSE /assets/licenses/GitLab.txt
 
 COPY centos-8-base.repo /tmp/
 
@@ -33,4 +32,5 @@ RUN mkdir -p /assets/usr/local/tmp \
     && cd ${PROJECT}-${VERSION} \
     && make build \
     && rm -rf go/ go_build/ spec/ internal/testhelper/testdata/ \
-    && mv ./* /assets/srv/gitlab-shell
+    && mv ./* /assets/srv/gitlab-shell \
+    && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt

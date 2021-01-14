@@ -62,7 +62,8 @@ RUN /gitlab-fetch \
     && yarn install --production --pure-lockfile \
     && rm -rf node_modules/ tmp/ spec/ \
     && /build-scripts/cleanup-gems \
-    && mv ${PWD} /srv/gitlab
+    && mv ${PWD} /srv/gitlab \
+    && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt
 
 COPY --from=assets assets /srv/gitlab/public/assets/
 

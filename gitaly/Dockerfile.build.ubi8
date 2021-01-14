@@ -18,7 +18,6 @@ ENV LANG=C.UTF-8
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
 COPY shared/build-scripts/ /build-scripts
-ADD https://gitlab.com/gitlab-org/gitaly/-/raw/master/LICENSE /licenses/GitLab.txt
 
 RUN mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
@@ -31,6 +30,7 @@ RUN mkdir /assets \
     && bundle install ${BUNDLE_OPTIONS} \
     && cd .. \
     && cp -R ./ruby /srv/gitaly-ruby \
+    && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt \
     && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features \
     && touch .ruby-bundle \
     && make install \

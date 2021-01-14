@@ -13,7 +13,6 @@ ARG EXIFTOOL_VERSION=11.69
 ADD git-base.tar.gz /
 ADD gitlab-go.tar.gz /
 ADD gitlab-rails-ee.tar.gz /
-ADD https://gitlab.com/gitlab-org/gitlab-workhorse/-/blob/master/LICENSE /licenses/GitLab.txt
 
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
@@ -32,11 +31,11 @@ RUN ldconfig \
         "${VERSION}" \
     && cd ${PROJECT}-${VERSION} \
     && make install \
+    && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt \
     && cp -R --parents \
         /usr/local/bin/gitlab-* \
         /usr/local/bin/exiftool \
         /usr/local/share/perl5 \
         /srv/gitlab/public \
         /srv/gitlab/doc \
-        /licenses \
         /assets

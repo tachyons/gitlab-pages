@@ -11,12 +11,12 @@ ARG REGISTRY_SOURCE_PATH=${GOPATH}/src/github.com/docker/distribution
 
 ADD git-base.tar.gz /
 ADD gitlab-go.tar.gz /
-ADD https://gitlab.com/gitlab-org/container-registry/-/raw/master/LICENSE /assets/licenses/GitLab.txt
 
 RUN mkdir -p /assets/usr/local \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
     && git clone https://gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT}.git \
       --branch ${REGISTRY_VERSION} --single-branch ${REGISTRY_SOURCE_PATH} \
     && cd ${REGISTRY_SOURCE_PATH} \
+    && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt \
     && CGO_ENABLED=0 BUILDTAGS=${DOCKER_BUILDTAGS} make clean binaries \
     && cp -R bin/ /assets/usr/local

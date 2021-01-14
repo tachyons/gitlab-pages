@@ -9,7 +9,6 @@ ARG API_URL=
 ARG API_TOKEN=
 
 ADD gitlab-go.tar.gz /
-ADD https://gitlab.com/gitlab-org/gitlab-pages/-/blob/master/LICENSE /licenses/GitLab.txt
 
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
@@ -24,4 +23,4 @@ RUN ldconfig \
     && cd ${PROJECT}-${VERSION} \
     && make 'gitlab-pages' \
     && install -D -m +x ./gitlab-pages /assets/usr/local/bin/gitlab-pages \
-    && mkdir /assets/licenses && cp -a /licenses/* /assets/licenses
+    && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt
