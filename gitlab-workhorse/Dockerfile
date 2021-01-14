@@ -1,36 +1,24 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
 ARG GIT_TAG=2.29.0
 ARG GITLAB_EDITION=gitlab-rails-ee
 ARG RAILS_VERSION="master"
 ARG RUBY_VERSION="master"
 
-FROM ${FROM_IMAGE}:${GIT_TAG} as builder
+FROM ${CI_REGISTRY_IMAGE}/${GITLAB_EDITION}:${RAILS_VERSION} as rails
+FROM ${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG} as builder
 
-ARG WORKHORSE_VERSION=v5.0.0
 ARG BUILD_DIR=/tmp/build
-ARG GITLAB_NAMESPACE="gitlab-org"
-ARG FETCH_ARTIFACTS_PAT
-ARG CI_API_V4_URL
+RUN mkdir -p ${BUILD_DIR}
+COPY --from=rails /srv/gitlab/ ${BUILD_DIR}/
 
 RUN buildDeps=' \
   make' \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && mkdir -p ${BUILD_DIR} \
-  && cd ${BUILD_DIR} \
-  && echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-workhorse/repository/archive.tar.bz2?sha=${WORKHORSE_VERSION}" \
-  && curl --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o workhorse.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-workhorse/repository/archive.tar.bz2?sha=${WORKHORSE_VERSION}" \
-  && tar -xjf workhorse.tar.bz2 \
-  && rm workhorse.tar.bz2 \
-  && cd gitlab-workhorse-* \
-  && make install \
-  && cd \
+  && make -C ${BUILD_DIR}/workhorse install \
   && rm -rf ${BUILD_DIR} \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
-
-FROM ${CI_REGISTRY_IMAGE}/${GITLAB_EDITION}:${RAILS_VERSION} as rails
 
 FROM ${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_VERSION}
 

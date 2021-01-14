@@ -14,8 +14,6 @@ ADD git-base.tar.gz /
 ADD gitlab-go.tar.gz /
 ADD gitlab-rails-ee.tar.gz /
 
-ENV PRIVATE_TOKEN=${API_TOKEN}
-
 RUN ldconfig \
     && mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
@@ -24,13 +22,7 @@ RUN ldconfig \
     && perl Makefile.PL \
     && make install \
     && cd .. \
-    && /gitlab-fetch \
-        "${API_URL}" \
-        "${NAMESPACE}" \
-        "${PROJECT}" \
-        "${VERSION}" \
-    && cd ${PROJECT}-${VERSION} \
-    && make install \
+    && make -C /srv/gitlab/workhorse install \
     && cp -R --parents \
         /usr/local/bin/gitlab-* \
         /usr/local/bin/exiftool \
