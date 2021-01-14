@@ -5,7 +5,7 @@ ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee"
 ARG GITLAB_LOGGER_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-logger:master"
 
 FROM ${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_TAG} as python
-FROM ${GITLAB_LOGGER_IMAGE} as glogger
+FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
 
 FROM ${FROM_IMAGE}:${TAG}
 
@@ -23,7 +23,7 @@ RUN cd /srv/gitlab && sed -i 's/python2/python3/' "$(bundle show gitlab-markup)/
 # END python install
 
 # Pull in gitlab-logger
-COPY --from=glogger /gitlab-logger /usr/local/bin/gitlab-logger
+COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
 
 ARG GITLAB_USER=git
 
