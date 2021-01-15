@@ -11,5 +11,4 @@ RUN mkdir /assets \
     && cp -R --parents \
         /usr/local/lib/python3.8/site-packages \
         /usr/local/bin/rst2* \
-        /licenses \
         /assets

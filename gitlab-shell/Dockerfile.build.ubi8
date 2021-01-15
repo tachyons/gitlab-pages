@@ -32,5 +32,5 @@ RUN mkdir -p /assets/usr/local/tmp \
     && cd ${PROJECT}-${VERSION} \
     && make build \
     && rm -rf go/ go_build/ spec/ internal/testhelper/testdata/ \
-    && mv ./* /assets/srv/gitlab-shell \
-    && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt
+    && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt \
+    && mv ./* /assets/srv/gitlab-shell

@@ -14,5 +14,4 @@ RUN dnf ${DNF_OPTS} install -by --nodocs gcc \
     && cp -R --parents \
         /usr/local/lib/python3.8/site-packages \
         /usr/local/bin/ \
-        /licenses \
         /assets
