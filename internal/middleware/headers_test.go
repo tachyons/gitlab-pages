@@ -62,6 +62,11 @@ func TestParseHeaderString(t *testing.T) {
 			headerStrings: []string{"content-security-policy: default-src 'self'", "test-case"},
 			valid:         false,
 		},
+		{
+			name:          "Multiple headers in single string",
+			headerStrings: []string{"content-security-policy: default-src 'self',X-Test-String: Test,My amazing header : Amazing"},
+			valid:         false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -115,7 +120,8 @@ func TestAddCustomHeaders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			headers, _ := ParseHeaderString(tt.headerStrings)
+			headers, err := ParseHeaderString(tt.headerStrings)
+			require.NoError(t, err)
 			w := httptest.NewRecorder()
 			AddCustomHeaders(w, headers)
 			for k, v := range tt.wantHeaders {

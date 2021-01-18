@@ -21,11 +21,15 @@ func AddCustomHeaders(w http.ResponseWriter, headers http.Header) {
 func ParseHeaderString(customHeaders []string) (http.Header, error) {
 	headers := http.Header{}
 	for _, keyValueString := range customHeaders {
-		keyValue := strings.SplitN(keyValueString, ":", 2)
+		keyValue := strings.SplitN(keyValueString, ":", -1)
 		if len(keyValue) != 2 {
 			return nil, errInvalidHeaderParameter
 		}
-		headers[strings.TrimSpace(keyValue[0])] = append(headers[strings.TrimSpace(keyValue[0])], strings.TrimSpace(keyValue[1]))
+
+		key := strings.TrimSpace(keyValue[0])
+		value := strings.TrimSpace(keyValue[1])
+
+		headers[key] = append(headers[key], value)
 	}
 	return headers, nil
 }
