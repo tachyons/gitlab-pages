@@ -26,7 +26,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 	httprange.InitClient(wd)
 
 	httpURL := testServerURL + "/public.zip"
-	fileURL := "file:///group/zip.gitlab.io/public-without-dirs.zip"
+	fileURL := "file://" + wd + "/group/zip.gitlab.io/public-without-dirs.zip"
 
 	tests := map[string]struct {
 		vfsPath        string
@@ -40,7 +40,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
-		"accessing /index.html from file://": {
+		"accessing /index.html from disk": {
 			vfsPath:        fileURL,
 			path:           "/index.html",
 			expectedStatus: http.StatusOK,
@@ -52,7 +52,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
-		"accessing / from file://": {
+		"accessing / from disk": {
 			vfsPath:        fileURL,
 			path:           "/",
 			expectedStatus: http.StatusOK,
@@ -64,7 +64,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			expectedStatus: http.StatusFound,
 			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
 		},
-		"accessing without / from file://": {
+		"accessing without / from disk": {
 			vfsPath:        fileURL,
 			path:           "",
 			expectedStatus: http.StatusFound,

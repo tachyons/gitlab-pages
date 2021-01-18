@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -54,26 +55,29 @@ var _ vfs.SeekableFile = &Reader{}
 // TODO: make this configurable/take an http client when creating a reader/ranged reader
 //  instead https://gitlab.com/gitlab-org/gitlab-pages/-/issues/457
 var httpClient *http.Client
+var once sync.Once
 
 // InitClient explicitly with a -pages-root directory that will be used
 //  to register the file:// protocol with a http.Dir to be able to serve
 // zip files from disk
 func InitClient(pagesRoot string) {
-	log.Debugf("init http-client for httprange with pages-root: %s", pagesRoot)
-	pagesRootDir = pagesRoot
+	once.Do(func() {
+		log.Debugf("init http-client for httprange with pages-root: %s", pagesRoot)
+		pagesRootDir = pagesRoot
 
-	httpClient = &http.Client{
-		// The longest time the request can be executed
-		Timeout: 30 * time.Minute,
-		Transport: httptransport.NewTransportWithMetrics(
-			"httprange_client",
-			metrics.HTTPRangeTraceDuration,
-			metrics.HTTPRangeRequestDuration,
-			metrics.HTTPRangeRequestsTotal,
-			httptransport.DefaultTTFBTimeout,
-			pagesRoot,
-		),
-	}
+		httpClient = &http.Client{
+			// The longest time the request can be executed
+			Timeout: 30 * time.Minute,
+			Transport: httptransport.NewTransportWithMetrics(
+				"httprange_client",
+				metrics.HTTPRangeTraceDuration,
+				metrics.HTTPRangeRequestDuration,
+				metrics.HTTPRangeRequestsTotal,
+				httptransport.DefaultTTFBTimeout,
+				pagesRoot,
+			),
+		}
+	})
 }
 
 // ensureResponse is set before reading from it.

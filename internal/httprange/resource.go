@@ -26,10 +26,12 @@ type Resource struct {
 
 func (r *Resource) URL() string {
 	url, _ := r.url.Load().(string)
-	return cleanFileURL(url)
+	return url
 }
 
 func (r *Resource) SetURL(url string) {
+	url = cleanFileURL(url)
+
 	if r.URL() == url {
 		// We want to avoid cache lines invalidation
 		// on CPU due to value change
@@ -73,8 +75,6 @@ func (r *Resource) Request() (*http.Request, error) {
 // httpClient mounts the file system directory into -pages-root directly,
 // serving files relative to -pages-root
 func cleanFileURL(url string) string {
-	// TODO: Need to find a reliable way of cleaning this URL in jail mode
-	// maybe we need to
 	if strings.Contains(url, "file://") {
 		url = strings.Replace(url, pagesRootDir, "", -1)
 	}
