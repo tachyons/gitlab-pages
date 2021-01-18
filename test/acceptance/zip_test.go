@@ -126,49 +126,49 @@ func TestZipServingFromDisk(t *testing.T) {
 		expectedContent    string
 	}{
 		"base_domain_no_suffix": {
-			host:               "zip-from-file.gitlab.io",
+			host:               "zip-from-disk.gitlab.io",
 			urlSuffix:          "/",
 			expectedStatusCode: http.StatusOK,
 			expectedContent:    "zip.gitlab.io/project/index.html\n",
 		},
 		"file_exists": {
-			host:               "zip-from-file.gitlab.io",
+			host:               "zip-from-disk.gitlab.io",
 			urlSuffix:          "/index.html",
 			expectedStatusCode: http.StatusOK,
 			expectedContent:    "zip.gitlab.io/project/index.html\n",
 		},
 		"file_exists_in_subdir": {
-			host:               "zip-from-file.gitlab.io",
+			host:               "zip-from-disk.gitlab.io",
 			urlSuffix:          "/subdir/hello.html",
 			expectedStatusCode: http.StatusOK,
 			expectedContent:    "zip.gitlab.io/project/subdir/hello.html\n",
 		},
 		"file_exists_symlink": {
-			host:               "zip-from-file.gitlab.io",
+			host:               "zip-from-disk.gitlab.io",
 			urlSuffix:          "/symlink.html",
 			expectedStatusCode: http.StatusOK,
 			expectedContent:    "symlink.html->subdir/linked.html\n",
 		},
 		"dir": {
-			host:               "zip-from-file.gitlab.io",
+			host:               "zip-from-disk.gitlab.io",
 			urlSuffix:          "/subdir/",
 			expectedStatusCode: http.StatusNotFound,
 			expectedContent:    "zip.gitlab.io/project/404.html\n",
 		},
 		"file_does_not_exist": {
-			host:               "zip-from-file.gitlab.io",
+			host:               "zip-from-disk.gitlab.io",
 			urlSuffix:          "/unknown.html",
 			expectedStatusCode: http.StatusNotFound,
 			expectedContent:    "zip.gitlab.io/project/404.html\n",
 		},
 		"bad_symlink": {
-			host:               "zip-from-file.gitlab.io",
+			host:               "zip-from-disk.gitlab.io",
 			urlSuffix:          "/bad-symlink.html",
 			expectedStatusCode: http.StatusNotFound,
 			expectedContent:    "zip.gitlab.io/project/404.html\n",
 		},
 		"with_not_found_zip": {
-			host:               "zip-from-file-not-found.gitlab.io",
+			host:               "zip-from-disk-not-found.gitlab.io",
 			urlSuffix:          "/",
 			expectedStatusCode: http.StatusNotFound,
 			expectedContent:    "The page you're looking for could not be found",
