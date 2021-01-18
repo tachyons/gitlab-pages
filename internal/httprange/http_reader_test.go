@@ -13,8 +13,6 @@ func TestSeekAndRead(t *testing.T) {
 	testServer := newTestServer(t, nil)
 	defer testServer.Close()
 
-	InitClient("")
-
 	resource, err := NewResource(context.Background(), testServer.URL+"/data")
 	require.NoError(t, err)
 

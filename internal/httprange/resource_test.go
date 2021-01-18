@@ -10,6 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func init() {
+	InitClient("")
+}
+
 func urlValue(url string) atomic.Value {
 	v := atomic.Value{}
 	v.Store(url)
@@ -17,8 +21,6 @@ func urlValue(url string) atomic.Value {
 }
 
 func TestNewResource(t *testing.T) {
-	InitClient("")
-
 	resource := &Resource{
 		url:          urlValue("/some/resource"),
 		ETag:         "etag",

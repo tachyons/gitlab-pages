@@ -80,8 +80,6 @@ func TestSectionReader(t *testing.T) {
 	testServer := newTestServer(t, nil)
 	defer testServer.Close()
 
-	InitClient("")
-
 	resource, err := NewResource(context.Background(), testServer.URL+"/resource")
 	require.NoError(t, err)
 
@@ -168,8 +166,6 @@ func TestReadAt(t *testing.T) {
 	resource, err := NewResource(context.Background(), testServer.URL+"/resource")
 	require.NoError(t, err)
 
-	InitClient("")
-
 	for name, tt := range tests {
 		rr := NewRangedReader(resource)
 		testFn := func(reader *RangedReader) func(t *testing.T) {
@@ -205,8 +201,6 @@ func TestReadAtMultipart(t *testing.T) {
 		atomic.AddInt32(&counter, 1)
 	})
 	defer testServer.Close()
-
-	InitClient("")
 
 	resource, err := NewResource(context.Background(), testServer.URL+"/resource")
 	require.NoError(t, err)
@@ -252,8 +246,6 @@ func TestReadAtMultipart(t *testing.T) {
 func TestReadContextCanceled(t *testing.T) {
 	testServer := newTestServer(t, nil)
 	defer testServer.Close()
-
-	InitClient("")
 
 	resource, err := NewResource(context.Background(), testServer.URL+"/resource")
 	require.NoError(t, err)
