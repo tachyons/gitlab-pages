@@ -79,7 +79,7 @@ end
 
 # https://github.com/puma/puma/blob/master/5.0-Upgrade.md#nakayoshi_fork
 if defined?(nakayoshi_fork)
-  nakayoshi_fork ActiveModel::Type::Boolean.new.cast(ENV.fetch('PUMA_NAKAYOSHI_FORK_ENABLED', true))
+  nakayoshi_fork unless ENV['DISABLE_PUMA_NAKAYOSHI_FORK']
 end
 
 # Use json formatter
