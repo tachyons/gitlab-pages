@@ -18,13 +18,15 @@ func (f lookupPathFunc) Resolve(r *http.Request) (*serving.Request, error) {
 }
 
 func TestGetExtraLogFields(t *testing.T) {
-	domainWithResolver := domain.New("", "", "", lookupPathFunc(func(*http.Request) *serving.LookupPath {
-		return &serving.LookupPath{
-			ServingType: "file",
-			ProjectID:   100,
-			Prefix:      "/prefix",
-		}
-	}))
+	domainWithResolver := &domain.Domain{
+		Resolver: lookupPathFunc(func(*http.Request) *serving.LookupPath {
+			return &serving.LookupPath{
+				ServingType: "file",
+				ProjectID:   100,
+				Prefix:      "/prefix",
+			}
+		}),
+	}
 
 	tests := []struct {
 		name                  string
@@ -36,7 +38,6 @@ func TestGetExtraLogFields(t *testing.T) {
 		expectedProjectID     interface{}
 		expectedProjectPrefix interface{}
 		expectedServingType   interface{}
-		expectedErrMsg        interface{}
 	}{
 		{
 			name:                  "https",
@@ -61,15 +62,14 @@ func TestGetExtraLogFields(t *testing.T) {
 			expectedServingType:   "file",
 		},
 		{
-			name:                "domain_without_resolver",
+			name:                "domain_without_resolved",
 			scheme:              request.SchemeHTTP,
 			host:                "githost.io",
-			domain:              &domain.Domain{},
+			domain:              nil,
 			expectedHTTPS:       false,
 			expectedHost:        "githost.io",
 			expectedProjectID:   nil,
 			expectedServingType: nil,
-			expectedErrMsg:      "not configured",
 		},
 		{
 			name:                "no_domain",
@@ -97,7 +97,6 @@ func TestGetExtraLogFields(t *testing.T) {
 			require.Equal(t, tt.expectedProjectID, got["pages_project_id"])
 			require.Equal(t, tt.expectedProjectPrefix, got["pages_project_prefix"])
 			require.Equal(t, tt.expectedServingType, got["pages_project_serving_type"])
-			require.Equal(t, tt.expectedErrMsg, got["error"])
 		})
 	}
 }

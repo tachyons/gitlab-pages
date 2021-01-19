@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
@@ -82,9 +83,7 @@ func (g *Group) Resolve(r *http.Request) (*serving.Request, error) {
 	projectConfig, prefix, projectPath, subPath := g.getProjectConfigWithSubpath(r)
 
 	if projectConfig == nil {
-		// it is not an error when project does not exist, in that case
-		// serving.Request.LookupPath is nil.
-		return &serving.Request{Serving: local.Instance()}, nil
+		return nil, domain.ErrDomainDoesNotExist
 	}
 
 	lookupPath := &serving.LookupPath{

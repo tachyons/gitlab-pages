@@ -33,7 +33,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -153,7 +152,7 @@ func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
 		// if we could not retrieve a domain from domains source we break the
 		// middleware chain and simply respond with 502 after logging this
 		host, d, err := a.getHostAndDomain(r)
-		if err != nil && !errors.Is(err, client.ErrDomainDoesNotExist) {
+		if err != nil && !errors.Is(err, domain.ErrDomainDoesNotExist) {
 			metrics.DomainsSourceFailures.Inc()
 			log.WithError(err).Error("could not fetch domain information from a source")
 

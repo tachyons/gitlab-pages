@@ -11,8 +11,11 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
+
+// ErrDomainDoesNotExist returned when a domain is not found or when a lookup path
+// for a domain could not be resolved
+var ErrDomainDoesNotExist = errors.New("domain does not exist")
 
 // Domain is a domain that gitlab-pages can serve.
 type Domain struct {
@@ -42,16 +45,9 @@ func (d *Domain) String() string {
 	return d.Name
 }
 
-func (d *Domain) isUnconfigured() bool {
-	if d == nil {
-		return true
-	}
-
-	return d.Resolver == nil
-}
 func (d *Domain) resolve(r *http.Request) (*serving.Request, error) {
-	if d.Resolver == nil {
-		return nil, client.ErrDomainDoesNotExist
+	if d == nil {
+		return nil, ErrDomainDoesNotExist
 	}
 
 	return d.Resolver.Resolve(r)
@@ -60,10 +56,6 @@ func (d *Domain) resolve(r *http.Request) (*serving.Request, error) {
 // GetLookupPath returns a project details based on the request. It returns nil
 // if project does not exist.
 func (d *Domain) GetLookupPath(r *http.Request) (*serving.LookupPath, error) {
-	if d.isUnconfigured() {
-		return nil, errors.New("not configured")
-	}
-
 	servingReq, err := d.resolve(r)
 	if err != nil {
 		return nil, err
@@ -111,16 +103,17 @@ func (d *Domain) GetProjectID(r *http.Request) uint64 {
 
 // HasLookupPath figures out if the project exists that the user tries to access
 func (d *Domain) HasLookupPath(r *http.Request) bool {
-	if _, err := d.GetLookupPath(r); err != nil {
+	if d == nil {
 		return false
 	}
+	_, err := d.GetLookupPath(r)
 
-	return true
+	return err == nil
 }
 
 // EnsureCertificate parses the PEM-encoded certificate for the domain
 func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
-	if d.isUnconfigured() || len(d.CertificateKey) == 0 || len(d.CertificateCert) == 0 {
+	if d == nil || len(d.CertificateKey) == 0 || len(d.CertificateCert) == 0 {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
@@ -142,7 +135,7 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	request, err := d.resolve(r)
 	if err != nil {
-		if errors.Is(err, client.ErrDomainDoesNotExist) {
+		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
 			httperrors.Serve404(w)
 			return true
@@ -153,11 +146,6 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 
-	if request.LookupPath == nil {
-		// return and let ServeNotFoundHTTP serve the 404 page
-		return false
-	}
-
 	return request.ServeFileHTTP(w, r)
 }
 
@@ -165,7 +153,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	request, err := d.resolve(r)
 	if err != nil {
-		if errors.Is(err, client.ErrDomainDoesNotExist) {
+		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
 			httperrors.Serve404(w)
 			return
@@ -173,11 +161,6 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 
 		errortracking.Capture(err, errortracking.WithRequest(r))
 		httperrors.Serve503(w)
-		return
-	}
-
-	if request.LookupPath == nil {
-		httperrors.Serve404(w)
 		return
 	}
 
@@ -194,13 +177,14 @@ func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 
 	namespaceDomain, err := d.Resolver.Resolve(clonedReq)
 	if err != nil {
+		if errors.Is(err, ErrDomainDoesNotExist) {
+			// serve generic 404
+			httperrors.Serve404(w)
+			return
+		}
+
 		errortracking.Capture(err, errortracking.WithRequest(r))
 		httperrors.Serve503(w)
-		return
-	}
-
-	if namespaceDomain.LookupPath == nil {
-		httperrors.Serve404(w)
 		return
 	}
 
@@ -222,7 +206,7 @@ func (d *Domain) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if d.IsNamespaceProject(r) && lookupPath.HasAccessControl {
+	if d.IsNamespaceProject(r) && !lookupPath.HasAccessControl {
 		d.ServeNotFoundHTTP(w, r)
 		return
 	}

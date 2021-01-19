@@ -46,33 +46,31 @@ func TestIsHTTPSOnly(t *testing.T) {
 	}{
 		{
 			name: "Custom domain with HTTPS-only enabled",
-			domain: &Domain{
-				Resolver: &stubbedResolver{
+			domain: New("custom-domain", "", "",
+				&stubbedResolver{
 					project: &serving.LookupPath{
 						Path:        "group/project/public",
 						IsHTTPSOnly: true,
 					},
-				},
-			},
+				}),
 			url:      "http://custom-domain",
 			expected: true,
 		},
 		{
 			name: "Custom domain with HTTPS-only disabled",
-			domain: &Domain{
-				Resolver: &stubbedResolver{
+			domain: New("custom-domain", "", "",
+				&stubbedResolver{
 					project: &serving.LookupPath{
 						Path:        "group/project/public",
 						IsHTTPSOnly: false,
 					},
-				},
-			},
+				}),
 			url:      "http://custom-domain",
 			expected: false,
 		},
 		{
 			name:     "Unknown project",
-			domain:   &Domain{},
+			domain:   New("", "", "", &stubbedResolver{err: ErrDomainDoesNotExist}),
 			url:      "http://test-domain/project",
 			expected: false,
 		},
@@ -90,7 +88,7 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testDomain := &Domain{}
+	testDomain := New("", "", "", &stubbedResolver{err: ErrDomainDoesNotExist})
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
@@ -192,7 +190,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 			domain: "group.404.gitlab-example.com",
 			path:   "/unknown",
 			resolver: &stubbedResolver{
-				project: nil,
+				err:     ErrDomainDoesNotExist,
 				subpath: "/",
 			},
 			expectedResponse: "The page you're looking for could not be found.",

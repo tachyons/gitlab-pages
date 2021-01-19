@@ -162,8 +162,10 @@ func TestIsHTTPSOnly(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "Unknown project",
-			domain:   &domain.Domain{},
+			name: "Unknown project",
+			domain: &domain.Domain{
+				Resolver: &Group{},
+			},
 			url:      "http://test-domain/project",
 			expected: false,
 		},
