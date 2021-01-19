@@ -648,6 +648,8 @@ func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
 }
 
 func TestServerRepliesWithHeaders(t *testing.T) {
+	skipUnlessEnabled(t)
+
 	tests := map[string]struct {
 		flags           []string
 		expectedHeaders map[string][]string
