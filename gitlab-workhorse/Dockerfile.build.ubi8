@@ -24,7 +24,7 @@ RUN ldconfig \
     && perl Makefile.PL \
     && make install \
     && cd .. \
-    && mkdir /assets/licenses && cp /licenses/Gitlab.txt /assets/licenses/ \
+    && mkdir /assets/licenses && cp /licenses/GitLab.txt /assets/licenses/ \
     && cp -R --parents \
         /usr/local/bin/gitlab-* \
         /usr/local/bin/exiftool \
