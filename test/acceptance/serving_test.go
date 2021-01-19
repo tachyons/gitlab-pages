@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -644,4 +645,68 @@ func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
 	require.NoError(t, err)
 	defer rsp.Body.Close()
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
+}
+
+func TestServerRepliesWithHeaders(t *testing.T) {
+	tests := map[string]struct {
+		flags           []string
+		expectedHeaders map[string][]string
+	}{
+		"single_header": {
+			flags:           []string{"X-testing-1: y-value"},
+			expectedHeaders: http.Header{"X-testing-1": {"y-value"}},
+		},
+		"multiple_header": {
+			flags:           []string{"X: 1,2", "Y: 3,4"},
+			expectedHeaders: http.Header{"X": {"1,2"}, "Y": {"3,4"}},
+		},
+	}
+
+	for name, test := range tests {
+		testFn := func(envArgs, headerArgs []string) func(*testing.T) {
+			return func(t *testing.T) {
+				teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", envArgs, headerArgs...)
+
+				defer teardown()
+
+				rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/")
+				require.NoError(t, err)
+				defer rsp.Body.Close()
+
+				require.Equal(t, http.StatusOK, rsp.StatusCode)
+
+				for key, value := range test.expectedHeaders {
+					fmt.Printf("expected key: %q - value: %+v\n", key, value)
+					got := rsp.Header.Values(key)
+					fmt.Printf("got key: %q - value: %+v\n", key, got)
+					require.Equal(t, value, got)
+				}
+			}
+		}
+
+		t.Run(name+"/from_single_flag", func(t *testing.T) {
+			args := []string{"-header", strings.Join(test.flags, ";;")}
+			testFn([]string{}, args)
+		})
+
+		t.Run(name+"/from_multiple_flags", func(t *testing.T) {
+			args := make([]string, 0, 2*len(test.flags))
+			for _, arg := range test.flags {
+				args = append(args, "-header", arg)
+			}
+
+			testFn([]string{}, args)
+		})
+
+		t.Run(name+"/from_config_file", func(t *testing.T) {
+			file := newConfigFile(t, "-header="+strings.Join(test.flags, ";;"))
+
+			testFn([]string{}, []string{"-config", file})
+		})
+
+		t.Run(name+"/from_env", func(t *testing.T) {
+			args := []string{"header", strings.Join(test.flags, ";;")}
+			testFn(args, []string{})
+		})
+	}
 }
