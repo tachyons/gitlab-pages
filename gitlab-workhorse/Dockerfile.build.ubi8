@@ -14,8 +14,6 @@ ADD git-base.tar.gz /
 ADD gitlab-go.tar.gz /
 ADD gitlab-rails-ee.tar.gz /
 
-ENV PRIVATE_TOKEN=${API_TOKEN}
-
 RUN ldconfig \
     && mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \

@@ -2,7 +2,7 @@ ARG RUBY_IMAGE=
 
 FROM ${RUBY_IMAGE}
 
-ARG WORKHORSE_VERSION=v5.2.0
+ARG GITLAB_VERSION=v13.8.0
 ARG GITLAB_USER=git
 ARG GITLAB_DATA=/var/opt/gitlab
 ARG DNF_OPTS
@@ -11,8 +11,8 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-workh
       name="GitLab Workhorse" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \
-      version=${WORKHORSE_VERSION} \
-      release=${WORKHORSE_VERSION} \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
       summary="Gitlab Workhorse is a smart reverse proxy for GitLab." \
       description="Gitlab Workhorse is a smart reverse proxy for GitLab. It handles large HTTP requests."
 

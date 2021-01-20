@@ -2,8 +2,10 @@ ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG PYTHON_TAG="3.8.4"
 ARG TAG="master"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee"
+ARG GITLAB_LOGGER_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-logger:master"
 
 FROM ${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_TAG} as python
+FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
 
 FROM ${FROM_IMAGE}:${TAG}
 
@@ -30,6 +32,10 @@ RUN apt-get update \
 
 # Add scripts
 COPY scripts/  /scripts/
+
+# Pull in gitlab-logger
+COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
+
 RUN chown -R $GITLAB_USER:$GITLAB_USER /scripts
 
 USER $GITLAB_USER:$GITLAB_USER

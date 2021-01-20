@@ -136,7 +136,7 @@ workflow:
     - <<: *if_ubi_branch
 
 .job-base: &job-base
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
   services:
   - docker:19.03.0-dind
   dependencies: []
@@ -170,7 +170,7 @@ workflow:
       - artifacts/
 
 .build-job-base: &build-job-base
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
   services:
   - docker:19.03.0-dind
   retry: 1
@@ -203,7 +203,7 @@ workflow:
   <<: *only-ubi
 
 dependency_update:
-  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:0.0.41
+  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1
   stage: prepare
   script:
     - curl --retry 6 https://deps.app/install.sh | bash -s -- -b $HOME/bin
@@ -226,8 +226,11 @@ danger-review:
   stage: prepare
   cache: {}
   rules:
+    # source not a push, this is not a tag, not the default or stable branches
+    - if: '$CI_PIPELINE_SOURCE != "push" || $CI_COMMIT_TAG || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH =~ /^[0-9]+-[0-9]+-stable$/'
+      when: never
+    # unless above, if API token defined, run Danger
     - if: '$DANGER_GITLAB_API_TOKEN'
-    - when: never
   script:
     - danger --fail-on-errors=true
 
@@ -756,11 +759,16 @@ gitlab-sidekiq-ee:
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
+    - import_assets artifacts/ubi/gitlab-logger.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - logger_target_version=$(get_version gitlab-logger)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
     - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
+    - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
@@ -770,32 +778,41 @@ gitlab-sidekiq-ee:
                       --build-arg "PYTHON_TAG=${python_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
     - build:gitlab-python
     - build:gitlab-sidekiq-ee
+    - build:gitlab-logger
 
 gitlab-sidekiq-ce:
   <<: *job-base
   <<: *except-ee
   stage: phase-six
   script:
+    - import_assets artifacts/ubi/gitlab-logger.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - logger_target_version=$(get_version gitlab-logger)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ce.txt)
     - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
+    - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ce:$rails_container"
     - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ce"
                       --build-arg "PYTHON_TAG=${python_version}"
                       --build-arg "TAG=$rails_container"
+                      --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
     - gitlab-python
+    - build:gitlab-logger
 
 build:gitlab-exporter:
   <<: *build-job-base
@@ -881,10 +898,13 @@ gitlab-shell:
   <<: *except-deps
   stage: phase-four
   script:
+    - import_assets artifacts/ubi/gitlab-logger.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - logger_target_version=$(get_version gitlab-logger)
     - export git_container=$(cat artifacts/git_container.txt)
+    - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$TARGET_VERSION$GITLAB_SHELL_VERSION$(date -u +%D)" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_container${IMAGE_TAG_EXT}"
@@ -898,11 +918,13 @@ gitlab-shell:
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "CACHE_BUSTER=$GITLAB_SHELL_VERSION$(date -uI)"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/shell_container.txt
   dependencies:
     - gitlab-go
     - git-base
+    - build:gitlab-logger
     - build:gitlab-shell
 
 build:git-base:
@@ -1072,8 +1094,8 @@ build:gitlab-workhorse-ee:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$GITLAB_WORKHORSE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
-    - build_if_needed --build-arg "VERSION=$GITLAB_WORKHORSE_VERSION"
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "VERSION=$GITLAB_VERSION"
                       --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "API_URL=${CI_API_V4_URL}"
                       --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
@@ -1090,18 +1112,15 @@ gitlab-workhorse-ee:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/git_container.txt)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
-    - export CONTAINER_VERSION=($(echo -n "$GITLAB_WORKHORSE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
     - fi
     - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
-                      --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
+                      --build-arg "GITLAB_VERSION=$GITLAB_VERSION"
                       --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
-                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
-                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
@@ -1121,16 +1140,13 @@ gitlab-workhorse-ce:
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/git_container.txt)
     - rails_container=$(cat artifacts/rails_container_ce.txt)
-    - export CONTAINER_VERSION=($(echo -n "$GITLAB_WORKHORSE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
     - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
-                      --build-arg "WORKHORSE_VERSION=$GITLAB_WORKHORSE_VERSION"
+                      --build-arg "GITLAB_VERSION=$GITLAB_VERSION"
                       --build-arg "RAILS_VERSION=${rails_container}"
                       --build-arg "RUBY_VERSION=$ruby_version"
-                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
-                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ce"
     - push_tags $GITLAB_REF_SLUG
   dependencies:
