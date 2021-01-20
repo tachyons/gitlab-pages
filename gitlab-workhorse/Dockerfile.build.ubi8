@@ -24,6 +24,7 @@ RUN ldconfig \
     && perl Makefile.PL \
     && make install \
     && cd .. \
+    && make -C /srv/gitlab/workhorse install \
     && mkdir /assets/licenses && cp /licenses/GitLab.txt /assets/licenses/ \
     && cp -R --parents \
         /usr/local/bin/gitlab-* \
