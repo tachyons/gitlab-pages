@@ -63,19 +63,24 @@ var once sync.Once
 func InitClient(pagesRoot string) {
 	once.Do(func() {
 		log.Debugf("init http-client for httprange with pages-root: %s", pagesRoot)
-		pagesRootDir = pagesRoot
+
+		fs := NewFileSystemPath([]string{pagesRoot})
+
+		mrt := httptransport.NewMeteredRoundTripper(
+			"httprange_client",
+			metrics.HTTPRangeTraceDuration,
+			metrics.HTTPRangeRequestDuration,
+			metrics.HTTPRangeRequestsTotal,
+			httptransport.DefaultTTFBTimeout,
+		)
+
+		transport := httptransport.ReconfigureMeteredRoundTripper(mrt,
+			httptransport.WithFileProtocol("file", http.NewFileTransport(fs)))
 
 		httpClient = &http.Client{
 			// The longest time the request can be executed
-			Timeout: 30 * time.Minute,
-			Transport: httptransport.NewTransportWithMetrics(
-				"httprange_client",
-				metrics.HTTPRangeTraceDuration,
-				metrics.HTTPRangeRequestDuration,
-				metrics.HTTPRangeRequestsTotal,
-				httptransport.DefaultTTFBTimeout,
-				pagesRoot,
-			),
+			Timeout:   30 * time.Minute,
+			Transport: transport,
 		}
 	})
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -26,14 +27,14 @@ func TestVFSRoot(t *testing.T) {
 			path: url + "/public.zip",
 		},
 		"zip_file_exists_from_disk": {
-			path: "file:///group/zip.gitlab.io/public.zip",
+			path: testhelpers.ToFileProtocol(t, "group/zip.gitlab.io/public.zip"),
 		},
 		"zip_file_does_not_exist": {
 			path:           url + "/unknown",
 			expectedErrMsg: vfs.ErrNotExist{Inner: httprange.ErrNotFound}.Error(),
 		},
 		"zip_file_does_not_exist_from_disk": {
-			path:           "file:///group/zip.gitlab.io//unknown",
+			path:           testhelpers.ToFileProtocol(t, "group/zip.gitlab.io/unknown"),
 			expectedErrMsg: vfs.ErrNotExist{Inner: httprange.ErrNotFound}.Error(),
 		},
 		"invalid_url": {
@@ -115,6 +116,9 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 	// It should be large enough to not have flaky executions
 	const expiryInterval = 10 * time.Millisecond
 
+	fileFromDisk := testhelpers.ToFileProtocol(t, "group/zip.gitlab.io/public.zip")
+	unknownFileFromDisk := testhelpers.ToFileProtocol(t, "group/zip.gitlab.io/unknown.zip")
+
 	tests := map[string]struct {
 		path               string
 		expirationInterval time.Duration
@@ -161,19 +165,19 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 			expectArchiveRefreshed: false,
 		},
 		"after cache expiry of successful open a new archive is returned from disk": {
-			path:               "file:///group/zip.gitlab.io/public.zip",
+			path:               fileFromDisk,
 			expirationInterval: expiryInterval,
 			expectNewArchive:   true,
 			expectOpenError:    false,
 		},
 		"after cache expiry of errored open a new archive is returned from disk": {
-			path:               "file:///group/zip.gitlab.io/unknown.zip",
+			path:               unknownFileFromDisk,
 			expirationInterval: expiryInterval,
 			expectNewArchive:   true,
 			expectOpenError:    true,
 		},
 		"subsequent open during refresh interval does refresh archive from disk": {
-			path:                   "file:///group/zip.gitlab.io/public.zip",
+			path:                   fileFromDisk,
 			expirationInterval:     time.Second,
 			refreshInterval:        time.Second, // refresh always
 			expectNewArchive:       false,
@@ -181,7 +185,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 			expectArchiveRefreshed: true,
 		},
 		"subsequent open before refresh interval does not refresh archive from disk": {
-			path:                   "file:///group/zip.gitlab.io/public.zip",
+			path:                   fileFromDisk,
 			expirationInterval:     time.Second,
 			refreshInterval:        time.Millisecond, // very short interval should not refresh
 			expectNewArchive:       false,
@@ -189,7 +193,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 			expectArchiveRefreshed: false,
 		},
 		"subsequent open of errored archive during refresh interval does not refresh from disk": {
-			path:                   "file:///group/zip.gitlab.io/unknown.zip",
+			path:                   unknownFileFromDisk,
 			expirationInterval:     time.Second,
 			refreshInterval:        time.Second, // refresh always (if not error)
 			expectNewArchive:       false,

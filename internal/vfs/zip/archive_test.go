@@ -389,7 +389,8 @@ func openZipArchive(t *testing.T, requests *int64, fromDisk bool) (*zipArchive, 
 	zip := newArchive(fs, time.Second)
 
 	if fromDisk {
-		err := zip.openArchive(context.Background(), "file:///group/zip.gitlab.io/public-without-dirs.zip")
+		fileName := testhelpers.ToFileProtocol(t, "group/zip.gitlab.io/public-without-dirs.zip")
+		err := zip.openArchive(context.Background(), fileName)
 		require.NoError(t, err)
 	} else {
 		err := zip.openArchive(context.Background(), testServerURL+"/public.zip")
