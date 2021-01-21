@@ -2,6 +2,7 @@ package httprange
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -28,6 +29,7 @@ func NewFileSystemPath(allowedPaths []string) *fileSystemPaths {
 
 // Open a file by name if it exists inside the allowedPaths
 func (p *fileSystemPaths) Open(name string) (http.File, error) {
+	fmt.Printf("\n\n\nallowedPaths: %+v\nrequesting: %q\n", p.allowedPaths, name)
 	// taken from http.Dir#open https://golang.org/src/net/http/fs.go?s=2108:2152#L70
 	if filepath.Separator != '/' && strings.ContainsRune(name, filepath.Separator) {
 		return nil, errInvalidChar

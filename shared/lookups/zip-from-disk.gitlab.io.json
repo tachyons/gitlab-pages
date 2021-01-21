@@ -8,7 +8,7 @@
             "prefix": "/",
             "project_id": 123,
             "source": {
-                "path": "file:///@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/artifacts.zip",
+                "path": "file:///../../shared/pages/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/artifacts.zip",
                 "type": "zip"
             }
         }

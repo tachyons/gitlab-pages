@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,10 +20,12 @@ import (
 	"testing"
 	"time"
 
-	proxyproto "github.com/pires/go-proxyproto"
+	"github.com/pires/go-proxyproto"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
+	"gitlab.com/gitlab-org/gitlab-pages/test/acceptance/testdata"
 )
 
 // The HTTPS certificate isn't signed by anyone. This http client is set up
@@ -581,7 +584,27 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 			return
 		}
 
-		path := "../../shared/lookups/" + domain + ".json"
+		chdir := false
+		clean := testhelpers.ChdirInPath(t, "../../", &chdir)
+		defer clean()
+		wd, err := os.Getwd()
+		require.NoError(t, err)
+
+		wd += "/shared/pages"
+		fmt.Printf("IN MOCK DOMAIN?: %q- - wd: %q\n", domain, wd)
+		switch domain {
+		case "zip-from-disk.gitlab.io":
+			err := json.NewEncoder(w).Encode(testdata.ZipFromFile(wd))
+			require.NoError(t, err)
+			fmt.Printf("WE MUST HAVE COME HERE\n\n\n")
+			return
+		case "zip-from-disk-not-found.gitlab.io":
+			err := json.NewEncoder(w).Encode(testdata.ZipFromFileNotFound(wd))
+			require.NoError(t, err)
+			return
+		}
+
+		path := "shared/lookups/" + domain + ".json"
 
 		fixture, err := os.Open(path)
 		if os.IsNotExist(err) {
