@@ -209,13 +209,8 @@ func jailDaemonCerts(cmd *exec.Cmd, cage *jail.Jail) error {
 	return nil
 }
 
-func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
+func jailCreate(cmd *exec.Cmd) (*jail.Jail, error) {
 	cage := jail.CreateTimestamped("gitlab-pages", 0755)
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
 
 	// Add /dev/urandom and /dev/random inside the jail. This is required to
 	// support Linux versions < 3.17, which do not have the getrandom() syscall
@@ -229,20 +224,38 @@ func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 	}
 
 	// Add gitlab-pages inside the jail
-	err = cage.CopyTo("/gitlab-pages", cmd.Path)
+	err := cage.CopyTo("/gitlab-pages", cmd.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add /etc/resolv.conf inside the jail
+	// Add /etc/resolv.conf and /etc/hosts inside the jail
 	cage.MkDir("/etc", 0755)
 	err = cage.Copy("/etc/resolv.conf")
+	if err != nil {
+		return nil, err
+	}
+	err = cage.Copy("/etc/hosts")
 	if err != nil {
 		return nil, err
 	}
 
 	// Add certificates inside the jail
 	err = jailDaemonCerts(cmd, cage)
+	if err != nil {
+		return nil, err
+	}
+
+	return cage, nil
+}
+
+func jailDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
+	cage, err := jailCreate(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	wd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
