@@ -2,7 +2,6 @@ package gitlab
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"path"
 	"strings"
@@ -53,21 +52,11 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 		return nil, lookup.Error
 	}
 
-	// Domain does not exist
-	if lookup.Domain == nil {
-		return nil, nil
-	}
-
 	// TODO introduce a second-level cache for domains, invalidate using etags
 	// from first-level cache
-	domain := domain.Domain{
-		Name:            name,
-		CertificateCert: lookup.Domain.Certificate,
-		CertificateKey:  lookup.Domain.Key,
-		Resolver:        g,
-	}
+	d := domain.New(name, lookup.Domain.Certificate, lookup.Domain.Key, g)
 
-	return &domain, nil
+	return d, nil
 }
 
 // Resolve is supposed to return the serving request containing lookup path,
@@ -78,7 +67,7 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 
 	response := g.client.Resolve(r.Context(), host)
 	if response.Error != nil {
-		return &serving.Request{Serving: defaultServing()}, response.Error
+		return nil, response.Error
 	}
 
 	urlPath := path.Clean(r.URL.Path)
@@ -101,10 +90,7 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 		}
 	}
 
-	// TODO improve code around default serving, when `disk` serving gets removed
-	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
-	return &serving.Request{Serving: defaultServing()},
-		errors.New("could not match lookup path")
+	return nil, domain.ErrDomainDoesNotExist
 }
 
 // IsReady returns the value of Gitlab `isReady` which is updated by `Poll`.

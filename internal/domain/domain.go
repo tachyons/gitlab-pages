@@ -7,10 +7,15 @@ import (
 	"net/http"
 	"sync"
 
+	"gitlab.com/gitlab-org/labkit/errortracking"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 )
+
+// ErrDomainDoesNotExist returned when a domain is not found or when a lookup path
+// for a domain could not be resolved
+var ErrDomainDoesNotExist = errors.New("domain does not exist")
 
 // Domain is a domain that gitlab-pages can serve.
 type Domain struct {
@@ -25,51 +30,44 @@ type Domain struct {
 	certificateOnce  sync.Once
 }
 
+// New creates a new domain with a resolver and existing certificates
+func New(name, cert, key string, resolver Resolver) *Domain {
+	return &Domain{
+		Name:            name,
+		CertificateCert: cert,
+		CertificateKey:  key,
+		Resolver:        resolver,
+	}
+}
+
 // String implements Stringer.
 func (d *Domain) String() string {
 	return d.Name
 }
 
-func (d *Domain) isUnconfigured() bool {
+func (d *Domain) resolve(r *http.Request) (*serving.Request, error) {
 	if d == nil {
-		return true
+		return nil, ErrDomainDoesNotExist
 	}
 
-	return d.Resolver == nil
-}
-
-func (d *Domain) resolve(r *http.Request) *serving.Request {
-	request, _ := d.Resolver.Resolve(r)
-
-	// TODO improve code around default serving, when `disk` serving gets removed
-	// https://gitlab.com/gitlab-org/gitlab-pages/issues/353
-	if request == nil {
-		return &serving.Request{Serving: local.Instance()}
-	}
-
-	return request
+	return d.Resolver.Resolve(r)
 }
 
 // GetLookupPath returns a project details based on the request. It returns nil
 // if project does not exist.
-func (d *Domain) GetLookupPath(r *http.Request) *serving.LookupPath {
-	if d.isUnconfigured() {
-		return nil
+func (d *Domain) GetLookupPath(r *http.Request) (*serving.LookupPath, error) {
+	servingReq, err := d.resolve(r)
+	if err != nil {
+		return nil, err
 	}
 
-	request := d.resolve(r)
-
-	if request == nil {
-		return nil
-	}
-
-	return request.LookupPath
+	return servingReq.LookupPath, nil
 }
 
 // IsHTTPSOnly figures out if the request should be handled with HTTPS
 // only by looking at group and project level config.
 func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
-	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
+	if lookupPath, _ := d.GetLookupPath(r); lookupPath != nil {
 		return lookupPath.IsHTTPSOnly
 	}
 
@@ -78,7 +76,7 @@ func (d *Domain) IsHTTPSOnly(r *http.Request) bool {
 
 // IsAccessControlEnabled figures out if the request is to a project that has access control enabled
 func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
-	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
+	if lookupPath, _ := d.GetLookupPath(r); lookupPath != nil {
 		return lookupPath.HasAccessControl
 	}
 
@@ -87,7 +85,7 @@ func (d *Domain) IsAccessControlEnabled(r *http.Request) bool {
 
 // IsNamespaceProject figures out if the request is to a namespace project
 func (d *Domain) IsNamespaceProject(r *http.Request) bool {
-	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
+	if lookupPath, _ := d.GetLookupPath(r); lookupPath != nil {
 		return lookupPath.IsNamespaceProject
 	}
 
@@ -96,7 +94,7 @@ func (d *Domain) IsNamespaceProject(r *http.Request) bool {
 
 // GetProjectID figures out what is the ID of the project user tries to access
 func (d *Domain) GetProjectID(r *http.Request) uint64 {
-	if lookupPath := d.GetLookupPath(r); lookupPath != nil {
+	if lookupPath, _ := d.GetLookupPath(r); lookupPath != nil {
 		return lookupPath.ProjectID
 	}
 
@@ -105,12 +103,17 @@ func (d *Domain) GetProjectID(r *http.Request) uint64 {
 
 // HasLookupPath figures out if the project exists that the user tries to access
 func (d *Domain) HasLookupPath(r *http.Request) bool {
-	return d.GetLookupPath(r) != nil
+	if d == nil {
+		return false
+	}
+	_, err := d.GetLookupPath(r)
+
+	return err == nil
 }
 
 // EnsureCertificate parses the PEM-encoded certificate for the domain
 func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
-	if d.isUnconfigured() || len(d.CertificateKey) == 0 || len(d.CertificateCert) == 0 {
+	if d == nil || len(d.CertificateKey) == 0 || len(d.CertificateCert) == 0 {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
 
@@ -130,26 +133,36 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 
 // ServeFileHTTP returns true if something was served, false if not.
 func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
-	if !d.HasLookupPath(r) {
-		// TODO: this seems to be wrong: as we should rather return false, and
-		// fallback to `ServeNotFoundHTTP` to handle this case
-		httperrors.Serve404(w)
+	request, err := d.resolve(r)
+	if err != nil {
+		if errors.Is(err, ErrDomainDoesNotExist) {
+			// serve generic 404
+			httperrors.Serve404(w)
+			return true
+		}
+
+		errortracking.Capture(err, errortracking.WithRequest(r))
+		httperrors.Serve503(w)
 		return true
 	}
-
-	request := d.resolve(r)
 
 	return request.ServeFileHTTP(w, r)
 }
 
 // ServeNotFoundHTTP serves the not found pages from the projects.
 func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
-	if !d.HasLookupPath(r) {
-		httperrors.Serve404(w)
+	request, err := d.resolve(r)
+	if err != nil {
+		if errors.Is(err, ErrDomainDoesNotExist) {
+			// serve generic 404
+			httperrors.Serve404(w)
+			return
+		}
+
+		errortracking.Capture(err, errortracking.WithRequest(r))
+		httperrors.Serve503(w)
 		return
 	}
-
-	request := d.resolve(r)
 
 	request.ServeNotFoundHTTP(w, r)
 }
@@ -163,8 +176,15 @@ func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 	clonedReq.URL.Path = "/"
 
 	namespaceDomain, err := d.Resolver.Resolve(clonedReq)
-	if err != nil || namespaceDomain.LookupPath == nil {
-		httperrors.Serve404(w)
+	if err != nil {
+		if errors.Is(err, ErrDomainDoesNotExist) {
+			// serve generic 404
+			httperrors.Serve404(w)
+			return
+		}
+
+		errortracking.Capture(err, errortracking.WithRequest(r))
+		httperrors.Serve503(w)
 		return
 	}
 
@@ -180,11 +200,13 @@ func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 // ServeNotFoundAuthFailed handler to be called when auth failed so the correct custom
 // 404 page is served.
 func (d *Domain) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request) {
-	if !d.HasLookupPath(r) {
+	lookupPath, err := d.GetLookupPath(r)
+	if err != nil {
 		httperrors.Serve404(w)
 		return
 	}
-	if d.IsNamespaceProject(r) && !d.GetLookupPath(r).HasAccessControl {
+
+	if d.IsNamespaceProject(r) && !lookupPath.HasAccessControl {
 		d.ServeNotFoundHTTP(w, r)
 		return
 	}

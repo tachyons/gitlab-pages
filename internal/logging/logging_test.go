@@ -65,7 +65,7 @@ func TestGetExtraLogFields(t *testing.T) {
 			name:                "domain_without_resolved",
 			scheme:              request.SchemeHTTP,
 			host:                "githost.io",
-			domain:              &domain.Domain{},
+			domain:              nil,
 			expectedHTTPS:       false,
 			expectedHost:        "githost.io",
 			expectedProjectID:   nil,

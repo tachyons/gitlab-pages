@@ -13,6 +13,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -93,7 +94,7 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	}
 
 	if resp == nil {
-		return api.Lookup{Name: host}
+		return api.Lookup{Name: host, Error: domain.ErrDomainDoesNotExist}
 	}
 
 	// ensure that entire response body has been read and close it, to make it

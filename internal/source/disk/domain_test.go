@@ -162,8 +162,10 @@ func TestIsHTTPSOnly(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "Unknown project",
-			domain:   &domain.Domain{},
+			name: "Unknown project",
+			domain: &domain.Domain{
+				Resolver: &Group{},
+			},
 			url:      "http://test-domain/project",
 			expected: false,
 		},
@@ -421,7 +423,7 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testDomain := &domain.Domain{}
+	testDomain := domain.New("", "", "", &customProjectResolver{})
 
 	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }

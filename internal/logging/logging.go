@@ -59,11 +59,14 @@ func getExtraLogFields(r *http.Request) log.Fields {
 	}
 
 	if d := request.GetDomain(r); d != nil {
-		if lp := d.GetLookupPath(r); lp != nil {
-			logFields["pages_project_serving_type"] = lp.ServingType
-			logFields["pages_project_prefix"] = lp.Prefix
-			logFields["pages_project_id"] = lp.ProjectID
+		lp, err := d.GetLookupPath(r)
+		if err != nil {
+			return logFields
 		}
+
+		logFields["pages_project_serving_type"] = lp.ServingType
+		logFields["pages_project_prefix"] = lp.Prefix
+		logFields["pages_project_id"] = lp.ProjectID
 	}
 
 	return logFields
