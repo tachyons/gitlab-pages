@@ -58,7 +58,9 @@ func ReconfigureMeteredRoundTripper(rt http.RoundTripper, opts ...Opt) http.Roun
 		opt(t)
 	}
 
-	return t
+	mrt.next = t
+
+	return mrt
 }
 
 // Transport gets a clone of the meteredRoundTripper's transport
