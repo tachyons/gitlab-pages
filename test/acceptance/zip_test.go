@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,6 +14,9 @@ import (
 
 func TestZipServing(t *testing.T) {
 	skipUnlessEnabled(t)
+
+	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
+	defer cleanup()
 
 	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
 	defer source.Close()
@@ -21,9 +26,6 @@ func TestZipServing(t *testing.T) {
 	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
 	defer teardown()
-
-	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
-	defer cleanup()
 
 	tests := map[string]struct {
 		host               string
@@ -106,18 +108,22 @@ func TestZipServing(t *testing.T) {
 func TestZipServingFromDisk(t *testing.T) {
 	skipUnlessEnabled(t, "not-inplace-chroot")
 
+	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
+	defer cleanup()
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	wd = strings.TrimPrefix(wd, "test/acceptance")
+
 	var apiCalled bool
 	source := NewGitlabDomainsSourceStub(t, &apiCalled, 0)
 	defer source.Close()
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab", "-pages-root", "../../shared/pages"}
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab", "-pages-root", wd}
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
 	defer teardown()
-
-	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
-	defer cleanup()
 
 	tests := map[string]struct {
 		host               string
