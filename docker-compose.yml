@@ -2,8 +2,6 @@ version: "3"
 services:
   omnibus:
     image: ${GITLAB_OMNIBUS_IMAGE}
-    ports:
-      - "${NGINX_HOST_PORT}:80"
     volumes:
     - ./dev/omnibus-config/gitlab.rb:/etc/gitlab/gitlab.rb
     - db-upgrade:/tmp/db-upgrade
@@ -26,7 +24,7 @@ services:
     environment:
       - "GITLAB_WEBSERVER=PUMA"
       - "GITLAB_HOST=localhost"
-      - "GITLAB_PORT=${NGINX_HOST_PORT}"
+      - "GITLAB_PORT=${WORKHORSE_HOST_PORT}"
       - "GITLAB_SSH_PORT=${SSH_HOST_PORT}"
       - "GITALY_FEATURE_DEFAULT_ON=1"
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
@@ -67,7 +65,7 @@ services:
       - omnibus
     environment:
       - "GITLAB_HOST=localhost"
-      - "GITLAB_PORT=${NGINX_HOST_PORT}"
+      - "GITLAB_PORT=${WORKHORSE_HOST_PORT}"
       - "GITALY_FEATURE_DEFAULT_ON=1"
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
