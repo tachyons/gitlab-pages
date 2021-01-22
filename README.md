@@ -29,7 +29,7 @@ current requests.
   the generated configuration for virtual hosts. If present, it uses the TLS
   key and certificate in `config.json`, otherwise it falls back to the global
   configuration.
-2. When client connects to a HTTP port the GitLab-Pages daemon looks in the
+2. When client connects to an HTTP port, the GitLab-Pages daemon looks in the
    generated configuration for a matching virtual host.
 3. The URL.Path is split into `/<project>/<subpath>` and the daemon tries to
    load: `pages-root/group/project/public/subpath`.
@@ -82,7 +82,7 @@ $ ./gitlab-pages -listen-https ":9090" -root-cert=path/to/example.com.crt -root-
 
 ### Getting started with development
 
-See [docs/development.md](docs/development.md)
+See [doc/development.md](doc/development.md)
 
 
 ### Run daemon **in secure mode**
@@ -103,7 +103,7 @@ the trusted Certification Authorities to copy inside the jail.
 A file containing such list can be specified using `SSL_CERT_FILE` environment variable.
 (`SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` on Debian)
 
-This make it possible to listen on privileged ports and makes it harder for the
+This makes it possible to listen on privileged ports and makes it harder for the
 process to read files outside of `pages-root`.
 
 Example:
@@ -223,8 +223,7 @@ $ make
 $ ./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -auth-client-id <id> -auth-client-secret <secret> -auth-redirect-uri https://projects.example.com/auth -auth-secret something-very-secret -auth-server https://gitlab.com
 ```
 
-NOTE: **Note:**
-GitLab access control might not work with `-daemon-inplace-chroot` option. Please take a look at [the caveat section](#caveats) above.
+> NOTE: GitLab access control might not work with `-daemon-inplace-chroot` option. Please take a look at [the caveat section](#caveats) above.
 
 #### How it works
 
@@ -233,7 +232,7 @@ GitLab access control might not work with `-daemon-inplace-chroot` option. Pleas
 2. For projects that have `access_control` set to `true` pages will require user to authenticate.
 3. When user accesses a project that requires authentication, user will be redirected
    to GitLab to log in and grant access for GitLab pages.
-4. When user grant's access to GitLab pages, pages will use the OAuth2 `code` to get an access
+4. When user grants access to GitLab pages, pages will use the OAuth2 `code` to get an access
    token which is stored in the user session cookie.
 5. Pages will now check user's access to a project with a access token stored in the user
    session cookie. This is done via a request to GitLab API with the user's access token.
@@ -279,7 +278,7 @@ See https://golang.org/src/crypto/tls/tls.go for more.
 
 ### Custom headers
 
-To specify custom headers that should be send with every request on GitLab pages use the `-header` argument.
+To specify custom headers that should be sent with every request on GitLab pages, use the `-header` argument.
 
 You can add as many headers as you like.
 
