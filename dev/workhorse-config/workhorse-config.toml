@@ -1,5 +1,5 @@
 [redis]
-URL = "tcp://omnibus:6379"
+URL = "tcp://redis:6379"
 Password = "redis-meercat"
 
 [image_resizer]

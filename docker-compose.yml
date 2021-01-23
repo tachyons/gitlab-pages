@@ -6,6 +6,11 @@ services:
     - ./dev/omnibus-config/gitlab.rb:/etc/gitlab/gitlab.rb
     - db-upgrade:/tmp/db-upgrade
     - shared-dir:/opt/gitlab/embedded/service/gitlab-rails/shared
+  redis:
+    image: redis:6.0.10
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./dev/redis:/usr/local/etc/redis
   migrations:
     image: ${GITLAB_RAILS_IMAGE}
     environment:
@@ -15,6 +20,7 @@ services:
     command: ["/scripts/wait-for-deps", "/scripts/db-migrate"]
     depends_on:
       - omnibus
+      - redis
     volumes:
       - ./dev/webservice-config:/var/opt/gitlab/config/templates
       - ./dev/shell-secret:/var/opt/gitlab/config/secrets
@@ -33,6 +39,7 @@ services:
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
       - omnibus
+      - redis
     ports:
       - "${WEBSERVICE_HOST_PORT}:8080"
     volumes:
@@ -51,6 +58,7 @@ services:
     command: ["/scripts/start-workhorse"]
     depends_on:
       - webservice
+      - redis
     ports:
       - "${WORKHORSE_HOST_PORT}:8181"
     volumes:
@@ -63,6 +71,7 @@ services:
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
       - omnibus
+      - redis
     environment:
       - "GITLAB_HOST=localhost"
       - "GITLAB_PORT=${WORKHORSE_HOST_PORT}"
