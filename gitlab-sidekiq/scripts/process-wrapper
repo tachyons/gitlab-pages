@@ -2,7 +2,7 @@
 
 set -e
 
-if [ "${USE_GITLAB_LOGGER-0}" -eq 1]; then
+if [ "${USE_GITLAB_LOGGER-0}" -eq 1 ]; then
     /usr/local/bin/gitlab-logger /var/log/gitlab &
 else
     if command -v xtail >/dev/null; then
