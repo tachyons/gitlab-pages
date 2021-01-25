@@ -18,10 +18,9 @@ infrastructure needed to run GitLab.
 
 ### Dev environment using Docker Compose
 
-A dev test environment is provided with docker-compose that includes running the gitlab omnibus container to fill in the gaps that this repo in missing
-in terms of services.
+A dev test environment is provided with docker-compose.
 
-Currently the containers do not wait for their dependant services to become available, so to run the environment:
+To run the environment:
 
 ```bash
 # Grab the latest Images
@@ -29,6 +28,8 @@ docker-compose pull
 # Start GitLab
 docker-compose up
 ```
+
+The instance should then be reachable at `http://localhost:3000`
 
 ### Design of the Containers
 

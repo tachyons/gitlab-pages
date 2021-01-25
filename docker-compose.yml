@@ -30,7 +30,7 @@ services:
     environment:
       - "GITLAB_WEBSERVER=PUMA"
       - "GITLAB_HOST=localhost"
-      - "GITLAB_PORT=${WORKHORSE_HOST_PORT}"
+      - "GITLAB_PORT=${HOST_PORT}"
       - "GITLAB_SSH_PORT=${SSH_HOST_PORT}"
       - "GITALY_FEATURE_DEFAULT_ON=1"
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
@@ -61,6 +61,7 @@ services:
       - redis
     ports:
       - "${WORKHORSE_HOST_PORT}:8181"
+      - "${HOST_PORT}:8181"
     volumes:
       - ./dev/workhorse-config:/var/opt/gitlab/config/templates
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/etc/gitlab/gitlab-workhorse/secret
@@ -74,7 +75,7 @@ services:
       - redis
     environment:
       - "GITLAB_HOST=localhost"
-      - "GITLAB_PORT=${WORKHORSE_HOST_PORT}"
+      - "GITLAB_PORT=${HOST_PORT}"
       - "GITALY_FEATURE_DEFAULT_ON=1"
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
