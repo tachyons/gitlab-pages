@@ -1,11 +1,11 @@
 version: "3"
 services:
-  omnibus:
-    image: ${GITLAB_OMNIBUS_IMAGE}
-    volumes:
-    - ./dev/omnibus-config/gitlab.rb:/etc/gitlab/gitlab.rb
-    - db-upgrade:/tmp/db-upgrade
-    - shared-dir:/opt/gitlab/embedded/service/gitlab-rails/shared
+  postgres:
+    image: postgres:12
+    environment:
+      - "POSTGRES_PASSWORD=meercat"
+      - "POSTGRES_USER=gitlab"
+      - "POSTGRES_DB=gitlabhq_production"
   redis:
     image: redis:6.0.10
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
@@ -19,7 +19,7 @@ services:
       - "BYPASS_SCHEMA_VERSION=true"
     command: ["/scripts/wait-for-deps", "/scripts/db-migrate"]
     depends_on:
-      - omnibus
+      - postgres
       - redis
     volumes:
       - ./dev/webservice-config:/var/opt/gitlab/config/templates
@@ -38,7 +38,7 @@ services:
       - "ACTION_CABLE_IN_APP=true"
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
-      - omnibus
+      - postgres
       - redis
     ports:
       - "${WEBSERVICE_HOST_PORT}:8080"
@@ -70,7 +70,7 @@ services:
     image: ${GITLAB_SIDEKIQ_IMAGE}
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
-      - omnibus
+      - postgres
       - redis
     environment:
       - "GITLAB_HOST=localhost"
