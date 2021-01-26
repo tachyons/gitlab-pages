@@ -101,7 +101,7 @@ func (d *Domains) setGitLabClient(config Config) error {
 func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
 	resolvedDomain, err := d.source(name).GetDomain(name)
 	if errors.Is(err, client.ErrUnauthorizedAPI) && d.configSource == sourceAuto {
-		log.WithError(err).Warn("Pages cannot communicate with an instance of the GitLab API, please sync your gitlab-secrets.json file https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535#workaround ")
+		log.WithError(err).Warn("Pages cannot communicate with an instance of the GitLab API. Please sync your gitlab-secrets.json file https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535#workaround.")
 		// temporary workaround for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535
 		return d.disk.GetDomain(name)
 	}
