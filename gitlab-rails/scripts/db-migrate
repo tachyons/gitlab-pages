@@ -16,4 +16,4 @@ cd /srv/gitlab
 /srv/gitlab/bin/rake gitlab:db:configure
 
 echo "Performing custom instance setup"
-/scripts/custom-instance-setup
+/srv/gitlab/bin/rails runner -e production /scripts/custom-instance-setup

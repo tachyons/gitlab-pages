@@ -1,20 +1,32 @@
-#!/bin/bash
-
-set -e
-
-# This `echo` should be updated whenever there are alterations to the script below
-echo "Disable authorized keys write in the database and enable the 'ci_enable_live_trace' feature flag"
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Workaround for disabling the authorized_keys write to the database.
 # A proper fix is being tracked in: https://gitlab.com/gitlab-org/gitlab-ee/issues/4156
-#
-# Also, enable feature flags for object storage:
-# - ci_enable_live_trace: archive traces in object storage as artifacts, live data in Redis
-read -r -d '\0' CUSTOM_INSTANCE_SETUP <<- EOM
-(::ApplicationSetting.current_without_cache || ::ApplicationSetting.create_from_defaults).update_attribute(:authorized_keys_enabled, false)
+puts 'Disabling authorized keys write in the database.'
+setting = ::ApplicationSetting.current_without_cache || ::ApplicationSetting.create_from_defaults
+setting.update_attribute(:authorized_keys_enabled, false)
 
+puts 'Enabling incremental logging of CI jobs.'
 Feature.enable('ci_enable_live_trace')
-\0
-EOM
 
-/srv/gitlab/bin/rails runner -e production "$CUSTOM_INSTANCE_SETUP"
+puts 'Registering OAuth applications.'
+secrets_dir = ENV['OAUTH_SECRET_DIR'] || '/etc/gitlab/oauth-secrets'
+Dir.glob("#{secrets_dir}/*").each do |app_path|
+  app = File.basename(app_path).titleize
+  puts "Registering #{app} as an OAuth application."
+  begin
+    uid = File.read(File.join(app_path, 'appid')).strip
+    secret = File.read(File.join(app_path, 'appsecret')).strip
+    redirecturi = File.read(File.join(app_path, 'redirecturi')).strip
+
+    Doorkeeper::Application.where({ redirect_uri: redirecturi, name: app, uid: uid, secret: secret }).first_or_create
+    puts "Successfully registered #{app}."
+  rescue Errno::ENOENT
+    puts "Necessary secrets not found. Skipping registration of #{app}"
+    next
+  rescue RuntimeError
+    puts "Failed to register #{app}."
+    next
+  end
+end
