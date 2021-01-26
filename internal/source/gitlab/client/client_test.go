@@ -138,7 +138,7 @@ func TestNewInvalidConfiguration(t *testing.T) {
 }
 func TestLookupForErrorResponses(t *testing.T) {
 	tests := map[int]string{
-		http.StatusUnauthorized: "HTTP status: 401",
+		http.StatusUnauthorized: ErrUnauthorizedAPI.Error(),
 		http.StatusNotFound:     "HTTP status: 404",
 	}
 

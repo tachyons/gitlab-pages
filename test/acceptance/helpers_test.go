@@ -536,10 +536,11 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 }
 
 type stubOpts struct {
-	apiCalled        bool
-	statusReadyCount int
-	statusHandler    http.HandlerFunc
-	pagesHandler     http.HandlerFunc
+	apiCalled           bool
+	statusReadyCount    int
+	statusHandler       http.HandlerFunc
+	pagesHandler        http.HandlerFunc
+	pagesStatusResponse int
 }
 
 func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
@@ -553,6 +554,7 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	statusHandler := func(w http.ResponseWriter, r *http.Request) {
 		if currentStatusCount < opts.statusReadyCount {
 			w.WriteHeader(http.StatusBadGateway)
+			return
 		}
 
 		w.WriteHeader(http.StatusNoContent)
@@ -566,6 +568,12 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 
 	pagesHandler := func(w http.ResponseWriter, r *http.Request) {
 		opts.apiCalled = true
+
+		if opts.pagesStatusResponse != 0 {
+			w.WriteHeader(opts.pagesStatusResponse)
+			return
+		}
+
 		domain := r.URL.Query().Get("host")
 		path := "../../shared/lookups/" + domain + ".json"
 
