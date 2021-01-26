@@ -61,6 +61,8 @@ func getExtraLogFields(r *http.Request) log.Fields {
 	if d := request.GetDomain(r); d != nil {
 		lp, err := d.GetLookupPath(r)
 		if err != nil {
+			logFields["error"] = err.Error()
+
 			return logFields
 		}
 

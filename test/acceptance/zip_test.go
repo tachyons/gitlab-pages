@@ -13,8 +13,7 @@ import (
 func TestZipServing(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	var apiCalled bool
-	source := NewGitlabDomainsSourceStub(t, &apiCalled, 0)
+	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
 	defer source.Close()
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
@@ -107,8 +106,7 @@ func TestZipServing(t *testing.T) {
 func TestZipServingConfigShortTimeout(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	var apiCalled bool
-	source := NewGitlabDomainsSourceStub(t, &apiCalled, 0)
+	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
 	defer source.Close()
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
