@@ -11,22 +11,27 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
 
-type lookupPathFunc func(*http.Request) *serving.LookupPath
+type resolver struct {
+	err error
+	f   func(*http.Request) *serving.LookupPath
+}
 
-func (f lookupPathFunc) Resolve(r *http.Request) (*serving.Request, error) {
-	return &serving.Request{LookupPath: f(r)}, nil
+func (r *resolver) Resolve(req *http.Request) (*serving.Request, error) {
+	if r.f != nil {
+		return &serving.Request{LookupPath: r.f(req)}, nil
+	}
+
+	return nil, r.err
 }
 
 func TestGetExtraLogFields(t *testing.T) {
-	domainWithResolver := &domain.Domain{
-		Resolver: lookupPathFunc(func(*http.Request) *serving.LookupPath {
-			return &serving.LookupPath{
-				ServingType: "file",
-				ProjectID:   100,
-				Prefix:      "/prefix",
-			}
-		}),
-	}
+	domainWithResolver := domain.New("", "", "", &resolver{f: func(*http.Request) *serving.LookupPath {
+		return &serving.LookupPath{
+			ServingType: "file",
+			ProjectID:   100,
+			Prefix:      "/prefix",
+		}
+	}})
 
 	tests := []struct {
 		name                  string
@@ -38,6 +43,7 @@ func TestGetExtraLogFields(t *testing.T) {
 		expectedProjectID     interface{}
 		expectedProjectPrefix interface{}
 		expectedServingType   interface{}
+		expectedErrMsg        interface{}
 	}{
 		{
 			name:                  "https",
@@ -62,7 +68,7 @@ func TestGetExtraLogFields(t *testing.T) {
 			expectedServingType:   "file",
 		},
 		{
-			name:                "domain_without_resolved",
+			name:                "domain_not_configured",
 			scheme:              request.SchemeHTTP,
 			host:                "githost.io",
 			domain:              nil,
@@ -75,11 +81,12 @@ func TestGetExtraLogFields(t *testing.T) {
 			name:                "no_domain",
 			scheme:              request.SchemeHTTP,
 			host:                "githost.io",
-			domain:              nil,
+			domain:              domain.New("githost.io", "", "", &resolver{err: domain.ErrDomainDoesNotExist}),
 			expectedHTTPS:       false,
 			expectedHost:        "githost.io",
 			expectedProjectID:   nil,
 			expectedServingType: nil,
+			expectedErrMsg:      domain.ErrDomainDoesNotExist.Error(),
 		},
 	}
 
@@ -97,6 +104,7 @@ func TestGetExtraLogFields(t *testing.T) {
 			require.Equal(t, tt.expectedProjectID, got["pages_project_id"])
 			require.Equal(t, tt.expectedProjectPrefix, got["pages_project_prefix"])
 			require.Equal(t, tt.expectedServingType, got["pages_project_serving_type"])
+			require.Equal(t, tt.expectedErrMsg, got["error"])
 		})
 	}
 }
