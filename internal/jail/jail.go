@@ -78,7 +78,17 @@ func (j *Jail) Build() error {
 	}
 
 	for _, dir := range j.directories {
-		if err := os.MkdirAll(dir.path, dir.mode); err != nil {
+		// create all subdirectories when jail.Create is called as all sub dirs will
+		// be removed on removal
+		if j.deleteRoot {
+			if err := os.MkdirAll(dir.path, dir.mode); err != nil {
+				j.removeAll()
+				return fmt.Errorf("can't create directory %q. %s", dir.path, err)
+			}
+			continue
+		}
+
+		if err := os.Mkdir(dir.path, dir.mode); err != nil {
 			j.removeAll()
 			return fmt.Errorf("can't create directory %q. %s", dir.path, err)
 		}
