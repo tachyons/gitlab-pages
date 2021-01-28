@@ -20,11 +20,7 @@ type MultiStringFlag struct {
 
 // String returns the list of parameters joined with a commas (",")
 func (s *MultiStringFlag) String() string {
-	if s.separator == "" {
-		s.separator = defaultSeparator
-	}
-
-	return strings.Join(s.value, s.separator)
+	return strings.Join(s.value, s.sep())
 }
 
 // Set appends the value to the list of parameters
@@ -39,13 +35,17 @@ func (s *MultiStringFlag) Set(value string) error {
 
 // Split each flag
 func (s *MultiStringFlag) Split() (result []string) {
-	if s.separator == "" {
-		s.separator = defaultSeparator
-	}
-
 	for _, str := range s.value {
-		result = append(result, strings.Split(str, s.separator)...)
+		result = append(result, strings.Split(str, s.sep())...)
 	}
 
 	return
+}
+
+func (s *MultiStringFlag) sep() string {
+	if s.separator == "" {
+		return defaultSeparator
+	}
+
+	return s.separator
 }

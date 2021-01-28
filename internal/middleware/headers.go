@@ -21,7 +21,7 @@ func AddCustomHeaders(w http.ResponseWriter, headers http.Header) {
 func ParseHeaderString(customHeaders []string) (http.Header, error) {
 	headers := http.Header{}
 	for _, keyValueString := range customHeaders {
-		keyValue := strings.SplitN(keyValueString, ":", -1)
+		keyValue := strings.SplitN(keyValueString, ":", 2)
 		if len(keyValue) != 2 {
 			return nil, errInvalidHeaderParameter
 		}
