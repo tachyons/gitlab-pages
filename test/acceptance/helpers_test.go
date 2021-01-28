@@ -567,6 +567,13 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	mux.HandleFunc("/api/v4/internal/pages/status", statusHandler)
 
 	pagesHandler := func(w http.ResponseWriter, r *http.Request) {
+		domain := r.URL.Query().Get("host")
+		if domain == "127.0.0.1" {
+			// shortcut for healthy checkup done by WaitUntilRequestSucceeds
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		opts.apiCalled = true
 
 		if opts.pagesStatusResponse != 0 {
@@ -574,7 +581,6 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 			return
 		}
 
-		domain := r.URL.Query().Get("host")
 		path := "../../shared/lookups/" + domain + ".json"
 
 		fixture, err := os.Open(path)

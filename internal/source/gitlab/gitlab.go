@@ -2,12 +2,14 @@ package gitlab
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"path"
 	"strings"
 	"sync"
 
 	"github.com/cenkalti/backoff/v4"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -49,6 +51,14 @@ func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
 	lookup := g.client.Resolve(context.Background(), name)
 
 	if lookup.Error != nil {
+		if errors.Is(lookup.Error, client.ErrUnauthorizedAPI) {
+			log.WithError(lookup.Error).Error("Pages cannot communicate with an instance of the GitLab API. Please sync your gitlab-secrets.json file: https://docs.gitlab.com/ee/administration/pages/#pages-cannot-communicate-with-an-instance-of-the-gitlab-api")
+
+			g.mu.Lock()
+			g.isReady = false
+			g.mu.Unlock()
+		}
+
 		return nil, lookup.Error
 	}
 

@@ -1,7 +1,6 @@
 package source
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 
@@ -10,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
 var (
@@ -99,17 +97,7 @@ func (d *Domains) setGitLabClient(config Config) error {
 // for some subset of domains, to test / PoC the new GitLab Domains Source that
 // we plan to use to replace the disk source.
 func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
-	resolvedDomain, err := d.source(name).GetDomain(name)
-	if errors.Is(err, client.ErrUnauthorizedAPI) && d.configSource == sourceAuto {
-		// Temporary workaround for edge case described in https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535
-		// where multiple instances of Pages running on separate servers may have outdated gitlab-secrets.json
-		// installed via omnibus
-		log.WithError(err).Warn("Pages cannot communicate with an instance of the GitLab API. Please sync your gitlab-secrets.json file https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535#workaround.")
-
-		return d.disk.GetDomain(name)
-	}
-
-	return resolvedDomain, err
+	return d.source(name).GetDomain(name)
 }
 
 // Read starts the disk domain source. It is DEPRECATED, because we want to

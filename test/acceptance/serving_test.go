@@ -381,7 +381,7 @@ func TestDomainsSource(t *testing.T) {
 		configSource string
 		domain       string
 		urlSuffix    string
-		stubOpts     stubOpts
+		readyCount   int
 	}
 	type want struct {
 		statusCode int
@@ -459,9 +459,7 @@ func TestDomainsSource(t *testing.T) {
 				configSource: "auto",
 				domain:       "test.domain.com",
 				urlSuffix:    "/",
-				stubOpts: stubOpts{
-					statusReadyCount: 100, // big number to ensure the API is in bad state for a while
-				},
+				readyCount:   100, // big number to ensure the API is in bad state for a while
 			},
 			want: want{
 				statusCode: http.StatusOK,
@@ -475,6 +473,7 @@ func TestDomainsSource(t *testing.T) {
 				configSource: "auto",
 				domain:       "new-source-test.gitlab.io",
 				urlSuffix:    "/my/pages/project/",
+				readyCount:   0,
 			},
 			want: want{
 				statusCode: http.StatusOK,
@@ -482,29 +481,14 @@ func TestDomainsSource(t *testing.T) {
 				apiCalled:  true,
 			},
 		},
-		{
-			name: "auto_source_gitlab_is_unauthorized_fallback_to_disk",
-			args: args{
-				configSource: "auto",
-				domain:       "test.domain.com",
-				urlSuffix:    "/",
-				stubOpts: stubOpts{
-					apiCalled: false,
-					// edge case https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535
-					pagesStatusResponse: http.StatusUnauthorized,
-				},
-			},
-			want: want{
-				statusCode: http.StatusOK,
-				content:    "main-dir\n",
-				apiCalled:  true,
-			},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			opts := &tt.args.stubOpts
+			opts := &stubOpts{
+				apiCalled:        false,
+				statusReadyCount: tt.args.readyCount,
+			}
 
 			source := NewGitlabDomainsSourceStub(t, opts)
 			defer source.Close()
@@ -512,7 +496,7 @@ func TestDomainsSource(t *testing.T) {
 			gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
 			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", tt.args.configSource}
-			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
+			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", []string{}, pagesArgs...)
 			defer teardown()
 
 			response, err := GetPageFromListener(t, httpListener, tt.args.domain, tt.args.urlSuffix)
@@ -530,6 +514,44 @@ func TestDomainsSource(t *testing.T) {
 			require.Equal(t, tt.want.apiCalled, opts.apiCalled, "api called mismatch")
 		})
 	}
+}
+
+// TestGitLabSourceBecomesUnauthorized proves workaround for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535
+// The first request will fail and display an error but subsequent requests will
+// serve from disk source when `domain-config-source=auto`
+func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
+	opts := stubOpts{
+		// edge case https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535
+		pagesStatusResponse: http.StatusUnauthorized,
+	}
+	source := NewGitlabDomainsSourceStub(t, &opts)
+	defer source.Close()
+
+	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "auto"}
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", []string{}, pagesArgs...)
+	defer teardown()
+
+	domain := "test.domain.com"
+	failedResponse, err := GetPageFromListener(t, httpListener, domain, "/")
+	require.NoError(t, err)
+
+	require.Equal(t, http.StatusBadGateway, failedResponse.StatusCode, "first response should fail with 502")
+
+	// make request again
+	response, err := GetPageFromListener(t, httpListener, domain, "/")
+	require.NoError(t, err)
+	defer response.Body.Close()
+
+	require.Equal(t, http.StatusOK, response.StatusCode, "second response should succeed")
+	require.True(t, opts.apiCalled, "api called mismatch")
+
+	body, err := ioutil.ReadAll(response.Body)
+	require.NoError(t, err)
+	require.Equal(t, "main-dir\n", string(body), "content mismatch")
+
+	require.True(t, opts.apiCalled, "api called mismatch")
 }
 
 func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
