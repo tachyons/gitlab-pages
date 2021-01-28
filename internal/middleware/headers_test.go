@@ -12,35 +12,43 @@ func TestParseHeaderString(t *testing.T) {
 		name          string
 		headerStrings []string
 		valid         bool
-	}{{
-		name:          "Normal case",
-		headerStrings: []string{"X-Test-String: Test"},
-		valid:         true,
-	},
+		expectedLen   int
+	}{
+		{
+			name:          "Normal case",
+			headerStrings: []string{"X-Test-String: Test"},
+			valid:         true,
+			expectedLen:   1,
+		},
 		{
 			name:          "Whitespace trim case",
 			headerStrings: []string{"   X-Test-String   :   Test  "},
 			valid:         true,
+			expectedLen:   1,
 		},
 		{
 			name:          "Whitespace in key, value case",
 			headerStrings: []string{"My amazing header: This is a test"},
 			valid:         true,
+			expectedLen:   1,
 		},
 		{
 			name:          "Non-tracking header case",
 			headerStrings: []string{"Tk: N"},
 			valid:         true,
+			expectedLen:   1,
 		},
 		{
 			name:          "Content security header case",
 			headerStrings: []string{"content-security-policy: default-src 'self'"},
 			valid:         true,
+			expectedLen:   1,
 		},
 		{
 			name:          "Multiple header strings",
 			headerStrings: []string{"content-security-policy: default-src 'self'", "X-Test-String: Test", "My amazing header : Amazing"},
 			valid:         true,
+			expectedLen:   3,
 		},
 		{
 			name:          "Multiple invalid cases",
@@ -62,16 +70,24 @@ func TestParseHeaderString(t *testing.T) {
 			headerStrings: []string{"content-security-policy: default-src 'self'", "test-case"},
 			valid:         false,
 		},
+		{
+			name:          "Multiple headers in single string parsed as one header",
+			headerStrings: []string{"content-security-policy: default-src 'self',X-Test-String: Test,My amazing header : Amazing"},
+			valid:         true,
+			expectedLen:   1,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := ParseHeaderString(tt.headerStrings)
+			got, err := ParseHeaderString(tt.headerStrings)
 			if tt.valid {
 				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
+				require.Len(t, got, tt.expectedLen)
+				return
 			}
+
+			require.Error(t, err)
 		})
 	}
 }
@@ -115,7 +131,8 @@ func TestAddCustomHeaders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			headers, _ := ParseHeaderString(tt.headerStrings)
+			headers, err := ParseHeaderString(tt.headerStrings)
+			require.NoError(t, err)
 			w := httptest.NewRecorder()
 			AddCustomHeaders(w, headers)
 			for k, v := range tt.wantHeaders {

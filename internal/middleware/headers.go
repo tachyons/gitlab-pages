@@ -25,7 +25,11 @@ func ParseHeaderString(customHeaders []string) (http.Header, error) {
 		if len(keyValue) != 2 {
 			return nil, errInvalidHeaderParameter
 		}
-		headers[strings.TrimSpace(keyValue[0])] = append(headers[strings.TrimSpace(keyValue[0])], strings.TrimSpace(keyValue[1]))
+
+		key := strings.TrimSpace(keyValue[0])
+		value := strings.TrimSpace(keyValue[1])
+
+		headers[key] = append(headers[key], value)
 	}
 	return headers, nil
 }

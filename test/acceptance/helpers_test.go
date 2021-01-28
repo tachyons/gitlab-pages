@@ -594,30 +594,29 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
-func newConfigFile(configs ...string) (string, error) {
+func newConfigFile(t *testing.T, configs ...string) string {
+	t.Helper()
+
 	f, err := ioutil.TempFile(os.TempDir(), "gitlab-pages-config")
-	if err != nil {
-		return "", err
-	}
+	require.NoError(t, err)
 	defer f.Close()
 
 	for _, config := range configs {
 		_, err := fmt.Fprintf(f, "%s\n", config)
-		if err != nil {
-			return "", err
-		}
+		require.NoError(t, err)
 	}
 
-	return f.Name(), nil
+	return f.Name()
 }
 
 func defaultConfigFileWith(t *testing.T, configs ...string) (string, func()) {
+	t.Helper()
+
 	configs = append(configs, "auth-client-id=clientID",
 		"auth-client-secret=clientSecret",
 		"auth-secret=authSecret")
 
-	name, err := newConfigFile(configs...)
-	require.NoError(t, err)
+	name := newConfigFile(t, configs...)
 
 	cleanup := func() {
 		err := os.Remove(name)
