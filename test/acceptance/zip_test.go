@@ -115,8 +115,7 @@ func TestZipServingFromDisk(t *testing.T) {
 	require.NoError(t, err)
 	wd = strings.TrimPrefix(wd, "test/acceptance")
 
-	var apiCalled bool
-	source := NewGitlabDomainsSourceStub(t, &apiCalled, 0)
+	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
 	defer source.Close()
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
