@@ -25,9 +25,9 @@ import (
 const ConnectionErrorMsg = "failed to connect to internal Pages API"
 
 // ErrUnauthorizedAPI is returned when resolving a domain with the GitLab API
-// returns a http.StatusUnauthorized. This is an edge case when `domain-config-source=auto`
-// and there are multiple instances of GitLab Rails and GitLab Pages running.
-// See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535 for more info
+// returns a http.StatusUnauthorized. This happens if the common secret file
+// is not synced between gitlab-pages and gitlab-rails servers.
+// See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535 for more details.
 var ErrUnauthorizedAPI = errors.New("pages endpoint unauthorized")
 
 // Client is a HTTP client to access Pages internal API
