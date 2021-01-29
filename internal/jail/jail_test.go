@@ -160,8 +160,9 @@ func TestJailWithFiles(t *testing.T) {
 			directories: []string{"/tmp", "/tmp/foo", "/bar"},
 		},
 		{
-			name:        "Missing directories in path creates them",
+			name:        "Missing direcories in path",
 			directories: []string{"/tmp/foo/bar"},
+			error:       true,
 		},
 		{
 			name:        "copy /etc/resolv.conf",
@@ -296,7 +297,7 @@ func TestJailIntoCleansNestedDirs(t *testing.T) {
 	require.NoError(t, err, "/ in jail (corresponding to external directory) was removed")
 }
 
-func TestJailIntoSubpathsFails(t *testing.T) {
+func TestJailIntoMkDirFails(t *testing.T) {
 	jailPath := tmpJailPath()
 	require.NoError(t, os.MkdirAll(jailPath, 0755))
 	defer os.RemoveAll(jailPath)
@@ -305,10 +306,37 @@ func TestJailIntoSubpathsFails(t *testing.T) {
 
 	chroot := jail.Into(jailPath)
 	chroot.MkDir(pagesRoot, 0755)
+
 	err := chroot.Build()
+
 	require.Error(t, err, "err")
 	require.Contains(t, err.Error(), "no such file or directory")
 
 	_, err = os.Stat(path.Join(jailPath, pagesRoot))
 	require.True(t, os.IsNotExist(err), "%s in jail was not removed", pagesRoot)
+}
+
+func TestJailIntoMkDirAll(t *testing.T) {
+	jailPath := tmpJailPath()
+	require.NoError(t, os.MkdirAll(jailPath, 0755))
+	defer os.RemoveAll(jailPath)
+
+	chroot := jail.Into(jailPath)
+
+	chroot.MkDirAll("/way/down/here", 0755)
+
+	require.NoError(t, chroot.Build())
+	require.NoError(t, chroot.Dispose())
+
+	verify := func(inPath string) {
+		_, err := os.Stat(path.Join(jailPath, inPath))
+		require.True(t, os.IsNotExist(err), "{} in jail was not removed", inPath)
+	}
+
+	verify("/way")
+	verify("/way/down")
+	verify("/way/down/here")
+
+	_, err := os.Stat(jailPath)
+	require.NoError(t, err, "/ in jail (corresponding to external directory) was not removed")
 }

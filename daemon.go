@@ -255,7 +255,7 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 	}
 
 	// Bind mount shared folder
-	cage.MkDir(pagesRoot, 0755)
+	cage.MkDirAll(pagesRoot, 0755)
 	cage.Bind(pagesRoot, pagesRoot)
 
 	// Update command to use chroot
@@ -271,6 +271,8 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool, pagesRoot string) 
 	// if any component of pagesRoot is a symlink (not likely). For example,
 	// -pages-root=/some-path where ln -s /other-path /some-path
 	// pagesPath will become: /other-path and we will fail to serve files from /some-path.
+	// GitLab Rails also resolves the absolute path for `pages_path`
+	// https://gitlab.com/gitlab-org/gitlab/blob/981ad651d8bd3690e28583eec2363a79f775af89/config/initializers/1_settings.rb#L296
 	pagesRoot, err := filepath.Abs(pagesRoot)
 	if err != nil {
 		return err
