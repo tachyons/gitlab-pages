@@ -521,8 +521,7 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 
 	var listeners = []ListenSpec{
 		proxyListener,
-		// TODO:  re-enable https://gitlab.com/gitlab-org/gitlab-pages/-/issues/528
-		// {"proxy", "::1", "37002"},
+		{"proxy", "::1", httpProxyPort},
 	}
 
 	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
