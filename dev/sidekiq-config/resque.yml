@@ -1,6 +1,6 @@
 production:
   # Redis (single instance)
-  url: redis://:redis-meercat@omnibus:6379
+  url: redis://:redis-meercat@redis:6379
   ##
   # Redis + Sentinel (for HA)
   #

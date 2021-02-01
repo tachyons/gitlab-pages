@@ -1,13 +1,16 @@
 version: "3"
 services:
-  omnibus:
-    image: ${GITLAB_OMNIBUS_IMAGE}
-    ports:
-      - "${NGINX_HOST_PORT}:80"
+  postgres:
+    image: postgres:12
+    environment:
+      - "POSTGRES_PASSWORD=meercat"
+      - "POSTGRES_USER=gitlab"
+      - "POSTGRES_DB=gitlabhq_production"
+  redis:
+    image: redis:6.0.10
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     volumes:
-    - ./dev/omnibus-config/gitlab.rb:/etc/gitlab/gitlab.rb
-    - db-upgrade:/tmp/db-upgrade
-    - shared-dir:/opt/gitlab/embedded/service/gitlab-rails/shared
+      - ./dev/redis:/usr/local/etc/redis
   migrations:
     image: ${GITLAB_RAILS_IMAGE}
     environment:
@@ -16,7 +19,8 @@ services:
       - "BYPASS_SCHEMA_VERSION=true"
     command: ["/scripts/wait-for-deps", "/scripts/db-migrate"]
     depends_on:
-      - omnibus
+      - postgres
+      - redis
     volumes:
       - ./dev/webservice-config:/var/opt/gitlab/config/templates
       - ./dev/shell-secret:/var/opt/gitlab/config/secrets
@@ -24,9 +28,10 @@ services:
   webservice:
     image: ${GITLAB_WEBSERVICE_IMAGE}
     environment:
+      - "WAIT_FOR_TIMEOUT=${WAIT_FOR_TIMEOUT}"
       - "GITLAB_WEBSERVER=PUMA"
       - "GITLAB_HOST=localhost"
-      - "GITLAB_PORT=${NGINX_HOST_PORT}"
+      - "GITLAB_PORT=${HOST_PORT}"
       - "GITLAB_SSH_PORT=${SSH_HOST_PORT}"
       - "GITALY_FEATURE_DEFAULT_ON=1"
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
@@ -34,7 +39,8 @@ services:
       - "ACTION_CABLE_IN_APP=true"
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
-      - omnibus
+      - postgres
+      - redis
     ports:
       - "${WEBSERVICE_HOST_PORT}:8080"
     volumes:
@@ -44,6 +50,7 @@ services:
       - ./dev/pages-secret/.gitlab_pages_secret:/srv/gitlab/.gitlab_pages_secret
       - uploads:/srv/gitlab/public/uploads
       - shared-dir:/srv/gitlab/shared
+      - pages:/srv/gitlab/shared/pages
   workhorse:
     image: ${GITLAB_WORKHORSE_IMAGE}
     environment:
@@ -53,27 +60,33 @@ services:
     command: ["/scripts/start-workhorse"]
     depends_on:
       - webservice
+      - redis
     ports:
       - "${WORKHORSE_HOST_PORT}:8181"
+      - "${HOST_PORT}:8181"
     volumes:
       - ./dev/workhorse-config:/var/opt/gitlab/config/templates
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/etc/gitlab/gitlab-workhorse/secret
       - uploads:/srv/gitlab/public/uploads
       - shared-dir:/srv/gitlab/shared
+      - pages:/srv/gitlab/shared/pages
   sidekiq:
     image: ${GITLAB_SIDEKIQ_IMAGE}
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
-      - omnibus
+      - postgres
+      - redis
     environment:
+      - "WAIT_FOR_TIMEOUT=${WAIT_FOR_TIMEOUT}"
       - "GITLAB_HOST=localhost"
-      - "GITLAB_PORT=${NGINX_HOST_PORT}"
+      - "GITLAB_PORT=${HOST_PORT}"
       - "GITALY_FEATURE_DEFAULT_ON=1"
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
     volumes:
       - ./dev/sidekiq-config:/var/opt/gitlab/config/templates
       - shared-dir:/srv/gitlab/shared
+      - pages:/srv/gitlab/shared/pages
   shell:
     image: ${GITLAB_SHELL_IMAGE}
     environment:
@@ -105,6 +118,7 @@ services:
       - ./dev/pages-config/pages-config.erb:/etc/gitlab-pages/templates/pages-config.erb
       - ./dev/pages-secret/.gitlab_pages_secret:/etc/gitlab-pages/.gitlab_pages_secret
       - shared-dir:/srv/gitlab/shared
+      - pages:/srv/gitlab/shared/pages
 volumes:
   db-upgrade:
     driver: local
@@ -113,6 +127,12 @@ volumes:
       device: tmpfs
       o: "size=10M"
   uploads:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=100M"
+  pages:
     driver: local
     driver_opts:
       type: tmpfs
