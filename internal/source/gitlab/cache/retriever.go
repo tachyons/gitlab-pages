@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
 // Retriever is an utility type that performs an HTTP request with backoff in
@@ -55,8 +56,9 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domainName string) <
 
 		for i := 1; i <= r.maxRetrievalRetries; i++ {
 			lookup = r.client.GetLookup(ctx, domainName)
-			if lookup.Error == nil || errors.Is(lookup.Error, domain.ErrDomainDoesNotExist) {
-				// do not retry if the domain does not exist
+			if lookup.Error == nil || errors.Is(lookup.Error, domain.ErrDomainDoesNotExist) ||
+				errors.Is(lookup.Error, client.ErrUnauthorizedAPI) {
+				// do not retry if the domain does not exist or there is an auth error
 				break
 			}
 

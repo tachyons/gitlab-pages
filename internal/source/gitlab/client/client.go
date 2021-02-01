@@ -24,6 +24,12 @@ import (
 // or a 401 given that the credentials used are wrong
 const ConnectionErrorMsg = "failed to connect to internal Pages API"
 
+// ErrUnauthorizedAPI is returned when resolving a domain with the GitLab API
+// returns a http.StatusUnauthorized. This happens if the common secret file
+// is not synced between gitlab-pages and gitlab-rails servers.
+// See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535 for more details.
+var ErrUnauthorizedAPI = errors.New("pages endpoint unauthorized")
+
 // Client is a HTTP client to access Pages internal API
 type Client struct {
 	secretKey      []byte
@@ -161,6 +167,8 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 	// StatusNoContent means that a domain does not exist, it is not an error
 	if resp.StatusCode == http.StatusNoContent {
 		return nil, nil
+	} else if resp.StatusCode == http.StatusUnauthorized {
+		return nil, ErrUnauthorizedAPI
 	}
 
 	return nil, fmt.Errorf("HTTP status: %d", resp.StatusCode)
