@@ -20,7 +20,7 @@ type fileSystemPaths struct {
 
 // NewFileSystemPath creates a new fileSystemPaths that can be used to register
 // a file:// protocol with an http.Transport
-func NewFileSystemPath(allowedPaths []string) *fileSystemPaths {
+func NewFileSystemPath(allowedPaths []string) http.FileSystem {
 	return &fileSystemPaths{
 		allowedPaths: allowedPaths,
 	}
@@ -35,7 +35,6 @@ func (p *fileSystemPaths) Open(name string) (http.File, error) {
 
 	absPath, err := filepath.Abs(filepath.FromSlash(path.Clean("/" + name)))
 	if err != nil {
-		panic(err)
 		return nil, err
 	}
 

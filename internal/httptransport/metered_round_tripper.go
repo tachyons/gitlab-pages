@@ -28,7 +28,6 @@ type meteredRoundTripper struct {
 // The RoundTripper will report metrics based on the collectors passed.
 func NewMeteredRoundTripper(name string, tracerVec, durationsVec *prometheus.
 	HistogramVec, counterVec *prometheus.CounterVec, ttfbTimeout time.Duration) http.RoundTripper {
-
 	return &meteredRoundTripper{
 		next:        InternalTransport,
 		name:        name,
