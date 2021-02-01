@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestZipServing(t *testing.T) {
@@ -108,14 +109,19 @@ func TestZipServing(t *testing.T) {
 func TestZipServingFromDisk(t *testing.T) {
 	skipUnlessEnabled(t, "not-inplace-chroot")
 
-	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
+	chdir := false
+	defer testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)()
+
+	_, cleanup := newZipFileServerURL(t, "shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
 	wd, err := os.Getwd()
 	require.NoError(t, err)
-	wd = strings.TrimPrefix(wd, "test/acceptance")
 
-	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
+	source := NewGitlabDomainsSourceStub(t, &stubOpts{
+		pagesRoot: wd,
+	})
+
 	defer source.Close()
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)

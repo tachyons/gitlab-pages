@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"time"
 
@@ -151,8 +150,6 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 		return nil, err
 	}
 
-	dres, err := httputil.DumpResponse(resp, true)
-	fmt.Printf("dres:%s\nerr:%+v\n", dres, err)
 	if resp == nil {
 		return nil, errors.New("unknown response")
 	}

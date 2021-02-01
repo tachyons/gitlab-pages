@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 	"gitlab.com/gitlab-org/gitlab-pages/test/acceptance/testdata"
 )
 
@@ -540,6 +539,7 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 
 type stubOpts struct {
 	apiCalled           bool
+	pagesRoot           string
 	statusReadyCount    int
 	statusHandler       http.HandlerFunc
 	pagesHandler        http.HandlerFunc
@@ -550,7 +550,6 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	t.Helper()
 	require.NotNil(t, opts)
 
-	opts.apiCalled = false
 	currentStatusCount := 0
 
 	mux := http.NewServeMux()
@@ -569,7 +568,36 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 
 	mux.HandleFunc("/api/v4/internal/pages/status", statusHandler)
 
-	pagesHandler := func(w http.ResponseWriter, r *http.Request) {
+	pagesHandler := defaultAPIHandler(t, opts)
+	if opts.pagesHandler != nil {
+		pagesHandler = opts.pagesHandler
+	}
+
+	mux.HandleFunc("/api/v4/internal/pages", pagesHandler)
+
+	return httptest.NewServer(mux)
+}
+
+func lookupFromFile(t *testing.T, domain string, w http.ResponseWriter) {
+	fixture, err := os.Open("../../shared/lookups/" + domain + ".json")
+	if os.IsNotExist(err) {
+		w.WriteHeader(http.StatusNoContent)
+
+		t.Logf("GitLab domain %s source stub served 204", domain)
+		return
+	}
+
+	defer fixture.Close()
+	require.NoError(t, err)
+
+	_, err = io.Copy(w, fixture)
+	require.NoError(t, err)
+
+	t.Logf("GitLab domain %s source stub served lookup", domain)
+}
+
+func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		domain := r.URL.Query().Get("host")
 		if domain == "127.0.0.1" {
 			// shortcut for healthy checkup done by WaitUntilRequestSucceeds
@@ -579,56 +607,19 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 
 		opts.apiCalled = true
 
-		if opts.pagesStatusResponse != 0 {
-			w.WriteHeader(opts.pagesStatusResponse)
-			return
-		}
-
-		chdir := false
-		clean := testhelpers.ChdirInPath(t, "../../", &chdir)
-		defer clean()
-		wd, err := os.Getwd()
-		require.NoError(t, err)
-
-		wd += "/shared/pages"
-		fmt.Printf("IN MOCK DOMAIN?: %q- - wd: %q\n", domain, wd)
 		switch domain {
 		case "zip-from-disk.gitlab.io":
-			err := json.NewEncoder(w).Encode(testdata.ZipFromFile(wd))
+			err := json.NewEncoder(w).Encode(testdata.ZipFromFile(opts.pagesRoot))
 			require.NoError(t, err)
-			fmt.Printf("WE MUST HAVE COME HERE\n\n\n")
 			return
 		case "zip-from-disk-not-found.gitlab.io":
-			err := json.NewEncoder(w).Encode(testdata.ZipFromFileNotFound(wd))
+			err := json.NewEncoder(w).Encode(testdata.ZipFromFileNotFound(opts.pagesRoot))
 			require.NoError(t, err)
 			return
+		default:
+			lookupFromFile(t, domain, w)
 		}
-
-		path := "shared/lookups/" + domain + ".json"
-
-		fixture, err := os.Open(path)
-		if os.IsNotExist(err) {
-			w.WriteHeader(http.StatusNoContent)
-
-			t.Logf("GitLab domain %s source stub served 204", domain)
-			return
-		}
-
-		defer fixture.Close()
-		require.NoError(t, err)
-
-		_, err = io.Copy(w, fixture)
-		require.NoError(t, err)
-
-		t.Logf("GitLab domain %s source stub served lookup", domain)
 	}
-	if opts.pagesHandler != nil {
-		pagesHandler = opts.pagesHandler
-	}
-
-	mux.HandleFunc("/api/v4/internal/pages", pagesHandler)
-
-	return httptest.NewServer(mux)
 }
 
 func newConfigFile(t *testing.T, configs ...string) string {
