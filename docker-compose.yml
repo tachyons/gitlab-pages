@@ -28,6 +28,7 @@ services:
   webservice:
     image: ${GITLAB_WEBSERVICE_IMAGE}
     environment:
+      - "WAIT_FOR_TIMEOUT=${WAIT_FOR_TIMEOUT}"
       - "GITLAB_WEBSERVER=PUMA"
       - "GITLAB_HOST=localhost"
       - "GITLAB_PORT=${HOST_PORT}"
@@ -49,6 +50,7 @@ services:
       - ./dev/pages-secret/.gitlab_pages_secret:/srv/gitlab/.gitlab_pages_secret
       - uploads:/srv/gitlab/public/uploads
       - shared-dir:/srv/gitlab/shared
+      - pages:/srv/gitlab/shared/pages
   workhorse:
     image: ${GITLAB_WORKHORSE_IMAGE}
     environment:
@@ -67,6 +69,7 @@ services:
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/etc/gitlab/gitlab-workhorse/secret
       - uploads:/srv/gitlab/public/uploads
       - shared-dir:/srv/gitlab/shared
+      - pages:/srv/gitlab/shared/pages
   sidekiq:
     image: ${GITLAB_SIDEKIQ_IMAGE}
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
@@ -74,6 +77,7 @@ services:
       - postgres
       - redis
     environment:
+      - "WAIT_FOR_TIMEOUT=${WAIT_FOR_TIMEOUT}"
       - "GITLAB_HOST=localhost"
       - "GITLAB_PORT=${HOST_PORT}"
       - "GITALY_FEATURE_DEFAULT_ON=1"
@@ -82,6 +86,7 @@ services:
     volumes:
       - ./dev/sidekiq-config:/var/opt/gitlab/config/templates
       - shared-dir:/srv/gitlab/shared
+      - pages:/srv/gitlab/shared/pages
   shell:
     image: ${GITLAB_SHELL_IMAGE}
     environment:
@@ -113,6 +118,7 @@ services:
       - ./dev/pages-config/pages-config.erb:/etc/gitlab-pages/templates/pages-config.erb
       - ./dev/pages-secret/.gitlab_pages_secret:/etc/gitlab-pages/.gitlab_pages_secret
       - shared-dir:/srv/gitlab/shared
+      - pages:/srv/gitlab/shared/pages
 volumes:
   db-upgrade:
     driver: local
@@ -121,6 +127,12 @@ volumes:
       device: tmpfs
       o: "size=10M"
   uploads:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=100M"
+  pages:
     driver: local
     driver_opts:
       type: tmpfs
