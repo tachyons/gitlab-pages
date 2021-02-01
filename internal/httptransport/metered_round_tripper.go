@@ -52,7 +52,7 @@ func ReconfigureMeteredRoundTripper(rt http.RoundTripper, opts ...Opt) http.Roun
 		return nil
 	}
 
-	t := mrt.Transport()
+	t := mrt.next.(*http.Transport)
 	for _, opt := range opts {
 		opt(t)
 	}
@@ -60,16 +60,6 @@ func ReconfigureMeteredRoundTripper(rt http.RoundTripper, opts ...Opt) http.Roun
 	mrt.next = t
 
 	return mrt
-}
-
-// Transport gets a clone of the meteredRoundTripper's transport
-func (mrt *meteredRoundTripper) Transport() *http.Transport {
-	t, ok := mrt.next.(*http.Transport)
-	if !ok {
-		return nil
-	}
-
-	return t.Clone()
 }
 
 // withRoundTripper takes an original RoundTripper, reports metrics based on the
