@@ -27,21 +27,19 @@ var (
 	// hardcoded values below.
 	listeners = []ListenSpec{
 		{"http", "127.0.0.1", httpPort},
+		{"http", "::1", httpPort},
 		{"https", "127.0.0.1", httpsPort},
+		{"https", "::1", httpsPort},
 		{"proxy", "127.0.0.1", httpProxyPort},
+		{"proxy", "::1", httpProxyPort},
 		{"https-proxyv2", "127.0.0.1", httpProxyV2Port},
-		// TODO: re-enable IPv6 listeners once https://gitlab.com/gitlab-com/gl-infra/infrastructure/-/issues/12258 is resolved
-		//  https://gitlab.com/gitlab-org/gitlab-pages/-/issues/528
-		// {"http", "::1", httpPort},
-		// {"https", "::1", httpsPort},
-		// {"proxy", "::1", httpProxyPort},
-		// {"https-proxyv2", "::1", httpProxyV2Port},
+		{"https-proxyv2", "::1", httpProxyV2Port},
 	}
 
 	httpListener         = listeners[0]
-	httpsListener        = listeners[1]
-	proxyListener        = listeners[2]
-	httpsProxyv2Listener = listeners[3]
+	httpsListener        = listeners[2]
+	proxyListener        = listeners[4]
+	httpsProxyv2Listener = listeners[6]
 )
 
 func TestMain(m *testing.M) {
