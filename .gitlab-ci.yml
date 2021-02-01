@@ -81,6 +81,9 @@ workflow:
 .if_gitlab_master: &if_gitlab_master
   if: '$GITLAB_VERSION == "master"'
 
+.if_stable_branch: &if_stable_branch
+  if: '$CI_COMMIT_TAG =~ /-stable$/'
+
 .except-deps: &except-deps
   rules:
     - <<: *if_deps_pipeline
@@ -1211,8 +1214,9 @@ ubi-release-for-certification:
   services:
     - docker:19.03.0-dind
   rules:
-    - <<: *if_ubi_pipeline
     - <<: *if_ubi_tag
+    - <<: *if_ubi_pipeline
+      when: manual
   stage: release
   retry: 1
   script:
