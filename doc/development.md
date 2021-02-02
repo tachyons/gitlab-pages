@@ -43,6 +43,43 @@ This is because `/etc/hosts` does not support wildcard hostnames.
 An alternative is to use [`dnsmasq`](https://wiki.debian.org/dnsmasq) to handle wildcard hostnames.
 
 
+### Enable access control
+
+Pages access control is disabled by default. To enable it:
+
+1. Modify your config/gitlab.yml file:
+
+```rb
+pages:
+  access_control: true
+```
+
+2. Restart GitLab (if running via GDK run: `gdk restart`)
+
+**NOTE**:
+Running `gdk reconfigure` will overwrite the value of `access_control` in `config/gitlab.yml`.
+
+3. In your local GitLab instance, navigate to `/admin/applications`
+4. Create an [OAuth application](https://docs.gitlab.com/ee/integration/oauth_provider.html#add-an-application-through-the-profile)
+5. Set the value of your redirect-uri to the `pages-domain` authorization endpoint, for example `http://192.168.1.135.nip.io:8090/auth`
+6. Add the following lines to your `gitlab-pages.conf` file
+
+```conf
+## the following are only needed if you want to test auth for private projects
+auth-client-id=$CLIENT_ID # generate a new OAuth application in http://127.0.0.1:3000/admin/applications
+auth-client-secret=$CLIENT_SECRET # obtained when generating an OAuth application
+auth-secret= $SOME_RANDOM_STRING # should be at least 32 bytes long
+auth-redirect-uri=http://192.168.1.135.nip.io:8090/auth
+```
+
+7. If running Pages inside the GDK, you can add the `gitlab-pages.conf` file to the `protected_config_files` section under `gdk` in your `gdk.yml` file
+
+```yaml
+gdk:
+  protected_config_files:
+  - 'gitlab-pages/gitlab-pages.conf'
+```
+
 ## Linting
 
 ```sh
