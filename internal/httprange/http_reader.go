@@ -54,7 +54,7 @@ var _ vfs.SeekableFile = &Reader{}
 var httpClient = &http.Client{
 	// The longest time the request can be executed
 	Timeout: 30 * time.Minute,
-	Transport: httptransport.NewTransportWithMetrics(
+	Transport: httptransport.NewMeteredRoundTripper(
 		"httprange_client",
 		metrics.HTTPRangeTraceDuration,
 		metrics.HTTPRangeRequestDuration,

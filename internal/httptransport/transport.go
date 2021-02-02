@@ -1,18 +1,13 @@
 package httptransport
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"net"
 	"net/http"
-	"net/http/httptrace"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,15 +28,6 @@ var (
 	InternalTransport = newInternalTransport()
 )
 
-type meteredRoundTripper struct {
-	next        http.RoundTripper
-	name        string
-	tracer      *prometheus.HistogramVec
-	durations   *prometheus.HistogramVec
-	counter     *prometheus.CounterVec
-	ttfbTimeout time.Duration
-}
-
 func newInternalTransport() *http.Transport {
 	return &http.Transport{
 		DialTLS: func(network, addr string) (net.Conn, error) {
@@ -56,20 +42,6 @@ func newInternalTransport() *http.Transport {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ResponseHeaderTimeout: 15 * time.Second,
 		ExpectContinueTimeout: 15 * time.Second,
-	}
-}
-
-// NewTransportWithMetrics will create a custom http.RoundTripper that can be used with an http.Client.
-// The RoundTripper will report metrics based on the collectors passed.
-func NewTransportWithMetrics(name string, tracerVec, durationsVec *prometheus.
-	HistogramVec, counterVec *prometheus.CounterVec, ttfbTimeout time.Duration) http.RoundTripper {
-	return &meteredRoundTripper{
-		next:        InternalTransport,
-		name:        name,
-		tracer:      tracerVec,
-		durations:   durationsVec,
-		counter:     counterVec,
-		ttfbTimeout: ttfbTimeout,
 	}
 }
 
@@ -95,48 +67,4 @@ func loadPool() {
 	// Go does not load SSL_CERT_FILE and SSL_CERT_DIR on darwin systems so we need to
 	// load them manually in OSX. See https://golang.org/src/crypto/x509/root_unix.go
 	loadExtraCerts()
-}
-
-// withRoundTripper takes an original RoundTripper, reports metrics based on the
-// gauge and counter collectors passed
-func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	start := time.Now()
-
-	ctx := httptrace.WithClientTrace(r.Context(), mrt.newTracer(start))
-	ctx, cancel := context.WithCancel(ctx)
-
-	timer := time.AfterFunc(mrt.ttfbTimeout, cancel)
-	defer timer.Stop()
-
-	r = r.WithContext(ctx)
-
-	resp, err := mrt.next.RoundTrip(r)
-	if err != nil {
-		mrt.counter.WithLabelValues("error").Inc()
-		return nil, err
-	}
-
-	mrt.logResponse(r, resp)
-
-	statusCode := strconv.Itoa(resp.StatusCode)
-	mrt.durations.WithLabelValues(statusCode).Observe(time.Since(start).Seconds())
-	mrt.counter.WithLabelValues(statusCode).Inc()
-
-	return resp, nil
-}
-
-func (mrt *meteredRoundTripper) logResponse(req *http.Request, resp *http.Response) {
-	if log.GetLevel() == log.TraceLevel {
-		l := log.WithFields(log.Fields{
-			"client_name":     mrt.name,
-			"req_url":         req.URL.String(),
-			"res_status_code": resp.StatusCode,
-		})
-
-		for header, value := range resp.Header {
-			l = l.WithField(strings.ToLower(header), strings.Join(value, ";"))
-		}
-
-		l.Traceln("response")
-	}
 }
