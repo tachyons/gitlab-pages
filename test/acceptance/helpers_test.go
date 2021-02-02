@@ -539,11 +539,11 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 
 type stubOpts struct {
 	apiCalled           bool
-	pagesRoot           string
 	statusReadyCount    int
 	statusHandler       http.HandlerFunc
 	pagesHandler        http.HandlerFunc
 	pagesStatusResponse int
+	pagesRoot           string
 }
 
 func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
@@ -606,6 +606,11 @@ func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
 		}
 
 		opts.apiCalled = true
+
+		if opts.pagesStatusResponse != 0 {
+			w.WriteHeader(opts.pagesStatusResponse)
+			return
+		}
 
 		switch domain {
 		case "zip-from-disk.gitlab.io":
