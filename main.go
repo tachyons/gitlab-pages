@@ -343,7 +343,7 @@ func appMain() {
 	}
 
 	if *daemonUID != 0 || *daemonGID != 0 {
-		if err := daemonize(config, *daemonUID, *daemonGID, *daemonInplaceChroot); err != nil {
+		if err := daemonize(config, *daemonUID, *daemonGID, *daemonInplaceChroot, *pagesRoot); err != nil {
 			errortracking.Capture(err)
 			fatal(err, "could not create pages daemon")
 		}

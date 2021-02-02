@@ -17,7 +17,7 @@ race: .GOPATH/.ok gitlab-pages
 	CGO_ENABLED=1 go test -race $(if $V,-v) $(allpackages)
 
 acceptance: .GOPATH/.ok gitlab-pages
-	go test $(if $V,-v) ./test/acceptance 2>&1 | tee tests.out
+	go test $(if $V,-v) ./test/acceptance ${ARGS} 2>&1 | tee tests.out
 
 bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ $(allpackages)

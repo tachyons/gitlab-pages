@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 	"syscall"
 	"time"
 
@@ -143,6 +144,21 @@ func (j *Jail) Dispose() error {
 // MkDir enqueue a mkdir operation at jail building time
 func (j *Jail) MkDir(path string, perm os.FileMode) {
 	j.directories = append(j.directories, pathAndMode{path: j.ExternalPath(path), mode: perm})
+}
+
+// MkDirAll enqueue a mkdir operation at jail building time for all directories
+// in dir to be created one by one
+func (j *Jail) MkDirAll(dir string, perm os.FileMode) {
+	subPaths := strings.Split(dir, "/")
+	currentParent := ""
+
+	// skip first subPath as is an empty string given dir starts with "/"
+	for _, subPath := range subPaths[1:] {
+		currentPath := path.Join(currentParent, subPath)
+		j.directories = append(j.directories, pathAndMode{path: j.ExternalPath(currentPath), mode: perm})
+
+		currentParent = currentPath
+	}
 }
 
 // CharDev enqueues an mknod operation for the given character device at jail
