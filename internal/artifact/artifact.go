@@ -52,7 +52,7 @@ func New(server string, timeoutSeconds int, pagesDomain string) *Artifact {
 		suffix: "." + strings.ToLower(pagesDomain),
 		client: &http.Client{
 			Timeout:   time.Second * time.Duration(timeoutSeconds),
-			Transport: httptransport.InternalTransport,
+			Transport: httptransport.DefaultTransport,
 		},
 	}
 }

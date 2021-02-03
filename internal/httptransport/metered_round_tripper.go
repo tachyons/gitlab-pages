@@ -12,9 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Options to configure a http.Transport
-type Options func(transport *http.Transport)
-
 type meteredRoundTripper struct {
 	next        http.RoundTripper
 	name        string
@@ -26,40 +23,20 @@ type meteredRoundTripper struct {
 
 // NewMeteredRoundTripper will create a custom http.RoundTripper that can be used with an http.Client.
 // The RoundTripper will report metrics based on the collectors passed.
-func NewMeteredRoundTripper(name string, tracerVec, durationsVec *prometheus.
+func NewMeteredRoundTripper(transport *http.Transport, name string, tracerVec, durationsVec *prometheus.
 	HistogramVec, counterVec *prometheus.CounterVec, ttfbTimeout time.Duration) http.RoundTripper {
+	if transport == nil {
+		transport = DefaultTransport
+	}
+
 	return &meteredRoundTripper{
-		next:        InternalTransport,
+		next:        transport,
 		name:        name,
 		tracer:      tracerVec,
 		durations:   durationsVec,
 		counter:     counterVec,
 		ttfbTimeout: ttfbTimeout,
 	}
-}
-
-// WithFileProtocol option to be used while ReconfigureMeteredRoundTripper
-func WithFileProtocol(protocol string, rt http.RoundTripper) Options {
-	return func(transport *http.Transport) {
-		transport.RegisterProtocol(protocol, rt)
-	}
-}
-
-// ReconfigureMeteredRoundTripper clones meteredRoundTripper and applies options to the transport
-func ReconfigureMeteredRoundTripper(rt http.RoundTripper, opts ...Options) http.RoundTripper {
-	mrt, ok := rt.(*meteredRoundTripper)
-	if !ok {
-		return nil
-	}
-
-	t := clone(mrt.next.(*http.Transport))
-	for _, opt := range opts {
-		opt(t)
-	}
-
-	mrt.next = t
-
-	return mrt
 }
 
 // RoundTripper wraps the original http.Transport into a meteredRoundTripper which

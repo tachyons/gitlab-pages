@@ -24,11 +24,13 @@ var (
 
 	// only overridden by transport_darwin.go
 	loadExtraCerts = func() {}
-	// InternalTransport can be used with http.Client with TLS and certificates
-	InternalTransport = newInternalTransport()
+	// DefaultTransport can be used with http.Client with TLS and certificates
+	DefaultTransport = NewTransport()
 )
 
-func newInternalTransport() *http.Transport {
+// NewTransport initializes an http.Transport with a custom dialer that includes TLS Root CAs.
+// It sets default connection values such as timeouts and max idle connections.
+func NewTransport() *http.Transport {
 	return &http.Transport{
 		DialTLS: func(network, addr string) (net.Conn, error) {
 			return tls.Dial(network, addr, &tls.Config{RootCAs: pool()})
