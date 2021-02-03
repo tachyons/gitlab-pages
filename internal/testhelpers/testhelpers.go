@@ -1,10 +1,12 @@
 package testhelpers
 
 import (
+	"fmt"
 	"mime"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -54,4 +56,15 @@ func AssertLogContains(t *testing.T, wantLogEntry string, entries []*logrus.Entr
 
 		require.Contains(t, messages, wantLogEntry)
 	}
+}
+
+// ToFileProtocol appends the file:// protocol to the current os.Getwd
+// and formats path to be a full filepath
+func ToFileProtocol(t *testing.T, path string) string {
+	t.Helper()
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	return fmt.Sprintf("file://%s/%s", wd, path)
 }

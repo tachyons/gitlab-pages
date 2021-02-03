@@ -33,9 +33,11 @@ var (
 )
 
 func TestOpen(t *testing.T) {
-	zip, cleanup := openZipArchive(t, nil)
-	defer cleanup()
+	t.Run("open_from_server", runZipTest(t, testOpen, false))
+	t.Run("open_from_disk", runZipTest(t, testOpen, true))
+}
 
+func testOpen(t *testing.T, zip *zipArchive) {
 	tests := map[string]struct {
 		file            string
 		expectedContent string
@@ -190,9 +192,11 @@ func TestOpenCached(t *testing.T) {
 }
 
 func TestLstat(t *testing.T) {
-	zip, cleanup := openZipArchive(t, nil)
-	defer cleanup()
+	t.Run("lstat_from_server", runZipTest(t, testLstat, false))
+	t.Run("lstat_from_disk", runZipTest(t, testLstat, true))
+}
 
+func testLstat(t *testing.T, zip *zipArchive) {
 	tests := map[string]struct {
 		file         string
 		isDir        bool
@@ -270,9 +274,11 @@ func TestLstat(t *testing.T) {
 }
 
 func TestReadLink(t *testing.T) {
-	zip, cleanup := openZipArchive(t, nil)
-	defer cleanup()
+	t.Run("read_link_from_server", runZipTest(t, testReadLink, false))
+	t.Run("read_link_from_disk", runZipTest(t, testReadLink, true))
+}
 
+func testReadLink(t *testing.T, zip *zipArchive) {
 	tests := map[string]struct {
 		file        string
 		expectedErr error
@@ -314,7 +320,7 @@ func TestReadLink(t *testing.T) {
 
 func TestReadlinkCached(t *testing.T) {
 	var requests int64
-	zip, cleanup := openZipArchive(t, &requests)
+	zip, cleanup := openZipArchive(t, &requests, false)
 	defer cleanup()
 
 	t.Run("readlink first time", func(t *testing.T) {
@@ -370,7 +376,7 @@ func TestReadArchiveFails(t *testing.T) {
 	require.EqualError(t, err, os.ErrNotExist.Error())
 }
 
-func openZipArchive(t *testing.T, requests *int64) (*zipArchive, func()) {
+func openZipArchive(t *testing.T, requests *int64, fromDisk bool) (*zipArchive, func()) {
 	t.Helper()
 
 	if requests == nil {
@@ -382,14 +388,20 @@ func openZipArchive(t *testing.T, requests *int64) (*zipArchive, func()) {
 	fs := New(zipCfg).(*zipVFS)
 	zip := newArchive(fs, time.Second)
 
-	err := zip.openArchive(context.Background(), testServerURL+"/public.zip")
-	require.NoError(t, err)
+	if fromDisk {
+		fileName := testhelpers.ToFileProtocol(t, "group/zip.gitlab.io/public-without-dirs.zip")
+		err := zip.openArchive(context.Background(), fileName)
+		require.NoError(t, err)
+	} else {
+		err := zip.openArchive(context.Background(), testServerURL+"/public.zip")
+		require.NoError(t, err)
+		require.Equal(t, int64(3), atomic.LoadInt64(requests), "we expect three requests to open ZIP archive: size and two to seek central directory")
+	}
 
 	// public/ public/index.html public/404.html public/symlink.html
 	// public/subdir/ public/subdir/hello.html public/subdir/linked.html
 	// public/bad_symlink.html public/subdir/2bp3Qzs...
 	require.NotZero(t, zip.files)
-	require.Equal(t, int64(3), atomic.LoadInt64(requests), "we expect three requests to open ZIP archive: size and two to seek central directory")
 
 	return zip, func() {
 		cleanup()
@@ -401,8 +413,10 @@ func newZipFileServerURL(t *testing.T, zipFilePath string, requests *int64) (str
 
 	chdir := testhelpers.ChdirInPath(t, "../../../shared/pages", &chdirSet)
 
-	// TODO: add more tests about serving from file
-	httprange.InitClient("")
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	httprange.InitClient(wd)
 
 	m := http.NewServeMux()
 	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -473,5 +487,16 @@ func BenchmarkArchiveRead(b *testing.B) {
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			benchmarkArchiveRead(b, int64(size))
 		})
+	}
+}
+
+func runZipTest(t *testing.T, runTest func(t *testing.T, zip *zipArchive), fromDisk bool) func(t *testing.T) {
+	t.Helper()
+
+	return func(t *testing.T) {
+		zip, cleanup := openZipArchive(t, nil, fromDisk)
+		defer cleanup()
+
+		runTest(t, zip)
 	}
 }
