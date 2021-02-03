@@ -54,13 +54,6 @@ Pages access control is disabled by default. To enable it:
      access_control: true
    ```
 
-1. Modify your `config/gitlab.yml` file:
-
-   ```rb
-   pages:
-     access_control: true
-   ```
-
 1. Restart GitLab (if running through the GDK, run `gdk restart`). Note that running
    `gdk reconfigure` overwrites the value of `access_control` in `config/gitlab.yml`.
 
