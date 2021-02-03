@@ -47,7 +47,7 @@ An alternative is to use [`dnsmasq`](https://wiki.debian.org/dnsmasq) to handle 
 
 Pages access control is disabled by default. To enable it:
 
-1. Modify your config/gitlab.yml file:
+1. Modify your `config/gitlab.yml` file:
 
 ```rb
 pages:
@@ -79,6 +79,103 @@ gdk:
   protected_config_files:
   - 'gitlab-pages/gitlab-pages.conf'
 ```
+
+## Developing inside the GDK
+
+This is an example on how to develop GitLab Pages inside the [GitLab Development Kit (gdk)](https://gitlab.com/gitlab-org/gitlab-development-kit).
+
+1. Prepare your GDK environment https://gitlab.com/gitlab-org/gitlab-development-kit#how-to-install-gdk. We will refer `$GDK_ROOT` as the directory where you cloned the GDK.
+1. Add the following lines to your `gdk.yml` file
+
+    ```yaml
+    # You can use dnsmasq to use a different hostname https://www.tecmint.com/setup-a-dns-dhcp-server-using-dnsmasq-on-centos-rhel/
+    hostname: 127.0.0.1.nip.io
+    gitlab_pages:
+      auto_update: true
+      enabled: true
+      port: 3010
+      secret_file: $GDK_ROOT/gitlab-pages-secret # run make gitlab-pages-secret in your $GDK_ROOT
+      verbose: true
+      host: pages.127.0.0.1.nip.io
+
+    # enable Object Storage to use the latest features
+    object_store:
+      enabled: true
+      port: 9000
+
+    # only needed if you are using ssh
+    repositories:
+      gitlab_pages: git@gitlab.com:gitlab-org/gitlab-pages.git
+
+    # add this line to keep changes to your gitlab-pages.conf file intact after running `gdk reconfigure`
+    gdk:
+      protected_config_files:
+      - 'gitlab-pages/gitlab-pages.conf'
+
+    sshd:
+      enabled: true
+      listen_port: 2222
+      user: your-uuser
+    ```
+
+1. Reconfigure the GDK by running `gdk reconfigure`
+1. Go to `$GDK_ROOT/gitlab-pages`
+
+    ```sh
+    cd $GDK_ROOT/gitlab-pages
+    ```
+
+    **NOTE**:
+    Running `gdk reconfigure` will override your `gitlab-pages.conf` file and set the default flags. Make sure you add the file
+    to the `protected_config_files:` YAML node in your `gdk.yml` file.
+
+1. Create/edit the file `$GDK_ROOT/gitlab-pages/gitlab-pages.conf` and add the following lines
+
+    ```conf
+    # the port where you want Pages to listen to, must match the port in `gdk.yml`
+    listen-http=:3010
+    artifacts-server=http://127.0.0.1.nip.io:3000/api/v4
+    pages-root=$GDK_ROOT/gitlab/shared/pages # absolute path inside $GDK_ROOT
+    pages-domain=pages.127.0.0.1.nip.io
+    internal-gitlab-server=http://127.0.0.1.nip.io:3000
+    api-secret-key=$GDK_ROOT/gitlab-pages-secret # run make gitlab-pages-secret in your $GDK_ROOT
+    domain-config-source=gitlab # preferred way, requires api-secret-key and internal-gitlab-server
+    log-verbose=true
+    ## the following settings are only needed if you want to test auth for private projects
+    auth-client-id=$CLIENT_ID # generate a new OAuth application in http://127.0.0.1.nip.io:3000/admin/applications
+    auth-client-secret=$CLIENT_SECRET # obtained when generating an OAuth application
+    auth-secret= $SOME_RANDOM_STRING # should be at least 32 bytes long
+    auth-redirect-uri=http://pages.127.0.0.1.nip.io:3010/auth
+    ```
+
+    You can define any flags available in [main.go](https://gitlab.com/gitlab-org/gitlab-pages/-/blob/ec16301b72b5d8370ccdcd86088440cca409cd8b/main.go#L40).
+
+1. Start developing!
+1. To test your changes manually you can run:
+
+    ```sh
+    # Inside $GDK_ROOT/gitlab-pages
+    $ make
+    $ gdk restart gitlab-pages
+    $ gdk tail gitlab-pages
+
+    # or one-liner
+    make && gdk restart gitlab-pages && gdk tail gitlab-pages
+    ```
+
+1. An alternative is to run Pages manually
+
+    ```sh
+    # Inside $GDK_ROOT/gitlab-pages
+    $ gdk stop gitlab-pages
+    $ make # calls go build in this project and creates a `gitlab-pages` binary under bin/
+    # start daemon manually with a config
+    $ ./bin/gitlab-pages -config gitlab-pages.conf
+    ```
+
+1. Create a project in your GDK and deploy a Pages project. You can follow [this tutorial](https://docs.gitlab.com/ee/user/project/pages/getting_started/pages_from_scratch.html).
+1. You will need to [configure GitLab Runner in your GDK](https://gitlab.com/gitlab-org/gitlab-development-kit/-/blob/master/doc/howto/runner.md) in order to deploy your Pages site.
+1. Visit your project URL! You can see the URL under `Settings > Pages` for your project or `http://127.0.0.1.nip.io:3000/user/project-name/pages`
 
 ## Linting
 
