@@ -13,7 +13,7 @@ func TestSeekAndRead(t *testing.T) {
 	testServer := newTestServer(t, nil)
 	defer testServer.Close()
 
-	resource, err := NewResource(context.Background(), testServer.URL+"/data")
+	resource, err := NewResource(context.Background(), testServer.URL+"/data", testClient)
 	require.NoError(t, err)
 
 	tests := map[string]struct {

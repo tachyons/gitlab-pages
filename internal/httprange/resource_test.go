@@ -91,7 +91,7 @@ func TestNewResource(t *testing.T) {
 			}))
 			defer testServer.Close()
 
-			got, err := NewResource(context.Background(), testServer.URL+tt.url)
+			got, err := NewResource(context.Background(), testServer.URL+tt.url, testClient)
 			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.expectedErrMsg)
