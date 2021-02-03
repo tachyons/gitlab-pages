@@ -2,7 +2,6 @@ package httpfs
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -40,7 +39,6 @@ func (p *fileSystemPaths) Open(name string) (http.File, error) {
 	}
 
 	for _, allowedPath := range p.allowedPaths {
-		fmt.Printf("hasPrefix: %t\n", strings.HasPrefix(absPath, allowedPath+"/"))
 		if strings.HasPrefix(absPath, allowedPath+"/") {
 			return os.Open(absPath)
 		}

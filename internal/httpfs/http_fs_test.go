@@ -2,8 +2,13 @@ package httpfs
 
 import (
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"testing"
+	"time"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 
 	"github.com/stretchr/testify/require"
 )
@@ -69,6 +74,93 @@ func TestFSOpen(t *testing.T) {
 			require.NoError(t, err)
 
 			content, err := ioutil.ReadAll(got)
+			require.NoError(t, err)
+
+			require.Equal(t, test.expectedContent, string(content))
+		})
+	}
+}
+
+func TestFileSystemPathCanServeHTTP(t *testing.T) {
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	tests := map[string]struct {
+		path               string
+		fileName           string
+		escapeURL          bool
+		expectedStatusCode int
+		expectedContent    string
+	}{
+		"file_exists_in_path": {
+			path:               wd + "/testdata",
+			fileName:           "file1.txt",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "file1.txt\n",
+		},
+		"file_exists_in_sub_dir_path": {
+			path:               wd + "/testdata",
+			fileName:           "subdir/file2.txt",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "subdir/file2.txt\n",
+		},
+		"file_not_allowed_in_path": {
+			path:               wd + "/testdata/subdir",
+			fileName:           "../file1.txt",
+			expectedStatusCode: http.StatusForbidden,
+			expectedContent:    "403 Forbidden\n",
+		},
+		"file_does_not_exist": {
+			path:               wd + "/testdata",
+			fileName:           "unknown.txt",
+			expectedStatusCode: http.StatusNotFound,
+			expectedContent:    "404 page not found\n",
+		},
+		"escaped_url_is_invalid": {
+			path:               wd + "/testdata",
+			fileName:           "file1.txt",
+			escapeURL:          true,
+			expectedStatusCode: http.StatusForbidden,
+			expectedContent:    "403 Forbidden\n",
+		},
+		"dot_dot_in_URL": {
+			path:               wd + "/testdata",
+			fileName:           "../testdata/file1.txt",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "file1.txt\n",
+		},
+		"dot_dot_in_URL_outside_of_allowed_path": {
+			path:               wd + "/testdata",
+			fileName:           "../file1.txt",
+			expectedStatusCode: http.StatusForbidden,
+			expectedContent:    "403 Forbidden\n",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			transport := httptransport.NewTransport()
+			transport.RegisterProtocol("file", http.NewFileTransport(NewFileSystemPath([]string{test.path})))
+
+			client := &http.Client{
+				Transport: transport,
+				Timeout:   time.Second,
+			}
+
+			reqURL := "file://" + test.path + "/" + test.fileName
+			if test.escapeURL {
+				reqURL = url.PathEscape(reqURL)
+			}
+
+			req, err := http.NewRequest("GET", reqURL, nil)
+			require.NoError(t, err)
+
+			res, err := client.Do(req)
+			require.NoError(t, err)
+			defer res.Body.Close()
+
+			require.Equal(t, test.expectedStatusCode, res.StatusCode)
+			content, err := ioutil.ReadAll(res.Body)
 			require.NoError(t, err)
 
 			require.Equal(t, test.expectedContent, string(content))
