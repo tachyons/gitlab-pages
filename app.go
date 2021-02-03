@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
+
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
@@ -526,6 +528,9 @@ func runApp(config appConfig) {
 	if err := zip.Instance().Reconfigure(c); err != nil {
 		fatal(err, "failed to reconfigure zip VFS")
 	}
+
+	// must init http client for httprange package
+	httprange.InitClient(config.PagesRoot)
 
 	a.Run()
 }

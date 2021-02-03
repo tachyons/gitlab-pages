@@ -401,6 +401,9 @@ func newZipFileServerURL(t *testing.T, zipFilePath string, requests *int64) (str
 
 	chdir := testhelpers.ChdirInPath(t, "../../../shared/pages", &chdirSet)
 
+	// TODO: add more tests about serving from file
+	httprange.InitClient("")
+
 	m := http.NewServeMux()
 	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if requests != nil {
