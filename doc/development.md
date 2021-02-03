@@ -53,7 +53,6 @@ Pages access control is disabled by default. To enable it:
    pages:
      access_control: true
    ```
-```
 
 1. Modify your `config/gitlab.yml` file:
 
