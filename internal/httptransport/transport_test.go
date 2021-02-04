@@ -125,11 +125,11 @@ func (mrt *mockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) 
 }
 
 func TestInternalTransportShouldHaveCustomConnectionPoolSettings(t *testing.T) {
-	require.EqualValues(t, 100, InternalTransport.MaxIdleConns)
-	require.EqualValues(t, 100, InternalTransport.MaxIdleConnsPerHost)
-	require.EqualValues(t, 0, InternalTransport.MaxConnsPerHost)
-	require.EqualValues(t, 90*time.Second, InternalTransport.IdleConnTimeout)
-	require.EqualValues(t, 10*time.Second, InternalTransport.TLSHandshakeTimeout)
-	require.EqualValues(t, 15*time.Second, InternalTransport.ResponseHeaderTimeout)
-	require.EqualValues(t, 15*time.Second, InternalTransport.ExpectContinueTimeout)
+	require.EqualValues(t, 100, DefaultTransport.MaxIdleConns)
+	require.EqualValues(t, 100, DefaultTransport.MaxIdleConnsPerHost)
+	require.EqualValues(t, 0, DefaultTransport.MaxConnsPerHost)
+	require.EqualValues(t, 90*time.Second, DefaultTransport.IdleConnTimeout)
+	require.EqualValues(t, 10*time.Second, DefaultTransport.TLSHandshakeTimeout)
+	require.EqualValues(t, 15*time.Second, DefaultTransport.ResponseHeaderTimeout)
+	require.EqualValues(t, 15*time.Second, DefaultTransport.ExpectContinueTimeout)
 }
