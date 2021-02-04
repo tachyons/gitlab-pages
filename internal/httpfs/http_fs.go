@@ -1,7 +1,14 @@
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Based on https://golang.org/src/net/http/fs.go
+
 package httpfs
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -21,6 +28,15 @@ type fileSystemPaths struct {
 // NewFileSystemPath creates a new fileSystemPaths that can be used to register
 // a file:// protocol with an http.Transport
 func NewFileSystemPath(allowedPaths []string) http.FileSystem {
+	for k, path := range allowedPaths {
+		var err error
+
+		allowedPaths[k], err = filepath.Abs(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	return &fileSystemPaths{
 		allowedPaths: allowedPaths,
 	}
