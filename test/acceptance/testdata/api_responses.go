@@ -13,6 +13,7 @@ type responseFn func(string) api.VirtualDomain
 var DomainResponses = map[string]responseFn{
 	"zip-from-disk.gitlab.io":           ZipFromFile,
 	"zip-from-disk-not-found.gitlab.io": ZipFromFileNotFound,
+	"zip-not-allowed-path.gitlab.io":    ZipFromNotAllowedPath,
 }
 
 // ZipFromFile response for zip.gitlab.io
@@ -36,7 +37,7 @@ func ZipFromFile(wd string) api.VirtualDomain {
 	}
 }
 
-// ZipFromFile response for zip.gitlab.io
+// ZipFromFileNotFound response for zip-from-disk-not-found.gitlab.io
 func ZipFromFileNotFound(wd string) api.VirtualDomain {
 	return api.VirtualDomain{
 		Certificate: "",
@@ -50,6 +51,28 @@ func ZipFromFileNotFound(wd string) api.VirtualDomain {
 				Source: api.Source{
 					Type:       "zip",
 					Path:       fmt.Sprintf("file://%s/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/unknown.zip", wd),
+					Serverless: api.Serverless{},
+				},
+			},
+		},
+	}
+}
+
+// ZipFromNotAllowedPath response for zip-not-allowed-path.gitlab.io
+func ZipFromNotAllowedPath(wd string) api.VirtualDomain {
+	return api.VirtualDomain{
+		Certificate: "",
+		Key:         "",
+		LookupPaths: []api.LookupPath{
+			{
+				ProjectID:     123,
+				AccessControl: false,
+				HTTPSOnly:     false,
+				Prefix:        "/",
+				Source: api.Source{
+					Type: "zip",
+					// path outside of `pages-root`
+					Path:       "file:///some/random/path/public.zip",
 					Serverless: api.Serverless{},
 				},
 			},
