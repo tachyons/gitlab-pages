@@ -62,7 +62,8 @@ func TestFSOpen(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := NewFileSystemPath(test.allowedPaths)
+			p, err := NewFileSystemPath(test.allowedPaths)
+			require.NoError(t, err)
 
 			got, err := p.Open(test.fileName)
 			if test.expectedErrMsg != "" {
@@ -140,7 +141,10 @@ func TestFileSystemPathCanServeHTTP(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			transport := httptransport.NewTransport()
-			transport.RegisterProtocol("file", http.NewFileTransport(NewFileSystemPath([]string{test.path})))
+			fs, err := NewFileSystemPath([]string{test.path})
+			require.NoError(t, err)
+
+			transport.RegisterProtocol("file", http.NewFileTransport(fs))
 
 			client := &http.Client{
 				Transport: transport,

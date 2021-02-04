@@ -8,7 +8,6 @@ package httpfs
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -27,19 +26,19 @@ type fileSystemPaths struct {
 
 // NewFileSystemPath creates a new fileSystemPaths that can be used to register
 // a file:// protocol with an http.Transport
-func NewFileSystemPath(allowedPaths []string) http.FileSystem {
+func NewFileSystemPath(allowedPaths []string) (http.FileSystem, error) {
 	for k, path := range allowedPaths {
 		var err error
 
 		allowedPaths[k], err = filepath.Abs(path)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
 
 	return &fileSystemPaths{
 		allowedPaths: allowedPaths,
-	}
+	}, nil
 }
 
 // Open a file by name if it exists inside the allowedPaths
