@@ -11,17 +11,17 @@ variables:
   DNF_OPTS: '--disableplugin=subscription-manager'
 
 stages:
-  - prepare
-  - prepare:phase-one
-  - prepare:phase-two
-  - prepare:phase-three
-  - prepare:phase-four
-  - phase-one
-  - phase-two
-  - phase-three
-  - phase-four
-  - phase-five
-  - phase-six
+#  - prepare
+#  - prepare:phase-one
+#  - prepare:phase-two
+#  - prepare:phase-three
+#  - prepare:phase-four
+#  - phase-one
+#  - phase-two
+#  - phase-three
+#  - phase-four
+#  - phase-five
+#  - phase-six
   - release
 
 workflow:
