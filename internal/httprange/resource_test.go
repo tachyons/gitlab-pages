@@ -10,10 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	InitClient("")
-}
-
 func urlValue(url string) atomic.Value {
 	v := atomic.Value{}
 	v.Store(url)

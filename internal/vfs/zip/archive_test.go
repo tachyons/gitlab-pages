@@ -385,7 +385,15 @@ func openZipArchive(t *testing.T, requests *int64, fromDisk bool) (*zipArchive, 
 
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", requests)
 
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	zipCfg.AllowedPaths = []string{wd}
+
 	fs := New(zipCfg).(*zipVFS)
+	err = fs.Reconfigure(&config.Config{Zip: zipCfg})
+	require.NoError(t, err)
+
 	zip := newArchive(fs, time.Second)
 
 	if fromDisk {
@@ -412,11 +420,6 @@ func newZipFileServerURL(t *testing.T, zipFilePath string, requests *int64) (str
 	t.Helper()
 
 	chdir := testhelpers.ChdirInPath(t, "../../../shared/pages", &chdirSet)
-
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-
-	httprange.InitClient(wd)
 
 	m := http.NewServeMux()
 	m.HandleFunc("/public.zip", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
