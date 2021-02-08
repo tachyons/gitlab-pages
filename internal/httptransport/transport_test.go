@@ -55,7 +55,7 @@ func Test_withRoundTripper(t *testing.T) {
 				timeout: time.Nanosecond,
 			}
 
-			mtr := &MeteredRoundTripper{next: next, durations: histVec, counter: counterVec, ttfbTimeout: DefaultTTFBTimeout}
+			mtr := &meteredRoundTripper{next: next, durations: histVec, counter: counterVec, ttfbTimeout: DefaultTTFBTimeout}
 			r := httptest.NewRequest("GET", "/", nil)
 
 			res, err := mtr.RoundTrip(r)
@@ -86,7 +86,7 @@ func TestRoundTripTTFBTimeout(t *testing.T) {
 		err:     nil,
 	}
 
-	mtr := &MeteredRoundTripper{next: next, durations: histVec, counter: counterVec, ttfbTimeout: time.Nanosecond}
+	mtr := &meteredRoundTripper{next: next, durations: histVec, counter: counterVec, ttfbTimeout: time.Nanosecond}
 	req, err := http.NewRequest("GET", "https://gitlab.com", nil)
 	require.NoError(t, err)
 

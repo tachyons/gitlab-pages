@@ -12,9 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// MeteredRoundTripper is a custom http.Transport that implements the http.RoundTripper interface.
-// It holds prometheus metrics to report connection usage and durations.
-type MeteredRoundTripper struct {
+type meteredRoundTripper struct {
 	next        http.RoundTripper
 	name        string
 	tracer      *prometheus.HistogramVec
@@ -31,7 +29,7 @@ func NewMeteredRoundTripper(transport *http.Transport, name string, tracerVec, d
 		transport = DefaultTransport
 	}
 
-	return &MeteredRoundTripper{
+	return &meteredRoundTripper{
 		next:        transport,
 		name:        name,
 		tracer:      tracerVec,
@@ -41,9 +39,9 @@ func NewMeteredRoundTripper(transport *http.Transport, name string, tracerVec, d
 	}
 }
 
-// RoundTrip wraps the original http.Transport into a MeteredRoundTripper which
+// RoundTripper wraps the original http.Transport into a meteredRoundTripper which
 // reports metrics on request duration, tracing and request count
-func (mrt *MeteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	start := time.Now()
 
 	ctx := httptrace.WithClientTrace(r.Context(), mrt.newTracer(start))
@@ -69,7 +67,7 @@ func (mrt *MeteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 	return resp, nil
 }
 
-func (mrt *MeteredRoundTripper) logResponse(req *http.Request, resp *http.Response) {
+func (mrt *meteredRoundTripper) logResponse(req *http.Request, resp *http.Response) {
 	if log.GetLevel() == log.TraceLevel {
 		l := log.WithFields(log.Fields{
 			"client_name":     mrt.name,
@@ -83,9 +81,4 @@ func (mrt *MeteredRoundTripper) logResponse(req *http.Request, resp *http.Respon
 
 		l.Traceln("response")
 	}
-}
-
-// RegisterProtocol calls the RegisterProtocol on the MeteredRoundTripper's next Transport
-func (mrt *MeteredRoundTripper) RegisterProtocol(scheme string, rt http.RoundTripper) {
-	mrt.next.(*http.Transport).RegisterProtocol(scheme, rt)
 }

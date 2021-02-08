@@ -8,7 +8,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/log"
 )
 
-func (mrt *MeteredRoundTripper) newTracer(start time.Time) *httptrace.
+func (mrt *meteredRoundTripper) newTracer(start time.Time) *httptrace.
 	ClientTrace {
 	trace := &httptrace.ClientTrace{
 		GetConn: func(host string) {
@@ -71,7 +71,7 @@ func (mrt *MeteredRoundTripper) newTracer(start time.Time) *httptrace.
 	return trace
 }
 
-func (mrt *MeteredRoundTripper) httpTraceObserve(label string, start time.Time) {
+func (mrt *meteredRoundTripper) httpTraceObserve(label string, start time.Time) {
 	mrt.tracer.WithLabelValues(label).
 		Observe(time.Since(start).Seconds())
 }

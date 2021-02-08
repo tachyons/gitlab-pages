@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	// DefaultTTFBTimeout is the timeout used in the MeteredRoundTripper
+	// DefaultTTFBTimeout is the timeout used in the meteredRoundTripper
 	// when calling http.Transport.RoundTrip. The request will be cancelled
 	// if the response takes longer than this.
 	DefaultTTFBTimeout = 15 * time.Second
