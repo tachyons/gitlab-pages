@@ -78,6 +78,11 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			path:           "/index.html",
 			expectedStatus: http.StatusInternalServerError,
 		},
+		"accessing file:// outside of allowedPaths": {
+			vfsPath:        "file:///some/file/outside/path",
+			path:           "/index.html",
+			expectedStatus: http.StatusInternalServerError,
+		},
 	}
 
 	cfg := &config.Config{
