@@ -63,6 +63,14 @@ func New(cfg *config.ZipServing) vfs.VFS {
 			// TODO: make this timeout configurable
 			// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/457
 			Timeout: 30 * time.Minute,
+			Transport: httptransport.NewMeteredRoundTripper(
+				httptransport.NewTransport(),
+				"zip_vfs",
+				metrics.HTTPRangeTraceDuration,
+				metrics.HTTPRangeRequestDuration,
+				metrics.HTTPRangeRequestsTotal,
+				httptransport.DefaultTTFBTimeout,
+			),
 		},
 	}
 
@@ -96,25 +104,13 @@ func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
 }
 
 func (fs *zipVFS) reconfigureTransport(cfg *config.Config) error {
-	transport := httptransport.NewTransport()
-
 	fsTransport, err := httpfs.NewFileSystemPath(cfg.Zip.AllowedPaths)
 	if err != nil {
 		return err
 	}
 
-	transport.RegisterProtocol("file", http.NewFileTransport(fsTransport))
-
-	mrt := httptransport.NewMeteredRoundTripper(
-		transport,
-		"httprange_client",
-		metrics.HTTPRangeTraceDuration,
-		metrics.HTTPRangeRequestDuration,
-		metrics.HTTPRangeRequestsTotal,
-		httptransport.DefaultTTFBTimeout,
-	)
-
-	fs.httpClient.Transport = mrt
+	fs.httpClient.Transport.(httptransport.Transport).
+		RegisterProtocol("file", http.NewFileTransport(fsTransport))
 
 	return nil
 }
