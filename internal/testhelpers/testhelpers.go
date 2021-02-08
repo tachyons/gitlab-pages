@@ -63,8 +63,17 @@ func AssertLogContains(t *testing.T, wantLogEntry string, entries []*logrus.Entr
 func ToFileProtocol(t *testing.T, path string) string {
 	t.Helper()
 
+	wd := Getwd(t)
+
+	return fmt.Sprintf("file://%s/%s", wd, path)
+}
+
+// Getwd must return current working directory
+func Getwd(t *testing.T) string {
+	t.Helper()
+
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
-	return fmt.Sprintf("file://%s/%s", wd, path)
+	return wd
 }
