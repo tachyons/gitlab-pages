@@ -4,6 +4,8 @@ FROM ${BUILD_IMAGE}
 
 ARG GIT_VERSION=2.29.0
 
+COPY patches/ /patches
+
 RUN mkdir /assets \
     && curl --retry 6 https://mirrors.edge.kernel.org/pub/software/scm/git/sha256sums.asc -o sha256sums.asc \
     && gpg2 --locate-keys autosigner@kernel.org \
@@ -12,6 +14,10 @@ RUN mkdir /assets \
     && grep -q $(sha256sum git-${GIT_VERSION}.tar.gz) sha256sums.asc \
     && tar -xzf git-${GIT_VERSION}.tar.gz \
     && cd git-${GIT_VERSION} \
+    && patch -p1 -i /patches/0001-builtin-pack-objects.c-avoid-iterating-all-refs.patch \
+    && patch -p1 -i /patches/0002-refs-expose-for_each_fullref_in_prefixes.patch \
+    && patch -p1 -i /patches/0003-ls-refs.c-initialize-prefixes-before-using-it.patch \
+    && patch -p1 -i /patches/0004-ls-refs.c-traverse-prefixes-of-disjoint-ref-prefix-s.patch \
     && printf 'USE_LIBPCRE2=YesPlease\nNO_PERL=YesPlease\nNO_EXPAT=YesPlease\nNO_TCLTK=YesPlease\nNO_GETTEXT=YesPlease\nNO_PYTHON=YesPlease\nNO_INSTALL_HARDLINKS=YesPlease\nNO_R_TO_GCC_LINKER=YesPlease\n' > config.mak \
     && make all prefix=/usr/local \
     && make install prefix=/usr/local \
