@@ -22,6 +22,8 @@ type configSource int
 
 const (
 	sourceGitlab configSource = iota
+	// Disk source is deprecated and support will be removed in 14.0
+	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 	sourceDisk
 	sourceAuto
 )
