@@ -77,10 +77,12 @@ The presence of these files will trigger the UBI image build, given one of the f
 If one of these conditions is met, additional pipeline jobs and stages will appear and the UBI
 images will be built and pushed. The UBI images are pushed to Red Hat for
 certification for the OpenShift environments when the tags ends in `-ubi8` or
-on the UBI pipelines when manually triggered. This adds a final job in the `release`
-stage which executes the `build-scripts/push_to_redhat.rb` script. This script
-will gather the appropriate UBI images and push them to a Red Hat registry for
-the certification process to be initiated.
+when the CI variable `PUSH_TO_REDHAT` is set to `true`. This adds a final job in
+the `release` stage which executes the `build-scripts/push_to_redhat.rb` script.
+This script will gather the appropriate UBI images and push them to a Red Hat
+registry for the certification process to be initiated. Once images have been
+pushed to the Red Hat registry and further execution of the certification job
+will fail until the images are removed from the Red Hat registry.
 
 The `build-scripts/push_to_redhat.rb` script requires the variable
 `REDHAT_SECRETS_JSON` to be declared when it runs. The value is a JSON
