@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
@@ -37,7 +38,7 @@ func (c *clientMock) Status() error {
 	return nil
 }
 
-func withTestCache(config resolverConfig, cacheConfig *cacheConfig, block func(*Cache, *clientMock)) {
+func withTestCache(config resolverConfig, cacheConfig *config.Cache, block func(*Cache, *clientMock)) {
 	var chanSize int
 
 	if config.buffered {
@@ -189,7 +190,7 @@ func TestResolve(t *testing.T) {
 
 	t.Run("when retrieval failed with an error", func(t *testing.T) {
 		cc := defaultCacheConfig
-		cc.maxRetrievalInterval = 0
+		cc.MaxRetrievalInterval = 0
 		err := errors.New("500 error")
 
 		withTestCache(resolverConfig{failure: err}, &cc, func(cache *Cache, resolver *clientMock) {
@@ -202,7 +203,7 @@ func TestResolve(t *testing.T) {
 
 	t.Run("when retrieval failed because of an internal retriever context timeout", func(t *testing.T) {
 		cc := defaultCacheConfig
-		cc.retrievalTimeout = 0
+		cc.RetrievalTimeout = 0
 
 		withTestCache(resolverConfig{}, &cc, func(cache *Cache, resolver *clientMock) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")

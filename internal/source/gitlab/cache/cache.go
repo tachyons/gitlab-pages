@@ -4,16 +4,18 @@ import (
 	"context"
 	"time"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-var defaultCacheConfig = cacheConfig{
-	cacheExpiry:          10 * time.Minute,
-	entryRefreshTimeout:  60 * time.Second,
-	retrievalTimeout:     30 * time.Second,
-	maxRetrievalInterval: time.Second,
-	maxRetrievalRetries:  3,
+var defaultCacheConfig = config.Cache{
+	CacheExpiry:          10 * time.Minute,
+	CacheCleanupInterval: time.Minute,
+	EntryRefreshTimeout:  60 * time.Second,
+	RetrievalTimeout:     30 * time.Second,
+	MaxRetrievalInterval: time.Second,
+	MaxRetrievalRetries:  3,
 }
 
 // Cache is a short and long caching mechanism for GitLab source
@@ -22,16 +24,8 @@ type Cache struct {
 	store  Store
 }
 
-type cacheConfig struct {
-	cacheExpiry          time.Duration
-	entryRefreshTimeout  time.Duration
-	retrievalTimeout     time.Duration
-	maxRetrievalInterval time.Duration
-	maxRetrievalRetries  int
-}
-
 // NewCache creates a new instance of Cache.
-func NewCache(client api.Client, cc *cacheConfig) *Cache {
+func NewCache(client api.Client, cc *config.Cache) *Cache {
 	if cc == nil {
 		cc = &defaultCacheConfig
 	}
