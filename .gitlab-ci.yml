@@ -11,17 +11,17 @@ variables:
   DNF_OPTS: '--disableplugin=subscription-manager'
 
 stages:
-#  - prepare
-#  - prepare:phase-one
-#  - prepare:phase-two
-#  - prepare:phase-three
-#  - prepare:phase-four
-#  - phase-one
-#  - phase-two
-#  - phase-three
-#  - phase-four
-#  - phase-five
-#  - phase-six
+  #- prepare
+  #- prepare:phase-one
+  #- prepare:phase-two
+  #- prepare:phase-three
+  #- prepare:phase-four
+  #- phase-one
+  #- phase-two
+  #- phase-three
+  #- phase-four
+  #- phase-five
+  #- phase-six
   - release
 
 workflow:
@@ -68,6 +68,9 @@ workflow:
 
 .if_ubi_branch: &if_ubi_branch
   if: '$CI_COMMIT_REF_NAME =~ /-ubi8$/'
+
+.if_push_to_redhat: &if_push_to_redhat
+  if: '$PUSH_TO_REDHAT == "true" '
 
 .if_deps_pipeline: &if_deps_pipeline
   if: '$DEPS_PIPELINE'
@@ -1215,7 +1218,7 @@ ubi-release-for-certification:
     - docker:19.03.0-dind
   rules:
     - <<: *if_ubi_tag
-    - <<: *if_ubi_pipeline
+    - <<: *if_push_to_redhat
   stage: release
   retry: 1
   script:
