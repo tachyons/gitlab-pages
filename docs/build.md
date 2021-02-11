@@ -75,8 +75,22 @@ The presence of these files will trigger the UBI image build, given one of the f
 - The pipeline is running with an environment variable matching `UBI_PIPELINE='true'`
 
 If one of these conditions is met, additional pipeline jobs and stages will appear and the UBI
-images will be built and pushed.
+images will be built and pushed. The UBI images are pushed to Red Hat for
+certification for the OpenShift environments when the tags ends in `-ubi8` or
+when the CI variable `PUSH_TO_REDHAT` is set to `true`. This adds a final job in
+the `release` stage which executes the `build-scripts/push_to_redhat.rb` script.
+This script will gather the appropriate UBI images and push them to a Red Hat
+registry for the certification process to be initiated. Once images have been
+pushed to the Red Hat registry and further execution of the certification job
+will fail until the images are removed from the Red Hat registry.
 
+The `build-scripts/push_to_redhat.rb` script requires the variable
+`REDHAT_SECRETS_JSON` to be declared when it runs. The value is a JSON
+document that indexed by image name and has an `id` and `secret` attribute
+for each image which corresponds to the OSPID and push secret assigned to
+each image by Red Hat. In addition, the variables `GITLAB_REGISTRY_BASE_URL`
+(base URL where the CNG images reside) and `REDHAT_REGISTRY_HOSTNAME`
+(host name of Red Hat registry) can be defined to override their default locations.
 ### Offline builds
 
 UBI-based images can be built in an isolated environment with limited access to the internet.
@@ -84,7 +98,7 @@ In such an environment, the build scripts must download the binary dependencies 
 [GitLab CNG Releases](https://gitlab.com/gitlab-org/build/CNG/-/releases). They also need
 access the official UBI software repositories.
 
-### Build stages
+## Build stages
 
 The CNG images can be built in three stages. This is because some images use the images
 from prior stages as their base. Not all the CNG images are final images. Some are
