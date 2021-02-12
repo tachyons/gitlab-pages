@@ -61,4 +61,4 @@
 - some change
 ```
 
-/label ~backend ~backstage ~"Category:Pages" ~"devops::release" ~"group::release management"
+/label ~backend ~"Category:Pages" ~"devops::release" ~"group::release" ~"feature::maintenance"
