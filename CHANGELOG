@@ -1,3 +1,12 @@
+v 1.35.0
+- Fix for query strings being stripped !398
+- Do not accept client-supplied X-Forwarded-For header for logs without proxy !415
+- Include /etc/hosts in chroot jail !124
+- Render 500 error if API is unavailable and domain info is unavailable !393
+- Allow passing multiple values in `-header` with separator via config file !417
+- Fix `auto` config source !424
+- Allow to serve `zip` from a disk `/pages` !429
+
 v 1.34.0
 
 - Allow DELETE HTTP method
