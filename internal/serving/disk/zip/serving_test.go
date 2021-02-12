@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -18,6 +19,12 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip")
 	defer cleanup()
 
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	httpURL := testServerURL + "/public.zip"
+	fileURL := "file://" + wd + "/group/zip.gitlab.io/public-without-dirs.zip"
+
 	tests := map[string]struct {
 		vfsPath        string
 		path           string
@@ -25,19 +32,37 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 		expectedBody   string
 	}{
 		"accessing /index.html": {
-			vfsPath:        testServerURL + "/public.zip",
+			vfsPath:        httpURL,
+			path:           "/index.html",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
+		},
+		"accessing /index.html from disk": {
+			vfsPath:        fileURL,
 			path:           "/index.html",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
 		"accessing /": {
-			vfsPath:        testServerURL + "/public.zip",
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
+		},
+		"accessing / from disk": {
+			vfsPath:        fileURL,
 			path:           "/",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
 		"accessing without /": {
-			vfsPath:        testServerURL + "/public.zip",
+			vfsPath:        httpURL,
+			path:           "",
+			expectedStatus: http.StatusFound,
+			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
+		},
+		"accessing without / from disk": {
+			vfsPath:        fileURL,
 			path:           "",
 			expectedStatus: http.StatusFound,
 			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
@@ -53,6 +78,11 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			path:           "/index.html",
 			expectedStatus: http.StatusInternalServerError,
 		},
+		"accessing file:// outside of allowedPaths": {
+			vfsPath:        "file:///some/file/outside/path",
+			path:           "/index.html",
+			expectedStatus: http.StatusInternalServerError,
+		},
 	}
 
 	cfg := &config.Config{
@@ -61,11 +91,12 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			CleanupInterval:    5 * time.Second,
 			RefreshInterval:    5 * time.Second,
 			OpenTimeout:        5 * time.Second,
+			AllowedPaths:       []string{wd},
 		},
 	}
 
 	s := Instance()
-	err := s.Reconfigure(cfg)
+	err = s.Reconfigure(cfg)
 	require.NoError(t, err)
 
 	for name, test := range tests {

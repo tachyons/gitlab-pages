@@ -20,6 +20,8 @@ type Resource struct {
 
 	url atomic.Value
 	err atomic.Value
+
+	httpClient *http.Client
 }
 
 func (r *Resource) URL() string {
@@ -67,8 +69,8 @@ func (r *Resource) Request() (*http.Request, error) {
 	return req, nil
 }
 
-func NewResource(ctx context.Context, url string) (*Resource, error) {
-	// the `h.URL` is likely pre-signed URL that only supports GET requests
+func NewResource(ctx context.Context, url string, httpClient *http.Client) (*Resource, error) {
+	// the `h.URL` is likely pre-signed URL or a file:// scheme that only supports GET requests
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -94,6 +96,7 @@ func NewResource(ctx context.Context, url string) (*Resource, error) {
 	resource := &Resource{
 		ETag:         res.Header.Get("ETag"),
 		LastModified: res.Header.Get("Last-Modified"),
+		httpClient:   httpClient,
 	}
 
 	resource.SetURL(url)

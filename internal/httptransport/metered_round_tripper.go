@@ -39,7 +39,7 @@ func NewMeteredRoundTripper(transport *http.Transport, name string, tracerVec, d
 	}
 }
 
-// RoundTripper wraps the original http.Transport into a meteredRoundTripper which
+// RoundTrip wraps the original http.Transport into a meteredRoundTripper which
 // reports metrics on request duration, tracing and request count
 func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	start := time.Now()
@@ -81,4 +81,10 @@ func (mrt *meteredRoundTripper) logResponse(req *http.Request, resp *http.Respon
 
 		l.Traceln("response")
 	}
+}
+
+// RegisterProtocol allows to call RegisterProtocol on the meteredRoundTripper's transport
+// outside of this package
+func (mrt *meteredRoundTripper) RegisterProtocol(scheme string, rt http.RoundTripper) {
+	mrt.next.(*http.Transport).RegisterProtocol(scheme, rt)
 }

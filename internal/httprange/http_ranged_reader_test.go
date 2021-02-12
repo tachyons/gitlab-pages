@@ -18,6 +18,10 @@ const (
 	testDataLen = len(testData)
 )
 
+var testClient = &http.Client{
+	Timeout: 100 * time.Millisecond,
+}
+
 func TestSectionReader(t *testing.T) {
 	tests := map[string]struct {
 		sectionOffset   int
@@ -80,7 +84,7 @@ func TestSectionReader(t *testing.T) {
 	testServer := newTestServer(t, nil)
 	defer testServer.Close()
 
-	resource, err := NewResource(context.Background(), testServer.URL+"/resource")
+	resource, err := NewResource(context.Background(), testServer.URL+"/resource", testClient)
 	require.NoError(t, err)
 
 	for name, tt := range tests {
@@ -163,7 +167,7 @@ func TestReadAt(t *testing.T) {
 	testServer := newTestServer(t, nil)
 	defer testServer.Close()
 
-	resource, err := NewResource(context.Background(), testServer.URL+"/resource")
+	resource, err := NewResource(context.Background(), testServer.URL+"/resource", testClient)
 	require.NoError(t, err)
 
 	for name, tt := range tests {
@@ -202,7 +206,7 @@ func TestReadAtMultipart(t *testing.T) {
 	})
 	defer testServer.Close()
 
-	resource, err := NewResource(context.Background(), testServer.URL+"/resource")
+	resource, err := NewResource(context.Background(), testServer.URL+"/resource", testClient)
 	require.NoError(t, err)
 	require.Equal(t, int32(1), counter)
 
@@ -247,7 +251,7 @@ func TestReadContextCanceled(t *testing.T) {
 	testServer := newTestServer(t, nil)
 	defer testServer.Close()
 
-	resource, err := NewResource(context.Background(), testServer.URL+"/resource")
+	resource, err := NewResource(context.Background(), testServer.URL+"/resource", testClient)
 	require.NoError(t, err)
 
 	rr := NewRangedReader(resource)

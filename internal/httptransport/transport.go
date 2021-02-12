@@ -28,6 +28,12 @@ var (
 	DefaultTransport = NewTransport()
 )
 
+// Transport wraps a RoundTripper so it can be extended and modified outside of this package
+type Transport interface {
+	http.RoundTripper
+	RegisterProtocol(scheme string, rt http.RoundTripper)
+}
+
 // NewTransport initializes an http.Transport with a custom dialer that includes TLS Root CAs.
 // It sets default connection values such as timeouts and max idle connections.
 func NewTransport() *http.Transport {

@@ -3,9 +3,13 @@ package zip
 import (
 	"context"
 	"errors"
+	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httpfs"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 
 	"github.com/patrickmn/go-cache"
 
@@ -45,6 +49,7 @@ type zipVFS struct {
 	readlinkCache   *lruCache
 
 	archiveCount int64
+	httpClient   *http.Client
 }
 
 // New creates a zipVFS instance that can be used by a serving request
@@ -54,6 +59,19 @@ func New(cfg *config.ZipServing) vfs.VFS {
 		cacheRefreshInterval:    cfg.RefreshInterval,
 		cacheCleanupInterval:    cfg.CleanupInterval,
 		openTimeout:             cfg.OpenTimeout,
+		httpClient: &http.Client{
+			// TODO: make this timeout configurable
+			// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/457
+			Timeout: 30 * time.Minute,
+			Transport: httptransport.NewMeteredRoundTripper(
+				httptransport.NewTransport(),
+				"zip_vfs",
+				metrics.HTTPRangeTraceDuration,
+				metrics.HTTPRangeRequestDuration,
+				metrics.HTTPRangeRequestsTotal,
+				httptransport.DefaultTTFBTimeout,
+			),
+		},
 	}
 
 	zipVFS.resetCache()
@@ -76,7 +94,23 @@ func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
 	fs.cacheRefreshInterval = cfg.Zip.RefreshInterval
 	fs.cacheCleanupInterval = cfg.Zip.CleanupInterval
 
+	if err := fs.reconfigureTransport(cfg); err != nil {
+		return err
+	}
+
 	fs.resetCache()
+
+	return nil
+}
+
+func (fs *zipVFS) reconfigureTransport(cfg *config.Config) error {
+	fsTransport, err := httpfs.NewFileSystemPath(cfg.Zip.AllowedPaths)
+	if err != nil {
+		return err
+	}
+
+	fs.httpClient.Transport.(httptransport.Transport).
+		RegisterProtocol("file", http.NewFileTransport(fsTransport))
 
 	return nil
 }

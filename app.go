@@ -517,6 +517,7 @@ func runApp(config appConfig) {
 			CleanupInterval:    config.ZipCacheCleanup,
 			RefreshInterval:    config.ZipCacheRefresh,
 			OpenTimeout:        config.ZipeOpenTimeout,
+			AllowedPaths:       []string{config.PagesRoot},
 		},
 	}
 

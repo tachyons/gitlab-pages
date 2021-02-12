@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -49,22 +47,6 @@ type Reader struct {
 // ensure that Reader is seekable
 var _ vfs.SeekableFile = &Reader{}
 
-// TODO: make this configurable/take an http client when creating a reader/ranged reader
-//  instead https://gitlab.com/gitlab-org/gitlab-pages/-/issues/457
-var httpClient = &http.Client{
-	// The longest time the request can be executed
-	Timeout: 30 * time.Minute,
-	Transport: httptransport.NewMeteredRoundTripper(
-		// TODO: register file protocol https://gitlab.com/gitlab-org/gitlab-pages/-/issues/485
-		nil,
-		"httprange_client",
-		metrics.HTTPRangeTraceDuration,
-		metrics.HTTPRangeRequestDuration,
-		metrics.HTTPRangeRequestsTotal,
-		httptransport.DefaultTTFBTimeout,
-	),
-}
-
 // ensureResponse is set before reading from it.
 // It will do the request if the reader hasn't got it yet.
 func (r *Reader) ensureResponse() error {
@@ -79,7 +61,7 @@ func (r *Reader) ensureResponse() error {
 
 	metrics.HTTPRangeOpenRequests.Inc()
 
-	res, err := httpClient.Do(req)
+	res, err := r.Resource.httpClient.Do(req)
 	if err != nil {
 		metrics.HTTPRangeOpenRequests.Dec()
 		return err

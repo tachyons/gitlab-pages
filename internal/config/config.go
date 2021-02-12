@@ -15,4 +15,5 @@ type ZipServing struct {
 	CleanupInterval    time.Duration
 	RefreshInterval    time.Duration
 	OpenTimeout        time.Duration
+	AllowedPaths       []string
 }

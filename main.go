@@ -160,6 +160,8 @@ func setGitLabAPISecretKey(secretFile string, config *appConfig) {
 func configFromFlags() appConfig {
 	var config appConfig
 
+	config.PagesRoot = *pagesRoot
+
 	config.Domain = strings.ToLower(*pagesDomain)
 	config.RedirectHTTP = *redirectHTTP
 	config.HTTP2 = *useHTTP2
@@ -343,7 +345,7 @@ func appMain() {
 	}
 
 	if *daemonUID != 0 || *daemonGID != 0 {
-		if err := daemonize(config, *daemonUID, *daemonGID, *daemonInplaceChroot, *pagesRoot); err != nil {
+		if err := daemonize(config, *daemonUID, *daemonGID, *daemonInplaceChroot, config.PagesRoot); err != nil {
 			errortracking.Capture(err)
 			fatal(err, "could not create pages daemon")
 		}

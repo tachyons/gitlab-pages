@@ -119,7 +119,7 @@ func (a *zipArchive) readArchive(url string) {
 	ctx, cancel := context.WithTimeout(context.Background(), a.openTimeout)
 	defer cancel()
 
-	a.resource, a.err = httprange.NewResource(ctx, url)
+	a.resource, a.err = httprange.NewResource(ctx, url, a.fs.httpClient)
 	if a.err != nil {
 		metrics.ZipOpened.WithLabelValues("error").Inc()
 		return
