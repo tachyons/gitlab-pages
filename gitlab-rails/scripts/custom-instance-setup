@@ -10,6 +10,9 @@ setting.update_attribute(:authorized_keys_enabled, false)
 puts 'Enabling incremental logging of CI jobs.'
 Feature.enable('ci_enable_live_trace')
 
+puts 'Disabling access to disk storage for GitLab Pages'
+Feature.disable('pages_update_legacy_storage')
+
 puts 'Registering OAuth applications.'
 secrets_dir = ENV['OAUTH_SECRET_DIR'] || '/etc/gitlab/oauth-secrets'
 Dir.glob("#{secrets_dir}/*").each do |app_path|
