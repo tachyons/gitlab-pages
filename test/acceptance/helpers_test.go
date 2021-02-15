@@ -628,7 +628,9 @@ func defaultConfigFileWith(t *testing.T, configs ...string) (string, func()) {
 
 	configs = append(configs, "auth-client-id=clientID",
 		"auth-client-secret=clientSecret",
-		"auth-secret=authSecret")
+		"auth-secret=authSecret",
+		"auth-scope=authScope",
+	)
 
 	name := newConfigFile(t, configs...)
 

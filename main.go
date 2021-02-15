@@ -73,6 +73,7 @@ var (
 	clientID           = flag.String("auth-client-id", "", "GitLab application Client ID")
 	clientSecret       = flag.String("auth-client-secret", "", "GitLab application Client Secret")
 	redirectURI        = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
+	authScope          = flag.String("auth-scope", "api", "Scope to be used for authentication (must match GitLab Pages OAuth application settings)")
 	maxConns           = flag.Uint("max-conns", 5000, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners")
 	insecureCiphers    = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
 	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tlsconfig.FlagUsage("min"))
@@ -205,6 +206,7 @@ func configFromFlags() appConfig {
 	config.ClientID = *clientID
 	config.ClientSecret = *clientSecret
 	config.RedirectURI = *redirectURI
+	config.AuthScope = *authScope
 	config.SentryDSN = *sentryDSN
 	config.SentryEnvironment = *sentryEnvironment
 
@@ -241,6 +243,9 @@ func assertAuthConfig(config appConfig) {
 	}
 	if config.RedirectURI == "" {
 		log.Fatal("auth-redirect-uri must be defined if authentication is supported")
+	}
+	if config.AuthScope == "" {
+		log.Fatal("auth-scope must be defined if authentication is supported")
 	}
 }
 
@@ -297,6 +302,7 @@ func loadConfig() appConfig {
 		"api-secret-key":                *gitLabAPISecretKey,
 		"domain-config-source":          config.DomainConfigurationSource,
 		"auth-redirect-uri":             config.RedirectURI,
+		"auth-scope":                    config.AuthScope,
 		"zip-cache-expiration":          config.ZipCacheExpiry,
 		"zip-cache-cleanup":             config.ZipCacheCleanup,
 		"zip-cache-refresh":             config.ZipCacheRefresh,

@@ -32,7 +32,7 @@ import (
 const (
 	apiURLUserTemplate     = "%s/api/v4/user"
 	apiURLProjectTemplate  = "%s/api/v4/projects/%d/pages_access"
-	authorizeURLTemplate   = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s"
+	authorizeURLTemplate   = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s&scope=%s"
 	tokenURLTemplate       = "%s/oauth/token"
 	tokenContentTemplate   = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
 	callbackPath           = "/auth"
@@ -59,6 +59,7 @@ type Auth struct {
 	redirectURI   string
 	gitLabServer  string
 	authSecret    string
+	authScope     string
 	jwtSigningKey []byte
 	jwtExpiry     time.Duration
 	apiClient     *http.Client
@@ -266,7 +267,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			return true
 		}
 
-		url := fmt.Sprintf(authorizeURLTemplate, a.gitLabServer, a.clientID, a.redirectURI, state)
+		url := fmt.Sprintf(authorizeURLTemplate, a.gitLabServer, a.clientID, a.redirectURI, state, a.authScope)
 
 		logRequest(r).WithFields(log.Fields{
 			"gitlab_server": a.gitLabServer,
@@ -645,8 +646,7 @@ func generateKeys(secret string, count int) ([][]byte, error) {
 }
 
 // New when authentication supported this will be used to create authentication handler
-func New(pagesDomain string, storeSecret string, clientID string, clientSecret string,
-	redirectURI string, gitLabServer string) (*Auth, error) {
+func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, gitLabServer, authScope string) (*Auth, error) {
 	// generate 3 keys, 2 for the cookie store and 1 for JWT signing
 	keys, err := generateKeys(storeSecret, 3)
 	if err != nil {
@@ -665,6 +665,7 @@ func New(pagesDomain string, storeSecret string, clientID string, clientSecret s
 		},
 		store:         sessions.NewCookieStore(keys[0], keys[1]),
 		authSecret:    storeSecret,
+		authScope:     authScope,
 		jwtSigningKey: keys[2],
 		jwtExpiry:     time.Minute,
 		now:           time.Now,
