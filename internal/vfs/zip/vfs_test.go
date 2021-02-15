@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
+
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
@@ -211,6 +214,35 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestVFSReconfigureTransport(t *testing.T) {
+	chdir := false
+	cleanup := testhelpers.ChdirInPath(t, "../../../shared/pages", &chdir)
+	defer cleanup()
+
+	fileURL := testhelpers.ToFileProtocol(t, "group/zip.gitlab.io/public.zip")
+
+	vfs := New(zipCfg)
+
+	// try to open a file URL without registering the file protocol
+	_, err := vfs.Root(context.Background(), fileURL)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unsupported protocol scheme \"file\"")
+
+	// reconfigure VFS with allowed paths and try to open file://
+	cfg := *zipCfg
+	cfg.AllowedPaths = []string{testhelpers.Getwd(t)}
+
+	err = vfs.Reconfigure(&config.Config{Zip: &cfg})
+	require.NoError(t, err)
+
+	root, err := vfs.Root(context.Background(), fileURL)
+	require.NoError(t, err)
+
+	fi, err := root.Lstat(context.Background(), "index.html")
+	require.NoError(t, err)
+	require.Equal(t, "index.html", fi.Name())
 }
 
 func withExpectedArchiveCount(t *testing.T, archiveCount int, fn func(t *testing.T)) {

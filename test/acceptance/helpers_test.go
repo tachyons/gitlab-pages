@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,10 +20,11 @@ import (
 	"testing"
 	"time"
 
-	proxyproto "github.com/pires/go-proxyproto"
+	"github.com/pires/go-proxyproto"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/test/acceptance/testdata"
 )
 
 // The HTTPS certificate isn't signed by anyone. This http client is set up
@@ -347,7 +349,7 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 		args = append(args, "-root-key", key, "-root-cert", cert)
 	}
 
-	if !contains(args, "pages-root") {
+	if !contains(extraArgs, "-pages-root") {
 		args = append(args, "-pages-root", "../../shared/pages")
 	}
 
@@ -541,13 +543,13 @@ type stubOpts struct {
 	statusHandler       http.HandlerFunc
 	pagesHandler        http.HandlerFunc
 	pagesStatusResponse int
+	pagesRoot           string
 }
 
 func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	t.Helper()
 	require.NotNil(t, opts)
 
-	opts.apiCalled = false
 	currentStatusCount := 0
 
 	mux := http.NewServeMux()
@@ -566,7 +568,36 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 
 	mux.HandleFunc("/api/v4/internal/pages/status", statusHandler)
 
-	pagesHandler := func(w http.ResponseWriter, r *http.Request) {
+	pagesHandler := defaultAPIHandler(t, opts)
+	if opts.pagesHandler != nil {
+		pagesHandler = opts.pagesHandler
+	}
+
+	mux.HandleFunc("/api/v4/internal/pages", pagesHandler)
+
+	return httptest.NewServer(mux)
+}
+
+func lookupFromFile(t *testing.T, domain string, w http.ResponseWriter) {
+	fixture, err := os.Open("../../shared/lookups/" + domain + ".json")
+	if os.IsNotExist(err) {
+		w.WriteHeader(http.StatusNoContent)
+
+		t.Logf("GitLab domain %s source stub served 204", domain)
+		return
+	}
+
+	defer fixture.Close()
+	require.NoError(t, err)
+
+	_, err = io.Copy(w, fixture)
+	require.NoError(t, err)
+
+	t.Logf("GitLab domain %s source stub served lookup", domain)
+}
+
+func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		domain := r.URL.Query().Get("host")
 		if domain == "127.0.0.1" {
 			// shortcut for healthy checkup done by WaitUntilRequestSucceeds
@@ -581,31 +612,16 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 			return
 		}
 
-		path := "../../shared/lookups/" + domain + ".json"
-
-		fixture, err := os.Open(path)
-		if os.IsNotExist(err) {
-			w.WriteHeader(http.StatusNoContent)
-
-			t.Logf("GitLab domain %s source stub served 204", domain)
+		// check if predefined response exists
+		if responseFn, ok := testdata.DomainResponses[domain]; ok {
+			err := json.NewEncoder(w).Encode(responseFn(opts.pagesRoot))
+			require.NoError(t, err)
 			return
 		}
 
-		defer fixture.Close()
-		require.NoError(t, err)
-
-		_, err = io.Copy(w, fixture)
-		require.NoError(t, err)
-
-		t.Logf("GitLab domain %s source stub served lookup", domain)
+		// serve lookup from files
+		lookupFromFile(t, domain, w)
 	}
-	if opts.pagesHandler != nil {
-		pagesHandler = opts.pagesHandler
-	}
-
-	mux.HandleFunc("/api/v4/internal/pages", pagesHandler)
-
-	return httptest.NewServer(mux)
 }
 
 func newConfigFile(t *testing.T, configs ...string) string {

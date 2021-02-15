@@ -13,6 +13,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"gitlab.com/gitlab-org/labkit/log"
 )
 
 var (
@@ -52,12 +54,14 @@ func (p *fileSystemPaths) Open(name string) (http.File, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	for _, allowedPath := range p.allowedPaths {
 		if strings.HasPrefix(absPath, allowedPath+"/") {
 			return os.Open(absPath)
 		}
 	}
+
+	log.WithError(os.ErrPermission).Errorf("requested filepath %q not in allowed paths: %q",
+		absPath, strings.Join(p.allowedPaths, string(os.PathListSeparator)))
 
 	// os.ErrPermission is converted to http.StatusForbidden
 	// https://github.com/golang/go/blob/release-branch.go1.15/src/net/http/fs.go#L635
