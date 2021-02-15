@@ -25,7 +25,8 @@ func createTestAuth(t *testing.T, url string) *Auth {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		url)
+		url,
+		"scope")
 
 	require.NoError(t, err)
 

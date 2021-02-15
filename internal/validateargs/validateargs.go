@@ -11,7 +11,7 @@ const (
 )
 
 var deprecatedArgs = []string{"-sentry-dsn"}
-var notAllowedArgs = []string{"-auth-client-id", "-auth-client-secret", "-auth-secret"}
+var notAllowedArgs = []string{"-auth-client-id", "-auth-client-secret", "-auth-secret", "-auth-scope"}
 
 // Deprecated checks if deprecated params have been used
 func Deprecated(args []string) error {

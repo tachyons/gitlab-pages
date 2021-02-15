@@ -54,7 +54,8 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	require.Equal(t, "/oauth/authorize", url.Path)
 	require.Equal(t, "clientID", url.Query().Get("client_id"))
 	require.Equal(t, "https://projects.gitlab-example.com/auth", url.Query().Get("redirect_uri"))
-	require.NotEqual(t, "", url.Query().Get("state"))
+	require.NotEmpty(t, url.Query().Get("scope"))
+	require.NotEmpty(t, url.Query().Get("state"))
 }
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {

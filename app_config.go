@@ -39,6 +39,7 @@ type appConfig struct {
 	ClientID                  string
 	ClientSecret              string
 	RedirectURI               string
+	AuthScope                 string
 	SentryDSN                 string
 	SentryEnvironment         string
 	CustomHeaders             []string

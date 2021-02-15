@@ -537,7 +537,7 @@ func (a *theApp) setAuth(config appConfig) {
 
 	var err error
 	a.Auth, err = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
-		config.RedirectURI, config.GitLabServer)
+		config.RedirectURI, config.GitLabServer, config.AuthScope)
 	if err != nil {
 		log.WithError(err).Fatal("could not initialize auth package")
 	}
