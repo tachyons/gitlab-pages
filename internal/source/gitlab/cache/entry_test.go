@@ -7,10 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
-
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
@@ -116,7 +115,7 @@ func TestEntryRefresh(t *testing.T) {
 		require.Equal(t, storedEntry.Lookup(), entry.Lookup(), "lookup should be the same")
 	})
 
-	t.Run("entry is different after expiring", func(t *testing.T) {
+	t.Run("entry is different after it expired and calling refresh on it", func(t *testing.T) {
 		client.failed = false
 
 		entry := newCacheEntry("error.gitlab.io", cc.entryRefreshTimeout, cc.cacheExpiry, store.(*memstore).retriever)
@@ -164,28 +163,22 @@ func (mm *lookupMock) GetLookup(ctx context.Context, domainName string) api.Look
 		Name: domainName,
 	}
 
-	select {
-	case <-ctx.Done():
-		lookup.Error = ctx.Err()
-		return lookup
-	default:
-		lookup, ok := mm.responses[domainName]
-		if !ok {
-			lookup.Error = domain.ErrDomainDoesNotExist
-			return lookup
-		}
-
-		// return error after mm.successCount
-		mm.currentCount++
-		if mm.currentCount > mm.successCount {
-			mm.currentCount = 0
-			mm.failed = true
-
-			lookup.Error = http.ErrServerClosed
-		}
-
+	lookup, ok := mm.responses[domainName]
+	if !ok {
+		lookup.Error = domain.ErrDomainDoesNotExist
 		return lookup
 	}
+
+	// return error after mm.successCount
+	mm.currentCount++
+	if mm.currentCount > mm.successCount {
+		mm.currentCount = 0
+		mm.failed = true
+
+		lookup.Error = http.ErrServerClosed
+	}
+
+	return lookup
 }
 
 func (mm *lookupMock) Status() error {
