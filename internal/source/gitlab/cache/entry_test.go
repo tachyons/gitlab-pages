@@ -1,8 +1,13 @@
 package cache
 
 import (
+	"context"
+	"errors"
+	"net/http"
 	"testing"
 	"time"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 
 	"github.com/stretchr/testify/require"
 
@@ -49,7 +54,7 @@ func TestIsUpToDateAndNeedsRefresh(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entry := newCacheEntry("my.gitlab.com", testCacheConfig.EntryRefreshTimeout, nil)
+			entry := newCacheEntry("my.gitlab.com", testCacheConfig.EntryRefreshTimeout, testCacheConfig.CacheExpiry, nil)
 			if tt.resolved {
 				entry.response = &api.Lookup{}
 			}
@@ -61,4 +66,128 @@ func TestIsUpToDateAndNeedsRefresh(t *testing.T) {
 			require.Equal(t, tt.expectedNeedRefresh, entry.NeedsRefresh())
 		})
 	}
+}
+
+func TestEntryRefresh(t *testing.T) {
+	client := &lookupMock{
+		successCount: 1,
+		responses: map[string]api.Lookup{
+			"test.gitlab.io": api.Lookup{
+				Name: "test.gitlab.io",
+				Domain: &api.VirtualDomain{
+					LookupPaths: nil,
+				},
+			},
+			"error.gitlab.io": api.Lookup{
+				Name:  "error.gitlab.io",
+				Error: errors.New("something went wrong"),
+			},
+		},
+	}
+	cc := &cacheConfig{
+		cacheExpiry:          100 * time.Millisecond,
+		entryRefreshTimeout:  time.Millisecond,
+		retrievalTimeout:     50 * time.Millisecond,
+		maxRetrievalInterval: time.Millisecond,
+		maxRetrievalRetries:  1,
+	}
+
+	store := newMemStore(client, cc)
+
+	t.Run("entry is the same after refreshed lookup has error", func(t *testing.T) {
+		entry := newCacheEntry("test.gitlab.io", cc.entryRefreshTimeout, cc.cacheExpiry, store.(*memstore).retriever)
+
+		ctx, cancel := context.WithTimeout(context.Background(), cc.retrievalTimeout)
+		defer cancel()
+
+		lookup := entry.Retrieve(ctx)
+		require.NoError(t, lookup.Error)
+
+		require.Eventually(t, entry.NeedsRefresh, 2*cc.entryRefreshTimeout, time.Millisecond, "entry should need refresh")
+
+		entry.refreshFunc(store)
+
+		require.True(t, client.failed, "refresh should have failed")
+
+		storedEntry := loadEntry(t, "test.gitlab.io", store)
+
+		require.NoError(t, storedEntry.Lookup().Error, "resolving failed but lookup should still be valid")
+		require.Equal(t, storedEntry.created.UnixNano(), entry.created.UnixNano(), "refreshed entry should be the same")
+		require.Equal(t, storedEntry.Lookup(), entry.Lookup(), "lookup should be the same")
+	})
+
+	t.Run("entry is different after expiring", func(t *testing.T) {
+		client.failed = false
+
+		entry := newCacheEntry("error.gitlab.io", cc.entryRefreshTimeout, cc.cacheExpiry, store.(*memstore).retriever)
+
+		ctx, cancel := context.WithTimeout(context.Background(), cc.retrievalTimeout)
+		defer cancel()
+
+		lookup := entry.Retrieve(ctx)
+		require.Error(t, lookup.Error)
+		require.Eventually(t, entry.NeedsRefresh, 2*cc.entryRefreshTimeout, time.Millisecond, "entry should need refresh")
+
+		// wait for entry to expire
+		time.Sleep(cc.cacheExpiry)
+		// refreshing the entry after it has expired should create a completely new one
+		entry.refreshFunc(store)
+
+		require.True(t, client.failed, "refresh should have failed")
+
+		storedEntry := loadEntry(t, "error.gitlab.io", store)
+		require.NotEqual(t, storedEntry, entry, "stored entry should be different")
+		require.Greater(t, storedEntry.created.UnixNano(), entry.created.UnixNano(), "")
+	})
+}
+
+func loadEntry(t *testing.T, domain string, store Store) *Entry {
+	t.Helper()
+
+	m := store.(*memstore)
+	m.mux.RLock()
+	i, exists := m.store.Get(domain)
+	m.mux.RUnlock()
+	require.True(t, exists)
+	return i.(*Entry)
+}
+
+type lookupMock struct {
+	currentCount int
+	successCount int
+	failed       bool
+	responses    map[string]api.Lookup
+}
+
+func (mm *lookupMock) GetLookup(ctx context.Context, domainName string) api.Lookup {
+	lookup := api.Lookup{
+		Name: domainName,
+	}
+
+	select {
+	case <-ctx.Done():
+		lookup.Error = ctx.Err()
+		return lookup
+	default:
+		lookup, ok := mm.responses[domainName]
+		if !ok {
+			lookup.Error = domain.ErrDomainDoesNotExist
+			return lookup
+		}
+
+		// return error after mm.successCount
+		mm.currentCount++
+		if mm.currentCount > mm.successCount {
+			mm.currentCount = 0
+			mm.failed = true
+
+			lookup.Error = http.ErrServerClosed
+		}
+
+		return lookup
+	}
+}
+
+func (mm *lookupMock) Status() error {
+	return nil
 }

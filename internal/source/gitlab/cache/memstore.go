@@ -15,6 +15,7 @@ type memstore struct {
 	mux                 *sync.RWMutex
 	retriever           *Retriever
 	entryRefreshTimeout time.Duration
+	entryMaxDuration    time.Duration
 }
 
 func newMemStore(client api.Client, cc *config.Cache) Store {
@@ -25,6 +26,7 @@ func newMemStore(client api.Client, cc *config.Cache) Store {
 		mux:                 &sync.RWMutex{},
 		retriever:           retriever,
 		entryRefreshTimeout: cc.EntryRefreshTimeout,
+		entryMaxDuration:    cc.CacheExpiry,
 	}
 }
 
@@ -46,7 +48,7 @@ func (m *memstore) LoadOrCreate(domain string) *Entry {
 		return entry.(*Entry)
 	}
 
-	newEntry := newCacheEntry(domain, m.entryRefreshTimeout, m.retriever)
+	newEntry := newCacheEntry(domain, m.entryRefreshTimeout, m.entryMaxDuration, m.retriever)
 	m.store.SetDefault(domain, newEntry)
 
 	return newEntry
