@@ -87,6 +87,10 @@ func (e *Entry) Refresh(client api.Client, store Store) {
 
 			entry.Retrieve(context.Background(), client)
 
+			if entry.response != nil && entry.response.Error != nil {
+				entry.response = e.response
+			}
+
 			store.ReplaceOrCreate(e.domain, entry)
 		}()
 	})
