@@ -1,20 +1,11 @@
 package main
 
 import (
-	"io/ioutil"
 	"net"
 	"os"
 
 	"gitlab.com/gitlab-org/labkit/errortracking"
 )
-
-func readFile(file string) (result []byte) {
-	result, err := ioutil.ReadFile(file)
-	if err != nil {
-		fatal(err, "could not read file")
-	}
-	return
-}
 
 // Be careful: if you let either of the return values get garbage
 // collected by Go they will be closed automatically.

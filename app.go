@@ -47,7 +47,7 @@ var (
 )
 
 type theApp struct {
-	appConfig
+	cfg.Config
 	domains        *source.Domains
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
@@ -117,7 +117,7 @@ func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.Respons
 
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
 	// Add auto redirect
-	if !https && a.RedirectHTTP {
+	if !https && a.General.RedirectHTTP {
 		a.redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
 		return true
 	}
@@ -173,13 +173,13 @@ func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, erro
 		a.healthCheck(w, r, request.IsHTTPS(r))
 	})
 
-	loggedHealthCheck, err := logging.BasicAccessLogger(healthCheck, a.LogFormat, nil)
+	loggedHealthCheck, err := logging.BasicAccessLogger(healthCheck, a.Log.Format, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.RequestURI == a.appConfig.StatusPath {
+		if r.RequestURI == a.General.StatusPath {
 			loggedHealthCheck.ServeHTTP(w, r)
 			return
 		}
@@ -313,14 +313,14 @@ func setRequestScheme(r *http.Request) *http.Request {
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
 	handler := a.serveFileOrNotFoundHandler()
-	if !a.DisableCrossOriginRequests {
+	if !a.General.DisableCrossOriginRequests {
 		handler = corsHandler.Handler(handler)
 	}
 	handler = a.accessControlMiddleware(handler)
 	handler = a.auxiliaryMiddleware(handler)
 	handler = a.authMiddleware(handler)
 	handler = a.acmeMiddleware(handler)
-	handler, err := logging.AccessLogger(handler, a.LogFormat)
+	handler, err := logging.AccessLogger(handler, a.Log.Format)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +342,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	// Correlation ID injection middleware
 	var correlationOpts []correlation.InboundHandlerOption
-	if a.appConfig.PropagateCorrelationID {
+	if a.General.PropagateCorrelationID {
 		correlationOpts = append(correlationOpts, correlation.WithPropagation())
 	}
 	handler = correlation.InjectCorrelationID(handler, correlationOpts...)
@@ -359,7 +359,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 func (a *theApp) Run() {
 	var wg sync.WaitGroup
 
-	limiter := netutil.NewLimiter(a.MaxConns)
+	limiter := netutil.NewLimiter(a.General.MaxConns)
 
 	// Use a common pipeline to use a single instance of each handler,
 	// instead of making two nearly identical pipelines
@@ -373,22 +373,22 @@ func (a *theApp) Run() {
 	httpHandler := a.httpInitialMiddleware(commonHandlerPipeline)
 
 	// Listen for HTTP
-	for _, fd := range a.ListenHTTP {
+	for _, fd := range a.Listeners.HTTP {
 		a.listenHTTPFD(&wg, fd, httpHandler, limiter)
 	}
 
 	// Listen for HTTPS
-	for _, fd := range a.ListenHTTPS {
+	for _, fd := range a.Listeners.HTTPS {
 		a.listenHTTPSFD(&wg, fd, httpHandler, limiter)
 	}
 
 	// Listen for HTTP proxy requests
-	for _, fd := range a.ListenProxy {
+	for _, fd := range a.Listeners.Proxy {
 		a.listenProxyFD(&wg, fd, proxyHandler, limiter)
 	}
 
 	// Listen for HTTPS PROXYv2 requests
-	for _, fd := range a.ListenHTTPSProxyv2 {
+	for _, fd := range a.Listeners.HTTPSProxyv2 {
 		a.ListenHTTPSProxyv2FD(&wg, fd, httpHandler, limiter)
 	}
 
@@ -397,7 +397,7 @@ func (a *theApp) Run() {
 		a.listenMetricsFD(&wg, a.ListenMetrics)
 	}
 
-	a.domains.Read(a.Domain)
+	a.domains.Read(a.General.Domain)
 
 	wg.Wait()
 }
@@ -406,7 +406,7 @@ func (a *theApp) listenHTTPFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.H
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := listenAndServe(fd, httpHandler, a.HTTP2, nil, limiter, false)
+		err := listenAndServe(fd, httpHandler, a.General.HTTP2, nil, limiter, false)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTP))
 		}
@@ -422,7 +422,7 @@ func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 
-		err = listenAndServe(fd, httpHandler, a.HTTP2, tlsConfig, limiter, false)
+		err = listenAndServe(fd, httpHandler, a.General.HTTP2, tlsConfig, limiter, false)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
@@ -435,7 +435,7 @@ func (a *theApp) listenProxyFD(wg *sync.WaitGroup, fd uintptr, proxyHandler http
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(fd, proxyHandler, a.HTTP2, nil, limiter, false)
+			err := listenAndServe(fd, proxyHandler, a.General.HTTP2, nil, limiter, false)
 			if err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
 			}
@@ -453,7 +453,7 @@ func (a *theApp) ListenHTTPSProxyv2FD(wg *sync.WaitGroup, fd uintptr, httpHandle
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 
-		err = listenAndServe(fd, httpHandler, a.HTTP2, tlsConfig, limiter, true)
+		err = listenAndServe(fd, httpHandler, a.General.HTTP2, tlsConfig, limiter, true)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
@@ -482,33 +482,33 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 	}()
 }
 
-func runApp(config appConfig) {
+func runApp(config cfg.Config) {
 	domains, err := source.NewDomains(config)
 	if err != nil {
 		log.WithError(err).Fatal("could not create domains config source")
 	}
 
-	a := theApp{appConfig: config, domains: domains}
+	a := theApp{Config: config, domains: domains}
 
-	err = logging.ConfigureLogging(a.LogFormat, a.LogVerbose)
+	err = logging.ConfigureLogging(a.Log.Format, a.Log.Verbose)
 	if err != nil {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}
 
-	if config.ArtifactsServer != "" {
-		a.Artifact = artifact.New(config.ArtifactsServer, config.ArtifactsServerTimeout, config.Domain)
+	if config.ArtifactsServer.URL != "" {
+		a.Artifact = artifact.New(config.ArtifactsServer.URL, config.ArtifactsServer.TimeoutSeconds, config.General.Domain)
 	}
 
 	a.setAuth(config)
 
 	a.Handlers = handlers.New(a.Auth, a.Artifact)
 
-	if config.GitLabServer != "" {
-		a.AcmeMiddleware = &acme.Middleware{GitlabURL: config.GitLabServer}
+	if config.GitLab.Server != "" {
+		a.AcmeMiddleware = &acme.Middleware{GitlabURL: config.GitLab.Server}
 	}
 
-	if len(config.CustomHeaders) != 0 {
-		customHeaders, err := middleware.ParseHeaderString(config.CustomHeaders)
+	if len(config.General.CustomHeaders) != 0 {
+		customHeaders, err := middleware.ParseHeaderString(config.General.CustomHeaders)
 		if err != nil {
 			log.WithError(err).Fatal("Unable to parse header string")
 		}
@@ -519,33 +519,23 @@ func runApp(config appConfig) {
 		log.WithError(err).Warn("Loading extended MIME database failed")
 	}
 
-	c := &cfg.Config{
-		Zip: &cfg.ZipServing{
-			ExpirationInterval: config.ZipCacheExpiry,
-			CleanupInterval:    config.ZipCacheCleanup,
-			RefreshInterval:    config.ZipCacheRefresh,
-			OpenTimeout:        config.ZipeOpenTimeout,
-			AllowedPaths:       []string{config.PagesRoot},
-		},
-	}
-
 	// TODO: reconfigure all VFS'
 	//  https://gitlab.com/gitlab-org/gitlab-pages/-/issues/512
-	if err := zip.Instance().Reconfigure(c); err != nil {
+	if err := zip.Instance().Reconfigure(&config); err != nil {
 		fatal(err, "failed to reconfigure zip VFS")
 	}
 
 	a.Run()
 }
 
-func (a *theApp) setAuth(config appConfig) {
-	if config.ClientID == "" {
+func (a *theApp) setAuth(config cfg.Config) {
+	if config.Authentication.ClientID == "" {
 		return
 	}
 
 	var err error
-	a.Auth, err = auth.New(config.Domain, config.StoreSecret, config.ClientID, config.ClientSecret,
-		config.RedirectURI, config.GitLabServer, config.AuthScope)
+	a.Auth, err = auth.New(config.General.Domain, config.Authentication.Secret, config.Authentication.ClientID, config.Authentication.ClientSecret,
+		config.Authentication.RedirectURI, config.GitLab.Server, config.Authentication.Scope)
 	if err != nil {
 		log.WithError(err).Fatal("could not initialize auth package")
 	}
@@ -557,6 +547,6 @@ func fatal(err error, message string) {
 }
 
 func (a *theApp) TLSConfig() (*tls.Config, error) {
-	return tlsconfig.Create(a.RootCertificate, a.RootKey, a.ServeTLS,
-		a.InsecureCiphers, a.TLSMinVersion, a.TLSMaxVersion)
+	return tlsconfig.Create(a.General.RootCertificate, a.General.RootKey, a.ServeTLS,
+		a.General.InsecureCiphers, a.TLS.MinVersion, a.TLS.MaxVersion)
 }
