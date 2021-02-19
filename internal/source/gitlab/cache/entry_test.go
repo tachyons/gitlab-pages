@@ -102,7 +102,7 @@ func TestEntryRefresh(t *testing.T) {
 		lookup := entry.Retrieve(ctx)
 		require.NoError(t, lookup.Error)
 
-		require.Eventually(t, entry.NeedsRefresh, 2*cc.entryRefreshTimeout, time.Millisecond, "entry should need refresh")
+		require.Eventually(t, entry.NeedsRefresh, 100*time.Millisecond, time.Millisecond, "entry should need refresh")
 
 		entry.refreshFunc(store)
 
@@ -125,7 +125,7 @@ func TestEntryRefresh(t *testing.T) {
 
 		lookup := entry.Retrieve(ctx)
 		require.Error(t, lookup.Error)
-		require.Eventually(t, entry.NeedsRefresh, 2*cc.entryRefreshTimeout, time.Millisecond, "entry should need refresh")
+		require.Eventually(t, entry.NeedsRefresh, 100*time.Millisecond, time.Millisecond, "entry should need refresh")
 
 		// wait for entry to expire
 		time.Sleep(cc.cacheExpiry)
