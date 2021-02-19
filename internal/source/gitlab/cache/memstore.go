@@ -11,22 +11,22 @@ import (
 )
 
 type memstore struct {
-	store               *cache.Cache
-	mux                 *sync.RWMutex
-	retriever           *Retriever
-	entryRefreshTimeout time.Duration
-	entryMaxDuration    time.Duration
+	store                  *cache.Cache
+	mux                    *sync.RWMutex
+	retriever              *Retriever
+	entryRefreshTimeout    time.Duration
+	entryExpirationTimeout time.Duration
 }
 
 func newMemStore(client api.Client, cc *config.Cache) Store {
 	retriever := NewRetriever(client, cc.RetrievalTimeout, cc.MaxRetrievalInterval, cc.MaxRetrievalRetries)
 
 	return &memstore{
-		store:               cache.New(cc.CacheExpiry, cc.CacheCleanupInterval),
-		mux:                 &sync.RWMutex{},
-		retriever:           retriever,
-		entryRefreshTimeout: cc.EntryRefreshTimeout,
-		entryMaxDuration:    cc.CacheExpiry,
+		store:                  cache.New(cc.CacheExpiry, cc.CacheCleanupInterval),
+		mux:                    &sync.RWMutex{},
+		retriever:              retriever,
+		entryRefreshTimeout:    cc.EntryRefreshTimeout,
+		entryExpirationTimeout: cc.CacheExpiry,
 	}
 }
 
@@ -48,7 +48,7 @@ func (m *memstore) LoadOrCreate(domain string) *Entry {
 		return entry.(*Entry)
 	}
 
-	newEntry := newCacheEntry(domain, m.entryRefreshTimeout, m.entryMaxDuration, m.retriever)
+	newEntry := newCacheEntry(domain, m.entryRefreshTimeout, m.entryExpirationTimeout, m.retriever)
 	m.store.SetDefault(domain, newEntry)
 
 	return newEntry

@@ -14,29 +14,29 @@ import (
 // holds a pointer to *api.Lookup when the domain lookup has been retrieved
 // successfully
 type Entry struct {
-	domain         string
-	created        time.Time
-	retrieve       *sync.Once
-	refresh        *sync.Once
-	mux            *sync.RWMutex
-	retrieved      chan struct{}
-	response       *api.Lookup
-	refreshTimeout time.Duration
-	maxDuration    time.Duration
-	retriever      *Retriever
+	domain            string
+	created           time.Time
+	retrieve          *sync.Once
+	refresh           *sync.Once
+	mux               *sync.RWMutex
+	retrieved         chan struct{}
+	response          *api.Lookup
+	refreshTimeout    time.Duration
+	expirationTimeout time.Duration
+	retriever         *Retriever
 }
 
-func newCacheEntry(domain string, refreshTimeout, maxDuration time.Duration, retriever *Retriever) *Entry {
+func newCacheEntry(domain string, refreshTimeout, entryExpirationTimeout time.Duration, retriever *Retriever) *Entry {
 	return &Entry{
-		domain:         domain,
-		created:        time.Now(),
-		retrieve:       &sync.Once{},
-		refresh:        &sync.Once{},
-		mux:            &sync.RWMutex{},
-		retrieved:      make(chan struct{}),
-		refreshTimeout: refreshTimeout,
-		maxDuration:    maxDuration,
-		retriever:      retriever,
+		domain:            domain,
+		created:           time.Now(),
+		retrieve:          &sync.Once{},
+		refresh:           &sync.Once{},
+		mux:               &sync.RWMutex{},
+		retrieved:         make(chan struct{}),
+		refreshTimeout:    refreshTimeout,
+		expirationTimeout: entryExpirationTimeout,
+		retriever:         retriever,
 	}
 }
 
@@ -46,7 +46,7 @@ func (e *Entry) IsUpToDate() bool {
 	e.mux.RLock()
 	defer e.mux.RUnlock()
 
-	return e.isResolved() && !e.isExpired()
+	return e.isResolved() && !e.isOutdated()
 }
 
 // NeedsRefresh return true if the entry has been resolved correctly but it has
@@ -55,7 +55,7 @@ func (e *Entry) NeedsRefresh() bool {
 	e.mux.RLock()
 	defer e.mux.RUnlock()
 
-	return e.isResolved() && e.isExpired()
+	return e.isResolved() && e.isOutdated()
 }
 
 // Lookup returns a retriever Lookup response.
@@ -90,10 +90,13 @@ func (e *Entry) Refresh(store Store) {
 }
 
 func (e *Entry) refreshFunc(store Store) {
-	entry := newCacheEntry(e.domain, e.refreshTimeout, e.maxDuration, e.retriever)
+	entry := newCacheEntry(e.domain, e.refreshTimeout, e.expirationTimeout, e.retriever)
 
 	entry.Retrieve(context.Background())
-	if e.reuseEntry(entry) {
+
+	// do not replace existing Entry `e` when `entry` has an error
+	// and `e` has not expired. See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/281.
+	if entry.hasTemporaryError() && !e.isExpired() {
 		entry.response = e.response
 		entry.created = e.created
 	}
@@ -109,7 +112,7 @@ func (e *Entry) setResponse(lookup api.Lookup) {
 	close(e.retrieved)
 }
 
-func (e *Entry) isExpired() bool {
+func (e *Entry) isOutdated() bool {
 	return time.Since(e.created) > e.refreshTimeout
 }
 
@@ -117,18 +120,15 @@ func (e *Entry) isResolved() bool {
 	return e.response != nil
 }
 
-func (e *Entry) maxTimeInCache() bool {
-	return time.Since(e.created) > e.maxDuration
+func (e *Entry) isExpired() bool {
+	return time.Since(e.created) > e.expirationTimeout
 }
 
-// reuseEntry as the refreshed entry when there is an error after resolving the lookup again
-// and is different to domain.ErrDomainDoesNotExist. This is an edge case to prevent serving
-// a page right after being deleted.
-// It should only be refreshed as long as it hasn't passed e.maxDuration.
-// See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/281.
-func (e *Entry) reuseEntry(entry *Entry) bool {
-	return entry.response != nil &&
-		entry.response.Error != nil &&
-		!errors.Is(entry.response.Error, domain.ErrDomainDoesNotExist) &&
-		!e.maxTimeInCache()
+// hasTemporaryError checks currently refreshed entry for errors after resolving the lookup again
+// and is different to domain.ErrDomainDoesNotExist (this is an edge case to prevent serving
+// a page right after being deleted).
+func (e *Entry) hasTemporaryError() bool {
+	return e.response != nil &&
+		e.response.Error != nil &&
+		!errors.Is(e.response.Error, domain.ErrDomainDoesNotExist)
 }

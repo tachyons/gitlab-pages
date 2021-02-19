@@ -158,22 +158,22 @@ type lookupMock struct {
 	responses    map[string]api.Lookup
 }
 
-func (mm *lookupMock) GetLookup(ctx context.Context, domainName string) api.Lookup {
+func (lm *lookupMock) GetLookup(ctx context.Context, domainName string) api.Lookup {
 	lookup := api.Lookup{
 		Name: domainName,
 	}
 
-	lookup, ok := mm.responses[domainName]
+	lookup, ok := lm.responses[domainName]
 	if !ok {
 		lookup.Error = domain.ErrDomainDoesNotExist
 		return lookup
 	}
 
-	// return error after mm.successCount
-	mm.currentCount++
-	if mm.currentCount > mm.successCount {
-		mm.currentCount = 0
-		mm.failed = true
+	// return error after lm.successCount
+	lm.currentCount++
+	if lm.currentCount > lm.successCount {
+		lm.currentCount = 0
+		lm.failed = true
 
 		lookup.Error = http.ErrServerClosed
 	}
@@ -181,6 +181,6 @@ func (mm *lookupMock) GetLookup(ctx context.Context, domainName string) api.Look
 	return lookup
 }
 
-func (mm *lookupMock) Status() error {
+func (lm *lookupMock) Status() error {
 	return nil
 }
