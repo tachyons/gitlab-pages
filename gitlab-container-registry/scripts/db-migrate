@@ -1,0 +1,3 @@
+#!/bin/bash
+
+registry database migrate up ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
