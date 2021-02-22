@@ -25,7 +25,7 @@ $CONTAINER_NAMES = [ 'alpine-certificates',
                      'kubectl' ]
 
 def retag_image(name, version, proj_id)
-  gitlab_tag = "#{version}-ubi8"
+  gitlab_tag = "#{version}"
   redhat_tag = version.gsub(/^v(\d+\.\d+\.\d+)/, '\1')
   new_container_name = "#{$REDHAT_REGISTRY}/#{proj_id}/#{name}:#{redhat_tag}"
 
@@ -41,8 +41,8 @@ def set_credentials(secret)
 end
 
 def pull_image(image)
-  puts "Pulling #{image}-ubi8"
-  %x(docker pull #{image}-ubi8)
+  puts "Pulling #{image}"
+  %x(docker pull #{image})
 end
 
 def push_image(image)
@@ -55,7 +55,14 @@ if ARGV.length < 1
   exit 1
 end
 
+# Add `-ubi8` to the commit ref if triggered with UBI_PIPELINE=true
 version = ARGV[0]
+if ENV['UBI_PIPELINE'] == 'true'
+  # we add `-ubi8` because this is probably from pipeline with UBI_PIPELINE set
+  version += '-ubi8'
+end
+
+# pull in the secrets used to auth with Red Hat registries (CI var)
 begin
   secrets = JSON.parse(ENV['REDHAT_SECRETS_JSON'])
 rescue => e
@@ -64,11 +71,12 @@ rescue => e
   raise
 end
 
-puts "Using #{version}-ubi8 as the docker tag to pull"
+puts "Using #{version} as the docker tag to pull"
 
 errors = []
 $CONTAINER_NAMES.each do |name|
   if secrets.has_key? name
+    # pull the image from the GitLab registry
     response = pull_image("#{$GITLAB_REGISTRY}/#{name}:#{version}")
     if response.empty?
       puts "Skipping #{$GITLAB_REGISTRY}/#{name}:#{version}-ubi8 (Not Found)"
@@ -79,6 +87,7 @@ $CONTAINER_NAMES.each do |name|
     # retag the image with the Red Hat registry information
     container_name = retag_image(name, version, secrets[name]['id'])
 
+    # each image has separate creds, so need to re auth
     result = set_credentials(secrets[name]['secret']).chomp
     if result != 'Login Succeeded'
       puts "***** Failed to authenticate to registry for #{name} *****"
@@ -87,13 +96,16 @@ $CONTAINER_NAMES.each do |name|
       next
     end
 
+    # push image to Red Hat and display the response received
     puts push_image(container_name)
   else
+    # let someone know that there was not a secret for a specific image
     puts "No entry for #{name} in secrets file"
     errors << "#{name}: No secret listed in $REDHAT_SECRETS_JSON"
   end
 end
 
+# display the collected errors in the CI job output
 unless errors.empty?
   puts "\n\nThe following errors have been collected:"
   errors.each { |err|
