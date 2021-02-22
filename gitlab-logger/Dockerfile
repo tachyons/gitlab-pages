@@ -4,10 +4,10 @@ ARG GO_TAG="master"
 
 FROM ${FROM_IMAGE}:${GO_TAG} as compile
 
-ARG GITLAB_LOGGER_VERSION=1.0
-ARG GITLAB_LOGGER_SHA256=f37acfd5cdbcc940f541bb2cde5468778db60c6eb4d2e5f368207cafefcdb66f
+ARG GITLAB_LOGGER_VERSION=v1.1.0
+ARG GITLAB_LOGGER_SHA256=2a5a97bc93feecfe4eec69131091172fe291989dfb00a1b39f890ffcc51c1e52
 
-ENV GITLAB_LOGGER_SOURCE_URL="https://github.com/jbguerraz/gitlab-logger/archive/v${GITLAB_LOGGER_VERSION}.tar.gz"
+ENV GITLAB_LOGGER_SOURCE_URL="https://gitlab.com/gitlab-org/charts/components/gitlab-logger/-/archive/${GITLAB_LOGGER_VERSION}/gitlab-logger-${GITLAB_LOGGER_VERSION}.tar.gz"
 
 RUN mkdir -p /build /target
 COPY scripts/ /scripts
