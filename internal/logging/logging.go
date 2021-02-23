@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
+
+	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -83,8 +85,9 @@ func BasicAccessLogger(handler http.Handler, format string, extraFields log.Extr
 	if extraFields == nil {
 		extraFields = func(r *http.Request) log.Fields {
 			return log.Fields{
-				"pages_https": request.IsHTTPS(r),
-				"pages_host":  r.Host,
+				"correlation_id": correlation.ExtractFromContext(r.Context()),
+				"pages_https":    request.IsHTTPS(r),
+				"pages_host":     r.Host,
 			}
 		}
 	}
@@ -104,7 +107,8 @@ func AccessLogger(handler http.Handler, format string) (http.Handler, error) {
 // LogRequest will inject request host and path to the logged messages
 func LogRequest(r *http.Request) *logrus.Entry {
 	return log.WithFields(log.Fields{
-		"host": r.Host,
-		"path": r.URL.Path,
+		"correlation_id": correlation.ExtractFromContext(r.Context()),
+		"host":           r.Host,
+		"path":           r.URL.Path,
 	})
 }

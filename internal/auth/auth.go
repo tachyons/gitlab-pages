@@ -18,6 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/hkdf"
 
+	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -617,9 +618,10 @@ func checkResponseForInvalidToken(resp *http.Response, session *sessions.Session
 func logRequest(r *http.Request) *log.Entry {
 	state := r.URL.Query().Get("state")
 	return log.WithFields(log.Fields{
-		"host":  r.Host,
-		"path":  r.URL.Path,
-		"state": state,
+		"correlation_id": correlation.ExtractFromContext(r.Context()),
+		"host":           r.Host,
+		"path":           r.URL.Path,
+		"state":          state,
 	})
 }
 

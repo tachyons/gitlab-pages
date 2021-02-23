@@ -23,7 +23,7 @@ type meteredRoundTripper struct {
 
 // NewMeteredRoundTripper will create a custom http.RoundTripper that can be used with an http.Client.
 // The RoundTripper will report metrics based on the collectors passed.
-func NewMeteredRoundTripper(transport *http.Transport, name string, tracerVec, durationsVec *prometheus.
+func NewMeteredRoundTripper(transport http.RoundTripper, name string, tracerVec, durationsVec *prometheus.
 	HistogramVec, counterVec *prometheus.CounterVec, ttfbTimeout time.Duration) http.RoundTripper {
 	if transport == nil {
 		transport = DefaultTransport

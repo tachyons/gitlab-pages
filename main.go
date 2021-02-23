@@ -54,6 +54,7 @@ var (
 	daemonUID               = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	daemonGID               = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 	daemonInplaceChroot     = flag.Bool("daemon-inplace-chroot", false, "Fall back to a non-bind-mount chroot of -pages-root when daemonizing")
+	propagateCorrelationID  = flag.Bool("propagate-correlation-id", false, "Reuse existing Correlation-ID from the incoming request header `X-Request-ID` if present")
 	logFormat               = flag.String("log-format", "text", "The log output format: 'text' or 'json'")
 	logVerbose              = flag.Bool("log-verbose", false, "Verbose logging")
 	_                       = flag.String("admin-secret-path", "", "DEPRECATED")
@@ -167,6 +168,7 @@ func configFromFlags() appConfig {
 	config.RedirectHTTP = *redirectHTTP
 	config.HTTP2 = *useHTTP2
 	config.DisableCrossOriginRequests = *disableCrossOriginRequests
+	config.PropagateCorrelationID = *propagateCorrelationID
 	config.StatusPath = *pagesStatus
 	config.LogFormat = *logFormat
 	config.LogVerbose = *logVerbose
@@ -290,6 +292,7 @@ func loadConfig() appConfig {
 		"pages-domain":                  *pagesDomain,
 		"pages-root":                    *pagesRoot,
 		"pages-status":                  *pagesStatus,
+		"propagate-correlation-id":      *propagateCorrelationID,
 		"redirect-http":                 config.RedirectHTTP,
 		"root-cert":                     *pagesRootKey,
 		"root-key":                      *pagesRootCert,

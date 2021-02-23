@@ -13,6 +13,8 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 
+	"gitlab.com/gitlab-org/labkit/correlation"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
@@ -64,7 +66,7 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 		httpClient: &http.Client{
 			Timeout: connectionTimeout,
 			Transport: httptransport.NewMeteredRoundTripper(
-				httptransport.DefaultTransport,
+				correlation.NewInstrumentedRoundTripper(httptransport.DefaultTransport),
 				"gitlab_internal_api",
 				metrics.DomainsSourceAPITraceDuration,
 				metrics.DomainsSourceAPICallDuration,

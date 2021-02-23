@@ -15,6 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/go-mimedb"
+	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
@@ -338,6 +339,13 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	// Custom response headers
 	handler = a.customHeadersMiddleware(handler)
+
+	// Correlation ID injection middleware
+	var correlationOpts []correlation.InboundHandlerOption
+	if a.appConfig.PropagateCorrelationID {
+		correlationOpts = append(correlationOpts, correlation.WithPropagation())
+	}
+	handler = correlation.InjectCorrelationID(handler, correlationOpts...)
 
 	// This MUST be the last handler!
 	// This handler blocks unknown HTTP methods,
