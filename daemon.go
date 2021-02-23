@@ -267,7 +267,7 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 	return cage, nil
 }
 
-func daemonize(config config.Config) error {
+func daemonize(config *config.Config) error {
 	uid := uint(config.Daemon.UID)
 	gid := uint(config.Daemon.GID)
 	inPlace := config.Daemon.InplaceChroot
@@ -329,7 +329,7 @@ func daemonize(config config.Config) error {
 	defer configWriter.Close()
 	cmd.ExtraFiles = append(cmd.ExtraFiles, configReader)
 
-	updateFds(&config, cmd)
+	updateFds(config, cmd)
 
 	// Start the process
 	if err := cmd.Start(); err != nil {
