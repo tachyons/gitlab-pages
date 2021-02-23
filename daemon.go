@@ -48,7 +48,7 @@ func daemonMain() {
 	if err := json.NewDecoder(os.NewFile(3, "options")).Decode(&config); err != nil {
 		fatal(err, "could not decode app config")
 	}
-	runApp(config)
+	runApp(&config)
 	os.Exit(0)
 }
 

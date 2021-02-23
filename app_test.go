@@ -89,10 +89,10 @@ func TestHealthCheckMiddleware(t *testing.T) {
 	cfg.General.DomainConfigurationSource = "auto"
 
 	app := theApp{
-		Config: cfg,
+		config: cfg,
 	}
 
-	domains, err := source.NewDomains(app.Config)
+	domains, err := source.NewDomains(app.config)
 	require.NoError(t, err)
 	app.domains = domains
 
