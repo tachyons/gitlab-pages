@@ -261,7 +261,7 @@ func loadConfig() *Config {
 			Domain:                     strings.ToLower(*pagesDomain),
 			DomainConfigurationSource:  *domainConfigSource,
 			HTTP2:                      *useHTTP2,
-			MaxConns:                   int(*maxConns),
+			MaxConns:                   *maxConns,
 			MetricsAddress:             *metricsAddress,
 			RedirectHTTP:               *redirectHTTP,
 			RootDir:                    *pagesRoot,
