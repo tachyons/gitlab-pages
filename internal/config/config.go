@@ -85,8 +85,8 @@ type Auth struct {
 
 // Daemon groups settings related to configuring GitLab Pages daemon
 type Daemon struct {
-	UID           int
-	GID           int
+	UID           uint
+	GID           uint
 	InplaceChroot bool
 }
 
@@ -288,8 +288,8 @@ func loadConfig() *Config {
 			Scope:        *authScope,
 		},
 		Daemon: &Daemon{
-			UID:           int(*daemonUID),
-			GID:           int(*daemonGID),
+			UID:           *daemonUID,
+			GID:           *daemonGID,
 			InplaceChroot: *daemonInplaceChroot,
 		},
 		Log: &Log{

@@ -268,8 +268,8 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 }
 
 func daemonize(config *config.Config) error {
-	uid := uint(config.Daemon.UID)
-	gid := uint(config.Daemon.GID)
+	uid := config.Daemon.UID
+	gid := config.Daemon.GID
 	inPlace := config.Daemon.InplaceChroot
 	pagesRoot := config.General.RootDir
 
