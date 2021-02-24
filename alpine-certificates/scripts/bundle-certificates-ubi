@@ -19,4 +19,6 @@ echo "Updated CA trust"
 # Copy certificates into common path (/etc/ssl/certs)
 cp /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/certs/ca-bundle.crt
 cp /etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt /etc/ssl/certs/ca-bundle.trust.crt
+# cp ca-bundle to ca-certificates - https://gitlab.com/gitlab-org/charts/gitlab/-/issues/2592
+cp /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
 echo "Copied bundles into /etc/ssl/certs"
