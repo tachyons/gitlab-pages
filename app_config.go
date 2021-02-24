@@ -25,6 +25,7 @@ type appConfig struct {
 	StatusPath   string
 
 	DisableCrossOriginRequests bool
+	PropagateCorrelationID     bool
 
 	LogFormat  string
 	LogVerbose bool
