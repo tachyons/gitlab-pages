@@ -6,6 +6,8 @@ services:
       - "POSTGRES_PASSWORD=meercat"
       - "POSTGRES_USER=gitlab"
       - "POSTGRES_DB=gitlabhq_production"
+    volumes:
+      - ./dev/postgres/initdb:/docker-entrypoint-initdb.d
   redis:
     image: redis:6.0.10
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
@@ -37,6 +39,7 @@ services:
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
       - "ACTION_CABLE_IN_APP=true"
+      - "REGISTRY_PORT=${REGISTRY_PORT}"
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
       - postgres
@@ -51,6 +54,7 @@ services:
       - uploads:/srv/gitlab/public/uploads
       - shared-dir:/srv/gitlab/shared
       - pages:/srv/gitlab/shared/pages
+      - ./dev/registry/gitlab-registry.key:/etc/gitlab/registry/gitlab-registry.key
   workhorse:
     image: ${GITLAB_WORKHORSE_IMAGE}
     environment:
@@ -119,6 +123,28 @@ services:
       - ./dev/pages-secret/.gitlab_pages_secret:/etc/gitlab-pages/.gitlab_pages_secret
       - shared-dir:/srv/gitlab/shared
       - pages:/srv/gitlab/shared/pages
+  registry_migrations:
+    image: ${GITLAB_REGISTRY_IMAGE}
+    command: ["/scripts/wait-for-deps", "/scripts/db-migrate"]
+    depends_on:
+      - postgres
+    volumes:
+      - ./dev/registry/config.yml:/etc/docker/registry/config.yml
+      - ./dev/registry/gitlab-registry.crt:/etc/docker/registry/gitlab-registry.crt
+  registry:
+    image: ${GITLAB_REGISTRY_IMAGE}
+    command: ["/scripts/wait-for-deps", "registry", "serve", "/etc/docker/registry/config.yml"]
+    depends_on:
+      - registry_migrations
+    ports:
+      - "${REGISTRY_PORT}:5000"
+    environment:
+      - "REGISTRY_AUTH_TOKEN_REALM='http://localhost:${HOST_PORT}/jwt/auth'"
+    volumes:
+      - ./dev/registry/config.yml:/etc/docker/registry/config.yml
+      - ./dev/registry/gitlab-registry.crt:/etc/docker/registry/gitlab-registry.crt
+      - ./gitlab-container-registry/scripts:/scripts
+      - registry-storage:/var/lib/registry/docker/
 volumes:
   db-upgrade:
     driver: local
@@ -144,3 +170,8 @@ volumes:
       type: tmpfs
       device: tmpfs
       o: "size=100M"
+  registry-storage:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs

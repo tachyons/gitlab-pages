@@ -62,6 +62,11 @@ production: &base
     geo_file_download_dispatch_worker:
       cron: "*/1 * * * *"
   registry:
+    enabled: true
+    host: "http://localhost:<%= ENV['REGISTRY_PORT'] %>"
+    api_url: "http://registry:5000"
+    key: /etc/gitlab/registry/gitlab-registry.key
+    issuer: gitlab-issuer
   gitlab_ci:
   ldap:
     enabled: false
