@@ -2,7 +2,7 @@ ARG FROM_IMAGE="debian"
 FROM ${FROM_IMAGE}:buster-slim
 
 ARG BUILD_DIR=/tmp/build
-ARG PYTHON_VERSION="3.8.4"
+ARG PYTHON_VERSION="3.8.6"
 
 RUN buildDeps=' \
   build-essential \
