@@ -26,8 +26,8 @@ function checkStatus {
 counter=1
 until [ $counter -eq $WAIT_FOR_TIMEOUT ]; do
   # if successful, break and move on.
-  if checkStatus then
-    break ;
+  if checkStatus ; then
+    break
   fi
   # otherwise, sleep, increment, and try again.
   sleep $SLEEP_DURATION;
