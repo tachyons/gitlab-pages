@@ -143,11 +143,9 @@ func TestEntryRefresh(t *testing.T) {
 func loadEntry(t *testing.T, domain string, store Store) *Entry {
 	t.Helper()
 
-	m := store.(*memstore)
-	m.mux.RLock()
-	i, exists := m.store.Get(domain)
-	m.mux.RUnlock()
+	i, exists := store.(*memstore).store.Get(domain)
 	require.True(t, exists)
+
 	return i.(*Entry)
 }
 
