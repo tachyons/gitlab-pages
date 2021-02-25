@@ -7,16 +7,14 @@ BYPASS_SCHEMA_VERSION="${BYPASS_SCHEMA_VERSION:-}"
 TMP=$(mktemp)
 
 function checkStatus {
-  output=$(registry database migrate status ${CONFIG_DIRECTORY}/${CONFIG_FILENAME} > ${TMP})
+  # result=true|false, if command successful
+  result=$(registry database migrate status --up-to-date ${CONFIG_DIRECTORY}/${CONFIG_FILENAME})
   ret=$?
 
   if [ $ret -eq 0 ]; then
     # successful run, check the output, if we care
     if [ -z "${BYPASS_SCHEMA_VERSION}" ]; then
-      check=$(tail -n2 ${TMP} | head -n1 | cut -d'|' -f 2)
-      if [ "${check}" == "" ]; then
-        ret=2
-      fi
+      ret=$(${result})
     fi
   fi
 
@@ -33,6 +31,14 @@ until [ $counter -eq $WAIT_FOR_TIMEOUT ]; do
   sleep $SLEEP_DURATION;
   ((counter++))
 done
+
+# check that if we failed, and output.
+if [ $counter -eq $WAIT_FOR_TIMEOUT ]; then
+  echo 'WARNING: Not all services were operational, with data migrations completed.'
+  # Output a message as to how to resolve this container failing.
+  echo 'If this container continues to fail, please see: https://docs.gitlab.com/charts/troubleshooting/index.html#application-containers-constantly-initializing'
+  exit 1
+fi
 
 # `exec` the arguments passed to this script (if any)
 exec "$@"
