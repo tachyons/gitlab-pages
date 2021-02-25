@@ -126,6 +126,8 @@ services:
   registry_migrations:
     image: ${GITLAB_REGISTRY_IMAGE}
     command: ["/scripts/wait-for-deps", "/scripts/db-migrate"]
+    environment:
+      - "BYPASS_SCHEMA_VERSION=1"
     depends_on:
       - postgres
     volumes:
