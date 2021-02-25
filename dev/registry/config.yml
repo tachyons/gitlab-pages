@@ -57,3 +57,4 @@ database:
   port: 5432
   user: gitlab
   password: meercat
+  sslmode: disable
