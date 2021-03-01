@@ -16,16 +16,16 @@ import (
 
 // Config stores all the config options relevant to GitLab Pages.
 type Config struct {
-	General         *General
-	ArtifactsServer *ArtifactsServer
-	Authentication  *Auth
-	Daemon          *Daemon
-	GitLab          *GitLab
-	Listeners       *Listeners
-	Log             *Log
-	Sentry          *Sentry
-	TLS             *TLS
-	Zip             *ZipServing
+	General         General
+	ArtifactsServer ArtifactsServer
+	Authentication  Auth
+	Daemon          Daemon
+	GitLab          GitLab
+	Listeners       Listeners
+	Log             Log
+	Sentry          Sentry
+	TLS             TLS
+	Zip             ZipServing
 
 	// Fields used to share information between files. These are not directly
 	// set by command line flags, but rather populated based on info from them.
@@ -257,7 +257,7 @@ func (config Config) DomainConfigSource() string {
 
 func loadConfig() *Config {
 	config := &Config{
-		General: &General{
+		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
 			DomainConfigurationSource:  *domainConfigSource,
 			HTTP2:                      *useHTTP2,
@@ -272,39 +272,39 @@ func loadConfig() *Config {
 			CustomHeaders:              header.Split(),
 			ShowVersion:                *showVersion,
 		},
-		GitLab: &GitLab{
+		GitLab: GitLab{
 			ClientHTTPTimeout:  *gitlabClientHTTPTimeout,
 			JWTTokenExpiration: *gitlabClientJWTExpiry,
 		},
-		ArtifactsServer: &ArtifactsServer{
+		ArtifactsServer: ArtifactsServer{
 			TimeoutSeconds: *artifactsServerTimeout,
 			URL:            *artifactsServer,
 		},
-		Authentication: &Auth{
+		Authentication: Auth{
 			Secret:       *secret,
 			ClientID:     *clientID,
 			ClientSecret: *clientSecret,
 			RedirectURI:  *redirectURI,
 			Scope:        *authScope,
 		},
-		Daemon: &Daemon{
+		Daemon: Daemon{
 			UID:           *daemonUID,
 			GID:           *daemonGID,
 			InplaceChroot: *daemonInplaceChroot,
 		},
-		Log: &Log{
+		Log: Log{
 			Format:  *logFormat,
 			Verbose: *logVerbose,
 		},
-		Sentry: &Sentry{
+		Sentry: Sentry{
 			DSN:         *sentryDSN,
 			Environment: *sentryEnvironment,
 		},
-		TLS: &TLS{
+		TLS: TLS{
 			MinVersion: tlsconfig.AllTLSVersions[*tlsMinVersion],
 			MaxVersion: tlsconfig.AllTLSVersions[*tlsMaxVersion],
 		},
-		Zip: &ZipServing{
+		Zip: ZipServing{
 			ExpirationInterval: *zipCacheExpiration,
 			CleanupInterval:    *zipCacheCleanup,
 			RefreshInterval:    *zipCacheRefresh,
@@ -318,7 +318,7 @@ func loadConfig() *Config {
 		ListenHTTPSStrings:        listenHTTPS,
 		ListenProxyStrings:        listenProxy,
 		ListenHTTPSProxyv2Strings: listenHTTPSProxyv2,
-		Listeners:                 &Listeners{},
+		Listeners:                 Listeners{},
 	}
 
 	// Populating remaining General settings

@@ -144,7 +144,7 @@ func createAppListeners(config *cfg.Config) []io.Closer {
 		httpsProxyv2Listeners = append(httpsProxyv2Listeners, f.Fd())
 	}
 
-	config.Listeners = &cfg.Listeners{
+	config.Listeners = cfg.Listeners{
 		HTTP:         httpListeners,
 		HTTPS:        httpsListeners,
 		Proxy:        proxyListeners,
