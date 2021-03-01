@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
@@ -83,14 +84,15 @@ func TestHealthCheckMiddleware(t *testing.T) {
 		},
 	}
 
+	cfg := config.LoadConfig()
+	cfg.General.StatusPath = "/-/healthcheck"
+	cfg.General.DomainConfigurationSource = "auto"
+
 	app := theApp{
-		appConfig: appConfig{
-			StatusPath:                "/-/healthcheck",
-			DomainConfigurationSource: "auto",
-		},
+		config: cfg,
 	}
 
-	domains, err := source.NewDomains(app.appConfig)
+	domains, err := source.NewDomains(app.config)
 	require.NoError(t, err)
 	app.domains = domains
 

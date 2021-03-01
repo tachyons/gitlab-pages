@@ -86,7 +86,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 	}
 
 	cfg := &config.Config{
-		Zip: &config.ZipServing{
+		Zip: config.ZipServing{
 			ExpirationInterval: 10 * time.Second,
 			CleanupInterval:    5 * time.Second,
 			RefreshInterval:    5 * time.Second,

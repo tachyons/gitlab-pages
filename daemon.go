@@ -15,6 +15,7 @@ import (
 	"github.com/kardianos/osext"
 	log "github.com/sirupsen/logrus"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/jail"
 )
 
@@ -43,11 +44,11 @@ func daemonMain() {
 	}).Info("starting the daemon as unprivileged user")
 
 	// read the configuration from the pipe "ExtraFiles"
-	var config appConfig
+	var config config.Config
 	if err := json.NewDecoder(os.NewFile(3, "options")).Decode(&config); err != nil {
 		fatal(err, "could not decode app config")
 	}
-	runApp(config)
+	runApp(&config)
 	os.Exit(0)
 }
 
@@ -266,7 +267,12 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 	return cage, nil
 }
 
-func daemonize(config appConfig, uid, gid uint, inPlace bool, pagesRoot string) error {
+func daemonize(config *config.Config) error {
+	uid := config.Daemon.UID
+	gid := config.Daemon.GID
+	inPlace := config.Daemon.InplaceChroot
+	pagesRoot := config.General.RootDir
+
 	// Ensure pagesRoot is an absolute path. This will produce a different path
 	// if any component of pagesRoot is a symlink (not likely). For example,
 	// -pages-root=/some-path where ln -s /other-path /some-path
@@ -323,7 +329,7 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool, pagesRoot string) 
 	defer configWriter.Close()
 	cmd.ExtraFiles = append(cmd.ExtraFiles, configReader)
 
-	updateFds(&config, cmd)
+	updateFds(config, cmd)
 
 	// Start the process
 	if err := cmd.Start(); err != nil {
@@ -344,12 +350,12 @@ func daemonize(config appConfig, uid, gid uint, inPlace bool, pagesRoot string) 
 	return cmd.Wait()
 }
 
-func updateFds(config *appConfig, cmd *exec.Cmd) {
+func updateFds(config *config.Config, cmd *exec.Cmd) {
 	for _, fds := range [][]uintptr{
-		config.ListenHTTP,
-		config.ListenHTTPS,
-		config.ListenProxy,
-		config.ListenHTTPSProxyv2,
+		config.Listeners.HTTP,
+		config.Listeners.HTTPS,
+		config.Listeners.Proxy,
+		config.Listeners.HTTPSProxyv2,
 	} {
 		daemonUpdateFds(cmd, fds)
 	}

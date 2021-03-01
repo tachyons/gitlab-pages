@@ -24,7 +24,7 @@ import (
 
 var (
 	chdirSet = false
-	zipCfg   = &config.ZipServing{
+	zipCfg   = config.ZipServing{
 		ExpirationInterval: 10 * time.Second,
 		CleanupInterval:    5 * time.Second,
 		RefreshInterval:    5 * time.Second,
@@ -91,7 +91,7 @@ func TestOpenCached(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public-without-dirs.zip", &requests)
 	defer cleanup()
 
-	fs := New(zipCfg)
+	fs := New(&zipCfg)
 
 	// We use array instead of map to ensure
 	// predictable ordering of test execution
@@ -342,7 +342,7 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
-	fs := New(zipCfg).(*zipVFS)
+	fs := New(&zipCfg).(*zipVFS)
 	zip := newArchive(fs, time.Second)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -365,7 +365,7 @@ func TestReadArchiveFails(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
-	fs := New(zipCfg).(*zipVFS)
+	fs := New(&zipCfg).(*zipVFS)
 	zip := newArchive(fs, time.Second)
 
 	err := zip.openArchive(context.Background(), testServerURL+"/unkown.html")
@@ -390,7 +390,7 @@ func openZipArchive(t *testing.T, requests *int64, fromDisk bool) (*zipArchive, 
 
 	zipCfg.AllowedPaths = []string{wd}
 
-	fs := New(zipCfg).(*zipVFS)
+	fs := New(&zipCfg).(*zipVFS)
 	err = fs.Reconfigure(&config.Config{Zip: zipCfg})
 	require.NoError(t, err)
 
@@ -466,7 +466,7 @@ func benchmarkArchiveRead(b *testing.B, size int64) {
 	ts := httptest.NewServer(m)
 	defer ts.Close()
 
-	fs := New(zipCfg).(*zipVFS)
+	fs := New(&zipCfg).(*zipVFS)
 
 	b.ReportAllocs()
 	b.ResetTimer()

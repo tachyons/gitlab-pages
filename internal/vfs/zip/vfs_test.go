@@ -38,7 +38,7 @@ func TestVFSRoot(t *testing.T) {
 		},
 	}
 
-	vfs := New(zipCfg)
+	vfs := New(&zipCfg)
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 
 	path := testServerURL + "/public.zip"
 
-	vfs := New(zipCfg).(*zipVFS)
+	vfs := New(&zipCfg).(*zipVFS)
 	root, err := vfs.Root(context.Background(), path)
 	require.NoError(t, err)
 
@@ -161,7 +161,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			withExpectedArchiveCount(t, 1, func(t *testing.T) {
-				cfg := *zipCfg
+				cfg := *&zipCfg
 				cfg.ExpirationInterval = test.expirationInterval
 				cfg.RefreshInterval = test.refreshInterval
 
@@ -223,7 +223,7 @@ func TestVFSReconfigureTransport(t *testing.T) {
 
 	fileURL := testhelpers.ToFileProtocol(t, "group/zip.gitlab.io/public.zip")
 
-	vfs := New(zipCfg)
+	vfs := New(&zipCfg)
 
 	// try to open a file URL without registering the file protocol
 	_, err := vfs.Root(context.Background(), fileURL)
@@ -231,10 +231,10 @@ func TestVFSReconfigureTransport(t *testing.T) {
 	require.Contains(t, err.Error(), "unsupported protocol scheme \"file\"")
 
 	// reconfigure VFS with allowed paths and try to open file://
-	cfg := *zipCfg
+	cfg := zipCfg
 	cfg.AllowedPaths = []string{testhelpers.Getwd(t)}
 
-	err = vfs.Reconfigure(&config.Config{Zip: &cfg})
+	err = vfs.Reconfigure(&config.Config{Zip: cfg})
 	require.NoError(t, err)
 
 	root, err := vfs.Root(context.Background(), fileURL)
