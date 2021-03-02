@@ -1,0 +1,60 @@
+version: 0.1
+log:
+  fields:
+    service: registry
+  level: info
+http:
+  debug:
+    addr: ':5001'
+    prometheus:
+      enabled: false
+      path: /metrics
+  draintimeout: 0
+  headers:
+    X-Content-Type-Options: [nosniff]
+  addr: ':5000'
+  secret: "d2Y3Zzhsa3huOWdkc3d3c3N0eWQ0bnh3bTlhYTJscDh6NXFrcTNoM3ZnNWsxcDB3c3V2OTk0c2lnN2l6cDRndnhyN2N6Z3E2cDZkZWdrN3pjZDdnYm1zdDZrMHZxMjU4bzBzZmo0MHg4cjl0ZTh2b3E4b3ZwYXkxY2kydnQyZzY="
+  relativeurls: false
+health:
+  storagedriver:
+    enabled: false
+    interval: 10s
+    threshold: 3
+auth:
+  token:
+    service: container_registry
+    issuer: "gitlab-issuer"
+    rootcertbundle: /etc/docker/registry/gitlab-registry.crt
+    autoredirect: false
+compatibility:
+  schema1:
+    enabled: false
+validation:
+  disabled: true
+compatibility:
+  schema1:
+    enabled: false
+validation:
+  disabled: true
+reporting:
+profiling:
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+  maintenance:
+    readonly:
+      enabled: false
+  cache:
+    blobdescriptor: 'inmemory'
+  delete:
+    enabled: true
+  redirect:
+    disable: true
+
+database:
+  dbname: registry
+  host: postgres
+  port: 5432
+  user: gitlab
+  password: meercat
+  sslmode: disable

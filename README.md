@@ -31,6 +31,19 @@ docker-compose up
 
 The instance should then be reachable at `http://localhost:3000`
 
+#### Registry access
+
+As the `docker-compose` deployment does not make use of TLS, `docker` will
+be "unhappy". To address this, you can add the following to
+`/etc/docker/daemon.json` and then restart the service. It will allow
+any hostname that resolves to `127.0.0.1` to be handled as insecure.
+
+```json
+{
+  "insecure-registries" : [ "127.0.0.1" ]
+}
+```
+
 ### Design of the Containers
 
 #### Configuration

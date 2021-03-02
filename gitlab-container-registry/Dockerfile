@@ -36,6 +36,7 @@ RUN apt-get update \
   && adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER}
 
 COPY --from=builder /usr/local/bin/registry /bin/registry
+COPY scripts/ /scripts/
 
 USER $GITLAB_USER:$GITLAB_USER
 
