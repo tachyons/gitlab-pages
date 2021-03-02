@@ -9,6 +9,7 @@ variables:
   # Suffix to the cache key of gitlab-rails-* where Gem vendor bundles are stored. Enables easy cache busting.
   RAILS_CACHE_SUFFIX: 20201123
   DNF_OPTS: '--disableplugin=subscription-manager'
+  DOCKER_VERSION: 20.10.3
 
 stages:
   - prepare
@@ -144,7 +145,7 @@ workflow:
 .job-base: &job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
   services:
-  - docker:19.03.0-dind
+  - docker:${DOCKER_VERSION}-dind
   dependencies: []
   retry: 1
   before_script:
@@ -178,7 +179,7 @@ workflow:
 .build-job-base: &build-job-base
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
   services:
-  - docker:19.03.0-dind
+  - docker:${DOCKER_VERSION}-dind
   retry: 1
   before_script:
     # Always compile assets for auto-deploy builds,
@@ -1165,7 +1166,7 @@ sync-images:
     DOCKER_DRIVER: overlay2
     DOCKER_HOST: tcp://docker:2375
   services:
-    - docker:dind
+    - docker:${DOCKER_VERSION}-dind
   stage: release
   allow_failure: false
   script:
@@ -1231,7 +1232,7 @@ ubi-assets-release:
 ubi-release-for-certification:
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
   services:
-    - docker:19.03.0-dind
+    - docker:${DOCKER_VERSION}-dind
   rules:
     - <<: *if_ubi_tag
     - <<: *if_push_to_redhat
