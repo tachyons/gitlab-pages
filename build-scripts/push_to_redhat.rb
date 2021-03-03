@@ -21,7 +21,7 @@ $IMAGE_VERSION_VAR = { 'alpine-certificates': 'ALPINE_VERSION',
                        'gitlab-task-runner-ee': 'GITLAB_VERSION',
                        'gitlab-webservice-ee': 'GITLAB_VERSION',
                        'gitlab-workhorse-ee': 'GITLAB_WORKHORSE_VERSION',
-                       'kubectl': 'KUBECTL_VERSION' ]
+                       'kubectl': 'KUBECTL_VERSION' }
 $AUTO_DEPLOY_TAG_REGEX = /^\d+\.\d+\.\d+\+\S{7,}$/
 $AUTO_DEPLOY_BRANCH_REGEX = /^\d+-\d+-auto-deploy-\d+$/
 
@@ -53,7 +53,7 @@ end
 
 def is_regular_tag
   (ENV['CI_COMMIT_TAG'] || ENV['GITLAB_TAG']) && \
-  !($AUTO_DEPLOY_BRANCH_REGEX.match(ENV['CI_COMMIT_BRANCH'] || $AUTO_DEPLOY_TAG_REGEX.match(ENV['CI_COMMIT_TAG'])
+  !($AUTO_DEPLOY_BRANCH_REGEX.match(ENV['CI_COMMIT_BRANCH']) || $AUTO_DEPLOY_TAG_REGEX.match(ENV['CI_COMMIT_TAG']))
 end
 
 if ARGV.length < 1
