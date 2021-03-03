@@ -22,6 +22,8 @@ $IMAGE_VERSION_VAR = { 'alpine-certificates': 'ALPINE_VERSION',
                        'gitlab-webservice-ee': 'GITLAB_VERSION',
                        'gitlab-workhorse-ee': 'GITLAB_WORKHORSE_VERSION',
                        'kubectl': 'KUBECTL_VERSION' ]
+$AUTO_DEPLOY_TAG_REGEX = /^\d+\.\d+\.\d+\+\S{7,}$/
+$AUTO_DEPLOY_BRANCH_REGEX = /^\d+-\d+-auto-deploy-\d+$/
 
 def retag_image(name, version, proj_id)
   gitlab_tag = "#{version}"
@@ -49,6 +51,11 @@ def push_image(image)
   %x(docker push #{image})
 end
 
+def is_regular_tag
+  (ENV['CI_COMMIT_TAG'] || ENV['GITLAB_TAG']) && \
+  !($AUTO_DEPLOY_BRANCH_REGEX.match(ENV['CI_COMMIT_BRANCH'] || $AUTO_DEPLOY_TAG_REGEX.match(ENV['CI_COMMIT_TAG'])
+end
+
 if ARGV.length < 1
   puts "Need to specify a version (i.e. v13.5.4)"
   exit 1
@@ -74,10 +81,12 @@ puts "Using #{version} as the docker tag to pull"
 
 errors = []
 $IMAGE_VERSION_VAR.keys.each do |name|
-  # if job is running on dev.gitlab.org, image tags need to be gathered
-  # from variables defined in the CI environment. Otherwise we assume
-  # that the "version" (commit ref) from CLI param is correct.
-  if ENV['CI_SERVER_HOST'] == "dev.gitlab.org"
+  # if job is on a tagged pipeline (but not a auto-deploy tag) or
+  # is a master branch pipeline, then use the image tags as
+  # defined in variables defined in the CI environment. Otherwise
+  # it is assumed that the "version" (commit ref) from CLI param
+  # is correct.
+  if (ENV['CI_COMMIT_REF_NAME'] == 'master' || is_regular_tag)
     version = ENV[$IMAGE_VERSION_VAR[name]]
   end
 
