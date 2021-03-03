@@ -14,16 +14,17 @@ import (
 // holds a pointer to *api.Lookup when the domain lookup has been retrieved
 // successfully
 type Entry struct {
-	domain            string
-	created           time.Time
-	retrieve          *sync.Once
-	refresh           *sync.Once
-	mux               *sync.RWMutex
-	retrieved         chan struct{}
-	response          *api.Lookup
-	refreshTimeout    time.Duration
-	expirationTimeout time.Duration
-	retriever         *Retriever
+	domain                     string
+	created                    time.Time
+	refreshedOriginalTimestamp time.Time
+	retrieve                   *sync.Once
+	refresh                    *sync.Once
+	mux                        *sync.RWMutex
+	retrieved                  chan struct{}
+	response                   *api.Lookup
+	refreshTimeout             time.Duration
+	expirationTimeout          time.Duration
+	retriever                  *Retriever
 }
 
 func newCacheEntry(domain string, refreshTimeout, entryExpirationTimeout time.Duration, retriever *Retriever) *Entry {
@@ -98,7 +99,7 @@ func (e *Entry) refreshFunc(store Store) {
 	// and `e` has not expired. See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/281.
 	if entry.hasTemporaryError() && !e.isExpired() {
 		entry.response = e.response
-		entry.created = e.created
+		entry.refreshedOriginalTimestamp = e.created
 	}
 
 	store.ReplaceOrCreate(e.domain, entry)
@@ -113,6 +114,10 @@ func (e *Entry) setResponse(lookup api.Lookup) {
 }
 
 func (e *Entry) isOutdated() bool {
+	if !e.refreshedOriginalTimestamp.IsZero() {
+		return time.Since(e.refreshedOriginalTimestamp) > e.refreshTimeout
+	}
+
 	return time.Since(e.created) > e.refreshTimeout
 }
 
@@ -121,6 +126,10 @@ func (e *Entry) isResolved() bool {
 }
 
 func (e *Entry) isExpired() bool {
+	if !e.refreshedOriginalTimestamp.IsZero() {
+		return time.Since(e.refreshedOriginalTimestamp) > e.expirationTimeout
+	}
+
 	return time.Since(e.created) > e.expirationTimeout
 }
 

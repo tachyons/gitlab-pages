@@ -95,6 +95,7 @@ func TestEntryRefresh(t *testing.T) {
 
 	t.Run("entry is the same after refreshed lookup has error", func(t *testing.T) {
 		entry := newCacheEntry("test.gitlab.io", cc.entryRefreshTimeout, cc.cacheExpiry, store.(*memstore).retriever)
+		originalEntryCreated := entry.created
 
 		ctx, cancel := context.WithTimeout(context.Background(), cc.retrievalTimeout)
 		defer cancel()
@@ -111,7 +112,8 @@ func TestEntryRefresh(t *testing.T) {
 		storedEntry := loadEntry(t, "test.gitlab.io", store)
 
 		require.NoError(t, storedEntry.Lookup().Error, "resolving failed but lookup should still be valid")
-		require.Equal(t, storedEntry.created.UnixNano(), entry.created.UnixNano(), "refreshed entry should be the same")
+		require.Equal(t, storedEntry.refreshedOriginalTimestamp.UnixNano(), originalEntryCreated.UnixNano(),
+			"refreshed entry timestamp should be the same as the original entry created timestamp")
 		require.Equal(t, storedEntry.Lookup(), entry.Lookup(), "lookup should be the same")
 	})
 
