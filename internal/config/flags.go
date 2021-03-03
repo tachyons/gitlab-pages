@@ -5,7 +5,7 @@ import (
 
 	"github.com/namsral/flag"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
 var (
@@ -49,8 +49,8 @@ var (
 	authScope          = flag.String("auth-scope", "api", "Scope to be used for authentication (must match GitLab Pages OAuth application settings)")
 	maxConns           = flag.Int("max-conns", 5000, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners")
 	insecureCiphers    = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
-	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tlsconfig.FlagUsage("min"))
-	tlsMaxVersion      = flag.String("tls-max-version", "", tlsconfig.FlagUsage("max"))
+	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tls.FlagUsage("min"))
+	tlsMaxVersion      = flag.String("tls-max-version", "", tls.FlagUsage("max"))
 	zipCacheExpiration = flag.Duration("zip-cache-expiration", 60*time.Second, "Zip serving archive cache expiration interval")
 	zipCacheCleanup    = flag.Duration("zip-cache-cleanup", 30*time.Second, "Zip serving archive cache cleanup interval")
 	zipCacheRefresh    = flag.Duration("zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval")

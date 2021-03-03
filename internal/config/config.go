@@ -11,7 +11,7 @@ import (
 	"github.com/namsral/flag"
 	log "github.com/sirupsen/logrus"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
 // Config stores all the config options relevant to GitLab Pages.
@@ -307,8 +307,8 @@ func loadConfig() *Config {
 			Environment: *sentryEnvironment,
 		},
 		TLS: TLS{
-			MinVersion: tlsconfig.AllTLSVersions[*tlsMinVersion],
-			MaxVersion: tlsconfig.AllTLSVersions[*tlsMaxVersion],
+			MinVersion: tls.AllTLSVersions[*tlsMinVersion],
+			MaxVersion: tls.AllTLSVersions[*tlsMaxVersion],
 		},
 		Zip: ZipServing{
 			ExpirationInterval: *zipCacheExpiration,
@@ -356,7 +356,7 @@ func loadConfig() *Config {
 	checkAuthenticationConfig(config)
 
 	// Validating TLS settings
-	if err := tlsconfig.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
+	if err := tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
 		fatal(err, "invalid TLS version")
 	}
 
