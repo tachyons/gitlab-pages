@@ -83,7 +83,11 @@ func (e *Entry) Retrieve(ctx context.Context) (lookup *api.Lookup) {
 	return lookup
 }
 
-// Refresh will update the entry in the store only when it gets resolved.
+// Refresh will update the entry in the store only when it gets resolved successfully.
+// If an existing successful entry exists, it will only be replaced if the new resolved
+// entry is successful too.
+// Errored refreshed Entry responses will not replace the previously successful entry.response
+// for a maximum time of e.expirationTimeout.
 func (e *Entry) Refresh(store Store) {
 	e.refresh.Do(func() {
 		go e.refreshFunc(store)
@@ -95,7 +99,7 @@ func (e *Entry) refreshFunc(store Store) {
 
 	entry.Retrieve(context.Background())
 
-	// do not replace existing Entry `e` when `entry` has an error
+	// do not replace existing Entry `e.response` when `entry.response` has an error
 	// and `e` has not expired. See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/281.
 	if entry.hasTemporaryError() && !e.isExpired() {
 		entry.response = e.response
@@ -133,11 +137,16 @@ func (e *Entry) isExpired() bool {
 	return time.Since(e.created) > e.expirationTimeout
 }
 
+func (e *Entry) domainExists() bool {
+	return !errors.Is(e.response.Error, domain.ErrDomainDoesNotExist)
+}
+
 // hasTemporaryError checks currently refreshed entry for errors after resolving the lookup again
 // and is different to domain.ErrDomainDoesNotExist (this is an edge case to prevent serving
 // a page right after being deleted).
 func (e *Entry) hasTemporaryError() bool {
+	g
 	return e.response != nil &&
 		e.response.Error != nil &&
-		!errors.Is(e.response.Error, domain.ErrDomainDoesNotExist)
+		e.domainExists()
 }
