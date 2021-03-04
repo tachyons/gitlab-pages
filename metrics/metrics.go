@@ -206,6 +206,27 @@ var (
 			Help: "The number of requests with unknown HTTP method which were rejected",
 		},
 	)
+
+	LimitListenerMaxConns = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_limit_listener_max_conns",
+			Help: "The maximum concurrent connections allowed by the limit listener.",
+		},
+	)
+
+	LimitListenerConcurrentConns = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_limit_listener_concurrent_conns",
+			Help: "The number of concurrent connections.",
+		},
+	)
+
+	LimitListenerWaiting = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_limit_listener_waiting_conns",
+			Help: "The number of backlogged connections waiting on concurrency limit.",
+		},
+	)
 )
 
 // MustRegister collectors with the Prometheus client
@@ -236,5 +257,9 @@ func MustRegister() {
 		ZipCacheRequests,
 		ZipArchiveEntriesCached,
 		ZipCachedEntries,
+		RejectedRequestsCount,
+		LimitListenerMaxConns,
+		LimitListenerConcurrentConns,
+		LimitListenerWaiting,
 	)
 }

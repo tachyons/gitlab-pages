@@ -5,6 +5,8 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 var (
@@ -30,6 +32,7 @@ type Limiter struct {
 
 // NewLimiter creates a Limiter with the given capacity
 func NewLimiter(n int) *Limiter {
+	metrics.LimitListenerMaxConns.Set(float64(n))
 	return &Limiter{
 		sem: make(chan struct{}, n),
 	}
@@ -46,14 +49,21 @@ type sharedLimitListener struct {
 // accquired, false if the listener is closed and the semaphore is not
 // acquired.
 func (l *sharedLimitListener) acquire() bool {
+	metrics.LimitListenerWaiting.Inc()
+	defer metrics.LimitListenerWaiting.Dec()
+
 	select {
 	case <-l.done:
 		return false
 	case l.limiter.sem <- struct{}{}:
+		metrics.LimitListenerConcurrentConns.Inc()
 		return true
 	}
 }
-func (l *sharedLimitListener) release() { <-l.limiter.sem }
+func (l *sharedLimitListener) release() {
+	<-l.limiter.sem
+	metrics.LimitListenerConcurrentConns.Dec()
+}
 
 func (l *sharedLimitListener) Accept() (net.Conn, error) {
 	acquired := l.acquire()
