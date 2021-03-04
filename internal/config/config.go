@@ -180,47 +180,6 @@ func setGitLabAPISecretKey(secretFile string, config *Config) {
 	config.GitLab.APISecretKey = decoded
 }
 
-func checkAuthenticationConfig(config *Config) {
-	if config.Authentication.Secret == "" && config.Authentication.ClientID == "" &&
-		config.Authentication.ClientSecret == "" && config.Authentication.RedirectURI == "" {
-		return
-	}
-	assertAuthConfig(config)
-}
-
-func assertAuthConfig(config *Config) {
-	if config.Authentication.Secret == "" {
-		log.Fatal("auth-secret must be defined if authentication is supported")
-	}
-	if config.Authentication.ClientID == "" {
-		log.Fatal("auth-client-id must be defined if authentication is supported")
-	}
-	if config.Authentication.ClientSecret == "" {
-		log.Fatal("auth-client-secret must be defined if authentication is supported")
-	}
-	if config.GitLab.Server == "" {
-		log.Fatal("gitlab-server must be defined if authentication is supported")
-	}
-	if config.Authentication.RedirectURI == "" {
-		log.Fatal("auth-redirect-uri must be defined if authentication is supported")
-	}
-}
-
-func validateArtifactsServer(artifactsServer string, artifactsServerTimeoutSeconds int) {
-	u, err := url.Parse(artifactsServer)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// url.Parse ensures that the Scheme attribute is always lower case.
-	if u.Scheme != "http" && u.Scheme != "https" {
-		log.Fatal("artifacts-server scheme must be either http:// or https://")
-	}
-
-	if artifactsServerTimeoutSeconds < 1 {
-		log.Fatal("artifacts-server-timeout must be greater than or equal to 1")
-	}
-}
-
 // fatal will log a fatal error and exit.
 func fatal(err error, message string) {
 	log.WithError(err).Fatal(message)
@@ -347,18 +306,7 @@ func loadConfig() *Config {
 		setGitLabAPISecretKey(*gitLabAPISecretKey, config)
 	}
 
-	// Validating Artifacts server settings
-	if *artifactsServer != "" {
-		validateArtifactsServer(*artifactsServer, *artifactsServerTimeout)
-	}
-
-	// Validating Authentication settings
-	checkAuthenticationConfig(config)
-
-	// Validating TLS settings
-	if err := tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
-		fatal(err, "invalid TLS version")
-	}
+	validateConfig(config)
 
 	return config
 }
