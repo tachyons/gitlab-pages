@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/tls"
+	cryptotls "crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -24,6 +24,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -34,7 +35,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/tlsconfig"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -60,7 +60,7 @@ func (a *theApp) isReady() bool {
 	return a.domains.IsReady()
 }
 
-func (a *theApp) ServeTLS(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
+func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
 	if ch.ServerName == "" {
 		return nil, nil
 	}
@@ -546,7 +546,7 @@ func fatal(err error, message string) {
 	log.WithError(err).Fatal(message)
 }
 
-func (a *theApp) TLSConfig() (*tls.Config, error) {
-	return tlsconfig.Create(a.config.General.RootCertificate, a.config.General.RootKey, a.ServeTLS,
+func (a *theApp) TLSConfig() (*cryptotls.Config, error) {
+	return tls.Create(a.config.General.RootCertificate, a.config.General.RootKey, a.ServeTLS,
 		a.config.General.InsecureCiphers, a.config.TLS.MinVersion, a.config.TLS.MaxVersion)
 }
