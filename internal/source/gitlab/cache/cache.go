@@ -2,21 +2,14 @@ package cache
 
 import (
 	"context"
-	"time"
+	"errors"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-var defaultCacheConfig = config.Cache{
-	CacheExpiry:          10 * time.Minute,
-	CacheCleanupInterval: time.Minute,
-	EntryRefreshTimeout:  60 * time.Second,
-	RetrievalTimeout:     30 * time.Second,
-	MaxRetrievalInterval: time.Second,
-	MaxRetrievalRetries:  3,
-}
+var errCacheNotConfigured = errors.New("cache not configured")
 
 // Cache is a short and long caching mechanism for GitLab source
 type Cache struct {
@@ -25,15 +18,15 @@ type Cache struct {
 }
 
 // NewCache creates a new instance of Cache.
-func NewCache(client api.Client, cc *config.Cache) *Cache {
+func NewCache(client api.Client, cc *config.Cache) (*Cache, error) {
 	if cc == nil {
-		cc = &defaultCacheConfig
+		return nil, errCacheNotConfigured
 	}
 
 	return &Cache{
 		client: client,
 		store:  newMemStore(client, cc),
-	}
+	}, nil
 }
 
 // Resolve is going to return a lookup based on a domain name. The caching

@@ -39,7 +39,14 @@ var (
 	gitLabAPISecretKey      = flag.String("api-secret-key", "", "File with secret key used to authenticate with the GitLab API")
 	gitlabClientHTTPTimeout = flag.Duration("gitlab-client-http-timeout", 10*time.Second, "GitLab API HTTP client connection timeout in seconds (default: 10s)")
 	gitlabClientJWTExpiry   = flag.Duration("gitlab-client-jwt-expiry", 30*time.Second, "JWT Token expiry time in seconds (default: 30s)")
-	domainConfigSource      = flag.String("domain-config-source", "auto", "Domain configuration source 'disk', 'auto' or 'gitlab' (default: 'auto'). DEPRECATED: gitlab-pages will use the API-based configuration starting from 14.0 see https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382")
+	gitlabCacheExpiry       = flag.Duration("gitlab-cache-expiry", 10*time.Minute, "The maximum time a domain's configuration is stored in the cache")
+	gitlabCacheRefresh      = flag.Duration("gitlab-cache-refresh", time.Minute, "The interval at which a domain's configuration is set to be due to refresh")
+	gitlabCacheCleanup      = flag.Duration("gitlab-cache-cleanup", time.Minute, "The maximum time a domain's configuration is stored in the cache")
+	gitlabRetrievalTimeout  = flag.Duration("gitlab-retrieval-timeout", 30*time.Second, "The maximum time to wait for a response from the GitLab API per request")
+	gitlabRetrievalInterval = flag.Duration("gitlab-retrieval-interval", time.Second, "The interval to wait before retrying to resolve a domain's configuration via the GitLab API")
+	gitlabRetrievalRetries  = flag.Int("gitlab-retrieval-retries", 3, "The maximum number of times to retry to resolve a domain's configuration via the API")
+
+	domainConfigSource = flag.String("domain-config-source", "auto", "Domain configuration source 'disk', 'auto' or 'gitlab' (default: 'auto'). DEPRECATED: gitlab-pages will use the API-based configuration starting from 14.0 see https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382")
 	// TODO: remove this flag https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/6009
 	useLegacyStorage = flag.Bool("use-legacy-storage", false, "Temporary flag that enables legacy serving from disk/NFS. API-Based configuration and object storage are preferred https://docs.gitlab.com/ee/administration/pages/ and will be the only available solution starting from 14.4")
 

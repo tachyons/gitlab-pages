@@ -14,6 +14,15 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
+var defaultCacheConfig = config.Cache{
+	CacheExpiry:          10 * time.Minute,
+	CacheCleanupInterval: time.Minute,
+	EntryRefreshTimeout:  60 * time.Second,
+	RetrievalTimeout:     30 * time.Second,
+	MaxRetrievalInterval: time.Second,
+	MaxRetrievalRetries:  3,
+}
+
 type clientMock struct {
 	counter uint64
 	lookups chan uint64
@@ -52,8 +61,11 @@ func withTestCache(config resolverConfig, cacheConfig *config.Cache, block func(
 		lookups: make(chan uint64, 100),
 		failure: config.failure,
 	}
+	if cacheConfig == nil {
+		cacheConfig = &defaultCacheConfig
+	}
 
-	cache := NewCache(resolver, cacheConfig)
+	cache, _ := NewCache(resolver, cacheConfig)
 
 	block(cache, resolver)
 }

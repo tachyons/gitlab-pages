@@ -34,14 +34,18 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
+	cachedClient, err := cache.NewCache(client, config.Cache())
+	if err != nil {
+		return nil, err
+	}
+
 	g := &Gitlab{
-		client: cache.NewCache(client, config.Cache()),
+		client: cachedClient,
 		mu:     &sync.RWMutex{},
 	}
 
 	go g.poll(backoff.DefaultInitialInterval, maxPollingTime)
 
-	// using nil for cache config will use the default values specified in internal/source/gitlab/cache/cache.go#12
 	return g, nil
 }
 

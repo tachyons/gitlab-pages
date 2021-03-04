@@ -272,8 +272,7 @@ func (config Config) DomainConfigSource() string {
 }
 
 func (config Config) Cache() *Cache {
-	// TODO: return values from flags https://gitlab.com/gitlab-org/gitlab-pages/-/issues/520#implementation
-	return nil
+	return &config.GitLab.Cache
 }
 
 func loadConfig() *Config {
@@ -297,7 +296,14 @@ func loadConfig() *Config {
 		GitLab: GitLab{
 			ClientHTTPTimeout:  *gitlabClientHTTPTimeout,
 			JWTTokenExpiration: *gitlabClientJWTExpiry,
-			// TODO: assign values from flags https://gitlab.com/gitlab-org/gitlab-pages/-/issues/520#implementation
+			Cache: Cache{
+				CacheExpiry:          *gitlabCacheExpiry,
+				CacheCleanupInterval: *gitlabCacheCleanup,
+				EntryRefreshTimeout:  *gitlabCacheRefresh,
+				RetrievalTimeout:     *gitlabRetrievalTimeout,
+				MaxRetrievalInterval: *gitlabRetrievalInterval,
+				MaxRetrievalRetries:  *gitlabRetrievalRetries,
+			},
 		},
 		ArtifactsServer: ArtifactsServer{
 			TimeoutSeconds: *artifactsServerTimeout,
