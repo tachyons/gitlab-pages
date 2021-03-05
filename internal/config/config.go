@@ -250,20 +250,20 @@ func (config Config) InternalGitLabServerURL() string {
 	return config.GitLab.InternalServer
 }
 
-// GitlabClientSecret returns GitLab server access token.
-func (config Config) GitlabAPISecret() []byte {
+// GitlabAPISecret returns GitLab server access token.
+func (config *Config) GitlabAPISecret() []byte {
 	return config.GitLab.APISecretKey
 }
 
-func (config Config) GitlabClientConnectionTimeout() time.Duration {
+func (config *Config) GitlabClientConnectionTimeout() time.Duration {
 	return config.GitLab.ClientHTTPTimeout
 }
 
-func (config Config) GitlabJWTTokenExpiry() time.Duration {
+func (config *Config) GitlabJWTTokenExpiry() time.Duration {
 	return config.GitLab.JWTTokenExpiration
 }
 
-func (config Config) DomainConfigSource() string {
+func (config *Config) DomainConfigSource() string {
 	if config.General.UseLegacyStorage {
 		return "disk"
 	}
@@ -271,7 +271,7 @@ func (config Config) DomainConfigSource() string {
 	return config.General.DomainConfigurationSource
 }
 
-func (config Config) Cache() *Cache {
+func (config *Config) Cache() *Cache {
 	return &config.GitLab.Cache
 }
 

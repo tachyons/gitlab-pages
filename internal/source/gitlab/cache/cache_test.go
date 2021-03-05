@@ -65,7 +65,7 @@ func withTestCache(config resolverConfig, cacheConfig *config.Cache, block func(
 		cacheConfig = &testCacheConfig
 	}
 
-	cache, _ := NewCache(resolver, cacheConfig)
+	cache := NewCache(resolver, cacheConfig)
 
 	block(cache, resolver)
 }
