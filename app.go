@@ -359,7 +359,10 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 func (a *theApp) Run() {
 	var wg sync.WaitGroup
 
-	limiter := netutil.NewLimiter(a.config.General.MaxConns)
+	var limiter *netutil.Limiter
+	if a.config.General.MaxConns > 0 {
+		limiter = netutil.NewLimiter(a.config.General.MaxConns)
+	}
 
 	// Use a common pipeline to use a single instance of each handler,
 	// instead of making two nearly identical pipelines
