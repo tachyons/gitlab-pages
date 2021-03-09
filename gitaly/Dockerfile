@@ -54,7 +54,6 @@ RUN mkdir -p /srv/gitlab-shell /var/log/gitaly && \
 # Add scripts
 COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
-COPY gitconfig /usr/local/etc/gitconfig
 
 RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /etc/gitaly /scripts
 USER ${GITLAB_USER}:${GITLAB_USER}

@@ -107,6 +107,7 @@ services:
       - "${GITALY_HOST_PORT}:8075"
     volumes:
       - ./dev/gitaly-config:/etc/gitaly
+      - ./dev/gitconfig/gitconfig:/usr/local/etc/gitconfig
   pages:
     image: ${GITLAB_PAGES_IMAGE}
     command: "/scripts/start-pages"
