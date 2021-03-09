@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"net/url"
 
 	log "github.com/sirupsen/logrus"
@@ -9,6 +10,7 @@ import (
 )
 
 func validateConfig(config *Config) {
+	validateDomainConfigSource()
 	validateAuthConfig(config)
 	validateArtifactsServerConfig(config)
 	validateTLSConfig()
@@ -59,5 +61,11 @@ func validateArtifactsServerConfig(config *Config) {
 func validateTLSConfig() {
 	if err := tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
 		fatal(err, "invalid TLS version")
+	}
+}
+
+func validateDomainConfigSource() {
+	if *domainConfigSource != "" {
+		fatal(errors.New("DEPRECATED: -domain-config-source"), "Please use API-based configuration https://docs.gitlab.com/ee/administration/pages/#gitlab-api-based-configuration")
 	}
 }
