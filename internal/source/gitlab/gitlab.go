@@ -19,6 +19,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
+var errCacheNotConfigured = errors.New("cache not configured")
+
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
@@ -34,14 +36,23 @@ func New(config client.Config) (*Gitlab, error) {
 		return nil, err
 	}
 
+	cc := config.Cache()
+	if cc == nil {
+		return nil, errCacheNotConfigured
+	}
+
+	cachedClient := cache.NewCache(client, cc)
+	if err != nil {
+		return nil, err
+	}
+
 	g := &Gitlab{
-		client: cache.NewCache(client, config.Cache()),
+		client: cachedClient,
 		mu:     &sync.RWMutex{},
 	}
 
 	go g.poll(backoff.DefaultInitialInterval, maxPollingTime)
 
-	// using nil for cache config will use the default values specified in internal/source/gitlab/cache/cache.go#12
 	return g, nil
 }
 

@@ -36,7 +36,14 @@ func (c sourceConfig) DomainConfigSource() string {
 	return c.domainSource
 }
 func (c sourceConfig) Cache() *config.Cache {
-	return nil
+	return &config.Cache{
+		CacheExpiry:          10 * time.Minute,
+		CacheCleanupInterval: time.Minute,
+		EntryRefreshTimeout:  60 * time.Second,
+		RetrievalTimeout:     30 * time.Second,
+		MaxRetrievalInterval: time.Second,
+		MaxRetrievalRetries:  3,
+	}
 }
 
 func TestNewDomains(t *testing.T) {

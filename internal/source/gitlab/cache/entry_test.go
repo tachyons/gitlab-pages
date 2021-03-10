@@ -49,7 +49,7 @@ func TestIsUpToDateAndNeedsRefresh(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entry := newCacheEntry("my.gitlab.com", defaultCacheConfig.EntryRefreshTimeout, nil)
+			entry := newCacheEntry("my.gitlab.com", testCacheConfig.EntryRefreshTimeout, nil)
 			if tt.resolved {
 				entry.response = &api.Lookup{}
 			}

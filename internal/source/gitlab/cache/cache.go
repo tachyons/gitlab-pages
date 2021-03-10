@@ -2,21 +2,11 @@ package cache
 
 import (
 	"context"
-	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
-
-var defaultCacheConfig = config.Cache{
-	CacheExpiry:          10 * time.Minute,
-	CacheCleanupInterval: time.Minute,
-	EntryRefreshTimeout:  60 * time.Second,
-	RetrievalTimeout:     30 * time.Second,
-	MaxRetrievalInterval: time.Second,
-	MaxRetrievalRetries:  3,
-}
 
 // Cache is a short and long caching mechanism for GitLab source
 type Cache struct {
@@ -26,10 +16,6 @@ type Cache struct {
 
 // NewCache creates a new instance of Cache.
 func NewCache(client api.Client, cc *config.Cache) *Cache {
-	if cc == nil {
-		cc = &defaultCacheConfig
-	}
-
 	return &Cache{
 		client: client,
 		store:  newMemStore(client, cc),
