@@ -91,6 +91,16 @@ type Daemon struct {
 	InplaceChroot bool
 }
 
+// Cache configuration for GitLab API
+type Cache struct {
+	CacheExpiry          time.Duration
+	CacheCleanupInterval time.Duration
+	EntryRefreshTimeout  time.Duration
+	RetrievalTimeout     time.Duration
+	MaxRetrievalInterval time.Duration
+	MaxRetrievalRetries  int
+}
+
 // GitLab groups settings related to configuring GitLab client used to
 // interact with GitLab API
 type GitLab struct {
@@ -99,6 +109,7 @@ type GitLab struct {
 	APISecretKey       []byte
 	ClientHTTPTimeout  time.Duration
 	JWTTokenExpiration time.Duration
+	Cache              Cache
 }
 
 // Listeners groups settings related to configuring various listeners
@@ -219,6 +230,11 @@ func (config Config) DomainConfigSource() string {
 	return config.General.DomainConfigurationSource
 }
 
+func (config Config) Cache() *Cache {
+	// TODO: return values from flags https://gitlab.com/gitlab-org/gitlab-pages/-/issues/520#implementation
+	return nil
+}
+
 func loadConfig() *Config {
 	config := &Config{
 		General: General{
@@ -240,6 +256,7 @@ func loadConfig() *Config {
 		GitLab: GitLab{
 			ClientHTTPTimeout:  *gitlabClientHTTPTimeout,
 			JWTTokenExpiration: *gitlabClientJWTExpiry,
+			// TODO: assign values from flags https://gitlab.com/gitlab-org/gitlab-pages/-/issues/520#implementation
 		},
 		ArtifactsServer: ArtifactsServer{
 			TimeoutSeconds: *artifactsServerTimeout,

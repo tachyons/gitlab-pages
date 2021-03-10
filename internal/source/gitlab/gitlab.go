@@ -35,7 +35,7 @@ func New(config client.Config) (*Gitlab, error) {
 	}
 
 	g := &Gitlab{
-		client: cache.NewCache(client, nil),
+		client: cache.NewCache(client, config.Cache()),
 		mu:     &sync.RWMutex{},
 	}
 

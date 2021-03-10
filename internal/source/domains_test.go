@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 )
@@ -33,6 +34,9 @@ func (c sourceConfig) GitlabJWTTokenExpiry() time.Duration {
 
 func (c sourceConfig) DomainConfigSource() string {
 	return c.domainSource
+}
+func (c sourceConfig) Cache() *config.Cache {
+	return nil
 }
 
 func TestNewDomains(t *testing.T) {
