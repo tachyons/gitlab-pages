@@ -14,7 +14,7 @@
 - [ ] Create an MR for [gitlab-pages project](https://gitlab.com/gitlab-org/gitlab-pages).
     You can use [this MR](https://gitlab.com/gitlab-org/gitlab-pages/merge_requests/217) as an example.
     - [ ] Update `VERSION`
-    - [ ] Update `CHANGELOG`
+    - [ ] Update `CHANGELOG`, you can run `make changelog` once you have pushed your branch to the remote server
     - [ ] Assign to reviewer
 - [ ] Once `gitlab-pages` is merged create a signed+annotated tag pointing to the **merge commit** on the **stable branch**
     In case of `master` branch:
