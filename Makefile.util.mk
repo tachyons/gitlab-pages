@@ -61,7 +61,7 @@ junit-report: .GOPATH/.ok bin/go-junit-report
 	cat tests.out | ./bin/go-junit-report -set-exit-code > junit-test-report.xml
 
 changelog:
-	TOKEN='$(GITLAB_PRIVATE_TOKEN)' bash ./.gitlab/scripts/changelog.sh
+	TOKEN='$(GITLAB_PRIVATE_TOKEN)' VERSION='$(VERSION)' BRANCH='$(BRANCH)'  bash ./.gitlab/scripts/changelog.sh
 ifndef GITLAB_PRIVATE_TOKEN
 	$(error GITLAB_PRIVATE_TOKEN is undefined)
 endif
