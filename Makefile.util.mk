@@ -1,6 +1,6 @@
 GOLANGCI_LINT_IMAGE := golangci/golangci-lint:$(GOLANGCI_LINT_VERSION)
 
-.PHONY: lint test race acceptance bench cover list deps-check deps-download
+.PHONY: lint test race acceptance bench cover list deps-check deps-download changelog
 
 OUT_FORMAT ?= colored-line-number
 LINT_FLAGS ?=  $(if $V,-v)
@@ -59,3 +59,9 @@ deps-download: .GOPATH/.ok
 
 junit-report: .GOPATH/.ok bin/go-junit-report
 	cat tests.out | ./bin/go-junit-report -set-exit-code > junit-test-report.xml
+
+changelog:
+	TOKEN='$(GITLAB_PRIVATE_TOKEN)' bash ./.gitlab/scripts/changelog.sh
+ifndef GITLAB_PRIVATE_TOKEN
+	$(error GITLAB_PRIVATE_TOKEN is undefined)
+endif
