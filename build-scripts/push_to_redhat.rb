@@ -9,20 +9,21 @@
 require 'json'
 require 'digest'
 
-$GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] || 'registry.gitlab.com/gitlab-org/build/cng'
+$GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] || ENV['CI_REGISTRY_IMAGE'] || 'registry.gitlab.com/gitlab-org/build/cng'
 $REDHAT_REGISTRY = ENV['REDHAT_REGISTRY_HOSTNAME'] || 'scan.connect.redhat.com'
-$CONTAINER_NAMES = [ 'alpine-certificates',
-                     'gitaly',
-                     'gitlab-container-registry',
-                     'gitlab-exporter',
-                     'gitlab-mailroom',
-                     'gitlab-rails-ee',
-                     'gitlab-shell',
-                     'gitlab-sidekiq-ee',
-                     'gitlab-task-runner-ee',
-                     'gitlab-webservice-ee',
-                     'gitlab-workhorse-ee',
-                     'kubectl' ]
+$IMAGE_VERSION_VAR = { 'alpine-certificates': 'ALPINE_VERSION',
+                       'gitaly': 'GITALY_SERVER_VERSION',
+                       'gitlab-container-registry': 'GITLAB_CONTAINER_REGISTRY_VERSION',
+                       'gitlab-exporter': 'GITLAB_EXPORTER_VERSION',
+                       'gitlab-mailroom': 'MAILROOM_VERSION',
+                       'gitlab-shell': 'GITLAB_SHELL_VERSION',
+                       'gitlab-sidekiq-ee': 'GITLAB_VERSION',
+                       'gitlab-task-runner-ee': 'GITLAB_VERSION',
+                       'gitlab-webservice-ee': 'GITLAB_VERSION',
+                       'gitlab-workhorse-ee': 'GITLAB_WORKHORSE_VERSION',
+                       'kubectl': 'KUBECTL_VERSION' }
+$AUTO_DEPLOY_TAG_REGEX = /^\d+\.\d+\.\d+\+\S{7,}$/
+$AUTO_DEPLOY_BRANCH_REGEX = /^\d+-\d+-auto-deploy-\d+$/
 
 def retag_image(name, version, proj_id)
   gitlab_tag = "#{version}"
@@ -50,6 +51,11 @@ def push_image(image)
   %x(docker push #{image})
 end
 
+def is_regular_tag
+  (ENV['CI_COMMIT_TAG'] || ENV['GITLAB_TAG']) && \
+  !($AUTO_DEPLOY_BRANCH_REGEX.match(ENV['CI_COMMIT_BRANCH']) || $AUTO_DEPLOY_TAG_REGEX.match(ENV['CI_COMMIT_TAG']))
+end
+
 if ARGV.length < 1
   puts "Need to specify a version (i.e. v13.5.4)"
   exit 1
@@ -74,13 +80,22 @@ end
 puts "Using #{version} as the docker tag to pull"
 
 errors = []
-$CONTAINER_NAMES.each do |name|
+$IMAGE_VERSION_VAR.keys.each do |name|
+  # if job is on a tagged pipeline (but not a auto-deploy tag) or
+  # is a master branch pipeline, then use the image tags as
+  # defined in variables defined in the CI environment. Otherwise
+  # it is assumed that the "version" (commit ref) from CLI param
+  # is correct.
+  if (ENV['CI_COMMIT_REF_NAME'] == 'master' || is_regular_tag)
+    version = ENV[$IMAGE_VERSION_VAR[name]]
+  end
+
   if secrets.has_key? name
     # pull the image from the GitLab registry
     response = pull_image("#{$GITLAB_REGISTRY}/#{name}:#{version}")
     if response.empty?
-      puts "Skipping #{$GITLAB_REGISTRY}/#{name}:#{version}-ubi8 (Not Found)"
-      errors << "#{name}: image not found with #{version}-ubi8 tag"
+      puts "Skipping #{$GITLAB_REGISTRY}/#{name}:#{version} (Not Found)"
+      errors << "#{name}: image not found with #{version} tag"
       next
     end
 
