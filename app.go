@@ -361,7 +361,12 @@ func (a *theApp) Run() {
 
 	var limiter *netutil.Limiter
 	if a.config.General.MaxConns > 0 {
-		limiter = netutil.NewLimiter(a.config.General.MaxConns)
+		limiter = netutil.NewLimiterWithMetrics(
+			a.config.General.MaxConns,
+			metrics.LimitListenerMaxConns,
+			metrics.LimitListenerConcurrentConns,
+			metrics.LimitListenerWaitingConns,
+		)
 	}
 
 	// Use a common pipeline to use a single instance of each handler,

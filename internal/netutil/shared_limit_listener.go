@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/gitlab-org/gitlab-pages/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -27,14 +27,27 @@ func SharedLimitListener(listener net.Listener, limiter *Limiter) net.Listener {
 // Limiter is used to provide a shared pool of connection slots. Use NewLimiter
 // to create an instance
 type Limiter struct {
-	sem chan struct{}
+	sem                  chan struct{}
+	concurrentConnsCount prometheus.Gauge
+	waitingConnsCount    prometheus.Gauge
+	lock                 sync.Mutex
 }
 
 // NewLimiter creates a Limiter with the given capacity
 func NewLimiter(n int) *Limiter {
-	metrics.LimitListenerMaxConns.Set(float64(n))
 	return &Limiter{
 		sem: make(chan struct{}, n),
+	}
+}
+
+// NewLimiterWithMetrics creates a Limiter with metrics
+func NewLimiterWithMetrics(n int, maxConnsCount, concurrentConnsCount, waitingConnsCount prometheus.Gauge) *Limiter {
+	maxConnsCount.Set(float64(n))
+
+	return &Limiter{
+		sem:                  make(chan struct{}, n),
+		concurrentConnsCount: concurrentConnsCount,
+		waitingConnsCount:    waitingConnsCount,
 	}
 }
 
@@ -49,20 +62,26 @@ type sharedLimitListener struct {
 // accquired, false if the listener is closed and the semaphore is not
 // acquired.
 func (l *sharedLimitListener) acquire() bool {
-	metrics.LimitListenerWaiting.Inc()
-	defer metrics.LimitListenerWaiting.Dec()
+	if l.limiter.waitingConnsCount != nil {
+		l.limiter.waitingConnsCount.Inc()
+		defer l.limiter.waitingConnsCount.Dec()
+	}
 
 	select {
 	case <-l.done:
 		return false
 	case l.limiter.sem <- struct{}{}:
-		metrics.LimitListenerConcurrentConns.Inc()
+		if l.limiter.concurrentConnsCount != nil {
+			l.limiter.concurrentConnsCount.Inc()
+		}
 		return true
 	}
 }
 func (l *sharedLimitListener) release() {
 	<-l.limiter.sem
-	metrics.LimitListenerConcurrentConns.Dec()
+	if l.limiter.concurrentConnsCount != nil {
+		l.limiter.concurrentConnsCount.Dec()
+	}
 }
 
 func (l *sharedLimitListener) Accept() (net.Conn, error) {

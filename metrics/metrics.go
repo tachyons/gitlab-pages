@@ -221,7 +221,7 @@ var (
 		},
 	)
 
-	LimitListenerWaiting = prometheus.NewGauge(
+	LimitListenerWaitingConns = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "gitlab_pages_limit_listener_waiting_conns",
 			Help: "The number of backlogged connections waiting on concurrency limit.",
@@ -260,6 +260,6 @@ func MustRegister() {
 		RejectedRequestsCount,
 		LimitListenerMaxConns,
 		LimitListenerConcurrentConns,
-		LimitListenerWaiting,
+		LimitListenerWaitingConns,
 	)
 }
