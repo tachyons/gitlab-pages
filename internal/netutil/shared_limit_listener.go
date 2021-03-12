@@ -30,7 +30,6 @@ type Limiter struct {
 	sem                  chan struct{}
 	concurrentConnsCount prometheus.Gauge
 	waitingConnsCount    prometheus.Gauge
-	lock                 sync.Mutex
 }
 
 // NewLimiter creates a Limiter with the given capacity
