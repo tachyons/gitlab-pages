@@ -1,3 +1,25 @@
+## 1.36.0 (2021-03-12)
+
+### Added (3 changes)
+
+- [Add GitLab cache config flags](gitlab-org/gitlab-pages@93c7957b8a2673c418f3e9620d99a5206a02adcc) ([merge request](gitlab-org/gitlab-pages!442))
+- [Add use-legacy-storage flag](gitlab-org/gitlab-pages@258be795aa78afe2252e630508fa049a596251fc) ([merge request](gitlab-org/gitlab-pages!439))
+- [fix(auth): make authentication scope for Pages configurable](gitlab-org/gitlab-pages@b41995a13969b2926ad265bcc769f473e48166cb)
+
+### Fixed (1 change)
+
+- [fix: use correlationID middleware](gitlab-org/gitlab-pages@ae9a8fb5304fca0a1dc0441cb991227320033bca) ([merge request](gitlab-org/gitlab-pages!438))
+
+### Changed (3 changes)
+
+- [Move config validations to separate file](gitlab-org/gitlab-pages@23ac0e80a47e578fd17cee491e8ad0af13e67d37) ([merge request](gitlab-org/gitlab-pages!440))
+- [Add Cache to config pkg](gitlab-org/gitlab-pages@bc93c23e1b5ffd4acb99935c2a77966322112c50) ([merge request](gitlab-org/gitlab-pages!434))
+- [Move configuration parsing to Config package](gitlab-org/gitlab-pages@b7e2085b76c11212ac41f80672d5c5f9b0287fee) ([merge request](gitlab-org/gitlab-pages!431))
+
+### Other (1 change)
+
+- [Add changelog generation script](gitlab-org/gitlab-pages@789cbeca36efcd135ec9ccb134d91d9487eeb034) ([merge request](gitlab-org/gitlab-pages!447))
+
 ## 1.35.0
 
 - Fix for query strings being stripped !398
