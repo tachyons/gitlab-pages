@@ -20,7 +20,7 @@ $IMAGE_VERSION_VAR = { 'alpine-certificates': 'ALPINE_VERSION',
                        'gitlab-sidekiq-ee': 'GITLAB_VERSION',
                        'gitlab-task-runner-ee': 'GITLAB_VERSION',
                        'gitlab-webservice-ee': 'GITLAB_VERSION',
-                       'gitlab-workhorse-ee': 'GITLAB_WORKHORSE_VERSION',
+                       'gitlab-workhorse-ee': 'GITLAB_VERSION',
                        'kubectl': 'KUBECTL_VERSION' }
 $AUTO_DEPLOY_TAG_REGEX = /^\d+\.\d+\.\d+\+\S{7,}$/
 $AUTO_DEPLOY_BRANCH_REGEX = /^\d+-\d+-auto-deploy-\d+$/
