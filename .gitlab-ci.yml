@@ -82,6 +82,9 @@ workflow:
 .if_ee_pipeline: &if_ee_pipeline
   if: '$EE_PIPELINE'
 
+.if_custom_pipeline: &if_custom_pipeline
+  if: '$CUSTOM_PIPELINE'
+
 .if_gitlab_master: &if_gitlab_master
   if: '$GITLAB_VERSION == "master"'
 
@@ -100,6 +103,8 @@ workflow:
       when: never
     - <<: *if_ce_pipeline
       when: never
+    - <<: *if_custom_pipeline
+      when: never
     - <<: *if_ee_pipeline
     - <<: *if_gitlab_master
     - <<: *if_ee_var
@@ -114,6 +119,8 @@ workflow:
     - <<: *if_deps_pipeline
       when: never
     - <<: *if_ee_pipeline
+      when: never
+    - <<: *if_custom_pipeline
       when: never
     - <<: *if_ee_var
       when: never
