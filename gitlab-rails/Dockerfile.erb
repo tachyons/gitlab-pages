@@ -153,6 +153,9 @@ RUN echo "Generating bootsnap cache"; \
 COPY --chown=git --from=assets assets /srv/gitlab/public/assets/
 <% end %>
 
+# remove uncompressed maps as per #2062
+RUN find /srv/gitlab/public/assets/webpack -name '*.map' -type f -print -delete
+
 # Final image
 FROM "$CI_REGISTRY_IMAGE/gitlab-ruby:${TAG}"
 ARG DATADIR=/var/opt/gitlab
