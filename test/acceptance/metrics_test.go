@@ -14,7 +14,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
-	teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, listeners, ":42345", []string{})
+	teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, listeners, ":42345", []string{}, "-max-conns=10")
 	defer teardown()
 
 	// need to call an actual resource to populate certain metrics e.g. gitlab_pages_domains_source_api_requests_total
@@ -59,4 +59,8 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.Contains(t, string(body), "gitlab_pages_zip_cached_entries")
 	require.Contains(t, string(body), "gitlab_pages_zip_archive_entries_cached")
 	require.Contains(t, string(body), "gitlab_pages_zip_opened_entries_count")
+	// limit_listener
+	require.Contains(t, string(body), "gitlab_pages_limit_listener_max_conns")
+	require.Contains(t, string(body), "gitlab_pages_limit_listener_concurrent_conns")
+	require.Contains(t, string(body), "gitlab_pages_limit_listener_waiting_conns")
 }
