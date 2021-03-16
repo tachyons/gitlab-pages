@@ -32,13 +32,6 @@ type Limiter struct {
 	waitingConnsCount    prometheus.Gauge
 }
 
-// NewLimiter creates a Limiter with the given capacity
-func NewLimiter(n int) *Limiter {
-	return &Limiter{
-		sem: make(chan struct{}, n),
-	}
-}
-
 // NewLimiterWithMetrics creates a Limiter with metrics
 func NewLimiterWithMetrics(n int, maxConnsCount, concurrentConnsCount, waitingConnsCount prometheus.Gauge) *Limiter {
 	maxConnsCount.Set(float64(n))
@@ -61,26 +54,20 @@ type sharedLimitListener struct {
 // accquired, false if the listener is closed and the semaphore is not
 // acquired.
 func (l *sharedLimitListener) acquire() bool {
-	if l.limiter.waitingConnsCount != nil {
-		l.limiter.waitingConnsCount.Inc()
-		defer l.limiter.waitingConnsCount.Dec()
-	}
+	l.limiter.waitingConnsCount.Inc()
+	defer l.limiter.waitingConnsCount.Dec()
 
 	select {
 	case <-l.done:
 		return false
 	case l.limiter.sem <- struct{}{}:
-		if l.limiter.concurrentConnsCount != nil {
-			l.limiter.concurrentConnsCount.Inc()
-		}
+		l.limiter.concurrentConnsCount.Inc()
 		return true
 	}
 }
 func (l *sharedLimitListener) release() {
 	<-l.limiter.sem
-	if l.limiter.concurrentConnsCount != nil {
-		l.limiter.concurrentConnsCount.Dec()
-	}
+	l.limiter.concurrentConnsCount.Dec()
 }
 
 func (l *sharedLimitListener) Accept() (net.Conn, error) {
