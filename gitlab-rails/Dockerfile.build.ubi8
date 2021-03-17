@@ -13,7 +13,6 @@ ARG API_TOKEN=
 ARG NODE_VERSION=14.15.4
 ARG YARN_VERSION=1.22.5
 ARG LIBRE2_VERSION=2019-09-01
-ARG GITLAB_EDITION=gitlab-ee
 ARG GITLAB_USER=git
 
 ADD gitlab-ruby.tar.gz /
@@ -54,7 +53,7 @@ RUN /gitlab-fetch \
         "${PROJECT}" \
         "${VERSION}" \
     && cd ${PROJECT}-${VERSION} \
-    && printf ${GITLAB_EDITION} | cut -d '-' -f 2 > REVISION \
+    && cp ../REVISION REVISION \
     && printf 'gitlab-cloud-native-image' > INSTALLATION_TYPE \
     && for cfg in config/{gitlab,resque,secrets}.yml; do cp ${cfg}.example ${cfg} ; done \
     && cp config/database.yml.postgresql config/database.yml \

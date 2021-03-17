@@ -6,7 +6,6 @@ ARG PG_IMAGE="$CI_REGISTRY_IMAGE/postgresql:${PG_VERSION}"
 ARG GM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-graphicsmagick:${GM_VERSION}"
 ARG GEI_IMAGE="$CI_REGISTRY_IMAGE/gitlab-elasticsearch-indexer:1.0.0"
 ARG GITLAB_VERSION=v10.7.0-ee
-ARG GITLAB_EDITION=gitlab-ee
 ARG ASSETS_IMAGE="registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee:${GITLAB_VERSION}"
 
 <% if !compile_assets %>
@@ -80,7 +79,6 @@ RUN mkdir ${DATADIR} && \
 
 # https://docs.docker.com/engine/reference/builder/#understand-how-arg-and-from-interact
 ARG GITLAB_VERSION
-ARG GITLAB_EDITION
 ARG GITLAB_NAMESPACE="gitlab-org"
 ARG GITLAB_PROJECT=gitlab-ee
 ARG FETCH_ARTIFACTS_PAT
@@ -92,7 +90,7 @@ RUN cd /home/${GITLAB_USER} && \
     echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2F${GITLAB_PROJECT}/repository/archive.tar.bz2?sha=${GITLAB_VERSION}" && \
     sudo -u ${GITLAB_USER} -H curl --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2F${GITLAB_PROJECT}/repository/archive.tar.bz2?sha=${GITLAB_VERSION}" && \
     sudo -u ${GITLAB_USER} -H tar -xjf gitlab.tar.bz2 && \
-    REVISION=$(find -maxdepth 1 -name ${GITLAB_EDITION}-* -print | awk -F '-' '{print $NF}' | cut -c -11) && \
+    REVISION=$(find -maxdepth 1 -name ${GITLAB_PROJECT}-* -print | awk -F '-' '{print $NF}' | cut -c -11) && \
     mv ${GITLAB_PROJECT}-* /srv/gitlab && \
     chown ${GITLAB_USER}:${GITLAB_USER} /srv/gitlab && \
     echo -n ${REVISION} > /srv/gitlab/REVISION && \

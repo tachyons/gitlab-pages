@@ -486,8 +486,7 @@ build:gitlab-rails-ee:
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
     - fetch_assets
-    - build_if_needed --build-arg "GITLAB_EDITION=gitlab-ee"
-                      --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
+    - build_if_needed --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "PROJECT=${EE_PROJECT}"
                       --build-arg "VERSION=${GITLAB_VERSION}"
                       --build-arg "API_URL=${CI_API_V4_URL}"
@@ -526,8 +525,7 @@ gitlab-rails-ee:
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
     - fetch_assets
-    - build_if_needed --build-arg "GITLAB_EDITION=gitlab-ee"
-                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+    - build_if_needed --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "GITLAB_PROJECT=${EE_PROJECT}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
@@ -573,8 +571,7 @@ gitlab-rails-ce:
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${CE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ce:${GITLAB_ASSETS_TAG}"
     - fetch_assets
-    - build_if_needed --build-arg "GITLAB_EDITION=gitlab-ce"
-                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+    - build_if_needed --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "GITLAB_PROJECT=${CE_PROJECT}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
