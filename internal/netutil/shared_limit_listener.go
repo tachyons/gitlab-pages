@@ -5,6 +5,8 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -25,13 +27,19 @@ func SharedLimitListener(listener net.Listener, limiter *Limiter) net.Listener {
 // Limiter is used to provide a shared pool of connection slots. Use NewLimiter
 // to create an instance
 type Limiter struct {
-	sem chan struct{}
+	sem                  chan struct{}
+	concurrentConnsCount prometheus.Gauge
+	waitingConnsCount    prometheus.Gauge
 }
 
-// NewLimiter creates a Limiter with the given capacity
-func NewLimiter(n int) *Limiter {
+// NewLimiterWithMetrics creates a Limiter with metrics
+func NewLimiterWithMetrics(n int, maxConnsCount, concurrentConnsCount, waitingConnsCount prometheus.Gauge) *Limiter {
+	maxConnsCount.Set(float64(n))
+
 	return &Limiter{
-		sem: make(chan struct{}, n),
+		sem:                  make(chan struct{}, n),
+		concurrentConnsCount: concurrentConnsCount,
+		waitingConnsCount:    waitingConnsCount,
 	}
 }
 
@@ -46,14 +54,21 @@ type sharedLimitListener struct {
 // accquired, false if the listener is closed and the semaphore is not
 // acquired.
 func (l *sharedLimitListener) acquire() bool {
+	l.limiter.waitingConnsCount.Inc()
+	defer l.limiter.waitingConnsCount.Dec()
+
 	select {
 	case <-l.done:
 		return false
 	case l.limiter.sem <- struct{}{}:
+		l.limiter.concurrentConnsCount.Inc()
 		return true
 	}
 }
-func (l *sharedLimitListener) release() { <-l.limiter.sem }
+func (l *sharedLimitListener) release() {
+	<-l.limiter.sem
+	l.limiter.concurrentConnsCount.Dec()
+}
 
 func (l *sharedLimitListener) Accept() (net.Conn, error) {
 	acquired := l.acquire()
