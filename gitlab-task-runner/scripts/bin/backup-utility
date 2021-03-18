@@ -4,6 +4,7 @@ set -e
 ACTION="backup"
 export BACKUP_BUCKET_NAME=${BACKUP_BUCKET_NAME-gitlab-backups}
 export BACKUP_BACKEND=${BACKUP_BACKEND-s3}
+S3_CMD_BACKUP_OPTION=""
 
 rails_dir=/srv/gitlab
 backups_path=$rails_dir/tmp/backups
@@ -16,7 +17,7 @@ function usage()
 {
   cat << HEREDOC
 
-   Usage: backup-utility [--restore] [-f URL] [-t TIMESTAMP] [--skip COMPONENT] [--backend BACKEND]
+   Usage: backup-utility [--restore] [-f URL] [-t TIMESTAMP] [--skip COMPONENT] [--backend BACKEND] [--s3config CONFIG]
 
    Options:
      -h, --help                             Show this help message and exit.
@@ -31,6 +32,8 @@ function usage()
                                             db, repositories, and any of the object storages (e.g. 'lfs').
      --backend BACKEND                      Object storage backend to use for backups.
                                             Can be either 's3' or 'gcs'.
+     --s3config CONFIG                      S3 backend configuration to use for backups storage.
+                                            Special config file for s3cmd (see: https://s3tools.org/usage)
      --storage-class CLASSNAME              Pass this storage class to the gcs or s3cmd for more cost-efficient
                                             storage of backups.
 HEREDOC
@@ -53,7 +56,7 @@ function fetch_remote_backup(){
   else # It's a timestamp
     file_name="$1_gitlab_backup.tar"
     if [ "${BACKUP_BACKEND}" = "s3" ]; then
-      s3cmd get "s3://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null
+      s3cmd ${S3_CMD_BACKUP_OPTION} get "s3://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null
     elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
       gsutil cp "gs://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null
     else
@@ -151,9 +154,9 @@ function backup(){
   pack_backup $backup_name
   if [ "${BACKUP_BACKEND}" = "s3" ]; then
     if [ -z "${STORAGE_CLASS}" ]; then
-      s3cmd put ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
+      s3cmd ${S3_CMD_BACKUP_OPTION} put ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
     else
-      s3cmd put --storage-class "${STORAGE_CLASS}" ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
+      s3cmd ${S3_CMD_BACKUP_OPTION} put --storage-class "${STORAGE_CLASS}" ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
     fi
     echo "[DONE] Backup can be found at s3://$BACKUP_BUCKET_NAME/${backup_name}.tar"
   elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
@@ -244,6 +247,15 @@ do
       ;;
     --backend)
       export BACKUP_BACKEND="$2"
+      shift
+      shift
+      ;;
+    --s3config)
+      if [ ! -f $2 ]; then
+        echo "s3cmd file specified does not exist";
+        exit 1;
+      fi
+      export S3_CMD_BACKUP_OPTION="--config=$2 "
       shift
       shift
       ;;
