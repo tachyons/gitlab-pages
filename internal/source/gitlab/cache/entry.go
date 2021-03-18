@@ -102,7 +102,7 @@ func (e *Entry) refreshFunc(store Store) {
 
 	// do not replace existing Entry `e.response` when `entry.response` has an error
 	// and `e` has not expired. See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/281.
-	if entry.hasTemporaryError() && !e.isExpired() {
+	if !e.isExpired() && entry.hasTemporaryError() {
 		entry.response = e.response
 		entry.refreshedOriginalTimestamp = e.created
 	}
