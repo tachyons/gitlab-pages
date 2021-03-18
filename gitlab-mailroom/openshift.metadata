@@ -1,0 +1,6 @@
+io.openshift.tags=gitlab-mailroom
+io.openshift.wants=gitlab-webservice
+io.k8s.description=GitLab service container for mailroom.
+io.openshift.non-scalable=false
+io.openshift-min-memory=150Mi
+io.openshift.min-cpu=100m

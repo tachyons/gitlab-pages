@@ -1,0 +1,7 @@
+io.openshift.tags=gitlab-workhorse
+io.openshift.wants=gitlab-webservice
+io.k8s.description=GitLab workhorse container that runs in the webservice
+pod.
+io.openshift.non-scalable=false
+io.openshift-min-memory=100Mi
+io.openshift.min-cpu=100m

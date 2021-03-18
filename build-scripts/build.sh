@@ -91,7 +91,14 @@ function build_if_needed(){
       DOCKER_ARGS+=(--build-arg DNF_OPTS="${DNF_OPTS:-}")
     fi
 
-    docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.}
+    openshift_labels=()
+    if [ -f openshift.metadata ]; then
+      while read -r label; do
+        openshift_labels+=(--label "${label}")
+      done < openshift.metadata
+    fi
+
+    docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.} "${openshift_labels[@]}"
 
     popd # exit image directory
 

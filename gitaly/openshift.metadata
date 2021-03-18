@@ -1,0 +1,6 @@
+io.openshift.tags=gitlab-gitaly
+io.openshift.wants=gitlab-webservice
+io.k8s.description=GitLab Gitaly service container.
+io.openshift.non-scalable=false
+io.openshift-min-memory=200Mi
+io.openshift.min-cpu=100m
