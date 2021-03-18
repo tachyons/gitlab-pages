@@ -80,14 +80,14 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 	}
 
 	if entry.NeedsRefresh() {
-		entry.Refresh(c.client, c.store)
+		entry.Refresh(c.store)
 
 		metrics.DomainsSourceCacheHit.Inc()
 		return entry.Lookup()
 	}
 
 	metrics.DomainsSourceCacheMiss.Inc()
-	return entry.Retrieve(ctx, c.client)
+	return entry.Retrieve(ctx)
 }
 
 // Status calls the client Status to check connectivity with the API
