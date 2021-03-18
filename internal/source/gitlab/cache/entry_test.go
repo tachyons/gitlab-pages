@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -84,21 +85,21 @@ func TestEntryRefresh(t *testing.T) {
 			},
 		},
 	}
-	cc := &cacheConfig{
-		cacheExpiry:          100 * time.Millisecond,
-		entryRefreshTimeout:  time.Millisecond,
-		retrievalTimeout:     50 * time.Millisecond,
-		maxRetrievalInterval: time.Millisecond,
-		maxRetrievalRetries:  1,
+	cc := &config.Cache{
+		CacheExpiry:          100 * time.Millisecond,
+		EntryRefreshTimeout:  time.Millisecond,
+		RetrievalTimeout:     50 * time.Millisecond,
+		MaxRetrievalInterval: time.Millisecond,
+		MaxRetrievalRetries:  1,
 	}
 
 	store := newMemStore(client, cc)
 
 	t.Run("entry is the same after refreshed lookup has error", func(t *testing.T) {
-		entry := newCacheEntry("test.gitlab.io", cc.entryRefreshTimeout, cc.cacheExpiry, store.(*memstore).retriever)
+		entry := newCacheEntry("test.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry, store.(*memstore).retriever)
 		originalEntryCreated := entry.created
 
-		ctx, cancel := context.WithTimeout(context.Background(), cc.retrievalTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), cc.RetrievalTimeout)
 		defer cancel()
 
 		lookup := entry.Retrieve(ctx)
@@ -122,9 +123,9 @@ func TestEntryRefresh(t *testing.T) {
 		client.failed = false
 		err := os.Setenv("FF_DISABLE_REFRESH_TEMPORARY_ERROR", "true")
 
-		entry := newCacheEntry("test.gitlab.io", cc.entryRefreshTimeout, cc.cacheExpiry, store.(*memstore).retriever)
+		entry := newCacheEntry("test.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry, store.(*memstore).retriever)
 
-		ctx, cancel := context.WithTimeout(context.Background(), cc.retrievalTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), cc.RetrievalTimeout)
 		defer cancel()
 
 		lookup := entry.Retrieve(ctx)
@@ -148,9 +149,9 @@ func TestEntryRefresh(t *testing.T) {
 	t.Run("entry is different after it expired and calling refresh on it", func(t *testing.T) {
 		client.failed = false
 
-		entry := newCacheEntry("error.gitlab.io", cc.entryRefreshTimeout, cc.cacheExpiry, store.(*memstore).retriever)
+		entry := newCacheEntry("error.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry, store.(*memstore).retriever)
 
-		ctx, cancel := context.WithTimeout(context.Background(), cc.retrievalTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), cc.RetrievalTimeout)
 		defer cancel()
 
 		lookup := entry.Retrieve(ctx)
@@ -158,7 +159,7 @@ func TestEntryRefresh(t *testing.T) {
 		require.Eventually(t, entry.NeedsRefresh, 100*time.Millisecond, time.Millisecond, "entry should need refresh")
 
 		// wait for entry to expire
-		time.Sleep(cc.cacheExpiry)
+		time.Sleep(cc.CacheExpiry)
 		// refreshing the entry after it has expired should create a completely new one
 		entry.refreshFunc(store)
 
