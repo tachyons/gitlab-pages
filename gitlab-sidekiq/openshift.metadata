@@ -1,0 +1,6 @@
+io.openshift.tags=gitlab-sidekiq
+io.openshift.wants=gitlab-webservice
+io.k8s.description=GitLab Sidekiq service container.
+io.openshift.non-scalable=false
+io.openshift-min-memory=2Gi
+io.openshift.min-cpu=900m

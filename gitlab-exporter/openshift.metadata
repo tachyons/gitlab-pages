@@ -1,0 +1,6 @@
+io.openshift.tags=gitlab-exporter
+io.openshift.wants=gitlab-webservice
+io.k8s.description=Prometheus exporter for logging from GitLab containers.
+io.openshift.non-scalable=false
+io.openshift-min-memory=100Mi
+io.openshift.min-cpu=75m

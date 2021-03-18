@@ -1,0 +1,6 @@
+io.openshift.tags=gitlab-webservice
+io.openshift.wants=postgresql,gitlab-workhorse
+io.k8s.description=GitLab frontend web services container.
+io.openshift.non-scalable=false
+io.openshift-min-memory=4Gi
+io.openshift.min-cpu=2

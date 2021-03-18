@@ -1,0 +1,6 @@
+io.openshift.tags=gitlab-geo-logcursor
+io.openshift.wants=gitlab-webservice,postgresql
+io.k8s.description=Logcursor service in support of GitLab Geo deployments.
+io.openshift.non-scalable=false
+io.openshift-min-memory=700Mi
+io.openshift.min-cpu=300m

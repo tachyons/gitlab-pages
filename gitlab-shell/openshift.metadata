@@ -1,0 +1,6 @@
+io.openshift.tags=gitlab-shell
+io.openshift.wants=gitlab-webservice
+io.k8s.description=GitLab Shell service container.
+io.openshift.non-scalable=false
+io.openshift-min-memory=6Mi
+io.openshift.min-cpu=0m

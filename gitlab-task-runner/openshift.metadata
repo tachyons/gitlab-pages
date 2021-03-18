@@ -1,0 +1,7 @@
+io.openshift.tags=gitlab-task-runner
+io.openshift.wants=gitlab-webservice
+io.k8s.description=Container with tools to diagnose GitLab application
+issues.
+io.openshift.non-scalable=false
+io.openshift-min-memory=350Mi
+io.openshift.min-cpu=50m
