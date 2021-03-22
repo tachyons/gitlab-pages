@@ -930,8 +930,8 @@ gitlab-shell:
                       --build-arg "CACHE_BUSTER=$GITLAB_SHELL_VERSION$(date -uI)"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
-    - push_tags $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
     - push_tags gitlab-$GITLAB_REF_SLUG${IMAGE_TAG_EXT}  # This can be removed during https://gitlab.com/gitlab-com/gl-infra/delivery/-/issues/1553
+    - push_tags $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/shell_container.txt
   dependencies:
     - gitlab-go
