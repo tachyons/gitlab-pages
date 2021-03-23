@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -615,6 +616,8 @@ func TestDomainResolverError(t *testing.T) {
 		},
 	}
 
+	m := sync.RWMutex{}
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// handler setup
@@ -623,6 +626,9 @@ func TestDomainResolverError(t *testing.T) {
 					w.WriteHeader(http.StatusNoContent)
 					return
 				}
+
+				m.Lock()
+				defer m.Unlock()
 
 				opts.apiCalled = true
 				if test.panic {
@@ -639,7 +645,8 @@ func TestDomainResolverError(t *testing.T) {
 
 			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
 			if test.timeout != 0 {
-				pagesArgs = append(pagesArgs, "-gitlab-client-http-timeout", test.timeout.String())
+				pagesArgs = append(pagesArgs, "-gitlab-client-http-timeout", test.timeout.String(),
+					"-gitlab-retrieval-timeout", "200ms", "-gitlab-retrieval-interval", "200ms", "-gitlab-retrieval-retries", "1")
 			}
 
 			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
@@ -649,7 +656,10 @@ func TestDomainResolverError(t *testing.T) {
 			require.NoError(t, err)
 			defer response.Body.Close()
 
+			m.RLock()
 			require.True(t, opts.apiCalled, "api must have been called")
+			m.RUnlock()
+
 			require.Equal(t, http.StatusBadGateway, response.StatusCode)
 
 			body, err := ioutil.ReadAll(response.Body)
