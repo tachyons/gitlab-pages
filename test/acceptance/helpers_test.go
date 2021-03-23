@@ -353,6 +353,13 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 		args = append(args, "-pages-root", "../../shared/pages")
 	}
 
+	// default resolver configuration to execute tests faster
+	if !contains(extraArgs, "-gitlab-retrieval-") {
+		args = append(args, "-gitlab-retrieval-timeout", "50ms",
+			"-gitlab-retrieval-interval", "10ms",
+			"-gitlab-retrieval-retries", "1")
+	}
+
 	if promPort != "" {
 		args = append(args, "-metrics-address", promPort)
 	}
