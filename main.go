@@ -61,7 +61,9 @@ func appMain() {
 	}).Print("GitLab Pages Daemon")
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
-	if err := os.Chdir(config.General.RootDir); err != nil {
+	if config.General.RootDir == "false" {
+		log.Info("pages-root is disabled!")
+	} else if err := os.Chdir(config.General.RootDir); err != nil {
 		fatal(err, "could not change directory into pagesRoot")
 	}
 

@@ -255,13 +255,17 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 		return nil, err
 	}
 
-	// Bind mount shared folder
-	cage.MkDirAll(pagesRoot, 0755)
-	cage.Bind(pagesRoot, pagesRoot)
-
 	// Update command to use chroot
 	cmd.SysProcAttr.Chroot = cage.Path()
 	cmd.Path = "/gitlab-pages"
+
+	if pagesRoot == "false" {
+		return cage, nil
+	}
+
+	// Bind mount shared folder
+	cage.MkDirAll(pagesRoot, 0755)
+	cage.Bind(pagesRoot, pagesRoot)
 	cmd.Dir = pagesRoot
 
 	return cage, nil
@@ -273,15 +277,18 @@ func daemonize(config *config.Config) error {
 	inPlace := config.Daemon.InplaceChroot
 	pagesRoot := config.General.RootDir
 
-	// Ensure pagesRoot is an absolute path. This will produce a different path
-	// if any component of pagesRoot is a symlink (not likely). For example,
-	// -pages-root=/some-path where ln -s /other-path /some-path
-	// pagesPath will become: /other-path and we will fail to serve files from /some-path.
-	// GitLab Rails also resolves the absolute path for `pages_path`
-	// https://gitlab.com/gitlab-org/gitlab/blob/981ad651d8bd3690e28583eec2363a79f775af89/config/initializers/1_settings.rb#L296
-	pagesRoot, err := filepath.Abs(pagesRoot)
-	if err != nil {
-		return err
+	if pagesRoot != "false" {
+		// Ensure pagesRoot is an absolute path. This will produce a different path
+		// if any component of pagesRoot is a symlink (not likely). For example,
+		// -pages-root=/some-path where ln -s /other-path /some-path
+		// pagesPath will become: /other-path and we will fail to serve files from /some-path.
+		// GitLab Rails also resolves the absolute path for `pages_path`
+		// https://gitlab.com/gitlab-org/gitlab/blob/981ad651d8bd3690e28583eec2363a79f775af89/config/initializers/1_settings.rb#L296
+		var err error
+		pagesRoot, err = filepath.Abs(pagesRoot)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.WithFields(log.Fields{
