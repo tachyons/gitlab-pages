@@ -219,8 +219,8 @@ func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesBinary string, listen
 	return cleanup
 }
 
-func RunPagesProcessWithOutput(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (out *LogCaptureBuffer, teardown func()) {
-	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
+func RunPagesProcessWithOutput(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (out *LogCaptureBuffer, teardown func()) {
+	return runPagesProcess(t, wait, pagesBinary, listeners, promPort, nil, extraArgs...)
 }
 
 func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {

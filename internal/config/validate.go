@@ -9,10 +9,6 @@ import (
 )
 
 func validateConfig(config *Config) {
-	if config.General.RootDir == "false" && config.General.DomainConfigurationSource == "disk" {
-		log.Fatal("incompatible settings for pages-root=false and domain-config-source=disk, either use domain-config-source=gitlab or set a valid pages-root")
-	}
-
 	validateAuthConfig(config)
 	validateArtifactsServerConfig(config)
 	validateTLSConfig()

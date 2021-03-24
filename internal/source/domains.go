@@ -1,6 +1,7 @@
 package source
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 
@@ -16,6 +17,8 @@ var (
 	// is a serverless domain, to short circuit gitlab source rollout. It can be
 	// removed after the rollout is done
 	serverlessDomainRegex = regexp.MustCompile(`^[^.]+-[[:xdigit:]]{2}a1[[:xdigit:]]{10}f2[[:xdigit:]]{2}[[:xdigit:]]+-?.*`)
+
+	errDiskSourceDisabled = errors.New("disk source is disabled via enable-disk=false")
 )
 
 type configSource int
@@ -32,6 +35,7 @@ const (
 // currently using two sources during the transition to the new GitLab domains
 // source.
 type Domains struct {
+	enableDisk   bool
 	configSource configSource
 	gitlab       Source
 	disk         *disk.Disk // legacy disk source
@@ -40,8 +44,10 @@ type Domains struct {
 // NewDomains is a factory method for domains initializing a mutex. It should
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
-func NewDomains(config Config) (*Domains, error) {
-	domains := &Domains{}
+func NewDomains(config Config, enableDisk bool) (*Domains, error) {
+	domains := &Domains{
+		enableDisk: enableDisk,
+	}
 	if err := domains.setConfigSource(config); err != nil {
 		return nil, err
 	}
@@ -59,10 +65,16 @@ func (d *Domains) setConfigSource(config Config) error {
 		return d.setGitLabClient(config)
 	case "auto":
 		d.configSource = sourceAuto
-		// enable disk for auto for now
-		d.disk = disk.New()
+		if !d.enableDisk {
+			// enable disk for auto when not explicitly disabled
+			d.disk = disk.New()
+		}
 		return d.setGitLabClient(config)
 	case "disk":
+		if !d.enableDisk {
+			return errDiskSourceDisabled
+		}
+
 		// TODO: disable domains.disk https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 		d.configSource = sourceDisk
 		d.disk = disk.New()
@@ -106,7 +118,7 @@ func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
 // remove it entirely when disk source gets removed.
 func (d *Domains) Read(rootDomain string) {
 	// start disk.Read for sourceDisk and sourceAuto
-	if d.configSource != sourceGitlab {
+	if d.configSource != sourceGitlab && !d.enableDisk {
 		d.disk.Read(rootDomain)
 	}
 }

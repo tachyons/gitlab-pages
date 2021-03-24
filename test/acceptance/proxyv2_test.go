@@ -12,7 +12,7 @@ import (
 func TestProxyv2(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	logBuf, teardown := RunPagesProcessWithOutput(t, *pagesBinary, listeners, "")
+	logBuf, teardown := RunPagesProcessWithOutput(t, true, *pagesBinary, listeners, "")
 	defer teardown()
 
 	// the dummy client IP 10.1.1.1 is set by TestProxyv2Client

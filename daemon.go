@@ -117,12 +117,7 @@ func passSignals(cmd *exec.Cmd) {
 	}()
 }
 
-func chrootDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
+func chrootDaemon(cmd *exec.Cmd, wd string) (*jail.Jail, error) {
 	chroot := jail.Into(wd)
 
 	// Generate a probabilistically-unique suffix for the copy of the pages
@@ -255,20 +250,37 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 		return nil, err
 	}
 
-	// Update command to use chroot
-	cmd.SysProcAttr.Chroot = cage.Path()
-	cmd.Path = "/gitlab-pages"
-
-	if pagesRoot == "false" {
-		return cage, nil
-	}
-
 	// Bind mount shared folder
 	cage.MkDirAll(pagesRoot, 0755)
 	cage.Bind(pagesRoot, pagesRoot)
+
+	// Update command to use chroot
+	cmd.SysProcAttr.Chroot = cage.Path()
+	cmd.Path = "/gitlab-pages"
 	cmd.Dir = pagesRoot
 
 	return cage, nil
+}
+
+func getJailWrapper(cmd *exec.Cmd, pagesRoot string, inPlace bool) (*jail.Jail, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	// Run daemon in chroot environment
+	var wrapper *jail.Jail
+	if inPlace {
+		wrapper, err = chrootDaemon(cmd, wd)
+	} else {
+		wrapper, err = jailDaemon(pagesRoot, cmd)
+	}
+	if err != nil {
+		log.WithError(err).Print("chroot failed")
+		return nil, err
+	}
+
+	return wrapper, nil
 }
 
 func daemonize(config *config.Config) error {
@@ -304,17 +316,11 @@ func daemonize(config *config.Config) error {
 	}
 	defer killProcess(cmd)
 
-	// Run daemon in chroot environment
-	var wrapper *jail.Jail
-	if inPlace {
-		wrapper, err = chrootDaemon(cmd)
-	} else {
-		wrapper, err = jailDaemon(pagesRoot, cmd)
-	}
+	wrapper, err := getJailWrapper(cmd, pagesRoot, inPlace)
 	if err != nil {
-		log.WithError(err).Print("chroot failed")
 		return err
 	}
+
 	defer wrapper.Dispose()
 
 	// Unshare mount namespace

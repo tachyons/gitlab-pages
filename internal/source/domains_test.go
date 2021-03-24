@@ -53,6 +53,7 @@ func TestNewDomains(t *testing.T) {
 		expectedErr     string
 		expectGitlabNil bool
 		expectDiskNil   bool
+		disableDisk     bool
 	}{
 		{
 			name:         "no_source_config",
@@ -97,11 +98,24 @@ func TestNewDomains(t *testing.T) {
 			sourceConfig: sourceConfig{api: "https://gitlab.com", secret: "", domainSource: "gitlab"},
 			expectedErr:  "GitLab API URL or API secret has not been provided",
 		},
+		{
+			name:            "auto_source_with_disk_disabled",
+			sourceConfig:    sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "auto"},
+			expectGitlabNil: false,
+			expectDiskNil:   true,
+			disableDisk:     true,
+		},
+		{
+			name:         "disk_source_with_disk_disabled",
+			sourceConfig: sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "disk"},
+			expectedErr:  "disk source is disabled via pages-root=false",
+			disableDisk:  true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			domains, err := NewDomains(tt.sourceConfig)
+			domains, err := NewDomains(tt.sourceConfig, tt.disableDisk)
 			if tt.expectedErr != "" {
 				require.EqualError(t, err, tt.expectedErr)
 				return

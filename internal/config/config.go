@@ -61,6 +61,7 @@ type General struct {
 	DisableCrossOriginRequests bool
 	InsecureCiphers            bool
 	PropagateCorrelationID     bool
+	EnableDisk                 bool
 
 	ShowVersion bool
 
@@ -243,6 +244,7 @@ func loadConfig() *Config {
 		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
 			DomainConfigurationSource:  *domainConfigSource,
+			EnableDisk:                 *enableDisk,
 			UseLegacyStorage:           *useLegacyStorage,
 			HTTP2:                      *useHTTP2,
 			MaxConns:                   *maxConns,
@@ -364,6 +366,7 @@ func LogConfig(config *Config) {
 		"metrics-address":               *metricsAddress,
 		"pages-domain":                  *pagesDomain,
 		"pages-root":                    *pagesRoot,
+		"enable-disk":                   *enableDisk,
 		"pages-status":                  *pagesStatus,
 		"propagate-correlation-id":      *propagateCorrelationID,
 		"redirect-http":                 config.General.RedirectHTTP,

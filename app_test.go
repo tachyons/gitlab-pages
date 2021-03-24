@@ -92,7 +92,7 @@ func TestHealthCheckMiddleware(t *testing.T) {
 		config: cfg,
 	}
 
-	domains, err := source.NewDomains(app.config)
+	domains, err := source.NewDomains(app.config, false)
 	require.NoError(t, err)
 	app.domains = domains
 

@@ -22,7 +22,7 @@ linters-settings:
   govet:
     check-shadowing: false
   goconst:
-    min-len: 3
+    min-len: 6
     min-occurrences: 3
   goimports:
     local-prefixes: gitlab.com/gitlab-org/gitlab-pages

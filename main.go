@@ -31,6 +31,8 @@ func initErrorReporting(sentryDSN, sentryEnvironment string) {
 		errortracking.WithSentryEnvironment(sentryEnvironment))
 }
 
+// nolint: gocyclo
+// TODO reduce cyclomatic complexity https://gitlab.com/gitlab-org/gitlab-pages/-/issues/557
 func appMain() {
 	if err := validateargs.NotAllowed(os.Args[1:]); err != nil {
 		log.WithError(err).Fatal("Using invalid arguments, use -config=gitlab-pages-config file instead")
@@ -61,9 +63,7 @@ func appMain() {
 	}).Print("GitLab Pages Daemon")
 	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
-	if config.General.RootDir == "false" {
-		log.Info("pages-root is disabled!")
-	} else if err := os.Chdir(config.General.RootDir); err != nil {
+	if err := os.Chdir(config.General.RootDir); err != nil {
 		fatal(err, "could not change directory into pagesRoot")
 	}
 

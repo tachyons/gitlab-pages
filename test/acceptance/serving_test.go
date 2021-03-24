@@ -379,6 +379,7 @@ func TestDomainsSource(t *testing.T) {
 
 	type args struct {
 		configSource     string
+		pagesRoot        string
 		useLegacyStorage bool
 		domain           string
 		urlSuffix        string
@@ -495,6 +496,19 @@ func TestDomainsSource(t *testing.T) {
 				apiCalled:  false,
 			},
 		},
+		{
+			name: "pages",
+			args: args{
+				useLegacyStorage: true,
+				domain:           "test.domain.com",
+				urlSuffix:        "/",
+			},
+			want: want{
+				statusCode: http.StatusOK,
+				content:    "main-dir\n",
+				apiCalled:  false,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -509,9 +523,15 @@ func TestDomainsSource(t *testing.T) {
 
 			gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
+			if tt.args.pagesRoot == "" {
+				tt.args.pagesRoot = "../../shared/pages"
+			}
+
 			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", tt.args.configSource,
 				// TODO: remove in https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/6009
-				fmt.Sprintf("-use-legacy-storage=%t", tt.args.useLegacyStorage)}
+				fmt.Sprintf("-use-legacy-storage=%t", tt.args.useLegacyStorage),
+				"-pages-root", tt.args.pagesRoot,
+			}
 			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", []string{}, pagesArgs...)
 			defer teardown()
 
@@ -530,6 +550,21 @@ func TestDomainsSource(t *testing.T) {
 			require.Equal(t, tt.want.apiCalled, opts.getAPICalled(), "api called mismatch")
 		})
 	}
+}
+
+func TestDisabledDiskWithDiskSourceFailsToStart(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	expectedErrMsg := "incompatible settings for pages-root=false and domain-config-source=disk"
+
+	logBuf, teardown := RunPagesProcessWithOutput(t, false, *pagesBinary, listeners, "", "-pages-root=false", "-domain-config-source=disk")
+	defer teardown()
+
+	// give the process enough time to write the log message
+	require.Eventually(t, func() bool {
+		require.Contains(t, logBuf.String(), expectedErrMsg, "log mismatch")
+		return true
+	}, 2*time.Second, 500*time.Millisecond)
 }
 
 // TestGitLabSourceBecomesUnauthorized proves workaround for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535

@@ -491,7 +491,7 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 }
 
 func runApp(config *cfg.Config) {
-	domains, err := source.NewDomains(config)
+	domains, err := source.NewDomains(config, config.General.EnableDisk)
 	if err != nil {
 		log.WithError(err).Fatal("could not create domains config source")
 	}
