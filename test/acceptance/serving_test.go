@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -528,7 +527,7 @@ func TestDomainsSource(t *testing.T) {
 				require.Equal(t, tt.want.content, string(body), "content mismatch")
 			}
 
-			require.Equal(t, tt.want.apiCalled, opts.apiCalled, "api called mismatch")
+			require.Equal(t, tt.want.apiCalled, opts.getAPICalled(), "api called mismatch")
 		})
 	}
 }
@@ -554,17 +553,17 @@ func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
 	failedResponse, err := GetPageFromListener(t, httpListener, domain, "/")
 	require.NoError(t, err)
 
-	require.True(t, opts.apiCalled, "API should be called")
+	require.True(t, opts.getAPICalled(), "API should be called")
 	require.Equal(t, http.StatusBadGateway, failedResponse.StatusCode, "first response should fail with 502")
 
 	// make request again
-	opts.apiCalled = false
+	opts.setAPICalled(false)
 
 	response, err := GetPageFromListener(t, httpListener, domain, "/")
 	require.NoError(t, err)
 	defer response.Body.Close()
 
-	require.False(t, opts.apiCalled, "API should not be called after the first failure")
+	require.False(t, opts.getAPICalled(), "API should not be called after the first failure")
 	require.Equal(t, http.StatusOK, response.StatusCode, "second response should succeed")
 
 	body, err := ioutil.ReadAll(response.Body)
@@ -616,8 +615,6 @@ func TestDomainResolverError(t *testing.T) {
 		},
 	}
 
-	m := sync.RWMutex{}
-
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// handler setup
@@ -627,10 +624,7 @@ func TestDomainResolverError(t *testing.T) {
 					return
 				}
 
-				m.Lock()
-				defer m.Unlock()
-
-				opts.apiCalled = true
+				opts.setAPICalled(true)
 				if test.panic {
 					panic("server failed")
 				}
@@ -656,9 +650,7 @@ func TestDomainResolverError(t *testing.T) {
 			require.NoError(t, err)
 			defer response.Body.Close()
 
-			m.RLock()
-			require.True(t, opts.apiCalled, "api must have been called")
-			m.RUnlock()
+			require.True(t, opts.getAPICalled(), "api must have been called")
 
 			require.Equal(t, http.StatusBadGateway, response.StatusCode)
 
