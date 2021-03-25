@@ -69,7 +69,7 @@ class ObjectStorageBackup
 
   def failure_abort(error_message)
     puts "[Error] #{error_message}".red
-    abort "Restore #{@name} failed"
+    abort "Backup and or restore of #{@name} failed"
   end
 
   def upload_to_object_storage(source_path)
