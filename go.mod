@@ -21,7 +21,7 @@ require (
 	github.com/pires/go-proxyproto v0.2.0
 	github.com/prometheus/client_golang v1.6.0
 	github.com/rs/cors v1.7.0
-	github.com/sirupsen/logrus v1.8.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/tj/assert v0.0.3 // indirect

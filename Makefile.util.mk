@@ -14,7 +14,7 @@ test: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) ./... ${ARGS} 2>&1 | tee tests.out
 
 race: .GOPATH/.ok gitlab-pages
-	CGO_ENABLED=1 go test -race $(if $V,-v) ./...
+	CGO_ENABLED=1 go test -race $(if $V,-v) $(allpackages)
 
 acceptance: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) ./test/acceptance ${ARGS} 2>&1 | tee tests.out
