@@ -22,6 +22,8 @@ ADD gitlab-graphicsmagick.tar.gz /
 
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
+RUN dnf ${DNF_OPTS} install -by --nodocs git
+
 RUN mkdir /assets \
     && install /usr/local/postgresql/bin/* /usr/bin/ \
     && cp -R /usr/local/postgresql/lib/. ${LIBDIR}/ \

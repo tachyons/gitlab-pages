@@ -53,6 +53,7 @@ RUN buildDeps=' \
     patch \
     pkg-config \
     libkrb5-3 \
+    git \
     sudo' \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $buildDeps \
