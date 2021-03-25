@@ -20,7 +20,8 @@ class ObjectStorageBackup
 
   def backup
     if @backend == "s3"
-      check_bucket_cmd = %W(s3cmd ls s3://#{@remote_bucket_name})
+      # Check bucket existence by listing, limit 1 to optimize
+      check_bucket_cmd = %W(s3cmd --limit=1 ls s3://#{@remote_bucket_name})
       cmd = %W(s3cmd --stop-on-error --delete-removed sync s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
     elsif @backend == "gcs"
       check_bucket_cmd = %W(gsutil ls gs://#{@remote_bucket_name})
