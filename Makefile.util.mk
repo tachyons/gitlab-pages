@@ -23,9 +23,10 @@ bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ $(allpackages)
 
 # The acceptance tests cannot count for coverage
-cover: bin/gocovmerge .GOPATH/.ok gitlab-pages
+cover: bin/gocovmerge gitlab-pages
 	@echo "NOTE: make cover does not exit 1 on failure, don't use it to check for tests success!"
 	$Q rm -f .GOPATH/cover/*.out .GOPATH/cover/all.merged
+	$Q mkdir -p .GOPATH/cover
 	$(if $V,@echo "-- go test -coverpkg=./... -coverprofile=.GOPATH/cover/... ./...")
 	@for MOD in $(allpackages); do \
 		go test \
