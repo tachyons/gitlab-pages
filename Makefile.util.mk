@@ -10,11 +10,11 @@ lint: .GOPATH/.ok bin/golangci-lint
 	$Q ./bin/golangci-lint run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
 
 test: .GOPATH/.ok gitlab-pages
-	rm tests.out || true
-	go test $(if $V,-v) $(allpackages) 2>&1 | tee tests.out
+	rm -f tests.out
+	go test $(if $V,-v) ./... ${ARGS} 2>&1 | tee tests.out
 
 race: .GOPATH/.ok gitlab-pages
-	CGO_ENABLED=1 go test -race $(if $V,-v) $(allpackages)
+	CGO_ENABLED=1 go test -race $(if $V,-v) ./...
 
 acceptance: .GOPATH/.ok gitlab-pages
 	go test $(if $V,-v) ./test/acceptance ${ARGS} 2>&1 | tee tests.out
