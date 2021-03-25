@@ -1,5 +1,3 @@
-GOLANGCI_LINT_VERSION := v1.27.0 # version used by $GOLANGCI_LINT_IMAGE
-
 GO_BUILD_TAGS   := continuous_profiler_stackdriver
 
 .PHONY: all setup generate-mocks build clean
@@ -8,7 +6,7 @@ all: gitlab-pages
 
 setup: .GOPATH/.ok
 	mkdir -p bin/
-	# From https://marcofranssen.nl/manage-go-tools-via-go-modules/
+	# Installing dev tools defined in tools.go
 	@cat ./tools.go | \
 		grep _ | \
 		awk -F'"' '{print $$2}' | \

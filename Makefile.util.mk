@@ -1,5 +1,3 @@
-GOLANGCI_LINT_IMAGE := golangci/golangci-lint:$(GOLANGCI_LINT_VERSION)
-
 .PHONY: lint test race acceptance bench cover list deps-check deps-download changelog
 
 OUT_FORMAT ?= colored-line-number

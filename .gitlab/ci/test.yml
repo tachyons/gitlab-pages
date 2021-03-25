@@ -43,6 +43,7 @@ test-acceptance:1.14:
 test:1.15:
   extends: .tests-unit
   image: golang:1.15
+
 test-acceptance:1.15:
   extends: .tests-acceptance-deamon
   image: golang:1.15
