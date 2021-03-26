@@ -12,10 +12,15 @@ import (
 type StubClient struct {
 	File      string
 	StatusErr func() error
+	Lookup    *api.Lookup
 }
 
 // Resolve implements api.Resolver
 func (c StubClient) Resolve(ctx context.Context, host string) *api.Lookup {
+	if c.Lookup != nil {
+		return c.Lookup
+	}
+
 	lookup := c.GetLookup(ctx, host)
 
 	return &lookup

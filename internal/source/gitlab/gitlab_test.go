@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
 
@@ -28,6 +29,15 @@ func TestGetDomain(t *testing.T) {
 
 		require.NotNil(t, err)
 		require.Nil(t, domain)
+	})
+
+	t.Run("when pages endpoint is unauthorized", func(t *testing.T) {
+		c := client.StubClient{Lookup: &api.Lookup{Error: client.ErrUnauthorizedAPI}}
+		source := Gitlab{client: c}
+
+		_, err := source.GetDomain("test")
+		require.EqualError(t, err, client.ErrUnauthorizedAPI.Error())
+		require.False(t, source.IsReady())
 	})
 }
 
