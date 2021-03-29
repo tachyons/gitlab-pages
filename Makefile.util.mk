@@ -1,5 +1,3 @@
-GOLANGCI_LINT_IMAGE := golangci/golangci-lint:$(GOLANGCI_LINT_VERSION)
-
 .PHONY: lint test race acceptance bench cover list deps-check deps-download changelog
 
 OUT_FORMAT ?= colored-line-number
@@ -10,8 +8,8 @@ lint: .GOPATH/.ok bin/golangci-lint
 	$Q ./bin/golangci-lint run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
 
 test: .GOPATH/.ok gitlab-pages
-	rm tests.out || true
-	go test $(if $V,-v) $(allpackages) 2>&1 | tee tests.out
+	rm -f tests.out
+	go test $(if $V,-v) ./... ${ARGS} 2>&1 | tee tests.out
 
 race: .GOPATH/.ok gitlab-pages
 	CGO_ENABLED=1 go test -race $(if $V,-v) $(allpackages) 2>&1 | tee tests.out
@@ -23,9 +21,10 @@ bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ $(allpackages)
 
 # The acceptance tests cannot count for coverage
-cover: bin/gocovmerge .GOPATH/.ok gitlab-pages
+cover: bin/gocovmerge gitlab-pages
 	@echo "NOTE: make cover does not exit 1 on failure, don't use it to check for tests success!"
 	$Q rm -f .GOPATH/cover/*.out .GOPATH/cover/all.merged
+	$Q mkdir -p .GOPATH/cover
 	$(if $V,@echo "-- go test -coverpkg=./... -coverprofile=.GOPATH/cover/... ./...")
 	@for MOD in $(allpackages); do \
 		go test \

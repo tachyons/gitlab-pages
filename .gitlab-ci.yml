@@ -27,7 +27,7 @@ default:
   variables:
     GOPATH: $CI_PROJECT_DIR/.GOPATH
   before_script:
-    - mkdir -p .GOPATH
+    - make setup
   cache:
     paths:
       - .GOPATH/pkg/mod/

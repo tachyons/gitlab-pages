@@ -1,16 +1,16 @@
-GOLANGCI_LINT_VERSION := v1.27.0 # version used by $GOLANGCI_LINT_IMAGE
-
 GO_BUILD_TAGS   := continuous_profiler_stackdriver
 
 .PHONY: all setup generate-mocks build clean
 
 all: gitlab-pages
 
-setup: clean .GOPATH/.ok
-	go get github.com/wadey/gocovmerge@v0.0.0-20160331181800-b5bfa59ec0ad
-	go get github.com/golang/mock/mockgen@v1.3.1
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-	go get github.com/jstemmer/go-junit-report
+setup: .GOPATH/.ok
+	mkdir -p bin/
+	# Installing dev tools defined in tools.go
+	@cat ./tools.go | \
+		grep _ | \
+		awk -F'"' '{print $$2}' | \
+		GOBIN=$(CURDIR)/bin xargs -tI % go install %
 
 generate-mocks: .GOPATH/.ok
 	$Q bin/mockgen -source=internal/interface.go -destination=internal/mocks/mocks.go -package=mocks
@@ -23,4 +23,3 @@ clean:
 
 gitlab-pages: build
 	$Q cp -f ./bin/gitlab-pages .
-
