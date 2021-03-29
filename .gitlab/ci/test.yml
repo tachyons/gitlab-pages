@@ -53,7 +53,9 @@ race:
   extends: .tests-common
   script:
     - echo "Running race detector"
+    - make setup
     - make race
+    - make junit-report
 
 cover:
   extends: .tests-common

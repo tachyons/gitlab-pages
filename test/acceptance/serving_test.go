@@ -527,7 +527,7 @@ func TestDomainsSource(t *testing.T) {
 				require.Equal(t, tt.want.content, string(body), "content mismatch")
 			}
 
-			require.Equal(t, tt.want.apiCalled, opts.apiCalled, "api called mismatch")
+			require.Equal(t, tt.want.apiCalled, opts.getAPICalled(), "api called mismatch")
 		})
 	}
 }
@@ -553,17 +553,17 @@ func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
 	failedResponse, err := GetPageFromListener(t, httpListener, domain, "/")
 	require.NoError(t, err)
 
-	require.True(t, opts.apiCalled, "API should be called")
+	require.True(t, opts.getAPICalled(), "API should be called")
 	require.Equal(t, http.StatusBadGateway, failedResponse.StatusCode, "first response should fail with 502")
 
 	// make request again
-	opts.apiCalled = false
+	opts.setAPICalled(false)
 
 	response, err := GetPageFromListener(t, httpListener, domain, "/")
 	require.NoError(t, err)
 	defer response.Body.Close()
 
-	require.False(t, opts.apiCalled, "API should not be called after the first failure")
+	require.False(t, opts.getAPICalled(), "API should not be called after the first failure")
 	require.Equal(t, http.StatusOK, response.StatusCode, "second response should succeed")
 
 	body, err := ioutil.ReadAll(response.Body)
@@ -624,7 +624,7 @@ func TestDomainResolverError(t *testing.T) {
 					return
 				}
 
-				opts.apiCalled = true
+				opts.setAPICalled(true)
 				if test.panic {
 					panic("server failed")
 				}
@@ -639,7 +639,8 @@ func TestDomainResolverError(t *testing.T) {
 
 			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
 			if test.timeout != 0 {
-				pagesArgs = append(pagesArgs, "-gitlab-client-http-timeout", test.timeout.String())
+				pagesArgs = append(pagesArgs, "-gitlab-client-http-timeout", test.timeout.String(),
+					"-gitlab-retrieval-timeout", "200ms", "-gitlab-retrieval-interval", "200ms", "-gitlab-retrieval-retries", "1")
 			}
 
 			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, listeners, "", []string{}, pagesArgs...)
@@ -649,7 +650,8 @@ func TestDomainResolverError(t *testing.T) {
 			require.NoError(t, err)
 			defer response.Body.Close()
 
-			require.True(t, opts.apiCalled, "api must have been called")
+			require.True(t, opts.getAPICalled(), "api must have been called")
+
 			require.Equal(t, http.StatusBadGateway, response.StatusCode)
 
 			body, err := ioutil.ReadAll(response.Body)

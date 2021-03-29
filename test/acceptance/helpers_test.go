@@ -353,6 +353,13 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 		args = append(args, "-pages-root", "../../shared/pages")
 	}
 
+	// default resolver configuration to execute tests faster
+	if !contains(extraArgs, "-gitlab-retrieval-") {
+		args = append(args, "-gitlab-retrieval-timeout", "50ms",
+			"-gitlab-retrieval-interval", "10ms",
+			"-gitlab-retrieval-retries", "1")
+	}
+
 	if promPort != "" {
 		args = append(args, "-metrics-address", promPort)
 	}
@@ -365,7 +372,7 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 
 func contains(slice []string, s string) bool {
 	for _, e := range slice {
-		if e == s {
+		if strings.Contains(e, s) {
 			return true
 		}
 	}
@@ -538,6 +545,7 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 }
 
 type stubOpts struct {
+	m                   sync.RWMutex
 	apiCalled           bool
 	statusReadyCount    int
 	statusHandler       http.HandlerFunc
@@ -578,6 +586,20 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
+func (o *stubOpts) setAPICalled(v bool) {
+	o.m.Lock()
+	defer o.m.Unlock()
+
+	o.apiCalled = v
+}
+
+func (o *stubOpts) getAPICalled() bool {
+	o.m.RLock()
+	defer o.m.RUnlock()
+
+	return o.apiCalled
+}
+
 func lookupFromFile(t *testing.T, domain string, w http.ResponseWriter) {
 	fixture, err := os.Open("../../shared/lookups/" + domain + ".json")
 	if os.IsNotExist(err) {
@@ -605,7 +627,7 @@ func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
 			return
 		}
 
-		opts.apiCalled = true
+		opts.setAPICalled(true)
 
 		if opts.pagesStatusResponse != 0 {
 			w.WriteHeader(opts.pagesStatusResponse)
