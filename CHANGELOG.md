@@ -1,3 +1,17 @@
+## 1.37.0 (2021-03-31)
+
+### Added (1 change)
+
+- [Instrument limit listener for saturation monitoring](gitlab-org/gitlab-pages@b2bebb9733332031654f203a42c9912831d49a15) ([merge request](gitlab-org/gitlab-pages!443))
+
+### Changed (1 change)
+
+- [Add FF_DISABLE_REFRESH_TEMPORARY_ERROR env variable](gitlab-org/gitlab-pages@da02f9667d9c0696538bc7ca85a84bf66a33942c) ([merge request](gitlab-org/gitlab-pages!435))
+
+### Other (1 change)
+
+- [Remove .GOPATH symlinks](gitlab-org/gitlab-pages@33723f8a85871797b6f38ab0340437a9b635f917) ([merge request](gitlab-org/gitlab-pages!453))
+
 ## 1.36.0 (2021-03-12)
 
 ### Added (3 changes)
