@@ -2,7 +2,6 @@ package gitlab
 
 import (
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 
@@ -62,7 +61,7 @@ func TestClient_Poll(t *testing.T) {
 				return nil
 			}}
 
-			glClient := Gitlab{client: client, mu: &sync.RWMutex{}}
+			glClient := Gitlab{client: client}
 
 			glClient.poll(3*time.Millisecond, tt.maxTime)
 			if tt.expectedFail {

@@ -25,7 +25,7 @@ var errCacheNotConfigured = errors.New("cache not configured")
 // information about domains from GitLab instance.
 type Gitlab struct {
 	client  api.Resolver
-	mu      *sync.RWMutex
+	mu      sync.RWMutex
 	isReady bool
 }
 
@@ -48,7 +48,6 @@ func New(config client.Config) (*Gitlab, error) {
 
 	g := &Gitlab{
 		client: cachedClient,
-		mu:     &sync.RWMutex{},
 	}
 
 	go g.poll(backoff.DefaultInitialInterval, maxPollingTime)
