@@ -12,6 +12,6 @@ RUN dnf ${DNF_OPTS} install -by --nodocs gcc \
     && mkdir /assets \
     && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
     && cp -R --parents \
-        /usr/local/lib/python3.8/site-packages \
+        /usr/local/lib/python3.9/site-packages \
         /usr/local/bin/ \
         /assets
