@@ -13,9 +13,9 @@ Check the table below for more information about the various CI variables used i
 | CE_PROJECT                                    | Project name for the GitLab CE rails project to use as the gitlab-rails-ce source. |
 | EE_PROJECT                                    | Project name for the GitLab EE rails project to use as the gitlab-rails-ee source. |
 | FETCH_DEV_ARTIFACTS_PAT                       | Access token with access to pull source assets from private locations. |
-| ASSETS_IMAGE_REGISTRY_PREFIX                  | Docker registry location to pull the pre-build GitLab assets image from. |
-| FORCE_IMAGE_BUILDS                            | Set to `true` to build images even when the container version matches an existing image. |
+| ASSETS_IMAGE_REGISTRY_PREFIX                  | Docker registry location to pull the pre-built GitLab assets image from. |
 | COMPILE_ASSETS                                | Set to `true` to compile rails assets instead of using the assets image. |
+| FORCE_IMAGE_BUILDS                            | Set to `true` to build images even when the container version matches an existing image. |
 | DISABLE_DOCKER_BUILD_CACHE                    | Set to any value to ensure builds run without docker build cache. |
 | UBI_PIPELINE                                  | Set to any value to indicate a UBI only pipeline. |
 | CE_PIPELINE                                   | Set to any value to indicate a CE only pipeline. |
@@ -43,7 +43,7 @@ Check the table below for more information about the various CI variables used i
 | UBI_ASSETS_AWS_ACCESS_KEY_ID                  | Account ID to read/write from the s3 bucket containing the ubi release assets. |
 | UBI_ASSETS_AWS_SECRET_ACCESS_KEY              | Account secret to read/write from the s3 bucket containing the ubi release assets. |
 | UBI_ASSETS_AWS_BUCKET                         | S3 bucket name for the the ubi release assets. |
-| RELEASE_API                                   | GitLab Api location for pushing release assets to. |
+| RELEASE_API                                   | Target GitLab API location when pushing release assets. |
 | UBI_RELEASE_PAT                               | GitLab Private Access Token for creating a new release object on release. |
 | COM_REGISTRY                                  | Docker location of the public registry. |
 | COM_CNG_PROJECT                               | Project name for the public CNG project. |
