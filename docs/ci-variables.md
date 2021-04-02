@@ -9,27 +9,27 @@ Check the table below for more information about the various CI variables used i
 
 | Environment Variable                          | Description |
 | --------------------------------------------- | ----------- |
-| GITLAB_NAMESPACE                              | Group name that containers the GitLab repos to use to pull source code from. |
+| GITLAB_NAMESPACE                              | GitLab group containing the rails source code repositories named by `CE_PROJECT` and `EE_PROJECT`. |
 | CE_PROJECT                                    | Project name for the GitLab CE rails project to use as the gitlab-rails-ce source. |
 | EE_PROJECT                                    | Project name for the GitLab EE rails project to use as the gitlab-rails-ee source. |
-| FETCH_DEV_ARTIFACTS_PAT                       | Access token with access to pull source assets from private locations. |
-| ASSETS_IMAGE_REGISTRY_PREFIX                  | Docker registry location to pull the pre-built GitLab assets image from. |
+| FETCH_DEV_ARTIFACTS_PAT                       | Access token with permission to pull source assets from private locations. |
+| ASSETS_IMAGE_REGISTRY_PREFIX                  | Pull pre-built GitLab assets container image from specified Docker registry location. |
 | COMPILE_ASSETS                                | Set to `true` to compile rails assets instead of using the assets image. |
-| FORCE_IMAGE_BUILDS                            | Set to `true` to build images even when the container version matches an existing image. |
-| DISABLE_DOCKER_BUILD_CACHE                    | Set to any value to ensure builds run without docker build cache. |
-| UBI_PIPELINE                                  | Set to any value to indicate a UBI only pipeline. |
-| CE_PIPELINE                                   | Set to any value to indicate a CE only pipeline. |
-| EE_PIPELINE                                   | Set to any value to indicate an EE only pipeline. |
-| CUSTOM_PIPELINE                               | Set to any value to indicate an custom pipeline (don't run CE or EE specific jobs.) |
+| FORCE_IMAGE_BUILDS                            | Setting `true` builds fresh images even when existing containers match the specified version. |
+| DISABLE_DOCKER_BUILD_CACHE                    | Setting any value ensures that builds run without docker build cache. |
+| UBI_PIPELINE                                  | Setting to any value indicates this will be a UBI only pipeline. |
+| CE_PIPELINE                                   | Setting any value indicates this will be a CE only pipeline. |
+| EE_PIPELINE                                   | Setting any value indicates this will be an EE only pipeline. |
+| CUSTOM_PIPELINE                               | Setting any value indicates this will be a custom pipeline (Do not run CE or EE specific jobs.) |
 | DEPENDENCY_PROXY                              | Sets the dockerhub registry location. See [details](build.md#dependency-proxy). |
 
 ## Test variables
 
 | Environment Variable                          | Description |
 | --------------------------------------------- | ----------- |
-| DANGER_GITLAB_API_TOKEN                       | GitLab API token for dangerbot to post comments to MRs. |
+| DANGER_GITLAB_API_TOKEN                       | GitLab API token dangerbot uses to post comments on MRs. |
 | DEPS_GITLAB_TOKEN                             | Token used by [dependencies.io](https://docs.dependencies.io/gitlab-ci/) to create MRs. |
-| DEPS_TOKEN                                    | Token used by CI to auth to [dependencies.io](https://docs.dependencies.io/gitlab-ci/). |
+| DEPS_TOKEN                                    | Token used by CI for auth to [dependencies.io](https://docs.dependencies.io/gitlab-ci/). |
 | NIGHTLY                                       | Set to `true` when running a nightly build. (Busts cache). |
 
 ## Release variable
