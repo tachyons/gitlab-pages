@@ -2,7 +2,7 @@ ARG BUILD_IMAGE=
 
 FROM ${BUILD_IMAGE}
 
-ARG PYTHON_VERSION=3.8.6
+ARG PYTHON_VERSION=3.9.2
 
 ENV LANG=C.UTF-8
 
@@ -17,6 +17,6 @@ RUN mkdir /assets \
     && make -j "$(nproc)" install \
     && ldconfig \
     && pip3 install --upgrade pip setuptools \
-    && rm -rf /usr/local/lib/python3.8/test \
-    && find /usr/local/lib/python3.8 -name '__pycache__' -type d -exec rm -r {} + \
+    && rm -rf /usr/local/lib/python3.9/test \
+    && find /usr/local/lib/python3.9 -name '__pycache__' -type d -exec rm -r {} + \
     && cp -R  --parents /usr/local/{bin,lib,include} /assets

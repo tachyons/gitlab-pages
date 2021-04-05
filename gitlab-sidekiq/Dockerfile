@@ -1,5 +1,5 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
-ARG PYTHON_TAG="3.8.6"
+ARG PYTHON_TAG="3.9.2"
 ARG TAG="master"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee"
 ARG GITLAB_LOGGER_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-logger:master"
@@ -15,7 +15,7 @@ ARG DOCUTILS_VERSION="0.16"
 # BEGIN python install
 COPY --from=python /usr/local/bin /usr/local/bin/
 COPY --from=python /usr/local/lib /usr/local/lib/
-ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages
+ENV PYTHONPATH=/usr/local/lib/python3.9/site-packages
 RUN ldconfig \
     && /usr/local/bin/pip3 install --compile docutils==${DOCUTILS_VERSION}
 # END python install
