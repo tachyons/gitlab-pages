@@ -945,8 +945,11 @@ build:git-base:
   script:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
-    - build_if_needed --build-arg "GIT_VERSION=$GIT_VERSION"
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GITALY_SERVER_VERSION" | sha1sum))
+    - build_if_needed --build-arg "GITALY_SERVER_VERSION=${GITALY_SERVER_VERSION}"
+                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
+                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
     - copy_assets
     - echo -n "${CONTAINER_VERSION}" > artifacts/build_git_container.txt
 
@@ -960,12 +963,15 @@ git-base:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GIT_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GITALY_SERVER_VERSION" | sha1sum))
     - build_if_needed --build-arg "TAG=$go_version"
-                      --build-arg "GIT_VERSION=$GIT_VERSION"
+                      --build-arg "GITALY_SERVER_VERSION=${GITALY_SERVER_VERSION}"
+                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
+                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_tags
-    - push_tags $GIT_VERSION${IMAGE_TAG_EXT}
+    - push_tags $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/git_container.txt
 
 build:gitlab-elasticsearch-indexer:
