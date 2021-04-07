@@ -23,7 +23,12 @@ func (g *Gitlab) poll(interval, maxElapsedTime time.Duration) {
 	operation := func() error {
 		log.Info("Checking GitLab internal API availability")
 
-		return g.client.Status()
+		err := g.client.Status()
+		if err != nil {
+			log.WithError(err).Warn("attempted to connect to the API")
+		}
+
+		return err
 	}
 
 	err := backoff.Retry(operation, backOff)
