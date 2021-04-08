@@ -36,6 +36,8 @@ function usage()
                                             Special config file for s3cmd (see: https://s3tools.org/usage)
      --storage-class CLASSNAME              Pass this storage class to the gcs or s3cmd for more cost-efficient
                                             storage of backups.
+     --maximum-backups NUMBER               Only keep the most recent N number of backups, deleting others after success.
+                                            Requires s3config credentials to be able to list and delete objects.
 HEREDOC
 }
 
@@ -103,6 +105,34 @@ function get_backup_name(){
 function cleanup(){
   rm -rf $backups_path/*
   rm -rf $backup_tars_path/*
+
+  if [ -n "$MAXIMUM_BACKUPS" ]; then
+    # Both s3cmd and gsutil list the files in alphabetical order, using the timestamp as the ordering from oldest to newest
+    if [ "${BACKUP_BACKEND}" = "s3" ]; then
+      existing_backups=($(s3cmd ls s3://$BACKUP_BUCKET_NAME --include '*_gitlab_backup.tar' | awk '{print $4}'))
+      echo "Found ${#existing_backups[@]} existing backups. Maximum allowed is $MAXIMUM_BACKUPS"
+      if [ ${#existing_backups[@]} -gt $MAXIMUM_BACKUPS ]; then
+        i=0
+        while [ $i -lt $(expr ${#existing_backups[@]} - $MAXIMUM_BACKUPS) ]; do
+          echo "Deleting old backup ${existing_backups[$i]}"
+          s3cmd ${S3_CMD_BACKUP_OPTION} del ${existing_backups[$i]} > /dev/null
+          ((++i))
+        done
+      fi
+    elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
+      existing_backups=($(gsutil ls gs://$BACKUP_BUCKET_NAME/\*_gitlab_backup.tar))
+      echo "Found ${#existing_backups[@]} existing backups. Maximum allowed is $MAXIMUM_BACKUPS"
+      if [ ${#existing_backups[@]} -gt $MAXIMUM_BACKUPS ]; then
+        i=0
+        while [ $i -lt $(expr ${#existing_backups[@]} - $MAXIMUM_BACKUPS) ]; do
+          echo "Deleting old backup ${existing_backups[$i]}"
+          gsutil rm ${existing_backups[$i]} > /dev/null
+          ((++i))
+        done
+      fi
+    fi
+    echo "[DONE] Finished pruning old backups"
+  fi
 }
 
 function write_backup_info(){
@@ -274,6 +304,11 @@ do
       ;;
     --storage-class)
       export STORAGE_CLASS="$2"
+      shift
+      shift
+      ;;
+    --maximum-backups)
+      export MAXIMUM_BACKUPS="$2"
       shift
       shift
       ;;
