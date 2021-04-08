@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,6 +51,11 @@ type zipVFS struct {
 
 	archiveCount int64
 	httpClient   *http.Client
+
+	// TODO: this is a temporary workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/326117#note_546346101
+	// where daemon-inplace-chroot=true fails to serve zip archives when pages_serve_with_zip_file_protocol is enabled
+	// To be removed after we roll-out zip architecture completely https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
+	chrootPath string
 }
 
 // New creates a zipVFS instance that can be used by a serving request
@@ -93,6 +99,7 @@ func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
 	fs.cacheExpirationInterval = cfg.Zip.ExpirationInterval
 	fs.cacheRefreshInterval = cfg.Zip.RefreshInterval
 	fs.cacheCleanupInterval = cfg.Zip.CleanupInterval
+	fs.chrootPath = cfg.Zip.ChrootPath
 
 	if err := fs.reconfigureTransport(cfg); err != nil {
 		return err
@@ -239,10 +246,21 @@ func (fs *zipVFS) findOrOpenArchive(ctx context.Context, key, path string) (*zip
 		return nil, err
 	}
 
-	err = zipArchive.openArchive(ctx, path)
+	err = zipArchive.openArchive(ctx, fs.removeChrootPath(path))
 	if err != nil {
 		return nil, err
 	}
 
 	return zipArchive, nil
+}
+
+// TODO: this is a temporary workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/326117#note_546346101
+// where daemon-inplace-chroot=true fails to serve zip archives when pages_serve_with_zip_file_protocol is enabled
+// To be removed after we roll-out zip architecture completely https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
+func (fs *zipVFS) removeChrootPath(path string) string {
+	if fs.chrootPath == "" || strings.HasPrefix(path, "http") {
+		return path
+	}
+
+	return strings.ReplaceAll(path, fs.chrootPath, "")
 }

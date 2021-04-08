@@ -146,6 +146,10 @@ type ZipServing struct {
 	RefreshInterval    time.Duration
 	OpenTimeout        time.Duration
 	AllowedPaths       []string
+	// TODO: this is a temporary workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/326117#note_546346101
+	// where daemon-inplace-chroot=true fails to serve zip archives when pages_serve_with_zip_file_protocol is enabled
+	// To be removed after we roll-out zip architecture completely https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
+	ChrootPath string
 }
 
 func gitlabServerFromFlags() string {
@@ -327,6 +331,14 @@ func loadConfig() *Config {
 	config.GitLab.InternalServer = internalGitlabServerFromFlags()
 	if *gitLabAPISecretKey != "" {
 		setGitLabAPISecretKey(*gitLabAPISecretKey, config)
+	}
+
+	// TODO: this is a temporary workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/326117#note_546346101
+	// where daemon-inplace-chroot=true fails to serve zip archives when pages_serve_with_zip_file_protocol is enabled
+	// To be removed after we roll-out zip architecture completely https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
+	if config.Daemon.InplaceChroot {
+		config.Zip.ChrootPath = *pagesRoot
+		config.Zip.AllowedPaths = append(config.Zip.AllowedPaths, "/")
 	}
 
 	validateConfig(config)
