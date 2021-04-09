@@ -8,8 +8,6 @@ ARG VERSION=v5.2.0
 ARG API_URL=
 ARG API_TOKEN=
 
-ARG EXIFTOOL_VERSION=11.69
-
 ADD git-base.tar.gz /
 ADD gitlab-go.tar.gz /
 ADD gitlab-rails-ee.tar.gz /
@@ -17,17 +15,10 @@ ADD gitlab-rails-ee.tar.gz /
 RUN ldconfig \
     && mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
-    && curl --retry 6 https://gitlab.com/gitlab-org/build/omnibus-mirror/exiftool/-/archive/${EXIFTOOL_VERSION}/exiftool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
-    && cd exiftool-${EXIFTOOL_VERSION} \
-    && perl Makefile.PL \
-    && make install \
-    && cd .. \
     && make -C /srv/gitlab/workhorse install \
     && mkdir /assets/licenses && cp /licenses/GitLab.txt /assets/licenses/ \
     && cp -R --parents \
         /usr/local/bin/gitlab-* \
-        /usr/local/bin/exiftool \
-        /usr/local/share/perl5 \
         /srv/gitlab/public \
         /srv/gitlab/doc \
         /assets

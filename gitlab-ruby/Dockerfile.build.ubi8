@@ -8,6 +8,7 @@ ARG RUBYGEMS_VERSION=3.1.4
 ARG BUNDLER_VERSION=2.1.4
 ARG RBREADLINE_VERSION=0.5.5
 ARG JEMALLOC_VERSION=5.2.1
+ARG EXIFTOOL_VERSION=11.70
 
 ENV LANG=C.UTF-8
 
@@ -20,6 +21,12 @@ RUN mkdir /assets \
     && cd jemalloc-${JEMALLOC_VERSION} \
     && ./autogen.sh --prefix=/usr --libdir=${LIBDIR} --enable-prof \
     && make -j "$(nproc)" install \
+    && cd .. \
+    && curl --retry 6 https://gitlab.com/gitlab-org/build/omnibus-mirror/exiftool/-/archive/${EXIFTOOL_VERSION}/exiftool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
+    && cd exiftool-${EXIFTOOL_VERSION} \
+    && patch -p1 < ${BUILD_DIR}/patches/allow-only-tiff-jpeg-exif-strip.patch \
+    && perl Makefile.PL \
+    && make install \
     && cd .. \
     && curl --retry 6 -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.gz | tar -xz \
     && cd ruby-${RUBY_MINOR_VERSION} \
@@ -34,6 +41,8 @@ RUN mkdir /assets \
     && /build-scripts/cleanup-gems ${LIBDIR}/ruby/gems \
     && cp -R --parents \
       /usr/bin/{ruby,rdoc,irb,erb,rake,gem,bundler,bundle} \
+      /usr/local/bin/exiftool \
+      /usr/local/share/perl5 \
       ${LIBDIR}/{ruby/,libruby.*,libjemalloc.*} \
       /usr/include/{ruby-*,jemalloc}/ \
       /assets

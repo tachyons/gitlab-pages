@@ -6,6 +6,7 @@ ARG RUBY_MINOR_VERSION=2.7.2
 ARG RUBYGEMS_VERSION=3.1.4
 ARG BUNDLER_VERSION=2.1.4
 ARG JEMALLOC_VERSION=5.2.1
+ARG EXIFTOOL_VERSION=11.70
 
 ENV LANG=C.UTF-8
 
@@ -24,7 +25,6 @@ RUN apt-get update \
   coreutils \
   curl \
   gnupg2 \
-  libimage-exiftool-perl \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p ${BUILD_DIR}
 
@@ -58,6 +58,12 @@ RUN buildDeps=' \
   && cd jemalloc-${JEMALLOC_VERSION} \
   && ./autogen.sh --prefix=/usr --enable-prof \
   && make -j "$(nproc)" install \
+  && cd .. \
+  && curl --retry 6 https://gitlab.com/gitlab-org/build/omnibus-mirror/exiftool/-/archive/${EXIFTOOL_VERSION}/exiftool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
+  && cd exiftool-${EXIFTOOL_VERSION} \
+  && patch -p1 < ${BUILD_DIR}/patches/allow-only-tiff-jpeg-exif-strip.patch \
+  && perl Makefile.PL \
+  && make install \
   && cd .. \
   && curl --retry 6 -so ruby.tar.xz https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.xz \
   && tar -xf ruby.tar.xz \
