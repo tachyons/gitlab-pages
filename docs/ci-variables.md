@@ -10,11 +10,11 @@ Check the table below for more information about the various CI variables used i
 | Environment Variable                          | Description |
 | --------------------------------------------- | ----------- |
 | GITLAB_NAMESPACE                              | GitLab group containing the rails source code repositories named by `CE_PROJECT` and `EE_PROJECT`. |
-| CE_PROJECT                                    | Project name for the GitLab CE rails project to use as the gitlab-rails-ce source. |
-| EE_PROJECT                                    | Project name for the GitLab EE rails project to use as the gitlab-rails-ee source. |
+| CE_PROJECT                                    | GitLab project containing the GitLab CE source code for the gitlab-rails-ce image. |
+| EE_PROJECT                                    | GitLab project containing GitLab EE source code for the gitlab-rails-ee image. |
 | FETCH_DEV_ARTIFACTS_PAT                       | Access token with permission to pull source assets from private locations. |
 | ASSETS_IMAGE_REGISTRY_PREFIX                  | Pull pre-built GitLab assets container image from specified Docker registry location. |
-| COMPILE_ASSETS                                | Set to `true` to compile rails assets instead of using the assets image. |
+| COMPILE_ASSETS                                | Setting `true` generates fresh rails assets instead of copying them from the assets image.
 | FORCE_IMAGE_BUILDS                            | Setting `true` builds fresh images even when existing containers match the specified version. |
 | DISABLE_DOCKER_BUILD_CACHE                    | Setting any value ensures that builds run without docker build cache. |
 | UBI_PIPELINE                                  | Setting to any value indicates this will be a UBI only pipeline. |
