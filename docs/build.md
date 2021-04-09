@@ -11,9 +11,11 @@ the time of publishing, these images will be copied to the com registry and
 hence will be available to the public to use.
 
 ## Dependency Proxy
+
 When the variable `DEPENDENCY_PROXY` is set, it will be prefixed to the name of any image which
 is pulled from dockerhub.com. To work properly, the variable should be set with the trailing `/`.
-The images which currently use this are
+The images which currently use this are:
+
 1. alpine-certificates
 1. cfssl-self-sign
 1. gitlab-container-registry
@@ -50,6 +52,10 @@ The following variable should be present for a EE build:
 - `EE_PIPELINE` - set to `true`
 
 ![ee-cng-release.png](ee-cng-release.png)
+
+## CI variables
+
+See separate document on the [available ci variables](ci-variables.md).
 
 ## UBI images
 
@@ -90,6 +96,7 @@ for each image which corresponds to the OSPID and push secret assigned to
 each image by Red Hat. In addition, the variables `GITLAB_REGISTRY_BASE_URL`
 (base URL where the CNG images reside) and `REDHAT_REGISTRY_HOSTNAME`
 (host name of Red Hat registry) can be defined to override their default locations.
+
 ### Offline builds
 
 UBI-based images can be built in an isolated environment with limited access to the internet.
