@@ -11,7 +11,7 @@ Check the table below for more information about the various CI variables used i
 | --------------------------------------------- | ----------- |
 | GITLAB_NAMESPACE                              | GitLab group containing the rails source code repositories named by `CE_PROJECT` and `EE_PROJECT`. |
 | CE_PROJECT                                    | GitLab project containing the GitLab CE source code for the gitlab-rails-ce image. |
-| EE_PROJECT                                    | GitLab project containing GitLab EE source code for the gitlab-rails-ee image. |
+| EE_PROJECT                                    | GitLab project containing the GitLab EE source code for the gitlab-rails-ee image. |
 | FETCH_DEV_ARTIFACTS_PAT                       | Access token with permission to pull source assets from private locations. |
 | ASSETS_IMAGE_REGISTRY_PREFIX                  | Pull pre-built GitLab assets container image from specified Docker registry location. |
 | COMPILE_ASSETS                                | Setting `true` generates fresh rails assets instead of copying them from the assets image.
