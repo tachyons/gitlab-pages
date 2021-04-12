@@ -65,7 +65,7 @@ func (d *Domains) setConfigSource(config Config) error {
 		return d.setGitLabClient(config)
 	case "auto":
 		d.configSource = sourceAuto
-		if !d.enableDisk {
+		if d.enableDisk {
 			// enable disk for auto when not explicitly disabled
 			d.disk = disk.New()
 		}
@@ -118,7 +118,7 @@ func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
 // remove it entirely when disk source gets removed.
 func (d *Domains) Read(rootDomain string) {
 	// start disk.Read for sourceDisk and sourceAuto
-	if d.configSource != sourceGitlab && !d.enableDisk {
+	if d.configSource != sourceGitlab && d.enableDisk {
 		d.disk.Read(rootDomain)
 	}
 }

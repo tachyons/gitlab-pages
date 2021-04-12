@@ -555,14 +555,12 @@ func TestDomainsSource(t *testing.T) {
 func TestDisabledDiskWithDiskSourceFailsToStart(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	expectedErrMsg := "incompatible settings for pages-root=false and domain-config-source=disk"
-
-	logBuf, teardown := RunPagesProcessWithOutput(t, false, *pagesBinary, listeners, "", "-pages-root=false", "-domain-config-source=disk")
+	logBuf, teardown := RunPagesProcessWithOutput(t, false, *pagesBinary, listeners, "", "-enable-disk=false", "-domain-config-source=disk")
 	defer teardown()
 
 	// give the process enough time to write the log message
 	require.Eventually(t, func() bool {
-		require.Contains(t, logBuf.String(), expectedErrMsg, "log mismatch")
+		require.Contains(t, logBuf.String(), "disk source is disabled via enable-disk=false", "log mismatch")
 		return true
 	}, 2*time.Second, 500*time.Millisecond)
 }

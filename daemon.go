@@ -117,7 +117,12 @@ func passSignals(cmd *exec.Cmd) {
 	}()
 }
 
-func chrootDaemon(cmd *exec.Cmd, wd string) (*jail.Jail, error) {
+func chrootDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
 	chroot := jail.Into(wd)
 
 	// Generate a probabilistically-unique suffix for the copy of the pages
@@ -262,45 +267,21 @@ func jailDaemon(pagesRoot string, cmd *exec.Cmd) (*jail.Jail, error) {
 	return cage, nil
 }
 
-func getJailWrapper(cmd *exec.Cmd, pagesRoot string, inPlace bool) (*jail.Jail, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	// Run daemon in chroot environment
-	var wrapper *jail.Jail
-	if inPlace {
-		wrapper, err = chrootDaemon(cmd, wd)
-	} else {
-		wrapper, err = jailDaemon(pagesRoot, cmd)
-	}
-	if err != nil {
-		log.WithError(err).Print("chroot failed")
-		return nil, err
-	}
-
-	return wrapper, nil
-}
-
 func daemonize(config *config.Config) error {
 	uid := config.Daemon.UID
 	gid := config.Daemon.GID
 	inPlace := config.Daemon.InplaceChroot
 	pagesRoot := config.General.RootDir
 
-	if pagesRoot != "false" {
-		// Ensure pagesRoot is an absolute path. This will produce a different path
-		// if any component of pagesRoot is a symlink (not likely). For example,
-		// -pages-root=/some-path where ln -s /other-path /some-path
-		// pagesPath will become: /other-path and we will fail to serve files from /some-path.
-		// GitLab Rails also resolves the absolute path for `pages_path`
-		// https://gitlab.com/gitlab-org/gitlab/blob/981ad651d8bd3690e28583eec2363a79f775af89/config/initializers/1_settings.rb#L296
-		var err error
-		pagesRoot, err = filepath.Abs(pagesRoot)
-		if err != nil {
-			return err
-		}
+	// Ensure pagesRoot is an absolute path. This will produce a different path
+	// if any component of pagesRoot is a symlink (not likely). For example,
+	// -pages-root=/some-path where ln -s /other-path /some-path
+	// pagesPath will become: /other-path and we will fail to serve files from /some-path.
+	// GitLab Rails also resolves the absolute path for `pages_path`
+	// https://gitlab.com/gitlab-org/gitlab/blob/981ad651d8bd3690e28583eec2363a79f775af89/config/initializers/1_settings.rb#L296
+	pagesRoot, err := filepath.Abs(pagesRoot)
+	if err != nil {
+		return err
 	}
 
 	log.WithFields(log.Fields{
@@ -316,11 +297,17 @@ func daemonize(config *config.Config) error {
 	}
 	defer killProcess(cmd)
 
-	wrapper, err := getJailWrapper(cmd, pagesRoot, inPlace)
+	// Run daemon in chroot environment
+	var wrapper *jail.Jail
+	if inPlace {
+		wrapper, err = chrootDaemon(cmd)
+	} else {
+		wrapper, err = jailDaemon(pagesRoot, cmd)
+	}
 	if err != nil {
+		log.WithError(err).Print("chroot failed")
 		return err
 	}
-
 	defer wrapper.Dispose()
 
 	// Unshare mount namespace

@@ -53,7 +53,7 @@ func TestNewDomains(t *testing.T) {
 		expectedErr     string
 		expectGitlabNil bool
 		expectDiskNil   bool
-		disableDisk     bool
+		enableDisk      bool
 	}{
 		{
 			name:         "no_source_config",
@@ -70,18 +70,21 @@ func TestNewDomains(t *testing.T) {
 			sourceConfig:    sourceConfig{domainSource: "disk"},
 			expectGitlabNil: true,
 			expectDiskNil:   false,
+			enableDisk:      true,
 		},
 		{
 			name:            "auto_without_api_config",
 			sourceConfig:    sourceConfig{domainSource: "auto"},
 			expectGitlabNil: true,
 			expectDiskNil:   false,
+			enableDisk:      true,
 		},
 		{
 			name:            "auto_with_api_config",
 			sourceConfig:    sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "auto"},
 			expectGitlabNil: false,
 			expectDiskNil:   false,
+			enableDisk:      true,
 		},
 		{
 			name:          "gitlab_source_success",
@@ -103,19 +106,19 @@ func TestNewDomains(t *testing.T) {
 			sourceConfig:    sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "auto"},
 			expectGitlabNil: false,
 			expectDiskNil:   true,
-			disableDisk:     true,
+			enableDisk:      false,
 		},
 		{
 			name:         "disk_source_with_disk_disabled",
 			sourceConfig: sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "disk"},
-			expectedErr:  "disk source is disabled via pages-root=false",
-			disableDisk:  true,
+			expectedErr:  "disk source is disabled via enable-disk=false",
+			enableDisk:   false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			domains, err := NewDomains(tt.sourceConfig, tt.disableDisk)
+			domains, err := NewDomains(tt.sourceConfig, tt.enableDisk)
 			if tt.expectedErr != "" {
 				require.EqualError(t, err, tt.expectedErr)
 				return
