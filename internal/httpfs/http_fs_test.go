@@ -19,6 +19,7 @@ func TestFSOpen(t *testing.T) {
 
 	tests := map[string]struct {
 		allowedPaths    []string
+		chrootPath      string
 		fileName        string
 		expectedContent string
 		expectedErrMsg  string
@@ -58,11 +59,17 @@ func TestFSOpen(t *testing.T) {
 			fileName:       wd + "/../httpfs/testdata/file1.txt",
 			expectedErrMsg: os.ErrPermission.Error(),
 		},
+		"chroot_path_not_allowed_when_not_in_real_chroot": {
+			allowedPaths:   []string{wd + "/testdata"},
+			fileName:       wd + "/testdata/file1.txt",
+			expectedErrMsg: os.ErrPermission.Error(),
+			chrootPath:     wd + "/testdata",
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p, err := NewFileSystemPath(test.allowedPaths)
+			p, err := NewFileSystemPath(test.allowedPaths, test.chrootPath)
 			require.NoError(t, err)
 
 			got, err := p.Open(test.fileName)
@@ -88,6 +95,7 @@ func TestFileSystemPathCanServeHTTP(t *testing.T) {
 
 	tests := map[string]struct {
 		path               string
+		chrootPath         string
 		fileName           string
 		escapeURL          bool
 		expectedStatusCode int
@@ -136,12 +144,19 @@ func TestFileSystemPathCanServeHTTP(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 			expectedContent:    "403 Forbidden\n",
 		},
+		"chroot_path_fails_in_unit_test_forbidden_when_not_in_real_chroot": {
+			path:               wd + "/testdata",
+			fileName:           "file1.txt",
+			chrootPath:         wd + "/testdata",
+			expectedStatusCode: http.StatusForbidden,
+			expectedContent:    "403 Forbidden\n",
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			transport := httptransport.NewTransport()
-			fs, err := NewFileSystemPath([]string{test.path})
+			fs, err := NewFileSystemPath([]string{test.path}, test.chrootPath)
 			require.NoError(t, err)
 
 			transport.RegisterProtocol("file", http.NewFileTransport(fs))

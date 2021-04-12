@@ -183,22 +183,10 @@ func TestZipServingFromDisk(t *testing.T) {
 			expectedContent:    "The page you're looking for could not be found",
 		},
 		"file_not_allowed_in_path": {
-			host:      "zip-not-allowed-path.gitlab.io",
-			urlSuffix: "/",
-			expectedStatusCode: func() int {
-				if os.Getenv("TEST_DAEMONIZE") == "inplace" {
-					return http.StatusNotFound
-				}
-
-				return http.StatusInternalServerError
-			}(),
-			expectedContent: func() string {
-				if os.Getenv("TEST_DAEMONIZE") == "inplace" {
-					return "The page you're looking for could not be found"
-				}
-
-				return "Whoops, something went wrong on our end."
-			}(),
+			host:               "zip-not-allowed-path.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedContent:    "Whoops, something went wrong on our end.",
 		},
 	}
 
