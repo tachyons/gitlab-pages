@@ -262,5 +262,5 @@ func (fs *zipVFS) removeChrootPath(path string) string {
 		return path
 	}
 
-	return strings.ReplaceAll(path, fs.chrootPath, "")
+	return strings.Replace(path, fs.chrootPath, "", 1)
 }

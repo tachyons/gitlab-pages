@@ -55,13 +55,6 @@ func (p *fileSystemPaths) Open(name string) (http.File, error) {
 		return nil, err
 	}
 	for _, allowedPath := range p.allowedPaths {
-		// TODO: this is a temporary workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/326117#note_546346101
-		// where daemon-inplace-chroot=true fails to serve zip archives when pages_serve_with_zip_file_protocol is enabled
-		// To be removed after we roll-out zip architecture completely https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
-		if allowedPath == "/" {
-			return os.Open(absPath)
-		}
-
 		if strings.HasPrefix(absPath, allowedPath+"/") {
 			return os.Open(absPath)
 		}

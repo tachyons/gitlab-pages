@@ -338,7 +338,6 @@ func loadConfig() *Config {
 	// To be removed after we roll-out zip architecture completely https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
 	if config.Daemon.InplaceChroot {
 		config.Zip.ChrootPath = *pagesRoot
-		config.Zip.AllowedPaths = append(config.Zip.AllowedPaths, "/")
 	}
 
 	validateConfig(config)
