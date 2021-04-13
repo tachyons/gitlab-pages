@@ -379,8 +379,8 @@ func TestDomainsSource(t *testing.T) {
 
 	type args struct {
 		configSource     string
-		pagesRoot        string
 		useLegacyStorage bool
+		enableDisk       bool
 		domain           string
 		urlSuffix        string
 		readyCount       int
@@ -422,6 +422,7 @@ func TestDomainsSource(t *testing.T) {
 		{
 			name: "disk_source_domain_exists",
 			args: args{
+				enableDisk:   true,
 				configSource: "disk",
 				// test.domain.com sourced from disk configuration
 				domain:    "test.domain.com",
@@ -436,6 +437,7 @@ func TestDomainsSource(t *testing.T) {
 		{
 			name: "disk_source_domain_does_not_exist",
 			args: args{
+				enableDisk:   true,
 				configSource: "disk",
 				domain:       "non-existent-domain.gitlab.io",
 			},
@@ -447,6 +449,7 @@ func TestDomainsSource(t *testing.T) {
 		{
 			name: "disk_source_domain_should_not_exist_under_hashed_dir",
 			args: args{
+				enableDisk:   true,
 				configSource: "disk",
 				domain:       "hashed.com",
 			},
@@ -458,6 +461,7 @@ func TestDomainsSource(t *testing.T) {
 		{
 			name: "auto_source_gitlab_is_not_ready",
 			args: args{
+				enableDisk:   true,
 				configSource: "auto",
 				domain:       "test.domain.com",
 				urlSuffix:    "/",
@@ -472,6 +476,7 @@ func TestDomainsSource(t *testing.T) {
 		{
 			name: "auto_source_gitlab_is_ready",
 			args: args{
+				enableDisk:   true,
 				configSource: "auto",
 				domain:       "new-source-test.gitlab.io",
 				urlSuffix:    "/my/pages/project/",
@@ -487,6 +492,7 @@ func TestDomainsSource(t *testing.T) {
 			name: "use_legacy_storage_overrides_domain_source",
 			args: args{
 				useLegacyStorage: true,
+				enableDisk:       true,
 				domain:           "test.domain.com",
 				urlSuffix:        "/",
 			},
@@ -497,16 +503,44 @@ func TestDomainsSource(t *testing.T) {
 			},
 		},
 		{
-			name: "pages",
+			name: "enable_disk_with_auto_source",
 			args: args{
-				useLegacyStorage: true,
-				domain:           "test.domain.com",
-				urlSuffix:        "/",
+				enableDisk:   true,
+				configSource: "auto",
+				domain:       "test.domain.com",
+				urlSuffix:    "/",
+				readyCount:   100, // big number to ensure the API is in bad state for a while
 			},
 			want: want{
 				statusCode: http.StatusOK,
 				content:    "main-dir\n",
 				apiCalled:  false,
+			},
+		},
+		{
+			name: "enable_disk_with_gitlab_source_disk_ignored",
+			args: args{
+				enableDisk:   true,
+				configSource: "gitlab",
+				domain:       "test.domain.com",
+				urlSuffix:    "/",
+			},
+			want: want{
+				statusCode: http.StatusNotFound,
+				apiCalled:  true,
+			},
+		},
+		{
+			name: "disable_disk_auto_source",
+			args: args{
+				enableDisk:   false,
+				configSource: "auto",
+				domain:       "test.domain.com",
+				urlSuffix:    "/",
+			},
+			want: want{
+				statusCode: http.StatusNotFound,
+				apiCalled:  true,
 			},
 		},
 	}
@@ -523,14 +557,10 @@ func TestDomainsSource(t *testing.T) {
 
 			gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-			if tt.args.pagesRoot == "" {
-				tt.args.pagesRoot = "../../shared/pages"
-			}
-
 			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", tt.args.configSource,
 				// TODO: remove in https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/6009
 				fmt.Sprintf("-use-legacy-storage=%t", tt.args.useLegacyStorage),
-				"-pages-root", tt.args.pagesRoot,
+				fmt.Sprintf("-enable-disk=%t", tt.args.enableDisk),
 			}
 			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", []string{}, pagesArgs...)
 			defer teardown()
