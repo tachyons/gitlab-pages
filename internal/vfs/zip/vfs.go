@@ -50,11 +50,6 @@ type zipVFS struct {
 
 	archiveCount int64
 	httpClient   *http.Client
-
-	// TODO: this is a temporary workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/326117#note_546346101
-	// where daemon-inplace-chroot=true fails to serve zip archives when pages_serve_with_zip_file_protocol is enabled
-	// To be removed after we roll-out zip architecture completely https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
-	chrootPath string
 }
 
 // New creates a zipVFS instance that can be used by a serving request
@@ -98,7 +93,6 @@ func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
 	fs.cacheExpirationInterval = cfg.Zip.ExpirationInterval
 	fs.cacheRefreshInterval = cfg.Zip.RefreshInterval
 	fs.cacheCleanupInterval = cfg.Zip.CleanupInterval
-	fs.chrootPath = cfg.Zip.ChrootPath
 
 	if err := fs.reconfigureTransport(cfg); err != nil {
 		return err
@@ -110,7 +104,7 @@ func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
 }
 
 func (fs *zipVFS) reconfigureTransport(cfg *config.Config) error {
-	fsTransport, err := httpfs.NewFileSystemPath(cfg.Zip.AllowedPaths, fs.chrootPath)
+	fsTransport, err := httpfs.NewFileSystemPath(cfg.Zip.AllowedPaths, cfg.Zip.ChrootPath)
 	if err != nil {
 		return err
 	}
