@@ -4,12 +4,10 @@ set -exo pipefail
 src_path="/build/gitlab-logger"
 mkdir -p "/target" "${src_path}"
 
-mv "/build/gitlab-logger-${GITLAB_LOGGER_VERSION}/main.go" "${src_path}"
+mv "/build/gitlab-logger-${GITLAB_LOGGER_VERSION}/main.go" "/build/gitlab-logger-${GITLAB_LOGGER_VERSION}/go.mod" "/build/gitlab-logger-${GITLAB_LOGGER_VERSION}/go.sum" "${src_path}"
 pushd "${src_path}"
 
-export GOPATH="${src_path}"
 export GOBIN="/target"
-go get
-go build .
+go install
 
 popd # from /build/gitlab-logger
