@@ -83,6 +83,13 @@ func (p *fileSystemPaths) Open(name string) (http.File, error) {
 		return nil, err
 	}
 	for _, allowedPath := range p.allowedPaths {
+		// filepath.Abs(allowedPath) in NewFileSystemPath resolves an allowedPath to be `/` when
+		// chrootPath == allowedPath, so we need to return early if in chroot
+		//and we have stripped p.chrootPath from absPath && allowedPath
+		if p.chrootPath != "" && allowedPath == "/" {
+			return os.Open(absPath)
+		}
+
 		if strings.HasPrefix(absPath, allowedPath+"/") {
 			return os.Open(absPath)
 		}
