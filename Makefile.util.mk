@@ -3,6 +3,7 @@
 OUT_FORMAT ?= colored-line-number
 LINT_FLAGS ?=  $(if $V,-v)
 REPORT_FILE ?=
+COVERAGE_PACKAGES=$(shell (go list ./... | grep -v $(addprefix -e ,$(IGNORED_DIRS) "test/acceptance") | tr "\n", "," | sed 's/\(.*\),/\1 /'))
 
 lint: .GOPATH/.ok bin/golangci-lint
 	$Q ./bin/golangci-lint run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
@@ -21,24 +22,16 @@ bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ $(allpackages)
 
 # The acceptance tests cannot count for coverage
-cover: bin/gocovmerge gitlab-pages
+cover: gitlab-pages
 	@echo "NOTE: make cover does not exit 1 on failure, don't use it to check for tests success!"
-	$Q rm -f .GOPATH/cover/*.out .GOPATH/cover/all.merged
+	$Q rm -f .GOPATH/cover/test.coverage
 	$Q mkdir -p .GOPATH/cover
-	$(if $V,@echo "-- go test -coverpkg=./... -coverprofile=.GOPATH/cover/... ./...")
-	@for MOD in $(allpackages); do \
-		go test \
-			-short \
-			-coverpkg=`echo $(allpackages)|tr " " ","` \
-			-coverprofile=.GOPATH/cover/unit-`echo $$MOD|tr "/" "_"`.out \
-			$$MOD 2>&1 | grep -v "no packages being tested depend on"; \
-	done
-	$Q ./bin/gocovmerge .GOPATH/cover/*.out > .GOPATH/cover/all.merged
-	$Q go tool cover -html .GOPATH/cover/all.merged -o coverage.html
+	$Q go test -short -cover -coverpkg=$(COVERAGE_PACKAGES) -coverprofile=.GOPATH/cover/test.coverage $(allpackages)
+	$Q go tool cover -html .GOPATH/cover/test.coverage -o coverage.html
 	@echo ""
 	@echo "=====> Total test coverage: <====="
 	@echo ""
-	$Q go tool cover -func .GOPATH/cover/all.merged
+	$Q go tool cover -func .GOPATH/cover/test.coverage
 
 list: .GOPATH/.ok
 	@echo $(allpackages)

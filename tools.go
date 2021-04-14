@@ -9,6 +9,5 @@ import (
 	_ "github.com/golang/mock/mockgen"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/jstemmer/go-junit-report"
-	_ "github.com/wadey/gocovmerge"
 	_ "golang.org/x/tools/cmd/goimports"
 )

@@ -27,7 +27,6 @@ require (
 	github.com/tj/assert v0.0.3 // indirect
 	github.com/tj/go-redirects v0.0.0-20180508180010-5c02ead0bbc5
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
-	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad
 	gitlab.com/gitlab-org/go-mimedb v1.45.0
 	gitlab.com/gitlab-org/labkit v1.3.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
