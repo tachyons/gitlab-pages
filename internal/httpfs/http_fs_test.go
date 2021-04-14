@@ -59,10 +59,10 @@ func TestFSOpen(t *testing.T) {
 			fileName:       wd + "/../httpfs/testdata/file1.txt",
 			expectedErrMsg: os.ErrPermission.Error(),
 		},
-		"chroot_path_not_allowed_when_not_in_real_chroot": {
+		"chroot_path_not_found_when_not_in_real_chroot": {
 			allowedPaths:   []string{wd + "/testdata"},
 			fileName:       wd + "/testdata/file1.txt",
-			expectedErrMsg: os.ErrPermission.Error(),
+			expectedErrMsg: "no such file or directory",
 			chrootPath:     wd + "/testdata",
 		},
 	}
@@ -144,12 +144,12 @@ func TestFileSystemPathCanServeHTTP(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 			expectedContent:    "403 Forbidden\n",
 		},
-		"chroot_path_fails_in_unit_test_forbidden_when_not_in_real_chroot": {
+		"chroot_path_fails_in_unit_test_not_found_when_not_in_real_chroot": {
 			path:               wd + "/testdata",
 			fileName:           "file1.txt",
 			chrootPath:         wd + "/testdata",
-			expectedStatusCode: http.StatusForbidden,
-			expectedContent:    "403 Forbidden\n",
+			expectedStatusCode: http.StatusNotFound,
+			expectedContent:    "404 page not found\n",
 		},
 	}
 
