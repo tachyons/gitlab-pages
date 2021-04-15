@@ -107,8 +107,6 @@ func TestZipServing(t *testing.T) {
 }
 
 func TestZipServingFromDisk(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-
 	chdir := false
 	defer testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)()
 
