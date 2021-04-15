@@ -1,3 +1,13 @@
+## 1.38.0 (2021-04-15)
+
+### Added (1 change)
+
+- [Log connection attempt errors](gitlab-org/gitlab-pages@7298e8fd04d58844d2c0fd11051318b392c02ecd) ([merge request](gitlab-org/gitlab-pages!456))
+
+### Fixed (1 change)
+
+- [Allow serving zip from disk in chroot](gitlab-org/gitlab-pages@34e1518038a8164c090ccfbfc30ebc7850e62cf0) ([merge request](gitlab-org/gitlab-pages!457))
+
 ## 1.37.0 (2021-03-31)
 
 ### Added (1 change)
