@@ -24,11 +24,7 @@ Q := $(if $V,,@)
 .GOPATH/.ok:
 	mkdir -p .GOPATH
 
-.PHONY: bin/gocovmerge bin/golangci-lint
-bin/gocovmerge: .GOPATH/.ok
-	@test -x $@ || \
-	    { echo "Vendored gocovmerge not found, try running 'make setup'..."; exit 1; }
-
+.PHONY: bin/golangci-lint
 bin/golangci-lint: .GOPATH/.ok
 	@test -x $@ || \
 	    { echo "Vendored golangci-lint not found, try running 'make setup'..."; exit 1; }
