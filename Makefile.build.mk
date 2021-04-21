@@ -19,7 +19,7 @@ build: .GOPATH/.ok
 	$Q GOBIN=$(CURDIR)/bin go install $(if $V,-v) $(VERSION_FLAGS) -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
 
 clean:
-	$Q rm -rf bin .GOPATH gitlab-pages
+	$Q GOBIN=$(CURDIR)/bin go clean -i -modcache -x
 
 gitlab-pages: build
 	$Q cp -f ./bin/gitlab-pages .
