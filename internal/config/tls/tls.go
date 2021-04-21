@@ -26,7 +26,6 @@ var (
 	// AllTLSVersions has all supported flag values
 	AllTLSVersions = map[string]uint16{
 		"":       0, // Default value in tls.Config
-		"ssl3":   tls.VersionSSL30,
 		"tls1.0": tls.VersionTLS10,
 		"tls1.1": tls.VersionTLS11,
 		"tls1.2": tls.VersionTLS12,
