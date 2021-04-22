@@ -574,14 +574,13 @@ func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
 func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	var listeners = []ListenSpec{
+	specs := []ListenSpec{
 		proxyListener,
 	}
-
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcess(t, *pagesBinary, specs, "")
 	defer teardown()
 
-	for _, spec := range SupportedListeners() {
+	for _, spec := range specs {
 		rsp, err := GetProxiedPageFromListener(t, spec, "localhost", "group.gitlab-example.com", "project/")
 
 		require.NoError(t, err)
