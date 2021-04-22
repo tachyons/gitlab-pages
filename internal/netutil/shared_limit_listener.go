@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	errKeepaliveNotSupported = errors.New("Keepalive not supported")
+	errKeepaliveNotSupported = errors.New("keepalive not supported")
 )
 
 // SharedLimitListener returns a Listener that accepts simultaneous

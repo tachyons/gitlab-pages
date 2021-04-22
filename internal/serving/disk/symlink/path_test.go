@@ -76,11 +76,11 @@ func testEvalSymlinks(t *testing.T, wd, path, want string) {
 
 	have, err := symlink.EvalSymlinks(context.Background(), root, path)
 	if err != nil {
-		t.Errorf("EvalSymlinks(%q) error: %v", path, err)
+		t.Errorf("evalSymlinks(%q) error: %v", path, err)
 		return
 	}
 	if filepath.Clean(have) != filepath.Clean(want) {
-		t.Errorf("EvalSymlinks(%q) returns %q, want %q", path, have, want)
+		t.Errorf("evalSymlinks(%q) returns %q, want %q", path, have, want)
 	}
 }
 
