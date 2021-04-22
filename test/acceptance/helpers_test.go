@@ -22,6 +22,7 @@ import (
 
 	"github.com/pires/go-proxyproto"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/test/acceptance/testdata"
@@ -140,6 +141,13 @@ type ListenSpec struct {
 	Type string
 	Host string
 	Port string
+}
+
+func SupportedListeners() []ListenSpec {
+	if !nettest.SupportsIPv6() {
+		return ipv4Listeners
+	}
+	return listeners
 }
 
 func (l ListenSpec) URL(suffix string) string {
@@ -319,7 +327,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 	}
 
 	if wait {
-		for _, spec := range listeners {
+		for _, spec := range SupportedListeners() {
 			if err := spec.WaitUntilRequestSucceeds(waitCh); err != nil {
 				cleanup()
 				t.Fatal(err)
@@ -335,7 +343,7 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 
 	args = append(args, "-log-verbose=true")
 
-	for _, spec := range listeners {
+	for _, spec := range SupportedListeners() {
 		args = append(args, "-listen-"+spec.Type, spec.JoinHostPort())
 
 		if spec.Type == request.SchemeHTTPS {
@@ -519,7 +527,7 @@ func ClientWithConfig(tlsConfig *tls.Config) (*http.Client, func()) {
 func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Duration) {
 	nListening := 0
 	start := time.Now()
-	for _, spec := range listeners {
+	for _, spec := range SupportedListeners() {
 		for time.Since(start) < timeout {
 			req, err := http.NewRequest("GET", spec.URL("/"), nil)
 			if err != nil {

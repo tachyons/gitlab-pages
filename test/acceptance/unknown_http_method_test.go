@@ -9,10 +9,10 @@ import (
 
 func TestUnknownHTTPMethod(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcess(t, *pagesBinary, SupportedListeners(), "")
 	defer teardown()
 
-	req, err := http.NewRequest("UNKNOWN", listeners[0].URL(""), nil)
+	req, err := http.NewRequest("UNKNOWN", httpListener.URL(""), nil)
 	require.NoError(t, err)
 	req.Host = ""
 

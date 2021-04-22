@@ -16,7 +16,7 @@ import (
 
 func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "")
+	teardown := RunPagesProcess(t, *pagesBinary, SupportedListeners(), "", "")
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.auth.gitlab-example.com", "private.project/")
@@ -28,7 +28,7 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, SupportedListeners(), "")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
@@ -60,7 +60,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, SupportedListeners(), "")
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpsListener, "projects.gitlab-example.com", "/auth?error=access_denied")
@@ -72,7 +72,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 }
 func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, SupportedListeners(), "")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
@@ -91,7 +91,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 
 func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, SupportedListeners(), "")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
@@ -187,7 +187,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, SupportedListeners(), "", testServer.URL)
 	defer teardown()
 
 	tests := map[string]struct {
@@ -268,7 +268,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, SupportedListeners(), "", testServer.URL)
 	defer teardown()
 
 	tests := []struct {
@@ -378,7 +378,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, SupportedListeners(), "", testServer.URL)
 	defer teardown()
 
 	rsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/", "", true)
@@ -441,7 +441,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 
 func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, SupportedListeners(), "")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
@@ -456,7 +456,7 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 }
 func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, SupportedListeners(), "")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/project/nonexistent/")
@@ -572,7 +572,7 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			teardown := runPages(t, *pagesBinary, listeners, "", certFile, testServer.URL)
+			teardown := runPages(t, *pagesBinary, SupportedListeners(), "", certFile, testServer.URL)
 			defer teardown()
 
 			rsp, err := GetRedirectPage(t, httpsListener, tt.host, tt.path)
@@ -656,7 +656,7 @@ func TestHijackedCode(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, listeners, "", testServer.URL)
+	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, SupportedListeners(), "", testServer.URL)
 	defer teardown()
 
 	/****ATTACKER******/

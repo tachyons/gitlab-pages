@@ -134,7 +134,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 			teardown := RunPagesProcessWithSSLCertFile(
 				t,
 				*pagesBinary,
-				listeners,
+				SupportedListeners(),
 				"",
 				certFile,
 				"-artifacts-server="+artifactServerURL,
@@ -238,7 +238,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			teardown := RunPagesProcessWithSSLCertFile(
 				t,
 				*pagesBinary,
-				listeners,
+				SupportedListeners(),
 				"",
 				certFile,
 				"-config="+configFile,
