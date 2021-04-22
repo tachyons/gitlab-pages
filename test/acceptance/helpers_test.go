@@ -327,7 +327,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 	}
 
 	if wait {
-		for _, spec := range SupportedListeners() {
+		for _, spec := range listeners {
 			if err := spec.WaitUntilRequestSucceeds(waitCh); err != nil {
 				cleanup()
 				t.Fatal(err)
@@ -343,7 +343,7 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 
 	args = append(args, "-log-verbose=true")
 
-	for _, spec := range SupportedListeners() {
+	for _, spec := range listeners {
 		args = append(args, "-listen-"+spec.Type, spec.JoinHostPort())
 
 		if spec.Type == request.SchemeHTTPS {
@@ -527,7 +527,7 @@ func ClientWithConfig(tlsConfig *tls.Config) (*http.Client, func()) {
 func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Duration) {
 	nListening := 0
 	start := time.Now()
-	for _, spec := range SupportedListeners() {
+	for _, spec := range listeners {
 		for time.Since(start) < timeout {
 			req, err := http.NewRequest("GET", spec.URL("/"), nil)
 			if err != nil {
