@@ -272,7 +272,7 @@ assuming they know the URL beforehand.
 
 GitLab Pages defaults to TLS 1.2 as the minimum supported TLS version. This can be
 configured by using the `-tls-min-version` and `-tls-max-version` options. Accepted
-values are `tls1.0`, `tls1.1`, `tls1.2`, and `tls1.3` (if supported). When `tls1.3`
+values are `tls1.2`, and `tls1.3` (if supported). When `tls1.3`
 is used GitLab Pages will add `tls13=1` to `GODEBUG` to enable TLS 1.3.
 See https://golang.org/src/crypto/tls/tls.go for more.
 
