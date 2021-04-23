@@ -37,7 +37,7 @@ func TestValidateTLSVersions(t *testing.T) {
 	}{
 		"invalid minimum TLS version": {tlsMin: "tls123", tlsMax: "", err: "invalid minimum TLS version: tls123"},
 		"invalid maximum TLS version": {tlsMin: "", tlsMax: "tls123", err: "invalid maximum TLS version: tls123"},
-		"TLS versions conflict":       {tlsMin: "tls1.2", tlsMax: "tls1.1", err: "invalid maximum TLS version: tls1.1; should be at least tls1.2"},
+		"TLS versions conflict":       {tlsMin: "tls1.3", tlsMax: "tls1.2", err: "invalid maximum TLS version: tls1.2; should be at least tls1.3"},
 	}
 
 	for name, tc := range tests {
