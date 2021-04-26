@@ -88,8 +88,8 @@ func TestTLSVersions(t *testing.T) {
 		tlsClient   uint16
 		expectError bool
 	}{
-		"client version not supported":             {tlsMin: "tls1.1", tlsMax: "tls1.2", tlsClient: tls.VersionTLS10, expectError: true},
-		"client version supported":                 {tlsMin: "tls1.1", tlsMax: "tls1.2", tlsClient: tls.VersionTLS12, expectError: false},
+		"client version not supported":             {tlsMin: "tls1.2", tlsMax: "tls1.3", tlsClient: tls.VersionTLS10, expectError: true},
+		"client version supported":                 {tlsMin: "tls1.2", tlsMax: "tls1.3", tlsClient: tls.VersionTLS12, expectError: false},
 		"client and server using default settings": {tlsMin: "", tlsMax: "", tlsClient: 0, expectError: false},
 	}
 
