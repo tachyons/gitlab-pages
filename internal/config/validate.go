@@ -1,63 +1,65 @@
 package config
 
 import (
+	"errors"
 	"net/url"
-
-	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
-func validateConfig(config *Config) {
-	validateAuthConfig(config)
-	validateArtifactsServerConfig(config)
-	validateTLSConfig()
+func validateConfig(config *Config) error {
+	if err := validateAuthConfig(config); err != nil {
+		return err
+	}
+
+	if err := validateArtifactsServerConfig(config); err != nil {
+		return err
+	}
+
+	return tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion)
 }
 
-func validateAuthConfig(config *Config) {
+func validateAuthConfig(config *Config) error {
 	if config.Authentication.Secret == "" && config.Authentication.ClientID == "" &&
 		config.Authentication.ClientSecret == "" && config.Authentication.RedirectURI == "" {
-		return
+		return nil
 	}
 
 	if config.Authentication.Secret == "" {
-		log.Fatal("auth-secret must be defined if authentication is supported")
+		return errors.New("auth-secret must be defined if authentication is supported")
 	}
 	if config.Authentication.ClientID == "" {
-		log.Fatal("auth-client-id must be defined if authentication is supported")
+		return errors.New("auth-client-id must be defined if authentication is supported")
 	}
 	if config.Authentication.ClientSecret == "" {
-		log.Fatal("auth-client-secret must be defined if authentication is supported")
+		return errors.New("auth-client-secret must be defined if authentication is supported")
 	}
 	if config.GitLab.Server == "" {
-		log.Fatal("gitlab-server must be defined if authentication is supported")
+		return errors.New("gitlab-server must be defined if authentication is supported")
 	}
 	if config.Authentication.RedirectURI == "" {
-		log.Fatal("auth-redirect-uri must be defined if authentication is supported")
+		return errors.New("auth-redirect-uri must be defined if authentication is supported")
 	}
+	return nil
 }
 
-func validateArtifactsServerConfig(config *Config) {
+func validateArtifactsServerConfig(config *Config) error {
 	if config.ArtifactsServer.URL == "" {
-		return
+		return nil
 	}
 
 	u, err := url.Parse(config.ArtifactsServer.URL)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	// url.Parse ensures that the Scheme attribute is always lower case.
 	if u.Scheme != "http" && u.Scheme != "https" {
-		log.Fatal("artifacts-server scheme must be either http:// or https://")
+		return errors.New("artifacts-server scheme must be either http:// or https://")
 	}
 
 	if config.ArtifactsServer.TimeoutSeconds < 1 {
-		log.Fatal("artifacts-server-timeout must be greater than or equal to 1")
+		return errors.New("artifacts-server-timeout must be greater than or equal to 1")
 	}
-}
 
-func validateTLSConfig() {
-	if err := tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion); err != nil {
-		fatal(err, "invalid TLS version")
-	}
+	return nil
 }
