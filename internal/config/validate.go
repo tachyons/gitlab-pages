@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/go-multierror"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
