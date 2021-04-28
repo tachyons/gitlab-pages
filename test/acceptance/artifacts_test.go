@@ -229,8 +229,8 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			configFile, cleanup := defaultConfigFileWith(t,
+				"gitlab-server="+testServer.URL,
 				"artifacts-server="+artifactServerURL,
-				"auth-server="+testServer.URL,
 				"auth-redirect-uri=https://projects.gitlab-example.com/auth",
 				tt.binaryOption)
 			defer cleanup()

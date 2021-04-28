@@ -187,7 +187,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
+	teardown := RunPagesProcessWithGitlabServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
 	defer teardown()
 
 	tests := map[string]struct {
@@ -268,7 +268,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
+	teardown := RunPagesProcessWithGitlabServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
 	defer teardown()
 
 	tests := []struct {
@@ -378,7 +378,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
+	teardown := RunPagesProcessWithGitlabServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
 	defer teardown()
 
 	rsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/", "", true)
@@ -639,11 +639,11 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 }
 
 func TestAccessControlWithSSLCertFile(t *testing.T) {
-	testAccessControl(t, RunPagesProcessWithAuthServerWithSSLCertFile)
+	testAccessControl(t, RunPagesProcessWithGitlabServerWithSSLCertFile)
 }
 
 func TestAccessControlWithSSLCertDir(t *testing.T) {
-	testAccessControl(t, RunPagesProcessWithAuthServerWithSSLCertDir)
+	testAccessControl(t, RunPagesProcessWithGitlabServerWithSSLCertDir)
 }
 
 // This proves the fix for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/262
@@ -656,7 +656,7 @@ func TestHijackedCode(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithAuthServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
+	teardown := RunPagesProcessWithGitlabServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
 	defer teardown()
 
 	/****ATTACKER******/
