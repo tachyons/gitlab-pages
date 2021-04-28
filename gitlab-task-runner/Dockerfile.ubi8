@@ -19,7 +19,7 @@ ADD gitlab-task-runner-ee.tar.gz /
 ADD gitlab-python.tar.gz /
 
 COPY scripts/bin/* /usr/local/bin/
-COPY scripts/lib/* ${LIBDIR:-"/usr/lib"}/ruby/vendor_ruby/
+COPY scripts/lib/* ${LIBDIR:-"/usr/lib64"}/ruby/vendor_ruby/
 
 RUN dnf clean all \
     && rm -r /var/cache/dnf \
