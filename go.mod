@@ -12,6 +12,7 @@ require (
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/karlseguin/ccache/v2 v2.0.6
