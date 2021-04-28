@@ -48,7 +48,9 @@ func TestGitLabServerFromFlags(t *testing.T) {
 			gitLabServer = &test.gitLabServer
 			gitLabAuthServer = &test.gitLabAuthServer
 			artifactsServer = &test.artifactsServer
-			require.Equal(t, test.expected, gitlabServerFromFlags())
+			gServer, err := gitlabServerFromFlags()
+			require.NoError(t, err)
+			require.Equal(t, test.expected, gServer)
 		})
 	}
 }

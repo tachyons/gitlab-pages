@@ -31,6 +31,8 @@ func initErrorReporting(sentryDSN, sentryEnvironment string) {
 		errortracking.WithSentryEnvironment(sentryEnvironment))
 }
 
+// nolint: gocyclo
+// TODO: reduce cyclomatic complexity https://gitlab.com/gitlab-org/gitlab-pages/-/issues/557
 func appMain() {
 	if err := validateargs.NotAllowed(os.Args[1:]); err != nil {
 		log.WithError(err).Fatal("Using invalid arguments, use -config=gitlab-pages-config file instead")
@@ -40,7 +42,10 @@ func appMain() {
 		log.WithError(err).Warn("Using deprecated arguments")
 	}
 
-	config := cfg.LoadConfig()
+	config, err := cfg.LoadConfig()
+	if err != nil {
+		log.WithError(err).Fatal("Failed to load config")
+	}
 
 	printVersion(config.General.ShowVersion, VERSION)
 
@@ -48,7 +53,7 @@ func appMain() {
 		initErrorReporting(config.Sentry.DSN, config.Sentry.Environment)
 	}
 
-	err := logging.ConfigureLogging(config.Log.Format, config.Log.Verbose)
+	err = logging.ConfigureLogging(config.Log.Format, config.Log.Verbose)
 	if err != nil {
 		log.WithError(err).Fatal("Failed to initialize logging")
 	}

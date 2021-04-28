@@ -84,7 +84,8 @@ func TestHealthCheckMiddleware(t *testing.T) {
 		},
 	}
 
-	cfg := config.LoadConfig()
+	cfg, err := config.LoadConfig()
+	require.NoError(t, err)
 	cfg.General.StatusPath = "/-/healthcheck"
 	cfg.General.DomainConfigurationSource = "auto"
 

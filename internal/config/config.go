@@ -152,60 +152,55 @@ type ZipServing struct {
 	ChrootPath string
 }
 
-func gitlabServerFromFlags() string {
+func gitlabServerFromFlags() (string, error) {
 	if *gitLabServer != "" {
-		return *gitLabServer
+		return *gitLabServer, nil
 	}
 
 	if *gitLabAuthServer != "" {
 		log.Warn("auth-server parameter is deprecated, use gitlab-server instead")
-		return *gitLabAuthServer
+		return *gitLabAuthServer, nil
 	}
 
 	u, err := url.Parse(*artifactsServer)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("parsing artifact server: %w", err)
 	}
 
 	u.Path = ""
-	return u.String()
+	return u.String(), nil
 }
 
-func internalGitlabServerFromFlags() string {
+func internalGitlabServerFromFlags() (string, error) {
 	if *internalGitLabServer != "" {
-		return *internalGitLabServer
+		return *internalGitLabServer, nil
 	}
 
 	return gitlabServerFromFlags()
 }
 
-func setGitLabAPISecretKey(secretFile string, config *Config) {
-	encoded := readFile(secretFile)
+func setGitLabAPISecretKey(secretFile string, config *Config) error {
+	if secretFile == "" {
+		return nil
+	}
+
+	encoded, err := ioutil.ReadFile(secretFile)
+	if err != nil {
+		return fmt.Errorf("reading secret file: %w", err)
+	}
 
 	decoded := make([]byte, base64.StdEncoding.DecodedLen(len(encoded)))
 	secretLength, err := base64.StdEncoding.Decode(decoded, encoded)
 	if err != nil {
-		log.WithError(err).Fatal("Failed to decode GitLab API secret")
+		return fmt.Errorf("decoding GitLab API secret: %w", err)
 	}
 
 	if secretLength != 32 {
-		log.WithError(fmt.Errorf("expected 32 bytes GitLab API secret but got %d bytes", secretLength)).Fatal("Failed to decode GitLab API secret")
+		return fmt.Errorf("expected 32 bytes GitLab API secret but got %d bytes", secretLength)
 	}
 
 	config.GitLab.APISecretKey = decoded
-}
-
-// fatal will log a fatal error and exit.
-func fatal(err error, message string) {
-	log.WithError(err).Fatal(message)
-}
-
-func readFile(file string) (result []byte) {
-	result, err := ioutil.ReadFile(file)
-	if err != nil {
-		fatal(err, "could not read file")
-	}
-	return
+	return nil
 }
 
 // InternalGitLabServerURL returns URL to a GitLab instance.
@@ -238,7 +233,7 @@ func (config *Config) Cache() *Cache {
 	return &config.GitLab.Cache
 }
 
-func loadConfig() *Config {
+func loadConfig() (*Config, error) {
 	config := &Config{
 		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
@@ -313,6 +308,8 @@ func loadConfig() *Config {
 		Listeners:                 Listeners{},
 	}
 
+	var err error
+
 	// Populating remaining General settings
 	for _, file := range []struct {
 		contents *[]byte
@@ -322,15 +319,23 @@ func loadConfig() *Config {
 		{&config.General.RootKey, *pagesRootKey},
 	} {
 		if file.path != "" {
-			*file.contents = readFile(file.path)
+			if *file.contents, err = ioutil.ReadFile(file.path); err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	// Populating remaining GitLab settings
-	config.GitLab.Server = gitlabServerFromFlags()
-	config.GitLab.InternalServer = internalGitlabServerFromFlags()
-	if *gitLabAPISecretKey != "" {
-		setGitLabAPISecretKey(*gitLabAPISecretKey, config)
+	if config.GitLab.Server, err = gitlabServerFromFlags(); err != nil {
+		return nil, err
+	}
+
+	if config.GitLab.InternalServer, err = internalGitlabServerFromFlags(); err != nil {
+		return nil, err
+	}
+
+	if err = setGitLabAPISecretKey(*gitLabAPISecretKey, config); err != nil {
+		return nil, err
 	}
 
 	// TODO: this is a temporary workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/326117#note_546346101
@@ -340,9 +345,11 @@ func loadConfig() *Config {
 		config.Zip.ChrootPath = *pagesRoot
 	}
 
-	validateConfig(config)
+	if err := validateConfig(config); err != nil {
+		return nil, err
+	}
 
-	return config
+	return config, nil
 }
 
 func LogConfig(config *Config) {
@@ -389,7 +396,7 @@ func LogConfig(config *Config) {
 
 // LoadConfig parses configuration settings passed as command line arguments or
 // via config file, and populates a Config object with those values
-func LoadConfig() *Config {
+func LoadConfig() (*Config, error) {
 	initFlags()
 
 	return loadConfig()
