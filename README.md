@@ -6,10 +6,6 @@
 This is a simple HTTP server written in Go, made to serve GitLab Pages with
 CNAMEs and SNI using HTTP/HTTP2. The minimum supported Go version is v1.13.
 
-This is made to work in small to medium-scale environments. Start-up time scales
-with the number of projects being served, so the daemon is currently unsuitable
-for very large-scale environments.
-
 ### How it generates routes
 
 1. It reads the `pages-root` directory to list all groups.
