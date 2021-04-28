@@ -1249,6 +1249,8 @@ ubi-release-for-certification:
     - <<: *if_push_to_redhat
   stage: release
   retry: 1
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
     - ruby build-scripts/push_to_redhat.rb "${CI_COMMIT_REF_NAME}"
 
