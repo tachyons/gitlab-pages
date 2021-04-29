@@ -70,7 +70,7 @@ RUN buildDeps=' \
   && rm ruby.tar.xz \
   && cd ruby-${RUBY_MINOR_VERSION} \
   && patch -p1 < ${BUILD_DIR}/patches/thread-memory-allocations-2.7.patch \
-  && ./configure --prefix=/usr --with-jemalloc --with-out-ext=dbm,readline --enable-shared --disable-install-rdoc --disable-install-doc  --without-gmp --without-gdbm --without-tk --disable-dtrace \
+  && cflags="-fno-omit-frame-pointer" ./configure --prefix=/usr --with-jemalloc --with-out-ext=dbm,readline --enable-shared --disable-install-rdoc --disable-install-doc  --without-gmp --without-gdbm --without-tk --disable-dtrace \
   && make -j "$(nproc)" install \
   && cd \
   && apt-get purge -y --auto-remove $buildDeps \
