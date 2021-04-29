@@ -17,7 +17,7 @@ function usage()
 {
   cat << HEREDOC
 
-   Usage: backup-utility [--restore] [-f URL] [-t TIMESTAMP] [--skip COMPONENT] [--backend BACKEND] [--s3config CONFIG]
+   Usage: backup-utility [--restore] [--cleanup] [-f URL] [-t TIMESTAMP] [--skip COMPONENT] [--backend BACKEND] [--s3config CONFIG]
 
    Options:
      -h, --help                             Show this help message and exit.
@@ -36,7 +36,7 @@ function usage()
                                             Special config file for s3cmd (see: https://s3tools.org/usage)
      --storage-class CLASSNAME              Pass this storage class to the gcs or s3cmd for more cost-efficient
                                             storage of backups.
-     --maximum-backups NUMBER               Only keep the most recent N number of backups, deleting others after success.
+     --maximum-backups N                    Only keep the most recent N number of backups, deleting others after success.
                                             Requires s3config credentials to be able to list and delete objects.
      --cleanup                              Run the backup cleanup without creating a new backup. Can be used with the 
                                             'maximum-backups' option to clean old remote backups.
@@ -105,13 +105,19 @@ function get_backup_name(){
 }
 
 function get_existing_backups(){
-  if [ "${BACKUP_BACKEND}" = "s3" ]; then
-    existing_backups=($(s3cmd ls s3://$BACKUP_BUCKET_NAME --include '*_gitlab_backup.tar' | awk '{print $4}'))
-  elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
-    existing_backups=($(gsutil ls gs://$BACKUP_BUCKET_NAME/\*_gitlab_backup.tar))
-  else
-    echo "Unknown backend for backup: ${BACKUP_BACKEND}"
-    exit 1
+  # Get and sort the list here alphabetically. Since all have the same bucket prefix, the first differing part is
+  # the unix timestamp, so this will result in the oldest ones being first
+  case $BACKUP_BACKEND in
+    s3)
+      existing_backups=($(s3cmd ls s3://$BACKUP_BUCKET_NAME --include '*_gitlab_backup.tar' | awk '{print $4}' | sort))
+      ;;
+    gcs)
+      existing_backups=($(gsutil ls gs://$BACKUP_BUCKET_NAME/\*_gitlab_backup.tar | sort))
+      ;;
+    *)
+      echo "Unknown backend for backup: ${BACKUP_BACKEND}"
+      exit 1
+      ;;
   fi
 }
 
@@ -133,10 +139,6 @@ function cleanup(){
 
   if [ -n "$MAXIMUM_BACKUPS" ]; then
     get_existing_backups
-    # Sort the list here alphabetically. Since all have the same bucket prefix, the first differing part is
-    # the unix timestamp, so this will result in the oldest ones being first
-    IFS=$'\n' existing_backups=($(sort <<<"${existing_backups[*]}"))
-    unset IFS
 
     echo "Found ${#existing_backups[@]} existing backups. Maximum allowed is $MAXIMUM_BACKUPS"
     if [ ${#existing_backups[@]} -gt $MAXIMUM_BACKUPS ]; then
