@@ -186,7 +186,7 @@ func TestJailWithFiles(t *testing.T) {
 			}
 			for _, file := range test.files {
 				if err := cage.Copy(file); err != nil {
-					t.Errorf("Can't prepare copy of %s inside the jail. %s", file, err)
+					t.Errorf("can't prepare copy of %s inside the jail. %s", file, err)
 				}
 			}
 

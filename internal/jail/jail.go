@@ -75,7 +75,7 @@ func (j *Jail) Build() error {
 	// Make j.mount() robust before removing this restriction, at the risk of
 	// extreme data loss
 	if len(j.bindMounts) > 1 {
-		return fmt.Errorf("BUG: jail does not currently support multiple bind mounts")
+		return fmt.Errorf("bug: jail does not currently support multiple bind mounts")
 	}
 
 	for _, dir := range j.directories {

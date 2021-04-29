@@ -33,7 +33,7 @@ func (g *Gitlab) poll(interval, maxElapsedTime time.Duration) {
 
 	err := backoff.Retry(operation, backOff)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to connect to the internal GitLab API after %.2fs", maxElapsedTime.Seconds())
+		log.WithError(err).Errorf("failed to connect to the internal GitLab API after %.2fs", maxElapsedTime.Seconds())
 		return
 	}
 

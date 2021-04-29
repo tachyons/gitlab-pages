@@ -540,7 +540,7 @@ func (a *Auth) GetTokenIfExists(w http.ResponseWriter, r *http.Request) (string,
 
 	session, err := a.checkSession(w, r)
 	if err != nil {
-		return "", errors.New("Error retrieving the session")
+		return "", errors.New("error retrieving the session")
 	}
 
 	if session.Values["access_token"] != nil {

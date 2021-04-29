@@ -59,7 +59,7 @@ func walkSymlinks(ctx context.Context, root vfs.Root, path string) (string, erro
 			}
 
 			if r >= 0 && r+1 == volLen && os.IsPathSeparator(dest[r]) {
-				return "", errors.New("EvalSymlinks: cannot backtrack root path")
+				return "", errors.New("evalSymlinks: cannot backtrack root path")
 			} else if r < volLen || dest[r+1:] == ".." {
 				// Either path has no slashes
 				// (it's empty or just "C:")
@@ -102,7 +102,7 @@ func walkSymlinks(ctx context.Context, root vfs.Root, path string) (string, erro
 
 		linksWalked++
 		if linksWalked > 255 {
-			return "", errors.New("EvalSymlinks: too many links")
+			return "", errors.New("evalSymlinks: too many links")
 		}
 
 		link, err := root.Readlink(ctx, dest)
