@@ -49,6 +49,7 @@ var (
 	domainConfigSource = flag.String("domain-config-source", "auto", "Domain configuration source 'disk', 'auto' or 'gitlab' (default: 'auto'). DEPRECATED: gitlab-pages will use the API-based configuration starting from 14.0 see https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382")
 	// TODO: remove this flag https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/6009
 	useLegacyStorage = flag.Bool("use-legacy-storage", false, "Temporary flag that enables legacy serving from disk/NFS. API-Based configuration and object storage are preferred https://docs.gitlab.com/ee/administration/pages/ and will be the only available solution starting from 14.4")
+	enableDisk       = flag.Bool("enable-disk", true, "Enable disk access, will default to false from 14.0")
 
 	clientID           = flag.String("auth-client-id", "", "GitLab application Client ID")
 	clientSecret       = flag.String("auth-client-secret", "", "GitLab application Client Secret")

@@ -1,12 +1,19 @@
 package gitlab
 
 import (
+	"errors"
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+)
+
+var (
+	errDiskDisabled = errors.New("gitlab: disk access is disabled via enable-disk=false")
 )
 
 // fabricateLookupPath fabricates a serving LookupPath based on the API LookupPath
@@ -25,14 +32,18 @@ func fabricateLookupPath(size int, lookup api.LookupPath) *serving.LookupPath {
 }
 
 // fabricateServing fabricates serving based on the GitLab API response
-func fabricateServing(lookup api.LookupPath) serving.Serving {
+func (g *Gitlab) fabricateServing(lookup api.LookupPath) (serving.Serving, error) {
 	source := lookup.Source
 
 	switch source.Type {
 	case "file":
-		return local.Instance()
+		if !g.enableDisk {
+			return nil, errDiskDisabled
+		}
+
+		return local.Instance(), nil
 	case "zip":
-		return zip.Instance()
+		return zip.Instance(), nil
 	case "serverless":
 		log.Errorf("attempted to fabricate serverless serving for project %d", lookup.ProjectID)
 
@@ -49,9 +60,5 @@ func fabricateServing(lookup api.LookupPath) serving.Serving {
 		// return serving
 	}
 
-	return defaultServing()
-}
-
-func defaultServing() serving.Serving {
-	return local.Instance()
+	return nil, fmt.Errorf("gitlab: unkown serving source type: %q", source.Type)
 }
