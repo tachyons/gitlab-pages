@@ -11,105 +11,92 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 )
 
-type sourceConfig struct {
-	api          string
-	secret       string
-	domainSource string
-}
-
-func (c sourceConfig) InternalGitLabServerURL() string {
-	return c.api
-}
-
-func (c sourceConfig) GitlabAPISecret() []byte {
-	return []byte(c.secret)
-}
-func (c sourceConfig) GitlabClientConnectionTimeout() time.Duration {
-	return 10 * time.Second
-}
-
-func (c sourceConfig) GitlabJWTTokenExpiry() time.Duration {
-	return 30 * time.Second
-}
-
-func (c sourceConfig) DomainConfigSource() string {
-	return c.domainSource
-}
-func (c sourceConfig) Cache() *config.Cache {
-	return &config.Cache{
-		CacheExpiry:          10 * time.Minute,
-		CacheCleanupInterval: time.Minute,
-		EntryRefreshTimeout:  60 * time.Second,
-		RetrievalTimeout:     30 * time.Second,
-		MaxRetrievalInterval: time.Second,
-		MaxRetrievalRetries:  3,
-	}
-}
-
 func TestNewDomains(t *testing.T) {
+	validCfg := config.GitLab{
+		InternalServer:     "https://gitlab.com",
+		APISecretKey:       []byte("abc"),
+		ClientHTTPTimeout:  time.Second,
+		JWTTokenExpiration: time.Second,
+	}
+
 	tests := []struct {
 		name            string
-		sourceConfig    sourceConfig
+		source          string
+		config          config.GitLab
 		expectedErr     string
 		expectGitlabNil bool
 		expectDiskNil   bool
 	}{
 		{
-			name:         "no_source_config",
-			sourceConfig: sourceConfig{},
-			expectedErr:  "invalid option for -domain-config-source: \"\"",
+			name:        "no_source_config",
+			source:      "",
+			expectedErr: "invalid option for -domain-config-source: \"\"",
 		},
 		{
-			name:         "invalid_source_config",
-			sourceConfig: sourceConfig{domainSource: "invalid"},
-			expectedErr:  "invalid option for -domain-config-source: \"invalid\"",
+			name:        "invalid_source_config",
+			source:      "invalid",
+			expectedErr: "invalid option for -domain-config-source: \"invalid\"",
 		},
 		{
 			name:            "disk_source",
-			sourceConfig:    sourceConfig{domainSource: "disk"},
+			source:          "disk",
 			expectGitlabNil: true,
 			expectDiskNil:   false,
 		},
 		{
 			name:            "auto_without_api_config",
-			sourceConfig:    sourceConfig{domainSource: "auto"},
+			source:          "auto",
 			expectGitlabNil: true,
 			expectDiskNil:   false,
 		},
 		{
 			name:            "auto_with_api_config",
-			sourceConfig:    sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "auto"},
+			source:          "auto",
+			config:          validCfg,
 			expectGitlabNil: false,
 			expectDiskNil:   false,
 		},
 		{
 			name:          "gitlab_source_success",
-			sourceConfig:  sourceConfig{api: "https://gitlab.com", secret: "abc", domainSource: "gitlab"},
+			source:        "gitlab",
+			config:        validCfg,
 			expectDiskNil: true,
 		},
 		{
-			name:         "gitlab_source_no_url",
-			sourceConfig: sourceConfig{api: "", secret: "abc", domainSource: "gitlab"},
-			expectedErr:  "GitLab API URL or API secret has not been provided",
+			name:   "gitlab_source_no_url",
+			source: "gitlab",
+			config: func() config.GitLab {
+				cfg := validCfg
+				cfg.InternalServer = ""
+
+				return cfg
+			}(),
+			expectedErr: "GitLab API URL or API secret has not been provided",
 		},
 		{
-			name:         "gitlab_source_no_secret",
-			sourceConfig: sourceConfig{api: "https://gitlab.com", secret: "", domainSource: "gitlab"},
-			expectedErr:  "GitLab API URL or API secret has not been provided",
+			name:   "gitlab_source_no_secret",
+			source: "gitlab",
+			config: func() config.GitLab {
+				cfg := validCfg
+				cfg.APISecretKey = []byte{}
+
+				return cfg
+			}(),
+			expectedErr: "GitLab API URL or API secret has not been provided",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			domains, err := NewDomains(tt.sourceConfig)
+			domains, err := NewDomains(tt.source, &tt.config)
 			if tt.expectedErr != "" {
 				require.EqualError(t, err, tt.expectedErr)
 				return
 			}
 			require.NoError(t, err)
 
-			require.Equal(t, tt.expectGitlabNil, domains.gitlab == nil)
-			require.Equal(t, tt.expectDiskNil, domains.disk == nil)
+			require.Equal(t, tt.expectGitlabNil, domains.gitlab == nil, "mismatch gitlab nil")
+			require.Equal(t, tt.expectDiskNil, domains.disk == nil, "mismatch disk nil")
 		})
 	}
 }

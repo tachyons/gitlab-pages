@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/gitlab-org/labkit/log"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
@@ -40,9 +41,9 @@ type Domains struct {
 // NewDomains is a factory method for domains initializing a mutex. It should
 // not initialize `dm` as we later check the readiness by comparing it with a
 // nil value.
-func NewDomains(config Config) (*Domains, error) {
+func NewDomains(source string, cfg *config.GitLab) (*Domains, error) {
 	domains := &Domains{}
-	if err := domains.setConfigSource(config); err != nil {
+	if err := domains.setConfigSource(source, cfg); err != nil {
 		return nil, err
 	}
 
@@ -52,33 +53,33 @@ func NewDomains(config Config) (*Domains, error) {
 // setConfigSource and initialize gitlab source
 // returns error if -domain-config-source is not valid
 // returns error if -domain-config-source=gitlab and init fails
-func (d *Domains) setConfigSource(config Config) error {
-	switch config.DomainConfigSource() {
+func (d *Domains) setConfigSource(source string, cfg *config.GitLab) error {
+	switch source {
 	case "gitlab":
 		d.configSource = sourceGitlab
-		return d.setGitLabClient(config)
+		return d.setGitLabClient(cfg)
 	case "auto":
 		d.configSource = sourceAuto
 		// enable disk for auto for now
 		d.disk = disk.New()
-		return d.setGitLabClient(config)
+		return d.setGitLabClient(cfg)
 	case "disk":
 		// TODO: disable domains.disk https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 		d.configSource = sourceDisk
 		d.disk = disk.New()
 	default:
-		return fmt.Errorf("invalid option for -domain-config-source: %q", config.DomainConfigSource())
+		return fmt.Errorf("invalid option for -domain-config-source: %q", source)
 	}
 
 	return nil
 }
 
 // setGitLabClient when domain-config-source is `gitlab` or `auto`, only return error for `gitlab` source
-func (d *Domains) setGitLabClient(config Config) error {
+func (d *Domains) setGitLabClient(cfg *config.GitLab) error {
 	// We want to notify users about any API issues
 	// Creating a glClient will start polling connectivity in the background
 	// and spam errors in log
-	glClient, err := gitlab.New(config)
+	glClient, err := gitlab.New(cfg)
 	if err != nil {
 		if d.configSource == sourceGitlab {
 			return err

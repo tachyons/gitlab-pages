@@ -87,15 +87,14 @@ func TestHealthCheckMiddleware(t *testing.T) {
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err)
 	cfg.General.StatusPath = "/-/healthcheck"
-	cfg.General.DomainConfigurationSource = "auto"
+
+	domains, err := source.NewDomains("auto", &cfg.GitLab)
+	require.NoError(t, err)
 
 	app := theApp{
-		config: cfg,
+		config:  cfg,
+		domains: domains,
 	}
-
-	domains, err := source.NewDomains(app.config)
-	require.NoError(t, err)
-	app.domains = domains
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

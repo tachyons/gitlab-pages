@@ -203,36 +203,6 @@ func setGitLabAPISecretKey(secretFile string, config *Config) error {
 	return nil
 }
 
-// InternalGitLabServerURL returns URL to a GitLab instance.
-func (config Config) InternalGitLabServerURL() string {
-	return config.GitLab.InternalServer
-}
-
-// GitlabAPISecret returns GitLab server access token.
-func (config *Config) GitlabAPISecret() []byte {
-	return config.GitLab.APISecretKey
-}
-
-func (config *Config) GitlabClientConnectionTimeout() time.Duration {
-	return config.GitLab.ClientHTTPTimeout
-}
-
-func (config *Config) GitlabJWTTokenExpiry() time.Duration {
-	return config.GitLab.JWTTokenExpiration
-}
-
-func (config *Config) DomainConfigSource() string {
-	if config.General.UseLegacyStorage {
-		return "disk"
-	}
-
-	return config.General.DomainConfigurationSource
-}
-
-func (config *Config) Cache() *Cache {
-	return &config.GitLab.Cache
-}
-
 func loadConfig() (*Config, error) {
 	config := &Config{
 		General: General{
