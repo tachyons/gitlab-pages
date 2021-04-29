@@ -43,7 +43,7 @@ func TestGetDomain(t *testing.T) {
 
 func TestResolve(t *testing.T) {
 	client := client.StubClient{File: "client/testdata/test.gitlab.io.json"}
-	source := Gitlab{client: client}
+	source := Gitlab{client: client, enableDisk: true}
 
 	t.Run("when requesting nested group project with root path", func(t *testing.T) {
 		target := "https://test.gitlab.io:443/my/pages/project/"

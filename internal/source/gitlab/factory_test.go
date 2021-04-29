@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -32,15 +33,38 @@ func TestFabricateLookupPath(t *testing.T) {
 
 func TestFabricateServing(t *testing.T) {
 	t.Run("when lookup path requires disk serving", func(t *testing.T) {
+		g := Gitlab{
+			enableDisk: true,
+		}
+
 		lookup := api.LookupPath{
 			Prefix: "/",
 			Source: api.Source{Type: "file"},
 		}
+		srv, err := g.fabricateServing(lookup)
+		require.NoError(t, err)
+		require.IsType(t, &disk.Disk{}, srv)
+	})
 
-		require.IsType(t, &disk.Disk{}, fabricateServing(lookup))
+	t.Run("when lookup path requires disk serving but disk is disabled", func(t *testing.T) {
+		g := Gitlab{
+			enableDisk: false,
+		}
+
+		lookup := api.LookupPath{
+			Prefix: "/",
+			Source: api.Source{Type: "file"},
+		}
+		srv, err := g.fabricateServing(lookup)
+		require.EqualError(t, err, errDiskDisabled.Error())
+		require.Nil(t, srv)
 	})
 
 	t.Run("when lookup path requires serverless serving", func(t *testing.T) {
+		g := Gitlab{
+			enableDisk: true,
+		}
+
 		lookup := api.LookupPath{
 			Prefix: "/",
 			Source: api.Source{
@@ -58,8 +82,11 @@ func TestFabricateServing(t *testing.T) {
 			},
 		}
 
+		srv, err := g.fabricateServing(lookup)
+		require.EqualError(t, err, fmt.Sprintf("gitlab: unkown serving source type: %q", lookup.Source.Type))
+
 		// Serverless serving has been deprecated.
 		// require.IsType(t, &serverless.Serverless{}, fabricateServing(lookup))
-		require.IsType(t, &disk.Disk{}, fabricateServing(lookup))
+		require.Nil(t, srv)
 	})
 }
