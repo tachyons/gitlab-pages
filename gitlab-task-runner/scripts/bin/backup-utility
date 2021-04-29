@@ -118,7 +118,7 @@ function get_existing_backups(){
       echo "Unknown backend for backup: ${BACKUP_BACKEND}"
       exit 1
       ;;
-  fi
+  esac
 }
 
 function remove_backup(){
