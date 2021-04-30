@@ -48,7 +48,6 @@ type Config struct {
 type General struct {
 	Domain                    string
 	DomainConfigurationSource string
-	UseLegacyStorage          bool
 	HTTP2                     bool
 	MaxConns                  int
 	MetricsAddress            string
@@ -208,7 +207,6 @@ func loadConfig() (*Config, error) {
 		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
 			DomainConfigurationSource:  *domainConfigSource,
-			UseLegacyStorage:           *useLegacyStorage,
 			HTTP2:                      *useHTTP2,
 			MaxConns:                   *maxConns,
 			MetricsAddress:             *metricsAddress,
@@ -354,7 +352,6 @@ func LogConfig(config *Config) {
 		"internal-gitlab-server":        config.GitLab.InternalServer,
 		"api-secret-key":                *gitLabAPISecretKey,
 		"domain-config-source":          config.General.DomainConfigurationSource,
-		"use-legacy-storage":            config.General.UseLegacyStorage,
 		"auth-redirect-uri":             config.Authentication.RedirectURI,
 		"auth-scope":                    config.Authentication.Scope,
 		"zip-cache-expiration":          config.Zip.ExpirationInterval,

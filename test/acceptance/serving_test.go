@@ -378,11 +378,10 @@ func TestDomainsSource(t *testing.T) {
 	skipUnlessEnabled(t)
 
 	type args struct {
-		configSource     string
-		useLegacyStorage bool
-		domain           string
-		urlSuffix        string
-		readyCount       int
+		configSource string
+		domain       string
+		urlSuffix    string
+		readyCount   int
 	}
 	type want struct {
 		statusCode int
@@ -482,20 +481,6 @@ func TestDomainsSource(t *testing.T) {
 				apiCalled:  true,
 			},
 		},
-		// TODO: remove use-legacy-storage https://gitlab.com/gitlab-org/gitlab-pages/-/issues/568
-		//{
-		//	name: "use_legacy_storage_overrides_domain_source",
-		//	args: args{
-		//		useLegacyStorage: true,
-		//		domain:           "test.domain.com",
-		//		urlSuffix:        "/",
-		//	},
-		//	want: want{
-		//		statusCode: http.StatusOK,
-		//		content:    "main-dir\n",
-		//		apiCalled:  false,
-		//	},
-		//},
 	}
 
 	for _, tt := range tests {
@@ -510,9 +495,7 @@ func TestDomainsSource(t *testing.T) {
 
 			gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", tt.args.configSource,
-				// TODO: remove in https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/6009
-				fmt.Sprintf("-use-legacy-storage=%t", tt.args.useLegacyStorage)}
+			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", tt.args.configSource}
 			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", []string{}, pagesArgs...)
 			defer teardown()
 
