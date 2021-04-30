@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-ACTION="backup"
+ACTION=""
 export BACKUP_BUCKET_NAME=${BACKUP_BUCKET_NAME-gitlab-backups}
 export BACKUP_BACKEND=${BACKUP_BACKEND-s3}
 S3_CMD_BACKUP_OPTION=""
@@ -17,7 +17,7 @@ function usage()
 {
   cat << HEREDOC
 
-   Usage: backup-utility [--restore] [--cleanup] [-f URL] [-t TIMESTAMP] [--skip COMPONENT] [--backend BACKEND] [--s3config CONFIG]
+   Usage: backup-utility [--restore|--cleanup] [-f URL] [-t TIMESTAMP] [--skip COMPONENT] [--backend BACKEND] [--s3config CONFIG]
 
    Options:
      -h, --help                             Show this help message and exit.
@@ -109,10 +109,10 @@ function get_existing_backups(){
   # the unix timestamp, so this will result in the oldest ones being first
   case $BACKUP_BACKEND in
     s3)
-      existing_backups=($(s3cmd ls s3://$BACKUP_BUCKET_NAME --include '*_gitlab_backup.tar' | awk '{print $4}' | sort))
+      existing_backups=($(s3cmd ls s3://$BACKUP_BUCKET_NAME --include '*_gitlab_backup.tar' | awk '{print $4}' | LC_ALL=C sort))
       ;;
     gcs)
-      existing_backups=($(gsutil ls gs://$BACKUP_BUCKET_NAME/\*_gitlab_backup.tar | sort))
+      existing_backups=($(gsutil ls gs://$BACKUP_BUCKET_NAME/\*_gitlab_backup.tar | LC_ALL=C sort))
       ;;
     *)
       echo "Unknown backend for backup: ${BACKUP_BACKEND}"
@@ -308,7 +308,12 @@ do
       shift
       ;;
     --restore)
-      ACTION="restore"
+      if [ -z "$ACTION" ]; then
+        ACTION="restore"
+      else 
+        echo "Only one action at a time is supported"
+        exit 1
+      fi
       shift
       ;;
     --rsyncable)
@@ -327,11 +332,20 @@ do
       ;;
     --maximum-backups)
       export MAXIMUM_BACKUPS="$2"
+      if ! [[ $MAXIMUM_BACKUPS =~ ^-?[0-9]+$ ]]; then 
+        echo "Value specified for --maximum-backups needs to be an integer"
+        exit 1
+      fi
       shift
       shift
       ;;
     --cleanup)
-      ACTION="cleanup"
+      if [ -z "$ACTION" ]; then
+        ACTION="cleanup"
+      else 
+        echo "Only one action at a time is supported"
+        exit 1
+      fi
       shift
       ;;
     *)
@@ -344,8 +358,9 @@ done
 
 if [ "$ACTION" = "restore" ]; then
   restore
-elif [ "$ACTION" = "backup" ]; then
-  backup
 elif [ "$ACTION" = "cleanup" ]; then
   cleanup
+elif [ -z "$ACTION" ]; then
+  ACTION="backup"
+  backup
 fi
