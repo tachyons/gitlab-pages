@@ -482,19 +482,20 @@ func TestDomainsSource(t *testing.T) {
 				apiCalled:  true,
 			},
 		},
-		{
-			name: "use_legacy_storage_overrides_domain_source",
-			args: args{
-				useLegacyStorage: true,
-				domain:           "test.domain.com",
-				urlSuffix:        "/",
-			},
-			want: want{
-				statusCode: http.StatusOK,
-				content:    "main-dir\n",
-				apiCalled:  false,
-			},
-		},
+		// TODO: remove use-legacy-storage https://gitlab.com/gitlab-org/gitlab-pages/-/issues/568
+		//{
+		//	name: "use_legacy_storage_overrides_domain_source",
+		//	args: args{
+		//		useLegacyStorage: true,
+		//		domain:           "test.domain.com",
+		//		urlSuffix:        "/",
+		//	},
+		//	want: want{
+		//		statusCode: http.StatusOK,
+		//		content:    "main-dir\n",
+		//		apiCalled:  false,
+		//	},
+		//},
 	}
 
 	for _, tt := range tests {

@@ -15,6 +15,7 @@ import (
 
 	"gitlab.com/gitlab-org/labkit/correlation"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
@@ -79,8 +80,8 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 }
 
 // NewFromConfig creates a new client from Config struct
-func NewFromConfig(config Config) (*Client, error) {
-	return NewClient(config.InternalGitLabServerURL(), config.GitlabAPISecret(), config.GitlabClientConnectionTimeout(), config.GitlabJWTTokenExpiry())
+func NewFromConfig(cfg *config.GitLab) (*Client, error) {
+	return NewClient(cfg.InternalServer, cfg.APISecretKey, cfg.ClientHTTPTimeout, cfg.JWTTokenExpiration)
 }
 
 // Resolve returns a VirtualDomain configuration wrapped into a Lookup for a

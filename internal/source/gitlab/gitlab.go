@@ -11,6 +11,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"gitlab.com/gitlab-org/labkit/log"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -18,8 +19,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 )
-
-var errCacheNotConfigured = errors.New("cache not configured")
 
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
@@ -30,24 +29,14 @@ type Gitlab struct {
 }
 
 // New returns a new instance of gitlab domain source.
-func New(config client.Config) (*Gitlab, error) {
-	client, err := client.NewFromConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	cc := config.Cache()
-	if cc == nil {
-		return nil, errCacheNotConfigured
-	}
-
-	cachedClient := cache.NewCache(client, cc)
+func New(cfg *config.GitLab) (*Gitlab, error) {
+	glClient, err := client.NewFromConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	g := &Gitlab{
-		client: cachedClient,
+		client: cache.NewCache(glClient, &cfg.Cache),
 	}
 
 	go g.poll(backoff.DefaultInitialInterval, maxPollingTime)
