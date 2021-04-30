@@ -482,7 +482,7 @@ func TestDomainsSource(t *testing.T) {
 				apiCalled:  true,
 			},
 		},
-		// TODO: properly handle use-legacy-storage
+		// TODO: remove use-legacy-storage https://gitlab.com/gitlab-org/gitlab-pages/-/issues/568
 		//{
 		//	name: "use_legacy_storage_overrides_domain_source",
 		//	args: args{
