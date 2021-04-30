@@ -334,7 +334,7 @@ do
     --maximum-backups)
       export MAXIMUM_BACKUPS="$2"
       if ! [[ $MAXIMUM_BACKUPS =~ ^-?[0-9]+$ ]]; then 
-        echo "Value specified for --maximum-backups needs to be an integer"
+        echo "Value specified for --maximum-backups must be an integer. Got: ${MAXIMUM_BACKUPS}"
         exit 1
       fi
       shift
