@@ -3,6 +3,7 @@ package gitlab
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -13,7 +14,7 @@ import (
 )
 
 var (
-	errDiskDisabled = errors.New("gitlab: disk access is disabled via enable-disk=false")
+	ErrDiskDisabled = errors.New("gitlab: disk access is disabled via enable-disk=false")
 )
 
 // fabricateLookupPath fabricates a serving LookupPath based on the API LookupPath
@@ -34,13 +35,12 @@ func fabricateLookupPath(size int, lookup api.LookupPath) *serving.LookupPath {
 // fabricateServing fabricates serving based on the GitLab API response
 func (g *Gitlab) fabricateServing(lookup api.LookupPath) (serving.Serving, error) {
 	source := lookup.Source
+	if err := g.isDiskAllowed(source); err != nil {
+		return nil, err
+	}
 
 	switch source.Type {
 	case "file":
-		if !g.enableDisk {
-			return nil, errDiskDisabled
-		}
-
 		return local.Instance(), nil
 	case "zip":
 		return zip.Instance(), nil
@@ -61,4 +61,14 @@ func (g *Gitlab) fabricateServing(lookup api.LookupPath) (serving.Serving, error
 	}
 
 	return nil, fmt.Errorf("gitlab: unkown serving source type: %q", source.Type)
+}
+
+func (g *Gitlab) isDiskAllowed(source api.Source) error {
+	if !g.enableDisk {
+		if source.Type == "file" || strings.HasPrefix(source.Path, "file://") {
+			return ErrDiskDisabled
+		}
+	}
+
+	return nil
 }

@@ -35,6 +35,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -131,7 +132,14 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if !domain.HasLookupPath(r) {
+	if err := domain.HasLookupPath(r); err != nil {
+		if errors.Is(err, gitlab.ErrDiskDisabled) {
+			errortracking.Capture(err)
+			log.WithError(err).Error("tried to serve from disk")
+			httperrors.Serve500(w)
+			return true
+		}
+
 		// redirect to auth and serve not found
 		if a.checkAuthAndServeNotFound(domain, w, r) {
 			return true

@@ -23,11 +23,10 @@ import (
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
-	client           api.Resolver
-	mu               sync.RWMutex
-	isReady          bool
-	useLegacyStorage bool
-	enableDisk       bool
+	client     api.Resolver
+	mu         sync.RWMutex
+	isReady    bool
+	enableDisk bool
 }
 
 // New returns a new instance of gitlab domain source.
