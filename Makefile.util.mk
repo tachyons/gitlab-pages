@@ -8,6 +8,9 @@ COVERAGE_PACKAGES=$(shell (go list ./... | grep -v $(addprefix -e ,$(IGNORED_DIR
 lint: .GOPATH/.ok bin/golangci-lint
 	$Q ./bin/golangci-lint run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
 
+format: .GOPATH/.ok bin/golangci-lint
+	$Q ./bin/golangci-lint run ./... --fix --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
+
 test: .GOPATH/.ok gitlab-pages
 	rm -f tests.out
 	go test $(if $V,-v) ./... ${ARGS} 2>&1 | tee tests.out
