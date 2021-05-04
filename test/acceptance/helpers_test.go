@@ -147,6 +147,7 @@ func supportedListeners() []ListenSpec {
 	if !nettest.SupportsIPv6() {
 		return ipv4Listeners
 	}
+
 	return listeners
 }
 
