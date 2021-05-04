@@ -357,6 +357,25 @@ gitlab-graphicsmagick:
     - push_tags $GM_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-graphicsmagick_container.txt
 
+build:gitlab-gomplate:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${GOMPLATE_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "GOMPLATE_VERSION=$GOMPLATE_VERSION"
+    - copy_assets
+
+gitlab-gomplate:
+  <<: *job-base
+  <<: *except-deps
+  stage: phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${GOMPLATE_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "GOMPLATE_VERSION=$GOMPLATE_VERSION"
+    - push_tags
+    - push_tags $GOMPLATE_VERSION${IMAGE_TAG_EXT}
+    - echo -n "${CONTAINER_VERSION}" > artifacts/gitlab-gomplate_container.txt
+
 build:postgresql:
   <<: *build-job-base
   stage: prepare:phase-one
