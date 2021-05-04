@@ -143,7 +143,7 @@ type ListenSpec struct {
 	Port string
 }
 
-func SupportedListeners() []ListenSpec {
+func supportedListeners() []ListenSpec {
 	if !nettest.SupportsIPv6() {
 		return ipv4Listeners
 	}

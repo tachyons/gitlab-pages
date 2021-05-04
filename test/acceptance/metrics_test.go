@@ -14,7 +14,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
-	teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, SupportedListeners(), ":42345", []string{}, "-max-conns=10")
+	teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), ":42345", []string{}, "-max-conns=10")
 	defer teardown()
 
 	// need to call an actual resource to populate certain metrics e.g. gitlab_pages_domains_source_api_requests_total

@@ -10,7 +10,7 @@ import (
 
 func TestMIMETypes(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, SupportedListeners(), "")
+	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
 	require.NoError(t, httpListener.WaitUntilRequestSucceeds(nil))
@@ -62,7 +62,7 @@ func TestCompressedEncoding(t *testing.T) {
 		},
 	}
 
-	teardown := RunPagesProcess(t, *pagesBinary, SupportedListeners(), "")
+	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
 	for _, tt := range tests {

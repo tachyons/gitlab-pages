@@ -12,7 +12,7 @@ import (
 func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	teardown := RunPagesProcess(t, *pagesBinary, SupportedListeners(), "", "")
+	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "")
 	defer teardown()
 
 	t.Run("When domain folder contains requested acme challenge it responds with it", func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
 func TestAcmeChallengesWhenItIsConfigured(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	teardown := RunPagesProcess(t, *pagesBinary, SupportedListeners(), "", "-gitlab-server=https://gitlab-acme.com")
+	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-gitlab-server=https://gitlab-acme.com")
 	defer teardown()
 
 	t.Run("When domain folder contains requested acme challenge it responds with it", func(t *testing.T) {
