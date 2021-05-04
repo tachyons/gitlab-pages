@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/url"
 
+	"github.com/hashicorp/go-multierror"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
@@ -25,22 +27,28 @@ func validateAuthConfig(config *Config) error {
 		return nil
 	}
 
+	var result *multierror.Error
 	if config.Authentication.Secret == "" {
-		return errors.New("auth-secret must be defined if authentication is supported")
+		err := errors.New("auth-secret must be defined if authentication is supported")
+		result = multierror.Append(result, err)
 	}
 	if config.Authentication.ClientID == "" {
-		return errors.New("auth-client-id must be defined if authentication is supported")
+		err := errors.New("auth-client-id must be defined if authentication is supported")
+		result = multierror.Append(result, err)
 	}
 	if config.Authentication.ClientSecret == "" {
-		return errors.New("auth-client-secret must be defined if authentication is supported")
+		err := errors.New("auth-client-secret must be defined if authentication is supported")
+		result = multierror.Append(result, err)
 	}
 	if config.GitLab.Server == "" {
-		return errors.New("gitlab-server must be defined if authentication is supported")
+		err := errors.New("gitlab-server must be defined if authentication is supported")
+		result = multierror.Append(result, err)
 	}
 	if config.Authentication.RedirectURI == "" {
-		return errors.New("auth-redirect-uri must be defined if authentication is supported")
+		err := errors.New("auth-redirect-uri must be defined if authentication is supported")
+		result = multierror.Append(result, err)
 	}
-	return nil
+	return result.ErrorOrNil()
 }
 
 func validateArtifactsServerConfig(config *Config) error {
