@@ -2,7 +2,7 @@ ARG FROM_IMAGE="debian"
 FROM ${FROM_IMAGE}:buster-slim
 
 ARG BUILD_DIR=/tmp/build
-ARG PG_VERSION=12.3
+ARG PG_VERSION=13.2
 
 ENV LANG=C.UTF-8
 
