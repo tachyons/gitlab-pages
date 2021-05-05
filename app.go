@@ -155,7 +155,7 @@ func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
 		host, d, err := a.getHostAndDomain(r)
 		if err != nil && !errors.Is(err, domain.ErrDomainDoesNotExist) {
 			metrics.DomainsSourceFailures.Inc()
-			log.WithError(err).Error("could not fetch domain information from a source")
+			logging.LogRequest(r).WithError(err).Error("could not fetch domain information from a source")
 
 			httperrors.Serve502(w)
 			return
