@@ -11,6 +11,7 @@ ARG JEMALLOC_VERSION=5.2.1
 ARG EXIFTOOL_VERSION=11.70
 
 ENV LANG=C.UTF-8
+ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
 
 COPY shared/build-scripts/ /build-scripts
 COPY patches/ /patches

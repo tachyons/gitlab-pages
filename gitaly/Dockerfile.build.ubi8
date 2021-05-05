@@ -16,6 +16,7 @@ ADD gitlab-go.tar.gz /
 
 ENV LANG=C.UTF-8
 ENV PRIVATE_TOKEN=${API_TOKEN}
+ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
 
 COPY shared/build-scripts/ /build-scripts
 
