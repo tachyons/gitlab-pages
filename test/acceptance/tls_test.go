@@ -9,7 +9,7 @@ import (
 
 func TestAcceptsSupportedCiphers(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
 	tlsConfig := &tls.Config{
@@ -46,7 +46,7 @@ func tlsConfigWithInsecureCiphersOnly() *tls.Config {
 
 func TestRejectsUnsupportedCiphers(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "")
+	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
 	client, cleanup := ClientWithConfig(tlsConfigWithInsecureCiphersOnly())
@@ -64,7 +64,7 @@ func TestRejectsUnsupportedCiphers(t *testing.T) {
 
 func TestEnableInsecureCiphers(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, listeners, "", "-insecure-ciphers")
+	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-insecure-ciphers")
 	defer teardown()
 
 	client, cleanup := ClientWithConfig(tlsConfigWithInsecureCiphersOnly())
@@ -103,7 +103,7 @@ func TestTLSVersions(t *testing.T) {
 				args = append(args, "-tls-max-version", tc.tlsMax)
 			}
 
-			teardown := RunPagesProcess(t, *pagesBinary, listeners, "", args...)
+			teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", args...)
 			defer teardown()
 
 			tlsConfig := &tls.Config{}

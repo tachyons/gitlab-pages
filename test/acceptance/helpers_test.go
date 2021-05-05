@@ -22,6 +22,7 @@ import (
 
 	"github.com/pires/go-proxyproto"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/nettest"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/test/acceptance/testdata"
@@ -140,6 +141,14 @@ type ListenSpec struct {
 	Type string
 	Host string
 	Port string
+}
+
+func supportedListeners() []ListenSpec {
+	if !nettest.SupportsIPv6() {
+		return ipv4Listeners
+	}
+
+	return listeners
 }
 
 func (l ListenSpec) URL(suffix string) string {

@@ -36,6 +36,13 @@ var (
 		{"https-proxyv2", "::1", httpProxyV2Port},
 	}
 
+	ipv4Listeners = []ListenSpec{
+		listeners[0],
+		listeners[2],
+		listeners[4],
+		listeners[6],
+	}
+
 	httpListener         = listeners[0]
 	httpsListener        = listeners[2]
 	proxyListener        = listeners[4]
