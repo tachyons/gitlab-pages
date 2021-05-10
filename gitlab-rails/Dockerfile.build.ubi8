@@ -61,7 +61,7 @@ RUN /gitlab-fetch \
     && cp config/database.yml.postgresql config/database.yml \
     && bundle install --deployment --without development test mysql aws kerberos --jobs $(nproc) --retry 5 \
     && yarn install --production --pure-lockfile \
-    && rm -rf node_modules/ tmp/ spec/ \
+    && rm -rf node_modules/ tmp/ spec/ ee/spec/ \
     && /build-scripts/cleanup-gems \
     && mv ${PWD} /srv/gitlab \
     && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt
