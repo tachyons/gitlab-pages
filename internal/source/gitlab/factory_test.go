@@ -83,7 +83,7 @@ func TestFabricateServing(t *testing.T) {
 		}
 
 		srv, err := g.fabricateServing(lookup)
-		require.EqualError(t, err, fmt.Sprintf("gitlab: unkown serving source type: %q", lookup.Source.Type))
+		require.EqualError(t, err, fmt.Sprintf("gitlab: unknown serving source type: %q", lookup.Source.Type))
 
 		// Serverless serving has been deprecated.
 		// require.IsType(t, &serverless.Serverless{}, fabricateServing(lookup))

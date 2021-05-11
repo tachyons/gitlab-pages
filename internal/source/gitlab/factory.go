@@ -60,7 +60,7 @@ func (g *Gitlab) fabricateServing(lookup api.LookupPath) (serving.Serving, error
 		// return serving
 	}
 
-	return nil, fmt.Errorf("gitlab: unkown serving source type: %q", source.Type)
+	return nil, fmt.Errorf("gitlab: unknown serving source type: %q", source.Type)
 }
 
 func (g *Gitlab) isDiskAllowed(source api.Source) error {
