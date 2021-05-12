@@ -761,7 +761,7 @@ func headerValues(header http.Header, key string) []string {
 func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, []ListenSpec{httpListener}, "", nil, "-enable-disk=false")
+	logBuf, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, []ListenSpec{httpListener}, "", nil, "-enable-disk=false")
 	defer teardown()
 
 	for host, suffix := range map[string]string{
@@ -777,5 +777,11 @@ func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
 
 			require.Equal(t, http.StatusInternalServerError, rsp.StatusCode)
 		})
+
+		// give the process enough time to write the log message
+		require.Eventually(t, func() bool {
+			require.Contains(t, logBuf.String(), "cannot serve from disk", "log mismatch")
+			return true
+		}, time.Second, 10*time.Millisecond)
 	}
 }

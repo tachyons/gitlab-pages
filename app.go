@@ -135,7 +135,6 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 	if err := domain.HasLookupPath(r); err != nil {
 		if errors.Is(err, gitlab.ErrDiskDisabled) {
 			errortracking.Capture(err)
-			log.WithError(err).Error("tried to serve from disk")
 			httperrors.Serve500(w)
 			return true
 		}
