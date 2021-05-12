@@ -369,6 +369,8 @@ gitlab-gomplate:
   <<: *job-base
   <<: *except-deps
   stage: phase-one
+  dependencies:
+    - build:gitlab-gomplate
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${GOMPLATE_VERSION}" | sha1sum))
     - build_if_needed --build-arg "GOMPLATE_VERSION=$GOMPLATE_VERSION"
@@ -1099,14 +1101,17 @@ gitlab-container-registry:
   <<: *except-deps
   stage: phase-four
   script:
+    - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/git_container.txt)
-    - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$TARGET_VERSION" | sha1sum))
+    - gomplate_version=$(cat artifacts/gitlab-gomplate_container.txt)
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$gomplate_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
     - fi
     - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
                       --build-arg "REGISTRY_NAMESPACE=gitlab-org"
@@ -1115,7 +1120,9 @@ gitlab-container-registry:
   dependencies:
     - git-base
     - gitlab-go
+    - gitlab-gomplate
     - build:gitlab-container-registry
+    - build:gitlab-gomplate
 
 build:gitlab-workhorse-ee:
   <<: *build-job-base
@@ -1231,6 +1238,7 @@ ubi-assets-release:
     - build:gitlab-go
     - build:git-base
     - build:gitlab-logger
+    - build:gitlab-gomplate
     - build:gitlab-pages
     - build:gitlab-container-registry
     - build:gitlab-mailroom

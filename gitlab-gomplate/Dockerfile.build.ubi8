@@ -8,9 +8,8 @@ ARG GOMPLATE_SHA256=7dbabe30095f822ec38f5f70711ff121c26e588227da4cc05208417cfaf9
 ENV LANG=C.UTF-8
 ENV GOMPLATE_SOURCE_URL="https://github.com/hairyhenderson/gomplate/releases/download/$GOMPLATE_VERSION/gomplate_linux-amd64"
 
-RUN mkdir -p /target /assets
 COPY scripts/download /scripts/download
-RUN /scripts/download
 
-# The contents of /assets will be extracted by copy_assets in build.sh
-RUN mv /target/gomplate /assets/gomplate
+RUN mkdir -p /target /assets/usr/local/bin \
+    && /scripts/download \
+    && mv /target/gomplate /assets/usr/local/bin/gomplate
