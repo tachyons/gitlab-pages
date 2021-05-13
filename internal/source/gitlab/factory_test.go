@@ -61,9 +61,7 @@ func TestFabricateServing(t *testing.T) {
 	})
 
 	t.Run("when lookup path requires serverless serving", func(t *testing.T) {
-		g := Gitlab{
-			enableDisk: true,
-		}
+		g := Gitlab{}
 
 		lookup := api.LookupPath{
 			Prefix: "/",

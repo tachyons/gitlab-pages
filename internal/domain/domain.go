@@ -101,16 +101,6 @@ func (d *Domain) GetProjectID(r *http.Request) uint64 {
 	return 0
 }
 
-// HasLookupPath figures out if the project exists that the user tries to access
-func (d *Domain) HasLookupPath(r *http.Request) error {
-	if d == nil {
-		return ErrDomainDoesNotExist
-	}
-
-	_, err := d.GetLookupPath(r)
-	return err
-}
-
 // EnsureCertificate parses the PEM-encoded certificate for the domain
 func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 	if d == nil || len(d.CertificateKey) == 0 || len(d.CertificateCert) == 0 {

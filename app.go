@@ -132,7 +132,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if err := domain.HasLookupPath(r); err != nil {
+	if _, err := domain.GetLookupPath(r); err != nil {
 		if errors.Is(err, gitlab.ErrDiskDisabled) {
 			errortracking.Capture(err)
 			httperrors.Serve500(w)

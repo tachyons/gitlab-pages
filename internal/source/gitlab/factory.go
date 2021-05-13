@@ -36,7 +36,7 @@ func fabricateLookupPath(size int, lookup api.LookupPath) *serving.LookupPath {
 // fabricateServing fabricates serving based on the GitLab API response
 func (g *Gitlab) fabricateServing(lookup api.LookupPath) (serving.Serving, error) {
 	source := lookup.Source
-	if err := g.isDiskAllowed(lookup.ProjectID, source); err != nil {
+	if err := g.checkDiskAllowed(lookup.ProjectID, source); err != nil {
 		return nil, err
 	}
 
@@ -64,7 +64,7 @@ func (g *Gitlab) fabricateServing(lookup api.LookupPath) (serving.Serving, error
 	return nil, fmt.Errorf("gitlab: unknown serving source type: %q", source.Type)
 }
 
-func (g *Gitlab) isDiskAllowed(projectID int, source api.Source) error {
+func (g *Gitlab) checkDiskAllowed(projectID int, source api.Source) error {
 	if !g.enableDisk {
 		if source.Type == "file" || strings.HasPrefix(source.Path, "file://") {
 			log.WithError(ErrDiskDisabled).WithFields(logrus.Fields{
