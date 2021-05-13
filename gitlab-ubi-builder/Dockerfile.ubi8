@@ -6,7 +6,7 @@ ARG BUILD_DIR=/tmp/build
 ARG LIBEDIT_VERSION=20170329-3.1
 ARG DNF_OPTS
 
-ENV LIBDIR=/usr/lib64
+ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
 ENV INCLUDEDIR=/usr/include
 
 RUN dnf ${DNF_OPTS} install -by --nodocs \
