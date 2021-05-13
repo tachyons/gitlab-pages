@@ -757,3 +757,31 @@ func headerValues(header http.Header, key string) []string {
 	// from Go 1.15 https://github.com/golang/go/blob/release-branch.go1.15/src/net/textproto/header.go#L46
 	return h[textproto.CanonicalMIMEHeaderKey(key)]
 }
+
+func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
+	skipUnlessEnabled(t)
+
+	logBuf, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, []ListenSpec{httpListener}, "", nil, "-enable-disk=false")
+	defer teardown()
+
+	for host, suffix := range map[string]string{
+		// API serves "source": { "type": "local" }
+		"new-source-test.gitlab.io": "/my/pages/project/",
+		// API serves  "source": { "type": "local", "path": "file://..." }
+		"zip-from-disk.gitlab.io": "/",
+	} {
+		t.Run(host, func(t *testing.T) {
+			rsp, err := GetPageFromListener(t, httpListener, host, suffix)
+			require.NoError(t, err)
+			defer rsp.Body.Close()
+
+			require.Equal(t, http.StatusInternalServerError, rsp.StatusCode)
+		})
+
+		// give the process enough time to write the log message
+		require.Eventually(t, func() bool {
+			require.Contains(t, logBuf.String(), "cannot serve from disk", "log mismatch")
+			return true
+		}, time.Second, 10*time.Millisecond)
+	}
+}

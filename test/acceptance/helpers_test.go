@@ -232,15 +232,15 @@ func RunPagesProcessWithOutput(t *testing.T, pagesBinary string, listeners []Lis
 	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
 }
 
-func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
+func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
 	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	pagesArgs := append([]string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
 
-	_, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, pagesArgs...)
+	logBuf, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, pagesArgs...)
 
-	return func() {
+	return logBuf, func() {
 		source.Close()
 		cleanup()
 	}

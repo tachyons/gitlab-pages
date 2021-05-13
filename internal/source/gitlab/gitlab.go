@@ -23,9 +23,10 @@ import (
 // Gitlab source represent a new domains configuration source. We fetch all the
 // information about domains from GitLab instance.
 type Gitlab struct {
-	client  api.Resolver
-	mu      sync.RWMutex
-	isReady bool
+	client     api.Resolver
+	mu         sync.RWMutex
+	isReady    bool
+	enableDisk bool
 }
 
 // New returns a new instance of gitlab domain source.
@@ -36,7 +37,8 @@ func New(cfg *config.GitLab) (*Gitlab, error) {
 	}
 
 	g := &Gitlab{
-		client: cache.NewCache(glClient, &cfg.Cache),
+		client:     cache.NewCache(glClient, &cfg.Cache),
+		enableDisk: cfg.EnableDisk,
 	}
 
 	go g.poll(backoff.DefaultInitialInterval, maxPollingTime)
@@ -92,8 +94,13 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 				subPath = strings.TrimPrefix(urlPath, lookup.Prefix)
 			}
 
+			srv, err := g.fabricateServing(lookup)
+			if err != nil {
+				return nil, err
+			}
+
 			return &serving.Request{
-				Serving:    fabricateServing(lookup),
+				Serving:    srv,
 				LookupPath: fabricateLookupPath(size, lookup),
 				SubPath:    subPath}, nil
 		}

@@ -109,6 +109,7 @@ type GitLab struct {
 	ClientHTTPTimeout  time.Duration
 	JWTTokenExpiration time.Duration
 	Cache              Cache
+	EnableDisk         bool
 }
 
 // Listeners groups settings related to configuring various listeners
@@ -222,6 +223,7 @@ func loadConfig() (*Config, error) {
 		GitLab: GitLab{
 			ClientHTTPTimeout:  *gitlabClientHTTPTimeout,
 			JWTTokenExpiration: *gitlabClientJWTExpiry,
+			EnableDisk:         *enableDisk,
 			Cache: Cache{
 				CacheExpiry:          *gitlabCacheExpiry,
 				CacheCleanupInterval: *gitlabCacheCleanup,
@@ -352,6 +354,7 @@ func LogConfig(config *Config) {
 		"internal-gitlab-server":        config.GitLab.InternalServer,
 		"api-secret-key":                *gitLabAPISecretKey,
 		"domain-config-source":          config.General.DomainConfigurationSource,
+		"enable-disk":                   config.GitLab.EnableDisk,
 		"auth-redirect-uri":             config.Authentication.RedirectURI,
 		"auth-scope":                    config.Authentication.Scope,
 		"zip-cache-expiration":          config.Zip.ExpirationInterval,
