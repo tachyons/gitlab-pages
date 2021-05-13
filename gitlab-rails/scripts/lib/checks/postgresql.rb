@@ -58,7 +58,7 @@ module Checks
         puts "WARNING: Problem accessing '#{config.database}' database." if @@database_version.nil?
 
         # returning false prevents bailing when BYPASS_SCHEMA_VERSION set.
-        @@database_version.nil?
+        !@@database_version.nil?
       rescue PG::ConnectionBad => e
         puts "PostgreSQL Error: #{e.message}"
         false
