@@ -55,7 +55,7 @@ module Checks
 
         # Rails silently eats `ActiveRecord::NoDatabaseError` when calling `current_version`
         # This stems from https://github.com/rails/rails/blob/v6.0.3.6/activerecord/lib/active_record/connection_adapters/postgresql_adapter.rb#L48-L54
-        puts "WARNING: Problem accessing '#{config.database}' database." if @@database_version.nil?
+        puts "WARNING: Problem accessing '#{config.database}' database. Confirm username, password, and permissions." if @@database_version.nil?
 
         # returning false prevents bailing when BYPASS_SCHEMA_VERSION set.
         !@@database_version.nil?
