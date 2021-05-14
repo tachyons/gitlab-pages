@@ -1,3 +1,18 @@
+## 1.39.0 (2021-05-14)
+
+### Added (1 change)
+
+- [Add flag enable-disk](gitlab-org/gitlab-pages@8ea4cb76586c0841456c5973168cd8451f6c6c0a) ([merge request](gitlab-org/gitlab-pages!475))
+
+### Removed (1 change)
+
+- [ Remove use-legacy-storage](gitlab-org/gitlab-pages@ed66d91bd5eba6aa267e15520a1a01f12d624235) ([merge request](gitlab-org/gitlab-pages!476))
+
+### Other (2 changes)
+
+- [Use config package in GitLab client](gitlab-org/gitlab-pages@890d01033ab17ea5a6208450ced595d12f4ce195) ([merge request](gitlab-org/gitlab-pages!474))
+- [Remove gocovmerge](gitlab-org/gitlab-pages@8e83053055ab3f48232eb115e51aeb7532fe301c) ([merge request](gitlab-org/gitlab-pages!459))
+
 ## 1.38.0 (2021-04-15)
 
 ### Added (1 change)
