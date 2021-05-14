@@ -5,6 +5,7 @@ FROM ${RAILS_IMAGE}
 ARG GITLAB_VERSION
 ARG GITLAB_USER=git
 ARG DNF_OPTS
+ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-task-runner" \
       name="GitLab Task Runner" \

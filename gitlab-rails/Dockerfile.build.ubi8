@@ -21,6 +21,7 @@ ADD gitlab-elasticsearch-indexer.tar.gz /
 ADD gitlab-graphicsmagick.tar.gz /
 
 ENV PRIVATE_TOKEN=${API_TOKEN}
+ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
 
 RUN dnf ${DNF_OPTS} install -by --nodocs git
 
