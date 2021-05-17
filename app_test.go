@@ -10,9 +10,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
 func Test_setRequestScheme(t *testing.T) {
@@ -88,7 +89,10 @@ func TestHealthCheckMiddleware(t *testing.T) {
 	require.NoError(t, err)
 	cfg.General.StatusPath = "/-/healthcheck"
 
-	domains, err := source.NewDomains("auto", &cfg.GitLab)
+	cfg.GitLab.InternalServer = "https://gitlab.example.com"
+	cfg.GitLab.APISecretKey = []byte("secret key")
+
+	domains, err := source.NewDomains(&cfg.GitLab)
 	require.NoError(t, err)
 
 	app := theApp{

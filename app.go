@@ -412,8 +412,6 @@ func (a *theApp) Run() {
 		a.listenMetricsFD(&wg, a.config.ListenMetrics)
 	}
 
-	a.domains.Read(a.config.General.Domain)
-
 	wg.Wait()
 }
 
@@ -498,7 +496,7 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 }
 
 func runApp(config *cfg.Config) {
-	domains, err := source.NewDomains(config.General.DomainConfigurationSource, &config.GitLab)
+	domains, err := source.NewDomains(&config.GitLab)
 	if err != nil {
 		log.WithError(err).Fatal("could not create domains config source")
 	}
