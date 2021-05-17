@@ -14,6 +14,7 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-conta
       summary="The Docker toolset to pack, ship, store, and deliver content." \
       description="The Docker toolset to pack, ship, store, and deliver content. This is a fork of official Docker Registry 2.0 implementation."
 
+ADD gitlab-gomplate.tar.gz /
 ADD gitlab-container-registry.tar.gz /
 
 COPY scripts/ /scripts/

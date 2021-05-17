@@ -2,6 +2,11 @@ ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
 ARG GIT_TAG=2.29.0
 
+ARG GOMPLATE_TAG=
+ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
+
+FROM ${GOMPLATE_IMAGE} as gomplate
+
 FROM ${FROM_IMAGE}:${GIT_TAG} as builder
 
 ARG DOCKER_BUILDTAGS="include_oss include_gcs continuous_profiler_stackdriver"
@@ -35,6 +40,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* \
   && adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER}
 
+COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 COPY --from=builder /usr/local/bin/registry /bin/registry
 COPY scripts/ /scripts/
 
