@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"strings"
 	"time"
 
@@ -152,31 +151,12 @@ type ZipServing struct {
 	ChrootPath string
 }
 
-func gitlabServerFromFlags() (string, error) {
-	if *gitLabServer != "" {
-		return *gitLabServer, nil
-	}
-
-	if *gitLabAuthServer != "" {
-		log.Warn("auth-server parameter is deprecated, use gitlab-server instead")
-		return *gitLabAuthServer, nil
-	}
-
-	u, err := url.Parse(*artifactsServer)
-	if err != nil {
-		return "", fmt.Errorf("parsing artifact server: %w", err)
-	}
-
-	u.Path = ""
-	return u.String(), nil
-}
-
-func internalGitlabServerFromFlags() (string, error) {
+func internalGitlabServerFromFlags() string {
 	if *internalGitLabServer != "" {
-		return *internalGitLabServer, nil
+		return *internalGitLabServer
 	}
 
-	return gitlabServerFromFlags()
+	return *gitLabServer
 }
 
 func setGitLabAPISecretKey(secretFile string, config *Config) error {
@@ -296,13 +276,9 @@ func loadConfig() (*Config, error) {
 	}
 
 	// Populating remaining GitLab settings
-	if config.GitLab.Server, err = gitlabServerFromFlags(); err != nil {
-		return nil, err
-	}
+	config.GitLab.Server = *gitLabServer
 
-	if config.GitLab.InternalServer, err = internalGitlabServerFromFlags(); err != nil {
-		return nil, err
-	}
+	config.GitLab.InternalServer = internalGitlabServerFromFlags()
 
 	if err = setGitLabAPISecretKey(*gitLabAPISecretKey, config); err != nil {
 		return nil, err
