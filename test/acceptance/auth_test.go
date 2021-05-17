@@ -15,7 +15,7 @@ import (
 )
 
 func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "")
 	defer teardown()
 
@@ -27,7 +27,7 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 }
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -59,7 +59,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 }
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -71,7 +71,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
 }
 func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -90,7 +90,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 }
 
 func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -181,7 +181,7 @@ func sleepIfAuthorized(t *testing.T, authorization string, w http.ResponseWriter
 }
 
 func TestAccessControlUnderCustomDomain(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
+	skipUnlessEnabled(t, "not-inplace-chroot", diskSourceTest)
 
 	testServer := makeGitLabPagesAccessStub(t)
 	testServer.Start()
@@ -263,7 +263,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 }
 
 func TestCustomErrorPageWithAuth(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
+	skipUnlessEnabled(t, "not-inplace-chroot", diskSourceTest)
 	testServer := makeGitLabPagesAccessStub(t)
 	testServer.Start()
 	defer testServer.Close()
@@ -372,7 +372,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 }
 
 func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
+	skipUnlessEnabled(t, "not-inplace-chroot", diskSourceTest)
 
 	testServer := makeGitLabPagesAccessStub(t)
 	testServer.Start()
@@ -440,7 +440,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 }
 
 func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -455,7 +455,7 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 	require.Equal(t, "/auth", url.Path)
 }
 func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -476,7 +476,7 @@ func setupTransport(t *testing.T) {
 type runPagesFunc func(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func()
 
 func testAccessControl(t *testing.T, runPages runPagesFunc) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
+	skipUnlessEnabled(t, "not-inplace-chroot", diskSourceTest)
 
 	setupTransport(t)
 
@@ -650,7 +650,7 @@ func TestAccessControlWithSSLCertDir(t *testing.T) {
 // Read the issue description if any changes to internal/auth/ break this test.
 // Related to https://tools.ietf.org/html/rfc6749#section-10.6.
 func TestHijackedCode(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
+	skipUnlessEnabled(t, "not-inplace-chroot", diskSourceTest)
 
 	testServer := makeGitLabPagesAccessStub(t)
 	testServer.Start()

@@ -10,7 +10,7 @@ import (
 )
 
 func TestDisabledRedirects(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, supportedListeners(), "", []string{"FF_ENABLE_REDIRECTS=false"})
 	defer teardown()
@@ -31,7 +31,7 @@ func TestDisabledRedirects(t *testing.T) {
 }
 
 func TestRedirectStatusPage(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
@@ -48,7 +48,7 @@ func TestRedirectStatusPage(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()

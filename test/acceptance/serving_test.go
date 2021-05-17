@@ -15,7 +15,7 @@ import (
 )
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -29,7 +29,7 @@ func TestUnknownHostReturnsNotFound(t *testing.T) {
 }
 
 func TestUnknownProjectReturnsNotFound(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -40,7 +40,7 @@ func TestUnknownProjectReturnsNotFound(t *testing.T) {
 }
 
 func TestGroupDomainReturns200(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -51,7 +51,7 @@ func TestGroupDomainReturns200(t *testing.T) {
 }
 
 func TestKnownHostReturns200(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -101,7 +101,7 @@ func TestKnownHostReturns200(t *testing.T) {
 }
 
 func TestNestedSubgroups(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	maxNestedSubgroup := 21
 
@@ -147,7 +147,7 @@ func TestNestedSubgroups(t *testing.T) {
 }
 
 func TestCustom404(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -209,7 +209,8 @@ func TestCustom404(t *testing.T) {
 }
 
 func TestCORSWhenDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-disable-cross-origin-requests")
 	defer teardown()
 
@@ -225,7 +226,7 @@ func TestCORSWhenDisabled(t *testing.T) {
 }
 
 func TestCORSAllowsGET(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -241,7 +242,7 @@ func TestCORSAllowsGET(t *testing.T) {
 }
 
 func TestCORSForbidsPOST(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
@@ -256,7 +257,7 @@ func TestCORSForbidsPOST(t *testing.T) {
 }
 
 func TestCustomHeaders(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-header", "X-Test1:Testing1", "-header", "X-Test2:Testing2")
 	defer teardown()
@@ -271,7 +272,7 @@ func TestCustomHeaders(t *testing.T) {
 }
 
 func TestKnownHostWithPortReturns200(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
@@ -286,7 +287,8 @@ func TestKnownHostWithPortReturns200(t *testing.T) {
 }
 
 func TestHttpToHttpsRedirectDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -302,7 +304,8 @@ func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 }
 
 func TestHttpToHttpsRedirectEnabled(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-redirect-http=true")
 	defer teardown()
 
@@ -320,7 +323,8 @@ func TestHttpToHttpsRedirectEnabled(t *testing.T) {
 }
 
 func TestHttpsOnlyGroupEnabled(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -331,7 +335,8 @@ func TestHttpsOnlyGroupEnabled(t *testing.T) {
 }
 
 func TestHttpsOnlyGroupDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -342,7 +347,8 @@ func TestHttpsOnlyGroupDisabled(t *testing.T) {
 }
 
 func TestHttpsOnlyProjectEnabled(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -353,7 +359,8 @@ func TestHttpsOnlyProjectEnabled(t *testing.T) {
 }
 
 func TestHttpsOnlyProjectDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -364,7 +371,8 @@ func TestHttpsOnlyProjectDisabled(t *testing.T) {
 }
 
 func TestHttpsOnlyDomainDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -378,10 +386,9 @@ func TestDomainsSource(t *testing.T) {
 	skipUnlessEnabled(t)
 
 	type args struct {
-		configSource string
-		domain       string
-		urlSuffix    string
-		readyCount   int
+		domain     string
+		urlSuffix  string
+		readyCount int
 	}
 	type want struct {
 		statusCode int
@@ -394,11 +401,10 @@ func TestDomainsSource(t *testing.T) {
 		want want
 	}{
 		{
-			name: "gitlab_source_domain_exists",
+			name: "domain_exists",
 			args: args{
-				configSource: "gitlab",
-				domain:       "new-source-test.gitlab.io",
-				urlSuffix:    "/my/pages/project/",
+				domain:    "new-source-test.gitlab.io",
+				urlSuffix: "/my/pages/project/",
 			},
 			want: want{
 				statusCode: http.StatusOK,
@@ -407,77 +413,12 @@ func TestDomainsSource(t *testing.T) {
 			},
 		},
 		{
-			name: "gitlab_source_domain_does_not_exist",
+			name: "domain_does_not_exist",
 			args: args{
-				configSource: "gitlab",
-				domain:       "non-existent-domain.gitlab.io",
+				domain: "non-existent-domain.gitlab.io",
 			},
 			want: want{
 				statusCode: http.StatusNotFound,
-				apiCalled:  true,
-			},
-		},
-		{
-			name: "disk_source_domain_exists",
-			args: args{
-				configSource: "disk",
-				// test.domain.com sourced from disk configuration
-				domain:    "test.domain.com",
-				urlSuffix: "/",
-			},
-			want: want{
-				statusCode: http.StatusOK,
-				content:    "main-dir\n",
-				apiCalled:  false,
-			},
-		},
-		{
-			name: "disk_source_domain_does_not_exist",
-			args: args{
-				configSource: "disk",
-				domain:       "non-existent-domain.gitlab.io",
-			},
-			want: want{
-				statusCode: http.StatusNotFound,
-				apiCalled:  false,
-			},
-		},
-		{
-			name: "disk_source_domain_should_not_exist_under_hashed_dir",
-			args: args{
-				configSource: "disk",
-				domain:       "hashed.com",
-			},
-			want: want{
-				statusCode: http.StatusNotFound,
-				apiCalled:  false,
-			},
-		},
-		{
-			name: "auto_source_gitlab_is_not_ready",
-			args: args{
-				configSource: "auto",
-				domain:       "test.domain.com",
-				urlSuffix:    "/",
-				readyCount:   100, // big number to ensure the API is in bad state for a while
-			},
-			want: want{
-				statusCode: http.StatusOK,
-				content:    "main-dir\n",
-				apiCalled:  false,
-			},
-		},
-		{
-			name: "auto_source_gitlab_is_ready",
-			args: args{
-				configSource: "auto",
-				domain:       "new-source-test.gitlab.io",
-				urlSuffix:    "/my/pages/project/",
-				readyCount:   0,
-			},
-			want: want{
-				statusCode: http.StatusOK,
-				content:    "New Pages GitLab Source TEST OK\n",
 				apiCalled:  true,
 			},
 		},
@@ -495,7 +436,7 @@ func TestDomainsSource(t *testing.T) {
 
 			gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", tt.args.configSource}
+			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
 			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", []string{}, pagesArgs...)
 			defer teardown()
 
@@ -520,6 +461,8 @@ func TestDomainsSource(t *testing.T) {
 // The first request will fail and display an error but subsequent requests will
 // serve from disk source when `domain-config-source=auto`
 func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
+	skipUnlessEnabled(t, diskSourceTest)
+
 	opts := &stubOpts{
 		// edge case https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535
 		pagesStatusResponse: http.StatusUnauthorized,
@@ -529,7 +472,7 @@ func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "auto"}
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", []string{}, pagesArgs...)
 	defer teardown()
 
@@ -556,7 +499,7 @@ func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
 }
 
 func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	specs := []ListenSpec{
 		proxyListener,
@@ -619,7 +562,7 @@ func TestDomainResolverError(t *testing.T) {
 			defer source.Close()
 			gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
+			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
 			if test.timeout != 0 {
 				pagesArgs = append(pagesArgs, "-gitlab-client-http-timeout", test.timeout.String(),
 					"-gitlab-retrieval-timeout", "200ms", "-gitlab-retrieval-interval", "200ms", "-gitlab-retrieval-retries", "1")
@@ -668,7 +611,8 @@ func doCrossOriginRequest(t *testing.T, spec ListenSpec, method, reqMethod, url 
 }
 
 func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -687,7 +631,7 @@ func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
 }
 
 func TestServerRepliesWithHeaders(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	tests := map[string]struct {
 		flags           []string

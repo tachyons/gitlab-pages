@@ -10,7 +10,7 @@ import (
 )
 
 func TestProxyv2(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	logBuf, teardown := RunPagesProcessWithOutput(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()

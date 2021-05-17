@@ -8,7 +8,8 @@ import (
 )
 
 func TestAcceptsSupportedCiphers(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -45,7 +46,8 @@ func tlsConfigWithInsecureCiphersOnly() *tls.Config {
 }
 
 func TestRejectsUnsupportedCiphers(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -63,7 +65,8 @@ func TestRejectsUnsupportedCiphers(t *testing.T) {
 }
 
 func TestEnableInsecureCiphers(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-insecure-ciphers")
 	defer teardown()
 
@@ -80,7 +83,7 @@ func TestEnableInsecureCiphers(t *testing.T) {
 }
 
 func TestTLSVersions(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	tests := map[string]struct {
 		tlsMin      string

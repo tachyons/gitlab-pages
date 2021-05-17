@@ -10,7 +10,7 @@ import (
 )
 
 func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "")
 	defer teardown()
@@ -39,7 +39,7 @@ func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
 }
 
 func TestAcmeChallengesWhenItIsConfigured(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-gitlab-server=https://gitlab-acme.com")
 	defer teardown()

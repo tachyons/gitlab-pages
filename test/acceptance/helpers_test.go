@@ -236,7 +236,7 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary st
 	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
-	pagesArgs := append([]string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
+	pagesArgs := append([]string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}, extraArgs...)
 
 	logBuf, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, pagesArgs...)
 

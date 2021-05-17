@@ -9,7 +9,7 @@ import (
 )
 
 func TestMIMETypes(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -40,7 +40,7 @@ func TestMIMETypes(t *testing.T) {
 }
 
 func TestCompressedEncoding(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 
 	tests := []struct {
 		name     string

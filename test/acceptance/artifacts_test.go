@@ -15,7 +15,7 @@ import (
 )
 
 func TestArtifactProxyRequest(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
+	skipUnlessEnabled(t, "not-inplace-chroot", diskSourceTest)
 
 	transport := (TestHTTPSClient.Transport).(*http.Transport)
 	defer func(t time.Duration) {
@@ -161,7 +161,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 }
 
 func TestPrivateArtifactProxyRequest(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
+	skipUnlessEnabled(t, "not-inplace-chroot", diskSourceTest)
 
 	setupTransport(t)
 

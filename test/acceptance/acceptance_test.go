@@ -12,6 +12,7 @@ import (
 
 const (
 	objectStorageMockServer = "127.0.0.1:38001"
+	diskSourceTest          = "disk-source-test"
 )
 
 var (
@@ -78,6 +79,10 @@ func skipUnlessEnabled(t *testing.T, conditions ...string) {
 				t.Log("Not supported with -daemon-inplace-chroot")
 				t.SkipNow()
 			}
+		case diskSourceTest:
+			// TODO: rework acceptance tests to use GitLab source instead
+			t.Log("Disk source is not supported anymore, please update test to use API-Based config")
+			t.SkipNow()
 		default:
 			t.Error("Unknown condition:", condition)
 			t.FailNow()

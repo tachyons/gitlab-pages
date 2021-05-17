@@ -24,7 +24,7 @@ func TestZipServing(t *testing.T) {
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, supportedListeners(), "", []string{}, pagesArgs...)
 	defer teardown()
 
@@ -124,7 +124,7 @@ func TestZipServingFromDisk(t *testing.T) {
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab", "-pages-root", wd}
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-pages-root", wd}
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, supportedListeners(), "", []string{}, pagesArgs...)
 	defer teardown()
 
@@ -214,7 +214,7 @@ func TestZipServingConfigShortTimeout(t *testing.T) {
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab",
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey,
 		"-zip-open-timeout=1ns"} // <- test purpose
 
 	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, supportedListeners(), "", []string{}, pagesArgs...)

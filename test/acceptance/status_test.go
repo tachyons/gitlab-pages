@@ -9,7 +9,7 @@ import (
 )
 
 func TestStatusPage(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-pages-status=/@statuscheck")
 	defer teardown()
 
@@ -20,7 +20,7 @@ func TestStatusPage(t *testing.T) {
 }
 
 func TestStatusNotYetReady(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, supportedListeners(), "", "-pages-status=/@statuscheck", "-pages-root=../../shared/invalid-pages")
 	defer teardown()
 
@@ -32,7 +32,7 @@ func TestStatusNotYetReady(t *testing.T) {
 }
 
 func TestPageNotAvailableIfNotLoaded(t *testing.T) {
-	skipUnlessEnabled(t)
+	skipUnlessEnabled(t, diskSourceTest)
 	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, supportedListeners(), "", "-pages-root=../../shared/invalid-pages")
 	defer teardown()
 	waitForRoundtrips(t, supportedListeners(), 5*time.Second)
