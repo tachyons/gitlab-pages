@@ -60,3 +60,9 @@ changelog:
 ifndef GITLAB_PRIVATE_TOKEN
 	$(error GITLAB_PRIVATE_TOKEN is undefined)
 endif
+
+.PHONY: zip
+
+zip:
+	cd $(PWD)/shared/pages/$(PROJECT_SUBDIR)/ && \
+	zip -r public.zip public/

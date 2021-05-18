@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/test/acceptance/testdata"
 )
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
@@ -52,38 +54,52 @@ func TestGroupDomainReturns200(t *testing.T) {
 
 func TestKnownHostReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
+
+	opts := &stubOpts{
+		pagesHandler: testdata.FindZipArchiveHandler(t),
+	}
+
+	source := NewGitlabDomainsSourceStub(t, opts)
+	defer source.Close()
+
+	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
+
+	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
+	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, supportedListeners(), "", []string{}, pagesArgs...)
 	defer teardown()
 
 	tests := []struct {
-		name string
-		host string
-		path string
+		name    string
+		host    string
+		path    string
+		content string
 	}{
 		{
-			name: "lower case",
-			host: "group.gitlab-example.com",
-			path: "project/",
+			name:    "lower case",
+			host:    "group.gitlab-example.com",
+			path:    "project/",
+			content: "project-subdir\n",
 		},
 		{
-			name: "capital project",
-			host: "group.gitlab-example.com",
-			path: "CapitalProject/",
+			name:    "capital project",
+			host:    "group.gitlab-example.com",
+			path:    "CapitalProject/",
+			content: "Capital Project\n",
 		},
 		{
-			name: "capital group",
-			host: "CapitalGroup.gitlab-example.com",
-			path: "project/",
+			name:    "capital group",
+			host:    "CapitalGroup.gitlab-example.com",
+			path:    "project/",
+			content: "Capital Group\n",
 		},
 		{
-			name: "capital group and project",
-			host: "CapitalGroup.gitlab-example.com",
-			path: "CapitalProject/",
+			name:    "capital group and project",
+			host:    "CapitalGroup.gitlab-example.com",
+			path:    "CapitalProject/",
+			content: "Capital Group & Project\n",
 		},
 		{
-			name: "subgroup",
-			host: "group.gitlab-example.com",
-			path: "subgroup/project/",
+			name:    "subgroup",g
 		},
 	}
 
@@ -91,10 +107,14 @@ func TestKnownHostReturns200(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, spec := range supportedListeners() {
 				rsp, err := GetPageFromListener(t, spec, tt.host, tt.path)
-
 				require.NoError(t, err)
-				rsp.Body.Close()
 				require.Equal(t, http.StatusOK, rsp.StatusCode)
+
+				body, err := ioutil.ReadAll(rsp.Body)
+				require.NoError(t, err)
+				require.Equal(t, tt.content, string(body))
+
+				rsp.Body.Close()
 			}
 		})
 	}
