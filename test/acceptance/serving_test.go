@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/test/acceptance/testdata"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
@@ -54,9 +54,14 @@ func TestGroupDomainReturns200(t *testing.T) {
 
 func TestKnownHostReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
+	chdir := false
+	defer testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)()
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
 
 	opts := &stubOpts{
-		pagesHandler: testdata.FindZipArchiveHandler(t),
+		pagesRoot: wd,
 	}
 
 	source := NewGitlabDomainsSourceStub(t, opts)
@@ -99,7 +104,10 @@ func TestKnownHostReturns200(t *testing.T) {
 			content: "Capital Group & Project\n",
 		},
 		{
-			name:    "subgroup",g
+			name:    "subgroup",
+			host:    "group.gitlab-example.com",
+			path:    "subgroup/project/",
+			content: "A subgroup project\n",
 		},
 	}
 

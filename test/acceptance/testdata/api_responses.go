@@ -2,6 +2,9 @@ package testdata
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
@@ -14,6 +17,12 @@ var DomainResponses = map[string]responseFn{
 	"zip-from-disk.gitlab.io":           ZipFromFile,
 	"zip-from-disk-not-found.gitlab.io": ZipFromFileNotFound,
 	"zip-not-allowed-path.gitlab.io":    ZipFromNotAllowedPath,
+	// test assume the working dir is inside shared/pages/
+	"group.gitlab-example.com":        GenerateVirtualDomainFromDir("group"),
+	"CapitalGroup.gitlab-example.com": GenerateVirtualDomainFromDir("CapitalGroup"),
+	// NOTE: before adding more domains here, generate the zip archive by running (per project)
+	// make zip PROJECT_SUBDIR=group/serving
+	// make zip PROJECT_SUBDIR=group/project2
 }
 
 // ZipFromFile response for zip.gitlab.io
@@ -74,5 +83,55 @@ func ZipFromNotAllowedPath(wd string) api.VirtualDomain {
 				},
 			},
 		},
+	}
+}
+
+// GenerateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
+// It works for subdomains of pages-domain but not for custom domains (yet)
+func GenerateVirtualDomainFromDir(dir string) responseFn {
+	return func(wd string) api.VirtualDomain {
+		var foundZips []string
+
+		// walk over dir and save any paths containing a `.zip` file
+		// $(GITLAB_PAGES_DIR)/shared/pages + "/" + group
+		filepath.Walk(wd+"/"+dir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if strings.HasSuffix(info.Name(), ".zip") {
+				project := strings.TrimPrefix(path, wd+"/"+dir)
+				foundZips = append(foundZips, project)
+			}
+			return nil
+		})
+
+		lookupPaths := make([]api.LookupPath, 0, len(foundZips))
+		// generate lookup paths
+		for _, project := range foundZips {
+			// if project = "group/subgroup/project/public.zip
+			// trim prefix group and suffix /public.zip
+			// so prefix = "/subgroup/project"
+			prefix := strings.TrimPrefix(project, dir)
+			prefix = strings.TrimSuffix(prefix, "/"+filepath.Base(project))
+
+			lookupPath := api.LookupPath{
+				// TODO: find a way to configure this
+				ProjectID:     123,
+				AccessControl: false,
+				HTTPSOnly:     false,
+				Prefix:        prefix,
+				Source: api.Source{
+					Type: "zip",
+					Path: fmt.Sprintf("file://%s", wd+"/"+dir+project),
+				},
+			}
+
+			lookupPaths = append(lookupPaths, lookupPath)
+		}
+
+		return api.VirtualDomain{
+			LookupPaths: lookupPaths,
+		}
 	}
 }
