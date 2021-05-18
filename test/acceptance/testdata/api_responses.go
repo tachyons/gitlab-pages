@@ -5,11 +5,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
-type responseFn func(string) api.VirtualDomain
+type responseFn func(*testing.T, string) api.VirtualDomain
 
 // DomainResponses holds the predefined API responses for certain domains
 // that can be used with the GitLab API stub in acceptance tests
@@ -26,7 +29,9 @@ var DomainResponses = map[string]responseFn{
 }
 
 // ZipFromFile response for zip.gitlab.io
-func ZipFromFile(wd string) api.VirtualDomain {
+func ZipFromFile(t *testing.T, wd string) api.VirtualDomain {
+	t.Helper()
+
 	return api.VirtualDomain{
 		Certificate: "",
 		Key:         "",
@@ -37,8 +42,8 @@ func ZipFromFile(wd string) api.VirtualDomain {
 				HTTPSOnly:     false,
 				Prefix:        "/",
 				Source: api.Source{
-					Type:       "zip",
-					Path:       fmt.Sprintf("file://%s/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/artifacts.zip", wd),
+					Type: "zip",
+					Path: fmt.Sprintf("file://%s/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/artifacts.zip", wd),
 				},
 			},
 		},
@@ -46,7 +51,9 @@ func ZipFromFile(wd string) api.VirtualDomain {
 }
 
 // ZipFromFileNotFound response for zip-from-disk-not-found.gitlab.io
-func ZipFromFileNotFound(wd string) api.VirtualDomain {
+func ZipFromFileNotFound(t *testing.T, wd string) api.VirtualDomain {
+	t.Helper()
+
 	return api.VirtualDomain{
 		Certificate: "",
 		Key:         "",
@@ -57,8 +64,8 @@ func ZipFromFileNotFound(wd string) api.VirtualDomain {
 				HTTPSOnly:     false,
 				Prefix:        "/",
 				Source: api.Source{
-					Type:       "zip",
-					Path:       fmt.Sprintf("file://%s/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/unknown.zip", wd),
+					Type: "zip",
+					Path: fmt.Sprintf("file://%s/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/unknown.zip", wd),
 				},
 			},
 		},
@@ -66,7 +73,9 @@ func ZipFromFileNotFound(wd string) api.VirtualDomain {
 }
 
 // ZipFromNotAllowedPath response for zip-not-allowed-path.gitlab.io
-func ZipFromNotAllowedPath(wd string) api.VirtualDomain {
+func ZipFromNotAllowedPath(t *testing.T, wd string) api.VirtualDomain {
+	t.Helper()
+
 	return api.VirtualDomain{
 		Certificate: "",
 		Key:         "",
@@ -79,7 +88,7 @@ func ZipFromNotAllowedPath(wd string) api.VirtualDomain {
 				Source: api.Source{
 					Type: "zip",
 					// path outside of `pages-root`
-					Path:       "file:///some/random/path/public.zip",
+					Path: "file:///some/random/path/public.zip",
 				},
 			},
 		},
@@ -89,20 +98,27 @@ func ZipFromNotAllowedPath(wd string) api.VirtualDomain {
 // GenerateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
 // It works for subdomains of pages-domain but not for custom domains (yet)
 func GenerateVirtualDomainFromDir(dir string) responseFn {
-	return func(wd string) api.VirtualDomain {
+	return func(t *testing.T, wd string) api.VirtualDomain {
+		t.Helper()
+
 		var foundZips []string
 
 		// walk over dir and save any paths containing a `.zip` file
 		// $(GITLAB_PAGES_DIR)/shared/pages + "/" + group
-		filepath.Walk(wd+"/"+dir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
+
+		cleanDir := filepath.Join(wd, dir)
+
+		// make sure resolved path inside dir is under wd to avoid https://securego.io/docs/rules/g304.html
+		require.Truef(t, strings.HasPrefix(cleanDir, wd), "path %q outside of wd %q", cleanDir, wd)
+
+		filepath.Walk(cleanDir, func(path string, info os.FileInfo, err error) error {
+			require.NoError(t, err)
 
 			if strings.HasSuffix(info.Name(), ".zip") {
 				project := strings.TrimPrefix(path, wd+"/"+dir)
 				foundZips = append(foundZips, project)
 			}
+
 			return nil
 		})
 
