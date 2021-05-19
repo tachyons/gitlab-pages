@@ -19,6 +19,7 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab-pages" \
 
 ADD gitlab-pages.tar.gz /
 ADD gitlab-logger.tar.gz /usr/local/bin
+ADD gitlab-gomplate.tar.gz /
 
 COPY scripts/ /scripts
 
