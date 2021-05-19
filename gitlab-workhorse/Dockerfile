@@ -4,6 +4,10 @@ ARG GITLAB_EDITION=gitlab-rails-ee
 ARG RAILS_VERSION="master"
 ARG RUBY_VERSION="master"
 
+ARG GOMPLATE_TAG=
+ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
+
+FROM ${GOMPLATE_IMAGE} as gomplate
 FROM ${CI_REGISTRY_IMAGE}/${GITLAB_EDITION}:${RAILS_VERSION} as rails
 FROM ${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG} as builder
 
@@ -37,6 +41,8 @@ COPY --from=builder /usr/local/bin/gitlab-* /usr/local/bin/
 COPY --from=rails --chown=git /srv/gitlab/public/ /srv/gitlab/public/
 
 COPY --from=rails --chown=git /srv/gitlab/doc/ /srv/gitlab/doc/
+
+COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 
 USER $GITLAB_USER:$GITLAB_USER
 
