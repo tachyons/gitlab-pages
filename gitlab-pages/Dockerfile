@@ -4,6 +4,9 @@ ARG GO_TAG="master"
 ARG RUBY_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ruby:master"
 ARG GITLAB_LOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
 
+ARG GOMPLATE_TAG=
+ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
+
 FROM ${FROM_IMAGE}:${GO_TAG} as builder
 
 ARG GITLAB_PAGES_VERSION=v1.30.0
@@ -31,6 +34,8 @@ RUN buildDeps=' \
   && rm -rf /var/lib/apt/lists/*
 
 FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
+FROM ${GOMPLATE_IMAGE} as gomplate
+
 FROM ${RUBY_IMAGE}
 
 ARG GITLAB_USER=git
@@ -46,6 +51,9 @@ COPY --from=builder /usr/local/bin/gitlab-pages /bin/gitlab-pages
 
 # Pull in gitlab-logger
 COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
+
+# Pull in gomplate
+COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 
 ENV CONFIG_TEMPLATE_DIRECTORY=${CONFIG_DIRECTORY}
 
