@@ -1164,13 +1164,15 @@ gitlab-workhorse-ee:
   <<: *only-ee
   stage: phase-six
   script:
+    - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - rails_version=$(get_version gitlab-rails)
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/git_container.txt)
+    - gomplate_version=$(cat artifacts/gitlab-gomplate_container.txt)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
-    - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$gomplate_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
     - fi
@@ -1185,23 +1187,28 @@ gitlab-workhorse-ee:
   dependencies:
     - git-base
     - gitlab-rails-ee
+    - gitlab-gomplate
     - build:gitlab-workhorse-ee
+    - build:gitlab-gomplate
 
 gitlab-workhorse-ce:
   <<: *job-base
   <<: *except-ee
   stage: phase-six
   script:
+    - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - rails_version=$(get_version gitlab-rails)
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/git_container.txt)
+    - gomplate_version=$(cat artifacts/gitlab-gomplate_container.txt)
     - rails_container=$(cat artifacts/rails_container_ce.txt)
-    - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$gomplate_version$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
     - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=$GITLAB_VERSION"
                       --build-arg "RAILS_VERSION=${rails_container}"
                       --build-arg "RUBY_VERSION=$ruby_version"
@@ -1210,6 +1217,7 @@ gitlab-workhorse-ce:
   dependencies:
     - git-base
     - gitlab-rails-ce
+    - gitlab-gomplate
 
 sync-images:
   image: "${DEPENDENCY_PROXY}docker:git"
