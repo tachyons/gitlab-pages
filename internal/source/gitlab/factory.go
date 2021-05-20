@@ -45,20 +45,6 @@ func (g *Gitlab) fabricateServing(lookup api.LookupPath) (serving.Serving, error
 		return local.Instance(), nil
 	case "zip":
 		return zip.Instance(), nil
-	case "serverless":
-		log.Errorf("attempted to fabricate serverless serving for project %d", lookup.ProjectID)
-
-		// This feature has been disalbed, for more details see
-		//   https://gitlab.com/gitlab-org/gitlab-pages/-/issues/467
-		//
-		// serving, err := serverless.NewFromAPISource(source.Serverless)
-		// if err != nil {
-		// 	log.WithError(err).Errorf("could not fabricate serving for project %d", lookup.ProjectID)
-		//
-		// 	break
-		// }
-		//
-		// return serving
 	}
 
 	return nil, fmt.Errorf("gitlab: unknown serving source type: %q", source.Type)

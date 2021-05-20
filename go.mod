@@ -27,7 +27,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/tj/assert v0.0.3 // indirect
 	github.com/tj/go-redirects v0.0.0-20180508180010-5c02ead0bbc5
-	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	gitlab.com/gitlab-org/go-mimedb v1.45.0
 	gitlab.com/gitlab-org/labkit v1.3.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9

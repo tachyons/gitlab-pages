@@ -54,18 +54,6 @@ var (
 		Help: "The number of GitLab API calls that failed",
 	})
 
-	// ServerlessRequests measures the amount of serverless invocations
-	ServerlessRequests = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "gitlab_pages_serverless_requests",
-		Help: "The number of total GitLab Serverless requests served",
-	})
-
-	// ServerlessLatency records serverless serving roundtrip duration
-	ServerlessLatency = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "gitlab_pages_serverless_latency",
-		Help: "Serverless serving roundtrip duration",
-	})
-
 	// DomainsSourceAPIReqTotal is the number of calls made to the GitLab API that returned a 4XX error
 	DomainsSourceAPIReqTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "gitlab_pages_domains_source_api_requests_total",
@@ -243,8 +231,6 @@ func MustRegister() {
 		DomainsSourceAPICallDuration,
 		DomainsSourceAPITraceDuration,
 		DomainsSourceFailures,
-		ServerlessRequests,
-		ServerlessLatency,
 		DiskServingFileSize,
 		ServingTime,
 		VFSOperations,
