@@ -19,7 +19,6 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-workh
 ENV LANG=C.UTF-8
 
 ADD gitlab-workhorse-ee.tar.gz /
-ADD gitlab-gomplate.tar.gz /
 
 COPY scripts/ /scripts/
 
