@@ -4,6 +4,9 @@ ARG TAG="master"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
 ARG GITLAB_LOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
 
+ARG GOMPLATE_TAG=
+ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
+
 FROM ${FROM_IMAGE}:${TAG} as builder
 
 ARG BUILD_DIR=/tmp/build
@@ -32,6 +35,7 @@ RUN mkdir /srv/gitlab-shell && \
     rm -rf go go_build internal/testhelper/testdata
 
 FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
+FROM ${GOMPLATE_IMAGE} as gomplate
 
 FROM ${FROM_IMAGE}:${TAG}
 
@@ -63,6 +67,9 @@ COPY sshd_config /etc/ssh/
 
 # Pull in gitlab-logger
 COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
+
+# Pull in gomplate
+COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 
 # AuthrorizedKeysCommand must be owned by root, and have all parent paths owned as root
 RUN mv /scripts/authorized_keys /authorized_keys && chmod 0755 /authorized_keys
