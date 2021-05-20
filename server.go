@@ -10,7 +10,6 @@ import (
 
 	"github.com/gorilla/context"
 	proxyproto "github.com/pires/go-proxyproto"
-	"golang.org/x/net/http2"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 )
@@ -49,11 +48,12 @@ func (a *theApp) listenAndServe(config listenerConfig) error {
 	// create server
 	server := &http.Server{Handler: context.ClearHandler(config.handler), TLSConfig: config.tlsConfig}
 
-	if a.config.General.HTTP2 {
-		err := http2.ConfigureServer(server, &http2.Server{})
-		if err != nil {
-			return err
-		}
+	if a.config.General.HTTP2 && server.TLSConfig != nil {
+		server.TLSConfig.NextProtos = append(server.TLSConfig.NextProtos, "h2")
+	}
+
+	if !a.config.General.HTTP2 {
+		server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler))
 	}
 
 	l, err := net.FileListener(os.NewFile(config.fd, "[socket]"))
