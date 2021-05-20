@@ -11,7 +11,6 @@ type LookupPath struct {
 
 // Source describes GitLab Page serving variant
 type Source struct {
-	Type       string     `json:"type,omitempty"`
-	Path       string     `json:"path,omitempty"`
+	Type string `json:"type,omitempty"`
+	Path string `json:"path,omitempty"`
 }
-

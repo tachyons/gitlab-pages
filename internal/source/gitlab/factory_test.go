@@ -57,5 +57,4 @@ func TestFabricateServing(t *testing.T) {
 		require.EqualError(t, err, ErrDiskDisabled.Error())
 		require.Nil(t, srv)
 	})
-
 }

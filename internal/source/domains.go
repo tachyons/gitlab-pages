@@ -139,4 +139,3 @@ func (d *Domains) source(domain string) Source {
 		return d.disk
 	}
 }
-
