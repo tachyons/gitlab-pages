@@ -52,7 +52,13 @@ module Checks
       ActiveRecord::Base.establish_connection(config)
       begin
         @@database_version = ActiveRecord::Migrator.current_version
-        true
+
+        # Rails silently eats `ActiveRecord::NoDatabaseError` when calling `current_version`
+        # This stems from https://github.com/rails/rails/blob/v6.0.3.6/activerecord/lib/active_record/connection_adapters/postgresql_adapter.rb#L48-L54
+        puts "WARNING: Problem accessing '#{config.database}' database. Confirm username, password, and permissions." if @@database_version.nil?
+
+        # returning false prevents bailing when BYPASS_SCHEMA_VERSION set.
+        !@@database_version.nil?
       rescue PG::ConnectionBad => e
         puts "PostgreSQL Error: #{e.message}"
         false
@@ -71,7 +77,7 @@ module Checks
 
       return true if (ENV['BYPASS_SCHEMA_VERSION'] && success)
 
-      (success && @@database_version >= codebase_schema_version)
+      (success && @@database_version.to_i >= codebase_schema_version)
     end
   end
 end
