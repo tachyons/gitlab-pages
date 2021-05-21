@@ -25,7 +25,7 @@ var (
 	daemonGID               = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 	daemonInplaceChroot     = flag.Bool("daemon-inplace-chroot", false, "Fall back to a non-bind-mount chroot of -pages-root when daemonizing")
 	propagateCorrelationID  = flag.Bool("propagate-correlation-id", false, "Reuse existing Correlation-ID from the incoming request header `X-Request-ID` if present")
-	logFormat               = flag.String("log-format", "text", "The log output format: 'text' or 'json'")
+	logFormat               = flag.String("log-format", "json", "The log output format: 'text' or 'json'")
 	logVerbose              = flag.Bool("log-verbose", false, "Verbose logging")
 	secret                  = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long")
 	gitLabServer            = flag.String("gitlab-server", "", "GitLab server, for example https://www.gitlab.com")
