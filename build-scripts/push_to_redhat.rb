@@ -63,8 +63,8 @@ end
 
 # Add `-ubi8` to the commit ref if triggered with UBI_PIPELINE=true
 version = ARGV[0]
-if ENV['UBI_PIPELINE'] == 'true'
-  # we add `-ubi8` because this is probably from pipeline with UBI_PIPELINE set
+if ENV['UBI_PIPELINE'] == 'true' or not version.ends_with? '-ubi8'
+  # we add `-ubi8` to find the UBI images.
   version += '-ubi8'
 end
 
