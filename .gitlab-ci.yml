@@ -226,7 +226,7 @@ dependency_update:
     - echo "${INSTALL_SHA256}  install.sh" | sha256sum --check
     - cat install.sh | bash -s -- -b $HOME/bin
     # Remove the install.sh script otherwise deps gets upset about pending changes when it goes to create new branches
-    - rm install.sh 
+    - rm install.sh
     - $HOME/bin/deps ci
   rules:
     - <<: *if_deps_pipeline
@@ -1290,6 +1290,7 @@ ubi-release-for-certification:
     - <<: *if_push_to_redhat
   stage: release
   retry: 1
+  allow_failure: true
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
