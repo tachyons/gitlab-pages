@@ -24,6 +24,11 @@ type keepAliveSetter interface {
 	SetKeepAlivePeriod(time.Duration) error
 }
 
+type listenerConfig struct {
+	isTLS     bool
+	isProxyV2 bool
+}
+
 func (ln *keepAliveListener) Accept() (net.Conn, error) {
 	conn, err := ln.Listener.Accept()
 	if err != nil {
@@ -37,11 +42,18 @@ func (ln *keepAliveListener) Accept() (net.Conn, error) {
 	return conn, nil
 }
 
-func listenAndServe(fd uintptr, handler http.Handler, useHTTP2 bool, tlsConfig *tls.Config, limiter *netutil.Limiter, proxyv2 bool) error {
+func (a *theApp) listenAndServe(fd uintptr, handler http.Handler, limiter *netutil.Limiter, config listenerConfig) error {
+	var tlsConfig *tls.Config
+	if config.isTLS {
+		var err error
+		if tlsConfig, err = a.TLSConfig(); err != nil {
+			return err
+		}
+	}
 	// create server
 	server := &http.Server{Handler: context.ClearHandler(handler), TLSConfig: tlsConfig}
 
-	if useHTTP2 {
+	if a.config.General.HTTP2 {
 		err := http2.ConfigureServer(server, &http2.Server{})
 		if err != nil {
 			return err
@@ -59,7 +71,7 @@ func listenAndServe(fd uintptr, handler http.Handler, useHTTP2 bool, tlsConfig *
 
 	l = &keepAliveListener{l}
 
-	if proxyv2 {
+	if config.isProxyV2 {
 		l = &proxyproto.Listener{
 			Listener: l,
 			Policy: func(upstream net.Addr) (proxyproto.Policy, error) {
