@@ -13,8 +13,8 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-webse
       vendor="GitLab" \
       version=${GITLAB_VERSION} \
       release=${GITLAB_VERSION} \
-      summary="GitLab Web Service runs the GitLab Rails application with Unicorn or Puma web server." \
-      description="GitLab Web Service runs the GitLab Rails application with Unicorn or Puma web server."
+      summary="GitLab Web Service runs the GitLab Rails application with Puma web server." \
+      description="GitLab Web Service runs the GitLab Rails application with Puma web server."
 
 ADD gitlab-webservice-ee.tar.gz /
 ADD gitlab-python.tar.gz /
