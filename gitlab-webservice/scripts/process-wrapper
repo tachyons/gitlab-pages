@@ -27,7 +27,6 @@ if [ "${GITLAB_WEBSERVER^^}" = "PUMA" ]; then
   /srv/gitlab/bin/bundle exec puma --environment production \
     --config /srv/gitlab/config/puma.rb /srv/gitlab/config.ru
 else
-  echo "Starting Unicorn"
-  /srv/gitlab/bin/bundle exec unicorn -E production \
-    -c /srv/gitlab/config/unicorn.rb /srv/gitlab/config.ru
+  echo "ERROR: Unknown Webserver requested '${GITLAB_WEBSERVER}'. Exiting"
+  exit 1
 fi
