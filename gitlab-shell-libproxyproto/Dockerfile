@@ -12,3 +12,6 @@ RUN cd /tmp && \
     curl --retry 6 -o openssh-sftp-server.deb https://gitlab.com/gitlab-com/gl-infra/openssh-patches/uploads/520bba5376bef780cfd0c7ccefd4338d/openssh-sftp-server_7.9p1-10+deb10u2+gitlab+openssh79+8c55f4e4+1_amd64.deb && \
     dpkg -i openssh-client.deb openssh-server.deb openssh-sftp-server.deb && \
     rm openssh-client.deb openssh-server.deb openssh-sftp-server.deb
+
+ARG GITLAB_USER=git
+USER $GITLAB_USER:$GITLAB_USER

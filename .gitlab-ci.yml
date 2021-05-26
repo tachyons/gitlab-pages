@@ -987,7 +987,6 @@ gitlab-shell-libproxyproto:
     - push_tags $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-shell
-    - build:gitlab-shell
 
 build:git-base:
   <<: *build-job-base
