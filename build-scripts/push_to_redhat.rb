@@ -87,7 +87,7 @@ $IMAGE_VERSION_VAR.keys.each do |name|
   # it is assumed that the "version" (commit ref) from CLI param
   # is correct.
   if (ENV['CI_COMMIT_REF_NAME'] == 'master' || is_regular_tag)
-    version = ENV[$IMAGE_VERSION_VAR[name]]
+    version = ENV[$IMAGE_VERSION_VAR[name]] + '-ubi8'
   end
 
   if secrets.has_key? name
