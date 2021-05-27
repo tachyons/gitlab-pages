@@ -14,54 +14,45 @@ else
     fi
 fi
 
-if [[ "${SIDEKIQ_CLUSTER^^}" = 'TRUE' ]]; then
-    if [ -n "${SIDEKIQ_NEGATE_QUEUES}" ]; then
-        queues="${SIDEKIQ_NEGATE_QUEUES}"
-        negate_flag='--negate'
-    else
-        queues="${SIDEKIQ_QUEUES:-*}"
-        negate_flag=''
-    fi
-
-    # Remove experimental part in https://gitlab.com/gitlab-com/gl-infra/scalability/-/issues/646
-    if [[ "${SIDEKIQ_QUEUE_SELECTOR}" = 'true' || "${SIDEKIQ_EXPERIMENTAL_QUEUE_SELECTOR}" = 'true' ]]; then
-      queue_selector_flag='--queue-selector'
-    else
-      queue_selector_flag=''
-    fi
-
-    # sidekiq-cluster offers two things:
-    #
-    # 1. The ability to run and supervise multiple Sidekiq processes,
-    #    potentially listening to different queues.
-    # 2. Enhanced queue pre-processing, including the ability to negate
-    #    a set of queues and the experimental query selector.
-    #
-    # In this case, we do not want to start multiple Sidekiq processes
-    # inside a single pod - for that, we'd run additional pods. As we
-    # only need the second item, we use the `--dryrun` option to
-    # sidekiq-cluster to get the command line it would execute, and then
-    # execute that command directly.
-    #
-    # See https://gitlab.com/gitlab-org/build/CNG/-/merge_requests/418#note_320550297
-    #
-    /srv/gitlab/bin/$(
-        /srv/gitlab/bin/sidekiq-cluster \
-            --dryrun \
-            -r /srv/gitlab \
-            -e production \
-            --min-concurrency ${SIDEKIQ_CONCURRENCY_MIN:-$SIDEKIQ_CONCURRENCY} \
-            --max-concurrency ${SIDEKIQ_CONCURRENCY_MAX:-$SIDEKIQ_CONCURRENCY} \
-            -t $SIDEKIQ_TIMEOUT \
-            $queue_selector_flag \
-            $negate_flag \
-            "${queues}"
-        )
+if [ -n "${SIDEKIQ_NEGATE_QUEUES}" ]; then
+    queues="${SIDEKIQ_NEGATE_QUEUES}"
+    negate_flag='--negate'
 else
-    /srv/gitlab/bin/bundle exec sidekiq \
-                           -r /srv/gitlab \
-                           -e production \
-                           -c $SIDEKIQ_CONCURRENCY \
-                           -t $SIDEKIQ_TIMEOUT \
-                           -C /srv/gitlab/config/sidekiq_queues.yml
+    queues="${SIDEKIQ_QUEUES:-*}"
+    negate_flag=''
 fi
+
+# Remove experimental part in https://gitlab.com/gitlab-com/gl-infra/scalability/-/issues/646
+if [[ "${SIDEKIQ_QUEUE_SELECTOR}" = 'true' || "${SIDEKIQ_EXPERIMENTAL_QUEUE_SELECTOR}" = 'true' ]]; then
+    queue_selector_flag='--queue-selector'
+else
+    queue_selector_flag=''
+fi
+
+# sidekiq-cluster offers two things:
+#
+# 1. The ability to run and supervise multiple Sidekiq processes,
+#    potentially listening to different queues.
+# 2. Enhanced queue pre-processing, including the ability to negate
+#    a set of queues and the experimental query selector.
+#
+# In this case, we do not want to start multiple Sidekiq processes
+# inside a single pod - for that, we'd run additional pods. As we
+# only need the second item, we use the `--dryrun` option to
+# sidekiq-cluster to get the command line it would execute, and then
+# execute that command directly.
+#
+# See https://gitlab.com/gitlab-org/build/CNG/-/merge_requests/418#note_320550297
+#
+/srv/gitlab/bin/$(
+    /srv/gitlab/bin/sidekiq-cluster \
+        --dryrun \
+        -r /srv/gitlab \
+        -e production \
+        --min-concurrency ${SIDEKIQ_CONCURRENCY_MIN:-$SIDEKIQ_CONCURRENCY} \
+        --max-concurrency ${SIDEKIQ_CONCURRENCY_MAX:-$SIDEKIQ_CONCURRENCY} \
+        -t $SIDEKIQ_TIMEOUT \
+        $queue_selector_flag \
+        $negate_flag \
+        "${queues}"
+    )
