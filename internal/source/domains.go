@@ -2,7 +2,6 @@ package source
 
 import (
 	"fmt"
-	"regexp"
 
 	"gitlab.com/gitlab-org/labkit/log"
 
@@ -10,13 +9,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/disk"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
-)
-
-var (
-	// serverlessDomainRegex is a regular expression we use to check if a domain
-	// is a serverless domain, to short circuit gitlab source rollout. It can be
-	// removed after the rollout is done
-	serverlessDomainRegex = regexp.MustCompile(`^[^.]+-[[:xdigit:]]{2}a1[[:xdigit:]]{10}f2[[:xdigit:]]{2}[[:xdigit:]]+-?.*`)
 )
 
 type configSource int
@@ -134,13 +126,6 @@ func (d *Domains) IsReady() bool {
 }
 
 func (d *Domains) source(domain string) Source {
-	// This check is only needed until we enable `d.gitlab` source in all
-	// environments (including on-premises installations) followed by removal of
-	// `d.disk` source. This can be safely removed afterwards.
-	if IsServerlessDomain(domain) {
-		return d.gitlab
-	}
-
 	switch d.configSource {
 	case sourceDisk:
 		return d.disk
@@ -153,14 +138,4 @@ func (d *Domains) source(domain string) Source {
 
 		return d.disk
 	}
-}
-
-// IsServerlessDomain checks if a domain requested is a serverless domain we
-// need to handle differently.
-//
-// Domain is a serverless domain when it matches `serverlessDomainRegex`. The
-// regular expression is also defined on the gitlab-rails side, see
-// https://gitlab.com/gitlab-org/gitlab/-/blob/master/app/models/serverless/domain.rb#L7
-func IsServerlessDomain(domain string) bool {
-	return serverlessDomainRegex.MatchString(domain)
 }

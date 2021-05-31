@@ -30,7 +30,6 @@ func ZipFromFile(wd string) api.VirtualDomain {
 				Source: api.Source{
 					Type:       "zip",
 					Path:       fmt.Sprintf("file://%s/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/artifacts.zip", wd),
-					Serverless: api.Serverless{},
 				},
 			},
 		},
@@ -51,7 +50,6 @@ func ZipFromFileNotFound(wd string) api.VirtualDomain {
 				Source: api.Source{
 					Type:       "zip",
 					Path:       fmt.Sprintf("file://%s/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/unknown.zip", wd),
-					Serverless: api.Serverless{},
 				},
 			},
 		},
@@ -73,7 +71,6 @@ func ZipFromNotAllowedPath(wd string) api.VirtualDomain {
 					Type: "zip",
 					// path outside of `pages-root`
 					Path:       "file:///some/random/path/public.zip",
-					Serverless: api.Serverless{},
 				},
 			},
 		},
