@@ -25,8 +25,11 @@ type keepAliveSetter interface {
 }
 
 type listenerConfig struct {
-	isTLS     bool
+	fd        uintptr
 	isProxyV2 bool
+	tlsConfig *tls.Config
+	limiter   *netutil.Limiter
+	handler   http.Handler
 }
 
 func (ln *keepAliveListener) Accept() (net.Conn, error) {
@@ -42,16 +45,9 @@ func (ln *keepAliveListener) Accept() (net.Conn, error) {
 	return conn, nil
 }
 
-func (a *theApp) listenAndServe(fd uintptr, handler http.Handler, limiter *netutil.Limiter, config listenerConfig) error {
-	var tlsConfig *tls.Config
-	if config.isTLS {
-		var err error
-		if tlsConfig, err = a.TLSConfig(); err != nil {
-			return err
-		}
-	}
+func (a *theApp) listenAndServe(config listenerConfig) error {
 	// create server
-	server := &http.Server{Handler: context.ClearHandler(handler), TLSConfig: tlsConfig}
+	server := &http.Server{Handler: context.ClearHandler(config.handler), TLSConfig: config.tlsConfig}
 
 	if a.config.General.HTTP2 {
 		err := http2.ConfigureServer(server, &http2.Server{})
@@ -60,13 +56,13 @@ func (a *theApp) listenAndServe(fd uintptr, handler http.Handler, limiter *netut
 		}
 	}
 
-	l, err := net.FileListener(os.NewFile(fd, "[socket]"))
+	l, err := net.FileListener(os.NewFile(config.fd, "[socket]"))
 	if err != nil {
-		return fmt.Errorf("failed to listen on FD %d: %v", fd, err)
+		return fmt.Errorf("failed to listen on FD %d: %v", config.fd, err)
 	}
 
-	if limiter != nil {
-		l = netutil.SharedLimitListener(l, limiter)
+	if config.limiter != nil {
+		l = netutil.SharedLimitListener(l, config.limiter)
 	}
 
 	l = &keepAliveListener{l}
@@ -80,7 +76,7 @@ func (a *theApp) listenAndServe(fd uintptr, handler http.Handler, limiter *netut
 		}
 	}
 
-	if tlsConfig != nil {
+	if config.tlsConfig != nil {
 		l = tls.NewListener(l, server.TLSConfig)
 	}
 

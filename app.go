@@ -421,7 +421,7 @@ func (a *theApp) listenHTTPFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.H
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := a.listenAndServe(fd, httpHandler, limiter, listenerConfig{}); err != nil {
+		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter}); err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTP))
 		}
 	}()
@@ -431,7 +431,12 @@ func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := a.listenAndServe(fd, httpHandler, limiter, listenerConfig{isTLS: true}); err != nil {
+		tlsConfig, err := a.TLSConfig()
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
+		}
+
+		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter, tlsConfig: tlsConfig}); err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 	}()
@@ -443,7 +448,7 @@ func (a *theApp) listenProxyFD(wg *sync.WaitGroup, fd uintptr, proxyHandler http
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			if err := a.listenAndServe(fd, proxyHandler, limiter, listenerConfig{}); err != nil {
+			if err := a.listenAndServe(listenerConfig{fd: fd, handler: proxyHandler, limiter: limiter}); err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
 			}
 		}(fd)
@@ -455,7 +460,12 @@ func (a *theApp) ListenHTTPSProxyv2FD(wg *sync.WaitGroup, fd uintptr, httpHandle
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := a.listenAndServe(fd, httpHandler, limiter, listenerConfig{isTLS: true, isProxyV2: true}); err != nil {
+		tlsConfig, err := a.TLSConfig()
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
+		}
+
+		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter, tlsConfig: tlsConfig, isProxyV2: true}); err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 	}()
