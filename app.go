@@ -421,8 +421,7 @@ func (a *theApp) listenHTTPFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.H
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := listenAndServe(fd, httpHandler, a.config.General.HTTP2, nil, limiter, false)
-		if err != nil {
+		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter}); err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTP))
 		}
 	}()
@@ -437,8 +436,7 @@ func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 
-		err = listenAndServe(fd, httpHandler, a.config.General.HTTP2, tlsConfig, limiter, false)
-		if err != nil {
+		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter, tlsConfig: tlsConfig}); err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 	}()
@@ -450,8 +448,7 @@ func (a *theApp) listenProxyFD(wg *sync.WaitGroup, fd uintptr, proxyHandler http
 		wg.Add(1)
 		go func(fd uintptr) {
 			defer wg.Done()
-			err := listenAndServe(fd, proxyHandler, a.config.General.HTTP2, nil, limiter, false)
-			if err != nil {
+			if err := a.listenAndServe(listenerConfig{fd: fd, handler: proxyHandler, limiter: limiter}); err != nil {
 				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
 			}
 		}(fd)
@@ -468,8 +465,7 @@ func (a *theApp) ListenHTTPSProxyv2FD(wg *sync.WaitGroup, fd uintptr, httpHandle
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 
-		err = listenAndServe(fd, httpHandler, a.config.General.HTTP2, tlsConfig, limiter, true)
-		if err != nil {
+		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter, tlsConfig: tlsConfig, isProxyV2: true}); err != nil {
 			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 	}()
