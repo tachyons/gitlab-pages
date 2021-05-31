@@ -109,7 +109,7 @@ function get_existing_backups(){
   # Example: TIMESTAMP_YYYY_MM_DD_VERSION_gitlab_backup.tar
   case $BACKUP_BACKEND in
     s3)
-      existing_backups=($(s3cmd ls s3://$BACKUP_BUCKET_NAME --rinclude '^\d{10}_\d{4}_\d{2}_\d{2}_.+_gitlab_backup.tar$' | awk '{print $4}' | LC_ALL=C sort))
+      existing_backups=($(s3cmd ${S3_CMD_BACKUP_OPTION} ls s3://$BACKUP_BUCKET_NAME --rinclude '^\d{10}_\d{4}_\d{2}_\d{2}_.+_gitlab_backup.tar$' | awk '{print $4}' | LC_ALL=C sort))
       ;;
     gcs)
       # Note: gsutil doesn't support regex, so we need to try to match the prefix as best we can with wildcards
