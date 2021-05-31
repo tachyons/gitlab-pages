@@ -373,6 +373,14 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 		args = append(args, "-metrics-address", promPort)
 	}
 
+	// most of our acceptance tests still work only with disk source
+	// TODO: remove this with -domain-config-source flag itself:
+	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/571
+	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
+	if !contains(extraArgs, "-domain-config-source") {
+		args = append(args, "-domain-config-source", "disk")
+	}
+
 	args = append(args, getPagesDaemonArgs(t)...)
 	args = append(args, extraArgs...)
 
