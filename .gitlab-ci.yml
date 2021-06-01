@@ -985,6 +985,16 @@ gitlab-shell-libproxyproto:
     - push_tags $GITLAB_SHELL_VERSION
   dependencies:
     - gitlab-shell
+  rules:
+    - <<: *if_deps_pipeline
+      when: never
+    - <<: *if_ubi_pipeline
+      when: never
+    - <<: *if_ubi_tag
+      when: never
+    - <<: *if_ubi_branch
+      when: never
+    - when: always
 
 build:git-base:
   <<: *build-job-base
