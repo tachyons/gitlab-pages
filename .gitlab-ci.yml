@@ -979,12 +979,10 @@ gitlab-shell-libproxyproto:
   <<: *except-deps
   stage: phase-five
   script:
-    - export DOCKERFILE_EXT
-    - export IMAGE_TAG_EXT
     - export shell_container=$(cat artifacts/shell_container.txt)
-    - build_if_needed --build-arg "TAG=$shell_container${IMAGE_TAG_EXT}"
-    - push_tags gitlab-$GITLAB_REF_SLUG${IMAGE_TAG_EXT}  # This can be removed during https://gitlab.com/gitlab-com/gl-infra/delivery/-/issues/1553
-    - push_tags $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
+    - build_if_needed --build-arg "TAG=$shell_container"
+    - push_tags gitlab-$GITLAB_REF_SLUG
+    - push_tags $GITLAB_SHELL_VERSION
   dependencies:
     - gitlab-shell
 
