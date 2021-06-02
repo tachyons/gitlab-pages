@@ -49,6 +49,11 @@ func TestGroupDomainReturns200(t *testing.T) {
 	require.NoError(t, err)
 	defer rsp.Body.Close()
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
+
+	body, err := ioutil.ReadAll(rsp.Body)
+	require.NoError(t, err)
+
+	require.Equal(t, string(body), "OK\n")
 }
 
 func TestKnownHostReturns200(t *testing.T) {
@@ -223,7 +228,7 @@ func TestCustom404(t *testing.T) {
 func TestCORSWhenDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
+	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{}, "-disable-cross-origin-requests")
 	defer teardown()
 
 	for _, spec := range supportedListeners() {
