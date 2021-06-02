@@ -55,7 +55,7 @@ func TestIsUpToDateAndNeedsRefresh(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entry := newCacheEntry("my.gitlab.com", testCacheConfig.EntryRefreshTimeout, testCacheConfig.CacheExpiry, nil)
+			entry := newCacheEntry("my.gitlab.com", testCacheConfig.EntryRefreshTimeout, testCacheConfig.CacheExpiry)
 			if tt.resolved {
 				entry.response = &api.Lookup{}
 			}
@@ -85,6 +85,7 @@ func TestEntryRefresh(t *testing.T) {
 			},
 		},
 	}
+
 	cc := &config.Cache{
 		CacheExpiry:          100 * time.Millisecond,
 		EntryRefreshTimeout:  time.Millisecond,
@@ -92,26 +93,25 @@ func TestEntryRefresh(t *testing.T) {
 		MaxRetrievalInterval: time.Millisecond,
 		MaxRetrievalRetries:  1,
 	}
-
-	store := newMemStore(client, cc)
+	cache := NewCache(client, cc)
 
 	t.Run("entry is the same after refreshed lookup has error", func(t *testing.T) {
-		entry := newCacheEntry("test.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry, store.(*memstore).retriever)
+		entry := newCacheEntry("test.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry)
 		originalEntryCreated := entry.created
 
 		ctx, cancel := context.WithTimeout(context.Background(), cc.RetrievalTimeout)
 		defer cancel()
 
-		lookup := entry.Retrieve(ctx)
+		lookup := cache.retrieve(ctx, entry)
 		require.NoError(t, lookup.Error)
 
 		require.Eventually(t, entry.NeedsRefresh, 100*time.Millisecond, time.Millisecond, "entry should need refresh")
 
-		entry.refreshFunc(store)
+		cache.refreshFunc(entry)
 
 		require.True(t, client.failed, "refresh should have failed")
 
-		storedEntry := loadEntry(t, "test.gitlab.io", store)
+		storedEntry := loadEntry(t, "test.gitlab.io", cache.store)
 
 		require.NoError(t, storedEntry.Lookup().Error, "resolving failed but lookup should still be valid")
 		require.Equal(t, storedEntry.refreshedOriginalTimestamp.UnixNano(), originalEntryCreated.UnixNano(),
@@ -123,23 +123,23 @@ func TestEntryRefresh(t *testing.T) {
 		client.failed = false
 		err := os.Setenv("FF_DISABLE_REFRESH_TEMPORARY_ERROR", "true")
 
-		entry := newCacheEntry("test.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry, store.(*memstore).retriever)
+		entry := newCacheEntry("test.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry)
 
 		ctx, cancel := context.WithTimeout(context.Background(), cc.RetrievalTimeout)
 		defer cancel()
 
-		lookup := entry.Retrieve(ctx)
+		lookup := cache.retrieve(ctx, entry)
 		require.NoError(t, lookup.Error)
 
 		require.Eventually(t, entry.NeedsRefresh, 100*time.Millisecond, time.Millisecond, "entry should need refresh")
 
 		require.NoError(t, err)
 
-		entry.refreshFunc(store)
+		cache.refreshFunc(entry)
 
 		require.True(t, client.failed, "refresh should have failed")
 
-		storedEntry := loadEntry(t, "test.gitlab.io", store)
+		storedEntry := loadEntry(t, "test.gitlab.io", cache.store)
 
 		require.Error(t, storedEntry.Lookup().Error, "resolving failed")
 		require.True(t, storedEntry.refreshedOriginalTimestamp.IsZero())
@@ -149,23 +149,23 @@ func TestEntryRefresh(t *testing.T) {
 	t.Run("entry is different after it expired and calling refresh on it", func(t *testing.T) {
 		client.failed = false
 
-		entry := newCacheEntry("error.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry, store.(*memstore).retriever)
+		entry := newCacheEntry("error.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry)
 
 		ctx, cancel := context.WithTimeout(context.Background(), cc.RetrievalTimeout)
 		defer cancel()
 
-		lookup := entry.Retrieve(ctx)
+		lookup := cache.retrieve(ctx, entry)
 		require.Error(t, lookup.Error)
 		require.Eventually(t, entry.NeedsRefresh, 100*time.Millisecond, time.Millisecond, "entry should need refresh")
 
 		// wait for entry to expire
 		time.Sleep(cc.CacheExpiry)
 		// refreshing the entry after it has expired should create a completely new one
-		entry.refreshFunc(store)
+		cache.refreshFunc(entry)
 
 		require.True(t, client.failed, "refresh should have failed")
 
-		storedEntry := loadEntry(t, "error.gitlab.io", store)
+		storedEntry := loadEntry(t, "error.gitlab.io", cache.store)
 		require.NotEqual(t, storedEntry, entry, "stored entry should be different")
 		require.Greater(t, storedEntry.created.UnixNano(), entry.created.UnixNano(), "")
 	})
