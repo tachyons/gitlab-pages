@@ -25,6 +25,7 @@ import (
 	"golang.org/x/net/nettest"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 	"gitlab.com/gitlab-org/gitlab-pages/test/acceptance/testdata"
 )
 
@@ -232,16 +233,27 @@ func RunPagesProcessWithOutput(t *testing.T, pagesBinary string, listeners []Lis
 	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
 }
 
-func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
-	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
+func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, envs []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
+	chdir := false
+	chdirCleanup := testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	opts := &stubOpts{
+		pagesRoot: wd,
+	}
+
+	source := NewGitlabDomainsSourceStub(t, opts)
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
-	pagesArgs := append([]string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
+	pagesArgs := append([]string{"-pages-root", wd, "-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
 
-	logBuf, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, pagesArgs...)
+	logBuf, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, "", envs, pagesArgs...)
 
 	return logBuf, func() {
 		source.Close()
+		chdirCleanup()
 		cleanup()
 	}
 }
