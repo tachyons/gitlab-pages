@@ -42,7 +42,11 @@ func (r *Retriever) Retrieve(domain string) (lookup api.Lookup) {
 		log.Debug("retrieval context done")
 		lookup = api.Lookup{Error: errors.New("retrieval context done")}
 	case lookup = <-r.resolveWithBackoff(ctx, domain):
-		log.Debug("retrieval response sent")
+		log.WithFields(log.Fields{
+			"lookup_name":  lookup.Name,
+			"lookup_paths": lookup.Domain,
+			"lookup_error": lookup.Error,
+		}).Debug("retrieval response sent")
 	}
 
 	return lookup

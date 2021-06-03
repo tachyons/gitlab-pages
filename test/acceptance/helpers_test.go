@@ -653,7 +653,7 @@ func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
 
 		// check if predefined response exists
 		if responseFn, ok := testdata.DomainResponses[domain]; ok {
-			err := json.NewEncoder(w).Encode(responseFn(opts.pagesRoot))
+			err := json.NewEncoder(w).Encode(responseFn(t, opts.pagesRoot))
 			require.NoError(t, err)
 			return
 		}
