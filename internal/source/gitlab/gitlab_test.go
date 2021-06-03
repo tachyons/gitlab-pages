@@ -108,3 +108,34 @@ func TestResolve(t *testing.T) {
 		require.Equal(t, "index.html", response.SubPath)
 	})
 }
+
+func TestResolveGroupFirst(t *testing.T) {
+	client := client.StubClient{File: "client/testdata/group-first.gitlab.io.json"}
+	source := Gitlab{client: client, enableDisk: true}
+
+	t.Run("when requesting the group root project with root path", func(t *testing.T) {
+		target := "https://group-first.gitlab.io:443/"
+		request := httptest.NewRequest("GET", target, nil)
+
+		response, err := source.Resolve(request)
+		require.NoError(t, err)
+
+		require.Equal(t, "/", response.LookupPath.Prefix)
+		require.Equal(t, "some/path/group/", response.LookupPath.Path)
+		require.Equal(t, "", response.SubPath)
+		require.True(t, response.LookupPath.IsNamespaceProject)
+	})
+
+	t.Run("when requesting another project with path", func(t *testing.T) {
+		target := "https://group-first.gitlab.io:443/my/second-project/index.html"
+		request := httptest.NewRequest("GET", target, nil)
+
+		response, err := source.Resolve(request)
+		require.NoError(t, err)
+
+		require.Equal(t, "/my/second-project/", response.LookupPath.Prefix)
+		require.Equal(t, "some/path/to/project-2/", response.LookupPath.Path)
+		require.Equal(t, "index.html", response.SubPath)
+		require.False(t, response.LookupPath.IsNamespaceProject)
+	})
+}

@@ -1,0 +1,26 @@
+{
+    "certificate": "some--cert",
+    "key": "some--key",
+    "lookup_paths": [
+      {
+        "access_control": false,
+        "https_only": true,
+        "prefix": "/",
+        "project_id": 1,
+        "source": {
+          "path": "some/path/group/",
+          "type": "file"
+        }
+      },
+      {
+        "access_control": false,
+        "https_only": true,
+        "prefix": "/my/second-project/",
+        "project_id": 2,
+        "source": {
+          "path": "some/path/to/project-2/",
+          "type": "file"
+        }
+      }
+    ]
+}
