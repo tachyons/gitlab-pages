@@ -22,8 +22,7 @@ else
     negate_flag=''
 fi
 
-# Remove experimental part in https://gitlab.com/gitlab-com/gl-infra/scalability/-/issues/646
-if [[ "${SIDEKIQ_QUEUE_SELECTOR}" = 'true' || "${SIDEKIQ_EXPERIMENTAL_QUEUE_SELECTOR}" = 'true' ]]; then
+if [[ "${SIDEKIQ_QUEUE_SELECTOR}" = 'true' ]]; then
     queue_selector_flag='--queue-selector'
 else
     queue_selector_flag=''
