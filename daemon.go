@@ -229,7 +229,7 @@ func jailCreate(cmd *exec.Cmd) (*jail.Jail, error) {
 		return nil, err
 	}
 
-	// Add /etc/resolv.conf and /etc/hosts inside the jail
+	// Add /etc/resolv.conf, /etc/hosts and /etc/nsswitch.conf inside the jail
 	cage.MkDir("/etc", 0755)
 	err = cage.Copy("/etc/resolv.conf")
 	if err != nil {
@@ -238,6 +238,13 @@ func jailCreate(cmd *exec.Cmd) (*jail.Jail, error) {
 	err = cage.Copy("/etc/hosts")
 	if err != nil {
 		return nil, err
+	}
+
+	// When cgo is disabled, Go does not read `/etc/hosts` unless `/etc/nsswitch.conf` exists
+	// https://github.com/golang/go/issues/22846
+	err = cage.Copy("/etc/nsswitch.conf")
+	if err != nil {
+		log.WithError(err).Warn("/etc/nsswitch.conf couldn't be copied to the jail, /etc/hosts might not be applicable")
 	}
 
 	// Add certificates inside the jail
