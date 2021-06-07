@@ -23,6 +23,8 @@ var DomainResponses = map[string]responseFn{
 	// test assume the working dir is inside shared/pages/
 	"group.gitlab-example.com":        GenerateVirtualDomainFromDir("group", "group.gitlab-example.com"),
 	"CapitalGroup.gitlab-example.com": GenerateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com"),
+	"group.404.gitlab-example.com":    GenerateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com"),
+	"domain.404.com":                  domain404,
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving
 	// make zip PROJECT_SUBDIR=group/project2
@@ -155,5 +157,28 @@ func GenerateVirtualDomainFromDir(dir, rootDomain string) responseFn {
 		return api.VirtualDomain{
 			LookupPaths: lookupPaths,
 		}
+	}
+}
+
+// domain404 hardcoding for now, will implement a better solution in a follow up MR
+// TODO: custom domains
+func domain404(t *testing.T, wd string) api.VirtualDomain {
+	t.Helper()
+
+	return api.VirtualDomain{
+		Certificate: "",
+		Key:         "",
+		LookupPaths: []api.LookupPath{
+			{
+				ProjectID:     123,
+				AccessControl: false,
+				HTTPSOnly:     false,
+				Prefix:        "/",
+				Source: api.Source{
+					Type: "zip",
+					Path: fmt.Sprintf("file://%s/group.404/domain.404/public.zip", wd),
+				},
+			},
+		},
 	}
 }

@@ -15,7 +15,8 @@ import (
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
+
+	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
 	defer teardown()
 
 	for _, spec := range supportedListeners() {
@@ -30,7 +31,7 @@ func TestUnknownHostReturnsNotFound(t *testing.T) {
 func TestUnknownProjectReturnsNotFound(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
+	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, []ListenSpec{httpListener}, []string{})
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
@@ -117,6 +118,7 @@ func TestKnownHostReturns200(t *testing.T) {
 	}
 }
 
+// TODO: remove along with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 func TestNestedSubgroups(t *testing.T) {
 	skipUnlessEnabled(t)
 
@@ -142,7 +144,7 @@ func TestNestedSubgroups(t *testing.T) {
 
 		makeProjectIndex(subGroupPath)
 	}
-	// TODO: what
+
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-pages-root", pagesRoot)
 	defer teardown()
 
@@ -198,6 +200,7 @@ func TestCustom404(t *testing.T) {
 			content: "Custom 404 group page",
 		},
 		{
+			// TODO: custom domains
 			host:    "domain.404.com",
 			content: "Custom domain.404 page",
 		},
@@ -345,7 +348,7 @@ func TestHttpsOnlyGroupEnabled(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
-	// TODO: what
+	// TODO: support https too
 	rsp, err := GetRedirectPage(t, httpListener, "group.https-only.gitlab-example.com", "project1/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -355,7 +358,7 @@ func TestHttpsOnlyGroupEnabled(t *testing.T) {
 func TestHttpsOnlyGroupDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	// TODO: what
+	// TODO: support https too
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -372,6 +375,7 @@ func TestHttpsOnlyProjectEnabled(t *testing.T) {
 	defer teardown()
 
 	// TODO: how to do custom domains :thinking:
+	// TODO: support https too
 	rsp, err := GetRedirectPage(t, httpListener, "test.my-domain.com", "/index.html")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -385,6 +389,7 @@ func TestHttpsOnlyProjectDisabled(t *testing.T) {
 	defer teardown()
 
 	// TODO: how to do custom domains :thinking:
+	// TODO: support https too
 	rsp, err := GetPageFromListener(t, httpListener, "test2.my-domain.com", "/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -398,6 +403,7 @@ func TestHttpsOnlyDomainDisabled(t *testing.T) {
 	defer teardown()
 
 	// TODO: how to do custom domains :thinking:
+	// TODO: support https too
 	rsp, err := GetPageFromListener(t, httpListener, "no.cert.com", "/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
