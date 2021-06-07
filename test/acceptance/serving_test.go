@@ -163,7 +163,8 @@ func TestNestedSubgroups(t *testing.T) {
 
 func TestCustom404(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
+
+	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
 	defer teardown()
 
 	tests := []struct {

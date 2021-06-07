@@ -16,90 +16,32 @@ type responseFn func(*testing.T, string) api.VirtualDomain
 
 // DomainResponses holds the predefined API responses for certain domains
 // that can be used with the GitLab API stub in acceptance tests
+// Assume the working dir is inside shared/pages/
 var DomainResponses = map[string]responseFn{
-	"zip-from-disk.gitlab.io":           ZipFromFile,
-	"zip-from-disk-not-found.gitlab.io": ZipFromFileNotFound,
-	"zip-not-allowed-path.gitlab.io":    ZipFromNotAllowedPath,
-	// test assume the working dir is inside shared/pages/
-	"group.gitlab-example.com":        GenerateVirtualDomainFromDir("group", "group.gitlab-example.com"),
-	"CapitalGroup.gitlab-example.com": GenerateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com"),
-	"group.404.gitlab-example.com":    GenerateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com"),
-	"domain.404.com":                  domain404,
+	"zip-from-disk.gitlab.io": customDomain(projectConfig{
+		projectID:  123,
+		prefix:     "/",
+		pathOnDisk: "@hashed/zip-from-disk.gitlab.io",
+	}),
+	"zip-from-disk-not-found.gitlab.io": customDomain(projectConfig{}),
+	// outside of working dir
+	"zip-not-allowed-path.gitlab.io":  customDomain(projectConfig{pathOnDisk: "../../../../"}),
+	"group.gitlab-example.com":        generateVirtualDomainFromDir("group", "group.gitlab-example.com"),
+	"CapitalGroup.gitlab-example.com": generateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com"),
+	"group.404.gitlab-example.com":    generateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com"),
+	"domain.404.com": customDomain(projectConfig{
+		projectID:  1000,
+		prefix:     "/",
+		pathOnDisk: "group.404/domain.404",
+	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving
 	// make zip PROJECT_SUBDIR=group/project2
 }
 
-// ZipFromFile response for zip.gitlab.io
-func ZipFromFile(t *testing.T, wd string) api.VirtualDomain {
-	t.Helper()
-
-	return api.VirtualDomain{
-		Certificate: "",
-		Key:         "",
-		LookupPaths: []api.LookupPath{
-			{
-				ProjectID:     123,
-				AccessControl: false,
-				HTTPSOnly:     false,
-				Prefix:        "/",
-				Source: api.Source{
-					Type: "zip",
-					Path: fmt.Sprintf("file://%s/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/artifacts.zip", wd),
-				},
-			},
-		},
-	}
-}
-
-// ZipFromFileNotFound response for zip-from-disk-not-found.gitlab.io
-func ZipFromFileNotFound(t *testing.T, wd string) api.VirtualDomain {
-	t.Helper()
-
-	return api.VirtualDomain{
-		Certificate: "",
-		Key:         "",
-		LookupPaths: []api.LookupPath{
-			{
-				ProjectID:     123,
-				AccessControl: false,
-				HTTPSOnly:     false,
-				Prefix:        "/",
-				Source: api.Source{
-					Type: "zip",
-					Path: fmt.Sprintf("file://%s/@hashed/67/06/670671cd97404156226e507973f2ab8330d3022ca96e0c93bdbdb320c41adcaf/pages_deployments/01/unknown.zip", wd),
-				},
-			},
-		},
-	}
-}
-
-// ZipFromNotAllowedPath response for zip-not-allowed-path.gitlab.io
-func ZipFromNotAllowedPath(t *testing.T, wd string) api.VirtualDomain {
-	t.Helper()
-
-	return api.VirtualDomain{
-		Certificate: "",
-		Key:         "",
-		LookupPaths: []api.LookupPath{
-			{
-				ProjectID:     123,
-				AccessControl: false,
-				HTTPSOnly:     false,
-				Prefix:        "/",
-				Source: api.Source{
-					Type: "zip",
-					// path outside of `pages-root`
-					Path: "file:///some/random/path/public.zip",
-				},
-			},
-		},
-	}
-}
-
-// GenerateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
+// generateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
 // It works for subdomains of pages-domain but not for custom domains (yet)
-func GenerateVirtualDomainFromDir(dir, rootDomain string) responseFn {
+func generateVirtualDomainFromDir(dir, rootDomain string) responseFn {
 	return func(t *testing.T, wd string) api.VirtualDomain {
 		t.Helper()
 
@@ -161,25 +103,34 @@ func GenerateVirtualDomainFromDir(dir, rootDomain string) responseFn {
 	}
 }
 
-// domain404 hardcoding for now, will implement a better solution in a follow up MR
-//TODO: remove hardcoded custom domains: https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/498
-func domain404(t *testing.T, wd string) api.VirtualDomain {
-	t.Helper()
+type projectConfig struct {
+	projectID     int
+	accessControl bool
+	https         bool
+	prefix        string
+	pathOnDisk    string
+}
 
-	return api.VirtualDomain{
-		Certificate: "",
-		Key:         "",
-		LookupPaths: []api.LookupPath{
-			{
-				ProjectID:     123,
-				AccessControl: false,
-				HTTPSOnly:     false,
-				Prefix:        "/",
-				Source: api.Source{
-					Type: "zip",
-					Path: fmt.Sprintf("file://%s/group.404/domain.404/public.zip", wd),
+// customDomain with per project config
+func customDomain(config projectConfig) responseFn {
+	return func(t *testing.T, wd string) api.VirtualDomain {
+		t.Helper()
+
+		return api.VirtualDomain{
+			Certificate: "",
+			Key:         "",
+			LookupPaths: []api.LookupPath{
+				{
+					ProjectID:     config.projectID,
+					AccessControl: config.accessControl,
+					HTTPSOnly:     config.https,
+					Prefix:        config.prefix,
+					Source: api.Source{
+						Type: "zip",
+						Path: fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk),
+					},
 				},
 			},
-		},
+		}
 	}
 }
