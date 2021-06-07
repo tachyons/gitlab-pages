@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,11 +11,12 @@ import (
 
 func TestEnvironmentVariablesConfig(t *testing.T) {
 	skipUnlessEnabled(t)
-	os.Setenv("LISTEN_HTTP", net.JoinHostPort(httpListener.Host, httpListener.Port))
-	defer func() { os.Unsetenv("LISTEN_HTTP") }()
 
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, []ListenSpec{}, "")
+	envVarValue := "LISTEN_HTTP=" + net.JoinHostPort(httpListener.Host, httpListener.Port)
+
+	_, teardown := RunPagesProcessWithStubGitLabServer(t, false, *pagesBinary, []ListenSpec{}, []string{envVarValue})
 	defer teardown()
+
 	require.NoError(t, httpListener.WaitUntilRequestSucceeds(nil))
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com:", "project/")
@@ -28,10 +28,9 @@ func TestEnvironmentVariablesConfig(t *testing.T) {
 
 func TestMixedConfigSources(t *testing.T) {
 	skipUnlessEnabled(t)
-	os.Setenv("LISTEN_HTTP", net.JoinHostPort(httpListener.Host, httpListener.Port))
-	defer func() { os.Unsetenv("LISTEN_HTTP") }()
+	envVarValue := "LISTEN_HTTP=" + net.JoinHostPort(httpListener.Host, httpListener.Port)
 
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, []ListenSpec{httpsListener}, "")
+	_, teardown := RunPagesProcessWithStubGitLabServer(t, false, *pagesBinary, []ListenSpec{httpsListener}, []string{envVarValue})
 	defer teardown()
 
 	for _, listener := range []ListenSpec{httpListener, httpsListener} {
@@ -44,15 +43,13 @@ func TestMixedConfigSources(t *testing.T) {
 	}
 }
 
-func TestMultiFlagEnvironmentVariables(t *testing.T) {
+func TestMultipleListenersFromEnvironmentVariables(t *testing.T) {
 	skipUnlessEnabled(t)
+
 	listenSpecs := []ListenSpec{{"http", "127.0.0.1", "37001"}, {"http", "127.0.0.1", "37002"}}
-	envVarValue := fmt.Sprintf("%s,%s", net.JoinHostPort("127.0.0.1", "37001"), net.JoinHostPort("127.0.0.1", "37002"))
+	envVarValue := fmt.Sprintf("LISTEN_HTTP=%s,%s", net.JoinHostPort("127.0.0.1", "37001"), net.JoinHostPort("127.0.0.1", "37002"))
 
-	os.Setenv("LISTEN_HTTP", envVarValue)
-	defer func() { os.Unsetenv("LISTEN_HTTP") }()
-
-	teardown := RunPagesProcess(t, *pagesBinary, []ListenSpec{}, "")
+	_, teardown := RunPagesProcessWithStubGitLabServer(t, false, *pagesBinary, []ListenSpec{}, []string{envVarValue})
 	defer teardown()
 
 	for _, listener := range listenSpecs {
