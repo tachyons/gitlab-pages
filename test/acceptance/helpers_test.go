@@ -233,23 +233,29 @@ func RunPagesProcessWithOutput(t *testing.T, pagesBinary string, listeners []Lis
 	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
 }
 
-func RunPagesProcessWithStubGitLabServer(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, envs []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
+func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) (*LogCaptureBuffer, func()) {
 	chdir := false
 	chdirCleanup := testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)
 
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
-	opts := &stubOpts{
-		pagesRoot: wd,
+	processCfg := defaultProcessConfig
+
+	for _, opt := range opts {
+		opt(&processCfg)
 	}
 
-	source := NewGitlabDomainsSourceStub(t, opts)
+	if processCfg.gitlabStubOpts.pagesRoot == "" {
+		processCfg.gitlabStubOpts.pagesRoot = wd
+	}
+
+	source := NewGitlabDomainsSourceStub(t, processCfg.gitlabStubOpts)
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
-	pagesArgs := append([]string{"-pages-root", wd, "-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}, extraArgs...)
+	processCfg.extraArgs = append(processCfg.extraArgs, "-pages-root", wd, "-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab")
 
-	logBuf, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, "", envs, pagesArgs...)
+	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, listeners, "", processCfg.envs, processCfg.extraArgs...)
 
 	return logBuf, func() {
 		source.Close()
