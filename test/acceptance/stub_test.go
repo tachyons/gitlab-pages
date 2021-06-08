@@ -32,11 +32,6 @@ type processConfig struct {
 
 type processOption func(*processConfig)
 
-func withWait(v bool) processOption {
-	return func(config *processConfig) {
-		config.wait = v
-	}
-}
 func withListeners(listeners []ListenSpec) processOption {
 	return func(config *processConfig) {
 		config.listeners = listeners
@@ -57,12 +52,6 @@ func withExtraArgument(key, value string) processOption {
 func withArguments(args []string) processOption {
 	return func(config *processConfig) {
 		config.extraArgs = args
-	}
-}
-
-func withGitlabStubOpts(opts *stubOpts) processOption {
-	return func(config *processConfig) {
-		config.gitlabStubOpts = opts
 	}
 }
 
