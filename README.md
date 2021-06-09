@@ -92,7 +92,7 @@ as.
 
 The daemon starts listening on ports and reads certificates as root, then
 re-executes itself as the specified user. When re-executing it creates a chroot jail
-containing a copy of its own binary, `/etc/hosts`, `/etc/resolv.conf`, and a bind mount of `pages-root`.
+containing a copy of its own binary, `/etc/hosts`, `/etc/nsswitch.conf`, `/etc/resolv.conf`, and a bind mount of `pages-root`.
 
 When `-artifacts-server` points to an HTTPS URL we also need a list of certificates for
 the trusted Certification Authorities to copy inside the jail.
@@ -110,7 +110,7 @@ $ sudo ./gitlab-pages -listen-http ":80" -pages-root path/to/gitlab/shared/pages
 
 #### Caveats
 
-The `/etc/hosts` and `/etc/resolv.conf` files, and any file pointed to by the `SSL_CERT_FILE`
+The `/etc/hosts`, `/etc/resolv.conf` and `/etc/nsswitch.conf` files, and any file pointed to by the `SSL_CERT_FILE`
 environment variable, will be copied into the jail. As a result, changes to
 these files will not be reflected in Pages until it's restarted.
 
