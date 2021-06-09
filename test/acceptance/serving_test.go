@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/textproto"
 	"os"
 	"path"
 	"strings"
@@ -745,7 +744,7 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 				require.Equal(t, http.StatusOK, rsp.StatusCode)
 
 				for key, value := range test.expectedHeaders {
-					got := headerValues(rsp.Header, key)
+					got := rsp.Header.Values(key)
 					require.Equal(t, value, got)
 				}
 			}
@@ -776,14 +775,6 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 			testFn(args, []string{})
 		})
 	}
-}
-
-func headerValues(header http.Header, key string) []string {
-	h := textproto.MIMEHeader(header)
-
-	// NOTE: cannot use header.Values() in Go 1.13 or lower, this is the implementation
-	// from Go 1.15 https://github.com/golang/go/blob/release-branch.go1.15/src/net/textproto/header.go#L46
-	return h[textproto.CanonicalMIMEHeaderKey(key)]
 }
 
 func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
