@@ -21,8 +21,10 @@ var DomainResponses = map[string]responseFn{
 	"zip-from-disk-not-found.gitlab.io": ZipFromFileNotFound,
 	"zip-not-allowed-path.gitlab.io":    ZipFromNotAllowedPath,
 	// test assume the working dir is inside shared/pages/
-	"group.gitlab-example.com":        GenerateVirtualDomainFromDir("group"),
-	"CapitalGroup.gitlab-example.com": GenerateVirtualDomainFromDir("CapitalGroup"),
+	"group.gitlab-example.com":        GenerateVirtualDomainFromDir("group", "group.gitlab-example.com"),
+	"CapitalGroup.gitlab-example.com": GenerateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com"),
+	"group.404.gitlab-example.com":    GenerateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com"),
+	"domain.404.com":                  domain404,
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving
 	// make zip PROJECT_SUBDIR=group/project2
@@ -97,7 +99,7 @@ func ZipFromNotAllowedPath(t *testing.T, wd string) api.VirtualDomain {
 
 // GenerateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
 // It works for subdomains of pages-domain but not for custom domains (yet)
-func GenerateVirtualDomainFromDir(dir string) responseFn {
+func GenerateVirtualDomainFromDir(dir, rootDomain string) responseFn {
 	return func(t *testing.T, wd string) api.VirtualDomain {
 		t.Helper()
 
@@ -131,8 +133,15 @@ func GenerateVirtualDomainFromDir(dir string) responseFn {
 			prefix := strings.TrimPrefix(project, dir)
 			prefix = strings.TrimSuffix(prefix, "/"+filepath.Base(project))
 
+			// use / as prefix when the current prefix matches the rootDomain, e.g.
+			// if request is group.gitlab-example.com/ and group/group.gitlab-example.com/public.zip exists
+			if prefix == "/"+rootDomain {
+				prefix = "/"
+			}
+
 			lookupPath := api.LookupPath{
-				// TODO: find a way to configure this
+				// TODO: allow configuring response
+				// Related MR in progress https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/498
 				ProjectID:     123,
 				AccessControl: false,
 				HTTPSOnly:     false,
@@ -149,5 +158,28 @@ func GenerateVirtualDomainFromDir(dir string) responseFn {
 		return api.VirtualDomain{
 			LookupPaths: lookupPaths,
 		}
+	}
+}
+
+// domain404 hardcoding for now, will implement a better solution in a follow up MR
+//TODO: remove hardcoded custom domains: https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/498
+func domain404(t *testing.T, wd string) api.VirtualDomain {
+	t.Helper()
+
+	return api.VirtualDomain{
+		Certificate: "",
+		Key:         "",
+		LookupPaths: []api.LookupPath{
+			{
+				ProjectID:     123,
+				AccessControl: false,
+				HTTPSOnly:     false,
+				Prefix:        "/",
+				Source: api.Source{
+					Type: "zip",
+					Path: fmt.Sprintf("file://%s/group.404/domain.404/public.zip", wd),
+				},
+			},
+		},
 	}
 }
