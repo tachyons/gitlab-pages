@@ -200,7 +200,6 @@ func TestCustom404(t *testing.T) {
 			content: "Custom 404 group page",
 		},
 		{
-			// TODO: custom domains
 			host:    "domain.404.com",
 			content: "Custom domain.404 page",
 		},
@@ -348,7 +347,8 @@ func TestHttpsOnlyGroupEnabled(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
-	// TODO: support https too
+	// TODO: allow configuring HTTPS responses from stub https://gitlab.com/gitlab-org/gitlab-pages/-/issues/571
+	// Related MR in progress https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/498
 	rsp, err := GetRedirectPage(t, httpListener, "group.https-only.gitlab-example.com", "project1/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -358,7 +358,6 @@ func TestHttpsOnlyGroupEnabled(t *testing.T) {
 func TestHttpsOnlyGroupDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	// TODO: support https too
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -374,8 +373,6 @@ func TestHttpsOnlyProjectEnabled(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
-	// TODO: how to do custom domains :thinking:
-	// TODO: support https too
 	rsp, err := GetRedirectPage(t, httpListener, "test.my-domain.com", "/index.html")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -388,8 +385,6 @@ func TestHttpsOnlyProjectDisabled(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
-	// TODO: how to do custom domains :thinking:
-	// TODO: support https too
 	rsp, err := GetPageFromListener(t, httpListener, "test2.my-domain.com", "/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
@@ -402,8 +397,6 @@ func TestHttpsOnlyDomainDisabled(t *testing.T) {
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
-	// TODO: how to do custom domains :thinking:
-	// TODO: support https too
 	rsp, err := GetPageFromListener(t, httpListener, "no.cert.com", "/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()

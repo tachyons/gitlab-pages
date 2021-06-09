@@ -140,7 +140,8 @@ func GenerateVirtualDomainFromDir(dir, rootDomain string) responseFn {
 			}
 
 			lookupPath := api.LookupPath{
-				// TODO: find a way to configure this
+				// TODO: allow configuring response
+				// Related MR in progress https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/498
 				ProjectID:     123,
 				AccessControl: false,
 				HTTPSOnly:     false,
@@ -161,7 +162,7 @@ func GenerateVirtualDomainFromDir(dir, rootDomain string) responseFn {
 }
 
 // domain404 hardcoding for now, will implement a better solution in a follow up MR
-// TODO: custom domains
+//TODO: remove hardcoded custom domains: https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/498
 func domain404(t *testing.T, wd string) api.VirtualDomain {
 	t.Helper()
 
