@@ -1,20 +1,12 @@
 - [ ] Set the milestone on this issue
-- [ ] Review the list of changes since the last release and fill below:
-    - [ ] **In the changelog**
-    - [ ] **Not in the changelog**
-    
-    Hint:
-    ```
-    git --no-pager log --merges --pretty=oneline master...vX.Y.Z
-    ```
 - Decide on the version number by reference to
     the [Versioning](https://gitlab.com/gitlab-org/gitlab-pages/blob/master/PROCESS.md#versioning)
     * Typically if you want to release code from current `master` branch you will update `MINOR` version, e.g. `1.12.0` -> `1.13.0`. In that case you **don't** need to create stable branch
     * If you want to backport some bug fix or security fix you will need to update stable branch `X-Y-stable`
 - [ ] Create an MR for [gitlab-pages project](https://gitlab.com/gitlab-org/gitlab-pages).
     You can use [this MR](https://gitlab.com/gitlab-org/gitlab-pages/merge_requests/217) as an example.
-    - [ ] Update `VERSION`
-    - [ ] Update `CHANGELOG`, you can run `make changelog` once you have pushed your branch to the remote server
+    - [ ] Update `VERSION`, and push your branch
+    - [ ] Update `CHANGELOG` by running `GITLAB_PRIVATE_TOKEN= BRANCH= make changelog`, note that you need to create a personal access token 
     - [ ] Assign to reviewer
 - [ ] Once `gitlab-pages` is merged create a signed+annotated tag pointing to the **merge commit** on the **stable branch**
     In case of `master` branch:
@@ -49,16 +41,5 @@
     - [ ] Update `GITLAB_PAGES_VERSION`
     - [ ] Create a changelog entry
     - [ ] Assign to a reviewer
-
-### In the changelog
-```
-- some change
-- some change
-```
-### Not in the changelog
-```
-- some change
-- some change
-```
 
 /label ~backend ~"Category:Pages" ~"devops::release" ~"group::release" ~"feature::maintenance"
