@@ -1,3 +1,18 @@
+## 1.40.0 (2021-06-09)
+
+### Changed (1 change)
+
+- [Use API source by default](gitlab-org/gitlab-pages@9a30f40a785ffe586a79a75ebebabda5f513b76f) ([merge request](gitlab-org/gitlab-pages!491))
+
+### Removed (2 changes)
+
+- [Drop support for Go 1.13](gitlab-org/gitlab-pages@5abbb3dd66270f0124fc5c7fe4523f237337c890) ([merge request](gitlab-org/gitlab-pages!501))
+- [Remove gitlab-server fallback to auth-server and artifacts server](gitlab-org/gitlab-pages@6f806a34631581486ca12e2fe3addd3f722b6477) ([merge request](gitlab-org/gitlab-pages!472))
+
+### Other (1 change)
+
+- [Sort lookup paths by prefix length](gitlab-org/gitlab-pages@b9ba78cf43a14a4ca1c4893c7115eed56ce1b115) ([merge request](gitlab-org/gitlab-pages!496))
+
 ## 1.39.0 (2021-05-14)
 
 ### Added (1 change)
