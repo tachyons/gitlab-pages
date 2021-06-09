@@ -39,7 +39,7 @@
 - [ ] Create an MR for [gitlab project](https://gitlab.com/gitlab-org/gitlab).
     You can use [this MR](https://gitlab.com/gitlab-org/gitlab/merge_requests/23023) as an example.
     - [ ] Update `GITLAB_PAGES_VERSION`
-    - [ ] Create a changelog entry
+    - [ ] Added `Changelog: added` footer to your commit
     - [ ] Assign to a reviewer
 
 /label ~backend ~"Category:Pages" ~"devops::release" ~"group::release" ~"feature::maintenance"
