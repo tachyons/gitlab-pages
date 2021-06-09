@@ -233,7 +233,7 @@ func RunPagesProcessWithOutput(t *testing.T, pagesBinary string, listeners []Lis
 	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
 }
 
-func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) (*LogCaptureBuffer, func()) {
+func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 	chdir := false
 	chdirCleanup := testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)
 
@@ -257,11 +257,13 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) (*
 
 	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, listeners, "", processCfg.envs, processCfg.extraArgs...)
 
-	return logBuf, func() {
+	t.Cleanup(func() {
 		source.Close()
 		chdirCleanup()
 		cleanup()
-	}
+	})
+
+	return logBuf
 }
 
 func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string) func() {

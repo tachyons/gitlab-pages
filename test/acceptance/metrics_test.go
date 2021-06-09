@@ -14,11 +14,10 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcessWithStubGitLabServer(t,
 		withExtraArgument("max-conns", "10"),
 		withExtraArgument("metrics-address", ":42345"),
 	)
-	defer teardown()
 
 	// need to call an actual resource to populate certain metrics e.g. gitlab_pages_domains_source_api_requests_total
 	res, err := GetPageFromListener(t, httpListener, "zip.gitlab.io",
