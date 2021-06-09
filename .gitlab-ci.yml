@@ -19,7 +19,7 @@ include:
   - local: .gitlab/ci/test.yml
 
 default:
-  image: golang:1.13
+  image: golang:1.14
   tags:
     - gitlab-org
 
