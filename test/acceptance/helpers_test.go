@@ -255,7 +255,7 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	processCfg.extraArgs = append(processCfg.extraArgs, "-pages-root", wd, "-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab")
 
-	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, listeners, "", processCfg.envs, processCfg.extraArgs...)
+	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, processCfg.extraArgs...)
 
 	t.Cleanup(func() {
 		source.Close()

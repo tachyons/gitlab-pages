@@ -32,6 +32,10 @@ type processConfig struct {
 
 type processOption func(*processConfig)
 
+func withoutWait(config *processConfig) {
+	config.wait = false
+}
+
 func withListeners(listeners []ListenSpec) processOption {
 	return func(config *processConfig) {
 		config.listeners = listeners
