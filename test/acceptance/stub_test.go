@@ -40,7 +40,7 @@ func withListeners(listeners []ListenSpec) processOption {
 
 func withEnv(envs []string) processOption {
 	return func(config *processConfig) {
-		config.envs = envs
+		config.envs = append(config.envs, envs...)
 	}
 }
 
@@ -51,7 +51,7 @@ func withExtraArgument(key, value string) processOption {
 }
 func withArguments(args []string) processOption {
 	return func(config *processConfig) {
-		config.extraArgs = args
+		config.extraArgs = append(config.extraArgs, args...)
 	}
 }
 
