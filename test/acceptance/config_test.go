@@ -14,9 +14,11 @@ func TestEnvironmentVariablesConfig(t *testing.T) {
 
 	envVarValue := "LISTEN_HTTP=" + net.JoinHostPort(httpListener.Host, httpListener.Port)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, false, *pagesBinary, []ListenSpec{}, []string{envVarValue})
-	defer teardown()
-
+	RunPagesProcessWithStubGitLabServer(t,
+		withoutWait,
+		withListeners([]ListenSpec{}), // explicitly disable listeners for this test
+		withEnv([]string{envVarValue}),
+	)
 	require.NoError(t, httpListener.WaitUntilRequestSucceeds(nil))
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com:", "project/")
@@ -30,8 +32,11 @@ func TestMixedConfigSources(t *testing.T) {
 	skipUnlessEnabled(t)
 	envVarValue := "LISTEN_HTTP=" + net.JoinHostPort(httpListener.Host, httpListener.Port)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, false, *pagesBinary, []ListenSpec{httpsListener}, []string{envVarValue})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withoutWait,
+		withListeners([]ListenSpec{httpsListener}),
+		withEnv([]string{envVarValue}),
+	)
 
 	for _, listener := range []ListenSpec{httpListener, httpsListener} {
 		require.NoError(t, listener.WaitUntilRequestSucceeds(nil))
@@ -49,8 +54,11 @@ func TestMultipleListenersFromEnvironmentVariables(t *testing.T) {
 	listenSpecs := []ListenSpec{{"http", "127.0.0.1", "37001"}, {"http", "127.0.0.1", "37002"}}
 	envVarValue := fmt.Sprintf("LISTEN_HTTP=%s,%s", net.JoinHostPort("127.0.0.1", "37001"), net.JoinHostPort("127.0.0.1", "37002"))
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, false, *pagesBinary, []ListenSpec{}, []string{envVarValue})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withoutWait,
+		withListeners([]ListenSpec{}), // explicitly disable listeners for this test
+		withEnv([]string{envVarValue}),
+	)
 
 	for _, listener := range listenSpecs {
 		require.NoError(t, listener.WaitUntilRequestSucceeds(nil))
