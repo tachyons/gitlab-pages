@@ -16,8 +16,7 @@ import (
 func TestUnknownHostReturnsNotFound(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
 		rsp, err := GetPageFromListener(t, spec, "invalid.invalid", "")
@@ -31,8 +30,7 @@ func TestUnknownHostReturnsNotFound(t *testing.T) {
 func TestUnknownProjectReturnsNotFound(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, []ListenSpec{httpListener}, []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
 	require.NoError(t, err)
@@ -43,8 +41,7 @@ func TestUnknownProjectReturnsNotFound(t *testing.T) {
 func TestGroupDomainReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/")
 	require.NoError(t, err)
@@ -60,8 +57,7 @@ func TestGroupDomainReturns200(t *testing.T) {
 func TestKnownHostReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	tests := []struct {
 		name    string
@@ -230,8 +226,7 @@ func TestCustom404(t *testing.T) {
 func TestCORSWhenDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{}, "-disable-cross-origin-requests")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t, withExtraArgument("disable-cross-origin-requests", "true"))
 
 	for _, spec := range supportedListeners() {
 		for _, method := range []string{"GET", "OPTIONS"} {
@@ -247,8 +242,7 @@ func TestCORSWhenDisabled(t *testing.T) {
 func TestCORSAllowsGET(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
 		for _, method := range []string{"GET", "OPTIONS"} {
@@ -264,8 +258,7 @@ func TestCORSAllowsGET(t *testing.T) {
 func TestCORSForbidsPOST(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
 		rsp := doCrossOriginRequest(t, spec, "OPTIONS", "POST", spec.URL("project/"))
@@ -278,8 +271,11 @@ func TestCORSForbidsPOST(t *testing.T) {
 
 func TestCustomHeaders(t *testing.T) {
 	skipUnlessEnabled(t)
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{}, "-header", "X-Test1:Testing1", "-header", "X-Test2:Testing2")
-	defer teardown()
+
+	RunPagesProcessWithStubGitLabServer(t,
+		withExtraArgument("header", "X-Test1:Testing1"),
+		withExtraArgument("header", "X-Test2:Testing2"),
+	)
 
 	for _, spec := range supportedListeners() {
 		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com:", "project/")
@@ -293,8 +289,7 @@ func TestCustomHeaders(t *testing.T) {
 func TestKnownHostWithPortReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
 		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com:"+spec.Port, "project/")
@@ -308,8 +303,7 @@ func TestKnownHostWithPortReturns200(t *testing.T) {
 func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
@@ -325,8 +319,7 @@ func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 func TestHttpToHttpsRedirectEnabled(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{}, "-redirect-http=true")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t, withExtraArgument("redirect-http", "true"))
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
@@ -587,8 +580,7 @@ func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
 func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, []ListenSpec{proxyListener}, []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetProxiedPageFromListener(t, proxyListener, "localhost", "group.gitlab-example.com", "project/")
 
@@ -694,8 +686,7 @@ func doCrossOriginRequest(t *testing.T, spec ListenSpec, method, reqMethod, url 
 func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "project?q=test")
 	require.NoError(t, err)
@@ -731,8 +722,11 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 	for name, test := range tests {
 		testFn := func(envArgs, headerArgs []string) func(*testing.T) {
 			return func(t *testing.T) {
-				_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, []ListenSpec{httpListener}, envArgs, headerArgs...)
-				defer teardown()
+				RunPagesProcessWithStubGitLabServer(t,
+					withListeners([]ListenSpec{httpListener}),
+					withEnv(envArgs),
+					withArguments(headerArgs),
+				)
 
 				rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/")
 				require.NoError(t, err)
@@ -777,8 +771,9 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	logBuf, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, []ListenSpec{httpListener}, nil, "-enable-disk=false")
-	defer teardown()
+	logBuf := RunPagesProcessWithStubGitLabServer(t,
+		withExtraArgument("enable-disk", "false"),
+	)
 
 	for host, suffix := range map[string]string{
 		// API serves "source": { "type": "local" }

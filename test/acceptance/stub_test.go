@@ -12,6 +12,49 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
 
+var defaultProcessConfig = processConfig{
+	wait:           true,
+	pagesBinary:    *pagesBinary,
+	listeners:      supportedListeners(),
+	envs:           []string{},
+	extraArgs:      []string{},
+	gitlabStubOpts: &stubOpts{},
+}
+
+type processConfig struct {
+	wait           bool
+	pagesBinary    string
+	listeners      []ListenSpec
+	envs           []string
+	extraArgs      []string
+	gitlabStubOpts *stubOpts
+}
+
+type processOption func(*processConfig)
+
+func withListeners(listeners []ListenSpec) processOption {
+	return func(config *processConfig) {
+		config.listeners = listeners
+	}
+}
+
+func withEnv(envs []string) processOption {
+	return func(config *processConfig) {
+		config.envs = append(config.envs, envs...)
+	}
+}
+
+func withExtraArgument(key, value string) processOption {
+	return func(config *processConfig) {
+		config.extraArgs = append(config.extraArgs, fmt.Sprintf("-%s=%s", key, value))
+	}
+}
+func withArguments(args []string) processOption {
+	return func(config *processConfig) {
+		config.extraArgs = append(config.extraArgs, args...)
+	}
+}
+
 // makeGitLabPagesAccessStub provides a stub *httptest.Server to check pages_access API call.
 // the result is based on the project id.
 //
