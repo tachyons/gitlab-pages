@@ -3,7 +3,7 @@ module gitlab.com/gitlab-org/gitlab-pages
 go 1.14
 
 require (
-	github.com/andybalholm/brotli v1.0.1
+	github.com/andybalholm/brotli v1.0.3
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/mock v1.3.1
