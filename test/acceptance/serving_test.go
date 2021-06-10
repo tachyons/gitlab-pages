@@ -164,8 +164,7 @@ func TestNestedSubgroups(t *testing.T) {
 func TestCustom404(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	_, teardown := RunPagesProcessWithStubGitLabServer(t, true, *pagesBinary, supportedListeners(), []string{})
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t)
 
 	tests := []struct {
 		host    string
