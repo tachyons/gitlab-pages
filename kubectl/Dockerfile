@@ -1,5 +1,5 @@
 # ARGS for entire build
-ARG KUBECTL_VERSION="1.14.10"
+ARG KUBECTL_VERSION="1.16.15"
 ARG FROM_IMAGE="debian"
 FROM ${FROM_IMAGE}:buster-slim
 
