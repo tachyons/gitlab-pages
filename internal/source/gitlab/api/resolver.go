@@ -9,7 +9,4 @@ import (
 type Resolver interface {
 	// Resolve retrieves an VirtualDomain from the GitLab API and wraps it into a Lookup
 	Resolve(ctx context.Context, domain string) *Lookup
-
-	// Status checks the connectivity with the GitLab API
-	Status() error
 }

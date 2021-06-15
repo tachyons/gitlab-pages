@@ -387,7 +387,6 @@ func TestDomainsSource(t *testing.T) {
 		configSource string
 		domain       string
 		urlSuffix    string
-		readyCount   int
 	}
 	type want struct {
 		statusCode int
@@ -459,41 +458,12 @@ func TestDomainsSource(t *testing.T) {
 				apiCalled:  false,
 			},
 		},
-		{
-			name: "auto_source_gitlab_is_not_ready",
-			args: args{
-				configSource: "auto",
-				domain:       "test.domain.com",
-				urlSuffix:    "/",
-				readyCount:   100, // big number to ensure the API is in bad state for a while
-			},
-			want: want{
-				statusCode: http.StatusOK,
-				content:    "main-dir\n",
-				apiCalled:  false,
-			},
-		},
-		{
-			name: "auto_source_gitlab_is_ready",
-			args: args{
-				configSource: "auto",
-				domain:       "new-source-test.gitlab.io",
-				urlSuffix:    "/my/pages/project/",
-				readyCount:   0,
-			},
-			want: want{
-				statusCode: http.StatusOK,
-				content:    "New Pages GitLab Source TEST OK\n",
-				apiCalled:  true,
-			},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := &stubOpts{
-				apiCalled:        false,
-				statusReadyCount: tt.args.readyCount,
+				apiCalled: false,
 			}
 
 			source := NewGitlabDomainsSourceStub(t, opts)

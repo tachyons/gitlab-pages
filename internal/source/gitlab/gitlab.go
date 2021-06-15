@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cenkalti/backoff/v4"
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
@@ -42,7 +41,7 @@ func New(cfg *config.GitLab) (*Gitlab, error) {
 		enableDisk: cfg.EnableDisk,
 	}
 
-	go g.poll(backoff.DefaultInitialInterval, maxPollingTime)
+	g.isReady = true
 
 	return g, nil
 }
