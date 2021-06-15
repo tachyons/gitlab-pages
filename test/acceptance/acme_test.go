@@ -9,65 +9,95 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	existingAcmeTokenPath    = "/.well-known/acme-challenge/existingtoken"
+	notExistingAcmeTokenPath = "/.well-known/acme-challenge/notexistingtoken"
+)
+
 func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
-	t.Run("When domain folder contains requested acme challenge it responds with it", func(t *testing.T) {
-		rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
-			existingAcmeTokenPath)
+	tests := map[string]struct {
+		token           string
+		expectedStatus  int
+		expectedContent string
+	}{
+		"When domain folder contains requested acme challenge it responds with it": {
+			token:           existingAcmeTokenPath,
+			expectedStatus:  http.StatusOK,
+			expectedContent: "this is token\n",
+		},
+		"When domain folder does not contain requested acme challenge it returns 404": {
+			token:           notExistingAcmeTokenPath,
+			expectedStatus:  http.StatusNotFound,
+			expectedContent: "The page you're looking for could not be found.",
+		},
+	}
 
-		defer rsp.Body.Close()
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, rsp.StatusCode)
-		body, _ := ioutil.ReadAll(rsp.Body)
-		require.Equal(t, "this is token\n", string(body))
-	})
-
-	t.Run("When domain folder doesn't contains requested acme challenge it returns 404",
-		func(t *testing.T) {
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
 			rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
-				notExistingAcmeTokenPath)
+				test.token)
 
 			defer rsp.Body.Close()
 			require.NoError(t, err)
-			require.Equal(t, http.StatusNotFound, rsp.StatusCode)
-		},
-	)
+			require.Equal(t, test.expectedStatus, rsp.StatusCode)
+			body, err := ioutil.ReadAll(rsp.Body)
+			require.NoError(t, err)
+
+			require.Contains(t, string(body), test.expectedContent)
+		})
+	}
 }
 
 func TestAcmeChallengesWhenItIsConfigured(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-gitlab-server=https://gitlab-acme.com")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+		withExtraArgument("gitlab-server", "https://gitlab-acme.com"),
+	)
 
-	t.Run("When domain folder contains requested acme challenge it responds with it", func(t *testing.T) {
-		rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
-			existingAcmeTokenPath)
+	tests := map[string]struct {
+		token            string
+		expectedStatus   int
+		expectedContent  string
+		expectedLocation string
+	}{
+		"When domain folder contains requested acme challenge it responds with it": {
+			token:           existingAcmeTokenPath,
+			expectedStatus:  http.StatusOK,
+			expectedContent: "this is token\n",
+		},
+		"When domain folder doesn't contains requested acme challenge it redirects to GitLab": {
+			token:            notExistingAcmeTokenPath,
+			expectedStatus:   http.StatusTemporaryRedirect,
+			expectedContent:  "",
+			expectedLocation: "https://gitlab-acme.com/-/acme-challenge?domain=withacmechallenge.domain.com&token=notexistingtoken",
+		},
+	}
 
-		defer rsp.Body.Close()
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, rsp.StatusCode)
-		body, _ := ioutil.ReadAll(rsp.Body)
-		require.Equal(t, "this is token\n", string(body))
-	})
-
-	t.Run("When domain folder doesn't contains requested acme challenge it redirects to GitLab",
-		func(t *testing.T) {
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
 			rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
-				notExistingAcmeTokenPath)
+				test.token)
 
 			defer rsp.Body.Close()
 			require.NoError(t, err)
-			require.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
-
-			url, err := url.Parse(rsp.Header.Get("Location"))
+			require.Equal(t, test.expectedStatus, rsp.StatusCode)
+			body, err := ioutil.ReadAll(rsp.Body)
 			require.NoError(t, err)
 
-			require.Equal(t, url.String(), "https://gitlab-acme.com/-/acme-challenge?domain=withacmechallenge.domain.com&token=notexistingtoken")
-		},
-	)
+			require.Contains(t, string(body), test.expectedContent)
+
+			redirectURL, err := url.Parse(rsp.Header.Get("Location"))
+			require.NoError(t, err)
+
+			require.Equal(t, redirectURL.String(), test.expectedLocation)
+		})
+	}
 }
