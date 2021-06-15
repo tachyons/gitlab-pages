@@ -20,7 +20,6 @@ type responseFn func(*testing.T, string) api.VirtualDomain
 var DomainResponses = map[string]responseFn{
 	"zip-from-disk.gitlab.io": customDomain(projectConfig{
 		projectID:  123,
-		prefix:     "/",
 		pathOnDisk: "@hashed/zip-from-disk.gitlab.io",
 	}),
 	"zip-from-disk-not-found.gitlab.io": customDomain(projectConfig{}),
@@ -31,7 +30,6 @@ var DomainResponses = map[string]responseFn{
 	"group.404.gitlab-example.com":    generateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com", nil),
 	"domain.404.com": customDomain(projectConfig{
 		projectID:  1000,
-		prefix:     "/",
 		pathOnDisk: "group.404/domain.404",
 	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
@@ -109,10 +107,10 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 }
 
 type projectConfig struct {
+	// refer to makeGitLabPagesAccessStub for custom HTTP responses per projectID
 	projectID     int
 	accessControl bool
 	https         bool
-	prefix        string
 	pathOnDisk    string
 }
 
@@ -129,7 +127,7 @@ func customDomain(config projectConfig) responseFn {
 					ProjectID:     config.projectID,
 					AccessControl: config.accessControl,
 					HTTPSOnly:     config.https,
-					Prefix:        config.prefix,
+					Prefix:        "/", // prefix should always be `/` for custom domains
 					Source: api.Source{
 						Type: "zip",
 						Path: fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk),
