@@ -131,16 +131,16 @@ func TestArtifactProxyRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			teardown := RunPagesProcessWithSSLCertFile(
-				t,
-				*pagesBinary,
-				supportedListeners(),
-				"",
-				certFile,
-				"-artifacts-server="+artifactServerURL,
-				tt.binaryOption,
+			args := []string{"-artifacts-server=" + artifactServerURL}
+			if tt.binaryOption != "" {
+				args = append(args, tt.binaryOption)
+			}
+
+			RunPagesProcessWithStubGitLabServer(t,
+				withListeners([]ListenSpec{httpListener}),
+				withArguments(args),
+				withEnv([]string{"SSL_CERT_FILE=" + certFile}),
 			)
-			defer teardown()
 
 			resp, err := GetPageFromListener(t, httpListener, tt.host, tt.path)
 			require.NoError(t, err)
@@ -170,8 +170,10 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.NoError(t, err)
-	defer os.Remove(keyFile)
-	defer os.Remove(certFile)
+	t.Cleanup(func() {
+		os.Remove(keyFile)
+		os.Remove(certFile)
+	})
 
 	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 	testServer.StartTLS()
@@ -235,15 +237,13 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 				tt.binaryOption)
 			defer cleanup()
 
-			teardown := RunPagesProcessWithSSLCertFile(
-				t,
-				*pagesBinary,
-				supportedListeners(),
-				"",
-				certFile,
-				"-config="+configFile,
+			RunPagesProcessWithStubGitLabServer(t,
+				withListeners([]ListenSpec{httpsListener}),
+				withArguments([]string{
+					"-config=" + configFile,
+				}),
+				withEnv([]string{"SSL_CERT_FILE=" + certFile}),
 			)
-			defer teardown()
 
 			resp, err := GetRedirectPage(t, httpsListener, tt.host, tt.path)
 			require.NoError(t, err)
