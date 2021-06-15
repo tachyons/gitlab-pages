@@ -26,9 +26,9 @@ var DomainResponses = map[string]responseFn{
 	"zip-from-disk-not-found.gitlab.io": customDomain(projectConfig{}),
 	// outside of working dir
 	"zip-not-allowed-path.gitlab.io":  customDomain(projectConfig{pathOnDisk: "../../../../"}),
-	"group.gitlab-example.com":        generateVirtualDomainFromDir("group", "group.gitlab-example.com"),
-	"CapitalGroup.gitlab-example.com": generateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com"),
-	"group.404.gitlab-example.com":    generateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com"),
+	"group.gitlab-example.com":        generateVirtualDomainFromDir("group", "group.gitlab-example.com", nil),
+	"CapitalGroup.gitlab-example.com": generateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com", nil),
+	"group.404.gitlab-example.com":    generateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com", nil),
 	"domain.404.com": customDomain(projectConfig{
 		projectID:  1000,
 		prefix:     "/",
@@ -41,7 +41,7 @@ var DomainResponses = map[string]responseFn{
 
 // generateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
 // It works for subdomains of pages-domain but not for custom domains (yet)
-func generateVirtualDomainFromDir(dir, rootDomain string) responseFn {
+func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[string]projectConfig) responseFn {
 	return func(t *testing.T, wd string) api.VirtualDomain {
 		t.Helper()
 
@@ -81,12 +81,17 @@ func generateVirtualDomainFromDir(dir, rootDomain string) responseFn {
 				prefix = "/"
 			}
 
+			cfg, ok := perPrefixConfig[prefix]
+			if !ok {
+				cfg = projectConfig{}
+			}
+
 			lookupPath := api.LookupPath{
 				// TODO: allow configuring response
 				// Related MR in progress https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/498
-				ProjectID:     123,
-				AccessControl: false,
-				HTTPSOnly:     false,
+				ProjectID:     cfg.projectID,
+				AccessControl: cfg.accessControl,
+				HTTPSOnly:     cfg.https,
 				Prefix:        prefix,
 				Source: api.Source{
 					Type: "zip",
