@@ -518,8 +518,8 @@ func runApp(config *cfg.Config) {
 	// TODO: This if was introduced when `gitlab-server` wasn't a required parameter
 	// once we completely remove support for legacy architecture and make it required
 	// we can just remove this if statement https://gitlab.com/gitlab-org/gitlab-pages/-/issues/581
-	if config.GitLab.Server != "" {
-		a.AcmeMiddleware = &acme.Middleware{GitlabURL: config.GitLab.Server}
+	if config.GitLab.PublicServer != "" {
+		a.AcmeMiddleware = &acme.Middleware{GitlabURL: config.GitLab.PublicServer}
 	}
 
 	if len(config.General.CustomHeaders) != 0 {
@@ -549,9 +549,8 @@ func (a *theApp) setAuth(config *cfg.Config) {
 	}
 
 	var err error
-	// TODO: use config.GitLab.InternalServer https://gitlab.com/gitlab-org/gitlab-pages/-/issues/581
 	a.Auth, err = auth.New(config.General.Domain, config.Authentication.Secret, config.Authentication.ClientID, config.Authentication.ClientSecret,
-		config.Authentication.RedirectURI, config.GitLab.Server, config.Authentication.Scope)
+		config.Authentication.RedirectURI, config.GitLab.InternalServer, config.GitLab.PublicServer, config.Authentication.Scope)
 	if err != nil {
 		log.WithError(err).Fatal("could not initialize auth package")
 	}

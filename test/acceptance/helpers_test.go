@@ -260,13 +260,14 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 	return logBuf
 }
 
-func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string) func() {
+func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []ListenSpec, internalServer string, publicServer string) func() {
 	configFile, cleanup := defaultConfigFileWith(t,
-		"gitlab-server=https://gitlab-auth.com",
+		"internal-gitlab-server="+internalServer,
+		"gitlab-server="+publicServer,
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
 	defer cleanup()
 
-	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, promPort, nil,
+	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, "", nil,
 		"-config="+configFile,
 	)
 	return cleanup2

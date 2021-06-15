@@ -17,7 +17,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
-func createTestAuth(t *testing.T, url string) *Auth {
+func createTestAuth(t *testing.T, internalServer string, publicServer string) *Auth {
 	t.Helper()
 
 	a, err := New("pages.gitlab-example.com",
@@ -25,7 +25,8 @@ func createTestAuth(t *testing.T, url string) *Auth {
 		"id",
 		"secret",
 		"http://pages.gitlab-example.com/auth",
-		url,
+		internalServer,
+		publicServer,
 		"scope")
 
 	require.NoError(t, err)
@@ -70,7 +71,7 @@ func setSessionValues(t *testing.T, r *http.Request, store sessions.Store, value
 }
 
 func TestTryAuthenticate(t *testing.T) {
-	auth := createTestAuth(t, "")
+	auth := createTestAuth(t, "", "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/something/else")
@@ -82,7 +83,7 @@ func TestTryAuthenticate(t *testing.T) {
 }
 
 func TestTryAuthenticateWithError(t *testing.T) {
-	auth := createTestAuth(t, "")
+	auth := createTestAuth(t, "", "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?error=access_denied")
@@ -96,7 +97,7 @@ func TestTryAuthenticateWithError(t *testing.T) {
 }
 
 func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
-	auth := createTestAuth(t, "")
+	auth := createTestAuth(t, "", "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=invalid")
@@ -115,7 +116,7 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 }
 
 func TestTryAuthenticateRemoveTokenFromRedirect(t *testing.T) {
-	auth := createTestAuth(t, "")
+	auth := createTestAuth(t, "", "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state&token=secret")
@@ -141,6 +142,21 @@ func TestTryAuthenticateRemoveTokenFromRedirect(t *testing.T) {
 	require.Empty(t, redirect.Query().Get("token"), "token is gone after redirecting")
 }
 
+func TestTryAuthenticateWithDomainAndState(t *testing.T) {
+	auth := createTestAuth(t, "", "public-gitlab.example.com")
+	result := httptest.NewRecorder()
+	reqURL, err := url.Parse("/auth?domain=https%3A%2F%2Fpages.gitlab-example.com&state=state")
+	require.NoError(t, err)
+	r := &http.Request{URL: reqURL}
+
+	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	require.Equal(t, http.StatusFound, result.Code)
+	redirect, err := url.Parse(result.Header().Get("Location"))
+	require.NoError(t, err)
+
+	require.Equal(t, "/public-gitlab.example.com/oauth/authorize?client_id=id&redirect_uri=http://pages.gitlab-example.com/auth&response_type=code&state=state&scope=scope", redirect.String())
+}
+
 func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	t.Helper()
 
@@ -163,7 +179,7 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	auth := createTestAuth(t, apiServer.URL)
+	auth := createTestAuth(t, apiServer.URL, "")
 
 	domain := apiServer.URL
 	if https {
@@ -220,7 +236,7 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	auth := createTestAuth(t, apiServer.URL)
+	auth := createTestAuth(t, apiServer.URL, "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
@@ -256,7 +272,7 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	auth := createTestAuth(t, apiServer.URL)
+	auth := createTestAuth(t, apiServer.URL, "")
 
 	w := httptest.NewRecorder()
 
@@ -300,7 +316,7 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	auth := createTestAuth(t, apiServer.URL)
+	auth := createTestAuth(t, apiServer.URL, "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
@@ -335,7 +351,7 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	auth := createTestAuth(t, apiServer.URL)
+	auth := createTestAuth(t, apiServer.URL, "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
@@ -371,7 +387,7 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 	apiServer.Start()
 	defer apiServer.Close()
 
-	auth := createTestAuth(t, apiServer.URL)
+	auth := createTestAuth(t, apiServer.URL, "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/auth?code=1&state=state")
@@ -404,7 +420,7 @@ func TestGenerateKeys(t *testing.T) {
 }
 
 func TestGetTokenIfExistsWhenTokenExists(t *testing.T) {
-	auth := createTestAuth(t, "")
+	auth := createTestAuth(t, "", "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/")
@@ -423,7 +439,7 @@ func TestGetTokenIfExistsWhenTokenExists(t *testing.T) {
 }
 
 func TestGetTokenIfExistsWhenTokenDoesNotExist(t *testing.T) {
-	auth := createTestAuth(t, "")
+	auth := createTestAuth(t, "", "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("http://pages.gitlab-example.com/test")
@@ -441,7 +457,7 @@ func TestGetTokenIfExistsWhenTokenDoesNotExist(t *testing.T) {
 }
 
 func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
-	auth := createTestAuth(t, "")
+	auth := createTestAuth(t, "", "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("http://pages.gitlab-example.com/test")
@@ -456,7 +472,7 @@ func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
 }
 
 func TestCheckResponseForInvalidTokenWhenNotInvalidToken(t *testing.T) {
-	auth := createTestAuth(t, "")
+	auth := createTestAuth(t, "", "")
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/something")

@@ -8,7 +8,7 @@ import (
 )
 
 func TestEncryptAndDecryptSignedCode(t *testing.T) {
-	auth := createTestAuth(t, "")
+	auth := createTestAuth(t, "", "")
 
 	tests := map[string]struct {
 		auth              *Auth
@@ -86,8 +86,8 @@ func TestEncryptAndDecryptSignedCode(t *testing.T) {
 }
 
 func TestDecryptCodeWithInvalidJWT(t *testing.T) {
-	auth1 := createTestAuth(t, "")
-	auth2 := createTestAuth(t, "")
+	auth1 := createTestAuth(t, "", "")
+	auth2 := createTestAuth(t, "", "")
 	auth2.jwtSigningKey = []byte("another signing key")
 
 	encCode, err := auth1.EncryptAndSignCode("domain", "code")

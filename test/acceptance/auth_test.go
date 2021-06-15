@@ -26,7 +26,7 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 }
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
@@ -48,7 +48,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "https", url.Scheme)
-	require.Equal(t, "gitlab-auth.com", url.Host)
+	require.Equal(t, "public-gitlab-auth.com", url.Host)
 	require.Equal(t, "/oauth/authorize", url.Path)
 	require.Equal(t, "clientID", url.Query().Get("client_id"))
 	require.Equal(t, "https://projects.gitlab-example.com/auth", url.Query().Get("redirect_uri"))
@@ -57,7 +57,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 }
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
 	defer teardown()
 
 	rsp, err := GetPageFromListener(t, httpsListener, "projects.gitlab-example.com", "/auth?error=access_denied")
@@ -68,7 +68,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
 }
 func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
@@ -86,7 +86,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 }
 
 func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
@@ -182,7 +182,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithGitlabServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
 	defer teardown()
 
 	tests := map[string]struct {
@@ -263,7 +263,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithGitlabServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
 	defer teardown()
 
 	tests := []struct {
@@ -373,7 +373,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithGitlabServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
 	defer teardown()
 
 	rsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/", "", true)
@@ -435,7 +435,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 }
 
 func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
@@ -449,7 +449,7 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 	require.Equal(t, "/auth", url.Path)
 }
 func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
 	defer teardown()
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/project/nonexistent/")
@@ -649,7 +649,7 @@ func TestHijackedCode(t *testing.T) {
 	testServer.Start()
 	defer testServer.Close()
 
-	teardown := RunPagesProcessWithGitlabServer(t, *pagesBinary, supportedListeners(), "", testServer.URL)
+	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
 	defer teardown()
 
 	/****ATTACKER******/
