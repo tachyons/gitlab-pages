@@ -61,8 +61,8 @@ if ARGV.length < 1
   exit 1
 end
 
-# Add `-ubi8` to the commit ref if not already present.
-version = ARGV[0]
+# Remove CE/EE suffix and add `-ubi8` to the commit ref if not already present.
+version = ARGV[0].sub(/-(ce|ee)$/, '')
 if not version.ends_with? '-ubi8'
   # we add `-ubi8` to find the UBI images.
   version += '-ubi8'
