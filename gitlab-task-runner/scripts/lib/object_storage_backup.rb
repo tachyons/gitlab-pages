@@ -41,7 +41,7 @@ class ObjectStorageBackup
     FileUtils.mkdir_p("/srv/gitlab/tmp/#{@name}", mode: 0700)
 
     output, status = run_cmd(cmd)
-    failure_abort(output) unless status.zero?
+    failure_abort('creation of working directory', output) unless status.zero?
 
     # check the destiation for contents. Bucket may have been empty.
     if Dir.empty? "/srv/gitlab/tmp/#{@name}"
@@ -54,7 +54,7 @@ class ObjectStorageBackup
 
     cmd = %W(tar -cf #{@local_tar_path} -I #{gzip_cmd} -C /srv/gitlab/tmp/#{@name} . )
     output, status = run_cmd(cmd)
-    failure_abort(output) unless status.zero?
+    failure_abort('archive', output) unless status.zero?
 
     puts "done".green
   end
@@ -68,9 +68,9 @@ class ObjectStorageBackup
     puts "done".green
   end
 
-  def failure_abort(error_message)
+  def failure_abort(action, error_message)
     puts "[Error] #{error_message}".red
-    abort "Restore #{@name} failed"
+    abort "#{action} of #{@name} failed"
   end
 
   def upload_to_object_storage(source_path)
@@ -83,7 +83,7 @@ class ObjectStorageBackup
 
     output, status = run_cmd(cmd)
 
-    failure_abort(output) unless status.zero?
+    failure_abort('upload', output) unless status.zero?
   end
 
   def backup_existing
@@ -97,7 +97,7 @@ class ObjectStorageBackup
 
     output, status = run_cmd(cmd)
 
-    failure_abort(output) unless status.zero?
+    failure_abort('sync existing', output) unless status.zero?
   end
 
   def cleanup
@@ -107,7 +107,7 @@ class ObjectStorageBackup
       # Check if the bucket has any objects
       list_objects_cmd = %W(gsutil ls gs://#{@remote_bucket_name}/)
       output, status = run_cmd(list_objects_cmd)
-      failure_abort(output) unless status.zero?
+      failure_abort('GCS ls', output) unless status.zero?
 
       # There are no objects in the bucket so skip the cleanup
       if output.length == 0
@@ -117,20 +117,20 @@ class ObjectStorageBackup
       cmd = %W(gsutil rm -f -r gs://#{@remote_bucket_name}/*)
     end
     output, status = run_cmd(cmd)
-    failure_abort(output) unless status.zero?
+    failure_abort('bucket cleanup', output) unless status.zero?
   end
 
   def restore_from_backup
     extracted_tar_path = File.join(File.dirname(@local_tar_path), "/srv/gitlab/tmp/#{@name}")
     FileUtils.mkdir_p(extracted_tar_path, mode: 0700)
 
-    failure_abort("#{@local_tar_path} not found") unless File.exist?(@local_tar_path)
+    failure_abort('restore', "#{@local_tar_path} not found") unless File.exist?(@local_tar_path)
 
     untar_cmd = %W(tar -xf #{@local_tar_path} -C #{extracted_tar_path})
 
     output, status = run_cmd(untar_cmd)
 
-    failure_abort(output) unless status.zero?
+    failure_abort('un-archive', output) unless status.zero?
 
     Dir.glob("#{extracted_tar_path}/*").each do |file|
      upload_to_object_storage(file)
