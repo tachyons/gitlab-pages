@@ -28,6 +28,16 @@ var DomainResponses = map[string]responseFn{
 	"group.gitlab-example.com":        generateVirtualDomainFromDir("group", "group.gitlab-example.com", nil),
 	"CapitalGroup.gitlab-example.com": generateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com", nil),
 	"group.404.gitlab-example.com":    generateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com", nil),
+	"group.https-only.gitlab-example.com": generateVirtualDomainFromDir("group.https-only", "group.https-only.gitlab-example.com", map[string]projectConfig{
+		"/project1": {
+			projectID: 1000,
+			https:     true,
+		},
+		"/project2": {
+			projectID: 1100,
+			https:     false,
+		},
+	}),
 	"domain.404.com": customDomain(projectConfig{
 		projectID:  1000,
 		pathOnDisk: "group.404/domain.404",
@@ -85,8 +95,6 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 			}
 
 			lookupPath := api.LookupPath{
-				// TODO: allow configuring response
-				// Related MR in progress https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/498
 				ProjectID:     cfg.projectID,
 				AccessControl: cfg.accessControl,
 				HTTPSOnly:     cfg.https,
@@ -127,7 +135,10 @@ func customDomain(config projectConfig) responseFn {
 					ProjectID:     config.projectID,
 					AccessControl: config.accessControl,
 					HTTPSOnly:     config.https,
-					Prefix:        "/", // prefix should always be `/` for custom domains
+					// prefix should always be `/` for custom domains, otherwise `resolvePath` will try
+					// to look for files under public/prefix/ when serving content instead of just public/
+					// see internal/serving/disk/ for details
+					Prefix: "/",
 					Source: api.Source{
 						Type: "zip",
 						Path: fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk),
