@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
@@ -64,8 +65,10 @@ func TestMain(m *testing.M) {
 	if ok := TestCertPool.AppendCertsFromPEM([]byte(fixture.Certificate)); !ok {
 		fmt.Println("Failed to load cert!")
 	}
+	e := m.Run()
 
-	os.Exit(m.Run())
+	time.Sleep(5 * time.Minute)
+	os.Exit(e)
 }
 
 func skipUnlessEnabled(t *testing.T, conditions ...string) {
