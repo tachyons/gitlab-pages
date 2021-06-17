@@ -21,14 +21,14 @@ func TestProxyv2(t *testing.T) {
 		urlSuffix          string
 		expectedStatusCode int
 		expectedContent    string
-		expectedLog        string
+		expectedLog        []string
 	}{
 		"basic_proxyv2_request": {
 			host:               "group.gitlab-example.com",
 			urlSuffix:          "project/",
 			expectedStatusCode: http.StatusOK,
 			expectedContent:    "project-subdir\n",
-			expectedLog:        "group.gitlab-example.com 10.1.1.1",
+			expectedLog:        []string{"\"host\":\"group.gitlab-example.com\"", "\"remote_ip\":\"10.1.1.1\""},
 		},
 	}
 
@@ -49,7 +49,9 @@ func TestProxyv2(t *testing.T) {
 
 			// give the process enough time to write the log message
 			require.Eventually(t, func() bool {
-				require.Contains(t, logBuf.String(), tt.expectedLog, "log mismatch")
+				for _, e := range tt.expectedLog {
+					require.Contains(t, logBuf.String(), e, "log mismatch")
+				}
 				return true
 			}, time.Second, time.Millisecond)
 		})

@@ -16,7 +16,7 @@ func ConfigureLogging(format string, verbose bool) error {
 	var levelOption log.LoggerOption
 
 	if format == "" {
-		format = "text"
+		format = "json"
 	}
 
 	if verbose {
