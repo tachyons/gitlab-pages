@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -68,4 +69,6 @@ func TestMultipleListenersFromEnvironmentVariables(t *testing.T) {
 		rsp.Body.Close()
 		require.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
+
+	time.Sleep(5 * time.Minute)
 }
