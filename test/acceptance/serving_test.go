@@ -163,8 +163,8 @@ func TestNestedSubgroups(t *testing.T) {
 
 func TestCustom404(t *testing.T) {
 	skipUnlessEnabled(t)
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
+
+	RunPagesProcessWithStubGitLabServer(t)
 
 	tests := []struct {
 		host    string
@@ -334,30 +334,35 @@ func TestHttpToHttpsRedirectEnabled(t *testing.T) {
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
-func TestHttpsOnlyGroupEnabled(t *testing.T) {
-	skipUnlessEnabled(t)
+func TestHTTPSRedirect(t *testing.T) {
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
+	tests := map[string]struct {
+		path           string
+		expectedStatus int
+	}{
+		"domain_https_only_true": {
+			path:           "project1/",
+			expectedStatus: http.StatusMovedPermanently,
+		},
+		"domain_https_only_false": {
+			path:           "project2/",
+			expectedStatus: http.StatusOK,
+		},
+	}
 
-	// TODO: allow configuring HTTPS responses from stub https://gitlab.com/gitlab-org/gitlab-pages/-/issues/571
-	// Related MR in progress https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/498
-	rsp, err := GetRedirectPage(t, httpListener, "group.https-only.gitlab-example.com", "project1/")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	require.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
-}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// see testdata/api_responses.go for per prefix configuration response from the API
+			rsp, err := GetRedirectPage(t, httpListener, "group.https-only.gitlab-example.com", test.path)
+			require.NoError(t, err)
+			defer rsp.Body.Close()
 
-func TestHttpsOnlyGroupDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
-
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
-
-	rsp, err := GetPageFromListener(t, httpListener, "group.https-only.gitlab-example.com", "project2/")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	require.Equal(t, http.StatusOK, rsp.StatusCode)
+			require.Equal(t, test.expectedStatus, rsp.StatusCode)
+		})
+	}
 }
 
 func TestHttpsOnlyProjectEnabled(t *testing.T) {
