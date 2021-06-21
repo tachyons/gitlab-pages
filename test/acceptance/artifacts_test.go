@@ -17,10 +17,7 @@ import (
 func TestArtifactProxyRequest(t *testing.T) {
 	skipUnlessEnabled(t, "not-inplace-chroot")
 
-	transport := (TestHTTPSClient.Transport).(*http.Transport)
-	defer func(t time.Duration) {
-		transport.ResponseHeaderTimeout = t
-	}(transport.ResponseHeaderTimeout)
+	transport := (TestHTTPSClient.Transport).(*http.Transport).Clone()
 	transport.ResponseHeaderTimeout = 5 * time.Second
 
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
@@ -49,12 +46,15 @@ func TestArtifactProxyRequest(t *testing.T) {
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.NoError(t, err)
-	defer os.Remove(keyFile)
-	defer os.Remove(certFile)
 
 	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 	testServer.StartTLS()
-	defer testServer.Close()
+
+	t.Cleanup(func() {
+		os.Remove(keyFile)
+		os.Remove(certFile)
+		testServer.Close()
+	})
 
 	tests := []struct {
 		name         string
@@ -170,14 +170,15 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		os.Remove(keyFile)
-		os.Remove(certFile)
-	})
 
 	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 	testServer.StartTLS()
-	defer testServer.Close()
+
+	t.Cleanup(func() {
+		os.Remove(keyFile)
+		os.Remove(certFile)
+		testServer.Close()
+	})
 
 	tests := []struct {
 		name         string
