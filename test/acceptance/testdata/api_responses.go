@@ -42,6 +42,10 @@ var DomainResponses = map[string]responseFn{
 		projectID:  1000,
 		pathOnDisk: "group.404/domain.404",
 	}),
+	"withacmechallenge.domain.com": customDomain(projectConfig{
+		projectID:  1234,
+		pathOnDisk: "group.acme/with.acme.challenge",
+	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving
 	// make zip PROJECT_SUBDIR=group/project2
