@@ -149,7 +149,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 			require.Equal(t, tt.status, resp.StatusCode)
 			require.Equal(t, tt.contentType, resp.Header.Get("Content-Type"))
 
-			if !((tt.status == http.StatusBadGateway) || (tt.status == http.StatusNotFound) || (tt.status == http.StatusInternalServerError)) {
+			if tt.status == http.StatusOK {
 				body, err := ioutil.ReadAll(resp.Body)
 				require.NoError(t, err)
 				require.Equal(t, tt.content, string(body))
