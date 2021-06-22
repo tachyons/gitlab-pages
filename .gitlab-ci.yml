@@ -629,11 +629,13 @@ gitlab-rails-ce:
 
 build:gitlab-task-runner-ee:
   <<: *build-job-base
-  stage: prepare:phase-two
+  stage: prepare:phase-three
   dependencies:
     - build:gitlab-python
+    - build:gitaly
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
+    - import_assets artifacts/ubi/gitaly.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
@@ -649,6 +651,7 @@ gitlab-task-runner-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ee.txt)
+    - gitaly_container=$(cat artifacts/gitaly_container.txt)
     - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
@@ -661,12 +664,14 @@ gitlab-task-runner-ee:
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+                      --build-arg "GITALY_IMAGE=$CI_REGISTRY_IMAGE/gitaly:$gitaly_container${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   dependencies:
     - gitlab-rails-ee
     - gitlab-python
     - build:gitlab-task-runner-ee
     - build:gitlab-python
+    - gitaly
 
 gitlab-task-runner-ce:
   <<: *job-base
@@ -676,6 +681,7 @@ gitlab-task-runner-ce:
     - ruby_version=$(get_version gitlab-ruby)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/rails_container_ce.txt)
+    - gitaly_container=$(cat artifacts/gitaly_container.txt)
     - python_version=$(cat artifacts/python_container.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
@@ -684,10 +690,12 @@ gitlab-task-runner-ce:
                       --build-arg "TAG=$rails_container"
                       --build-arg "PYTHON_TAG=${python_version}"
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
+                      --build-arg "GITALY_IMAGE=$CI_REGISTRY_IMAGE/gitaly:$gitaly_container${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
   dependencies:
     - gitlab-rails-ce
     - gitlab-python
+    - gitaly
 
 gitlab-geo-logcursor:
   <<: *job-base
@@ -1113,6 +1121,7 @@ gitaly:
                       --build-arg "CACHE_BUSTER=$GITALY_SERVER_VERSION$(date -uI)"
                       --build-arg "GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${git_version}${IMAGE_TAG_EXT}"
     - push_tags $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
+    - echo -n "${CONTAINER_VERSION}" > artifacts/gitaly_container.txt
   dependencies:
     - git-base
     - build:gitaly
