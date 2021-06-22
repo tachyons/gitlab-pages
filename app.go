@@ -514,11 +514,10 @@ func runApp(config *cfg.Config) {
 
 	a.Handlers = handlers.New(a.Auth, a.Artifact)
 
-	// TODO: This check is a side effect of defining `-gitlab-server` or not which seems wrong.
-	// Maybe we need an extra flag to disable it https://gitlab.com/gitlab-org/gitlab-pages/-/issues/582
-	// and enable it by default now that we will always use the API
+	// TODO: This if was introduced when `gitlab-server` wasn't a required parameter
+	// once we completely remove support for legacy architecture and make it required
+	// we can just remove this if statement https://gitlab.com/gitlab-org/gitlab-pages/-/issues/581
 	if config.GitLab.Server != "" {
-		// TODO: use config.GitLab.InternalServer https://gitlab.com/gitlab-org/gitlab-pages/-/issues/581
 		a.AcmeMiddleware = &acme.Middleware{GitlabURL: config.GitLab.Server}
 	}
 
