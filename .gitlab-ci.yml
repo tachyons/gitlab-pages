@@ -1093,7 +1093,7 @@ build:gitaly:
 gitaly:
   <<: *job-base
   <<: *except-deps
-  stage: phase-six
+  stage: phase-five
   script:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
