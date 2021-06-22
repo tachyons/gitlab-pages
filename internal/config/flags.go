@@ -12,7 +12,7 @@ var (
 	pagesRootCert           = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
 	pagesRootKey            = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 	redirectHTTP            = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
-	useHTTP2                = flag.Bool("use-http2", true, "Enable HTTP2 support")
+	useHTTP2                = flag.Bool("use-http2", true, "DEPRECATED: HTTP2 is always enabled for pages")
 	pagesRoot               = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 	pagesDomain             = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
 	artifactsServer         = flag.String("artifacts-server", "", "API URL to proxy artifact requests to, e.g.: 'https://gitlab.com/api/v4'")

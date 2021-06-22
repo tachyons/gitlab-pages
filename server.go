@@ -48,12 +48,10 @@ func (a *theApp) listenAndServe(config listenerConfig) error {
 	// create server
 	server := &http.Server{Handler: context.ClearHandler(config.handler), TLSConfig: config.tlsConfig}
 
-	if a.config.General.HTTP2 && server.TLSConfig != nil {
+	// ensure http2 is enabled even if TLSConfig is not null
+	// See https://github.com/golang/go/blob/97cee43c93cfccded197cd281f0a5885cdb605b4/src/net/http/server.go#L2947-L2954
+	if server.TLSConfig != nil {
 		server.TLSConfig.NextProtos = append(server.TLSConfig.NextProtos, "h2")
-	}
-
-	if !a.config.General.HTTP2 {
-		server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler))
 	}
 
 	l, err := net.FileListener(os.NewFile(config.fd, "[socket]"))

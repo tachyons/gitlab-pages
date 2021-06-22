@@ -47,7 +47,6 @@ type Config struct {
 type General struct {
 	Domain                    string
 	DomainConfigurationSource string
-	HTTP2                     bool
 	MaxConns                  int
 	MetricsAddress            string
 	RedirectHTTP              bool
@@ -188,7 +187,6 @@ func loadConfig() (*Config, error) {
 		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
 			DomainConfigurationSource:  *domainConfigSource,
-			HTTP2:                      *useHTTP2,
 			MaxConns:                   *maxConns,
 			MetricsAddress:             *metricsAddress,
 			RedirectHTTP:               *redirectHTTP,
@@ -325,7 +323,6 @@ func LogConfig(config *Config) {
 		"status_path":                   config.General.StatusPath,
 		"tls-min-version":               *tlsMinVersion,
 		"tls-max-version":               *tlsMaxVersion,
-		"use-http-2":                    config.General.HTTP2,
 		"gitlab-server":                 config.GitLab.Server,
 		"internal-gitlab-server":        config.GitLab.InternalServer,
 		"api-secret-key":                *gitLabAPISecretKey,
