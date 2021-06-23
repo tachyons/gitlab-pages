@@ -17,6 +17,9 @@
 
 .tests-acceptance-deamon:
   extends: .tests-common
+  before_script:
+    - apt-get update
+    - apt-get install net-tools -y
   script:
     - echo "Running just the acceptance tests daemonized (tmpdir)...."
     - TEST_DAEMONIZE=tmpdir make acceptance
@@ -50,6 +53,9 @@ test-acceptance:1.16:
 
 race:
   extends: .tests-common
+  before_script:
+    - apt-get update
+    - apt-get install net-tools -y
   script:
     - echo "Running race detector"
     - make setup
