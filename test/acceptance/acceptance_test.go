@@ -68,9 +68,7 @@ func TestMain(m *testing.M) {
 	}
 
 	go func() {
-
 		for {
-
 			fmt.Println("checking netstat...")
 			cmd := exec.Command("netstat", "-plnut")
 			cmd.Stdout = os.Stdout
@@ -106,7 +104,7 @@ func TestMain(m *testing.M) {
 			//	}
 			//}
 			//
-			time.Sleep(time.Second)
+			time.Sleep(5 * time.Second)
 		}
 	}()
 	os.Exit(m.Run())
