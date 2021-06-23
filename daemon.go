@@ -12,7 +12,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/kardianos/osext"
 	log "github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
@@ -53,7 +52,7 @@ func daemonMain() {
 }
 
 func daemonReexec(uid, gid uint, args ...string) (cmd *exec.Cmd, err error) {
-	path, err := osext.Executable()
+	path, err := os.Executable()
 	if err != nil {
 		return
 	}
