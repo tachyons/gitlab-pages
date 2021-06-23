@@ -77,15 +77,17 @@ func TestMultipleListenersFromEnvironmentVariables(t *testing.T) {
 		withEnv([]string{envVarValue}),
 	)
 
-	for _, listener := range listenSpecs {
-		require.NoError(t, listener.WaitUntilRequestSucceeds(nil))
-		rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
+	go func() {
+		for _, listener := range listenSpecs {
+			require.NoError(t, listener.WaitUntilRequestSucceeds(nil))
+			rsp, err := GetPageFromListener(t, listener, "group.gitlab-example.com", "project/")
 
-		require.NoError(t, err)
-		rsp.Body.Close()
-		require.Equal(t, http.StatusOK, rsp.StatusCode)
-	}
-	wg.Done()
+			require.NoError(t, err)
+			rsp.Body.Close()
+			require.Equal(t, http.StatusOK, rsp.StatusCode)
+		}
+		wg.Done()
+	}()
 
 	wg.Wait()
 }
