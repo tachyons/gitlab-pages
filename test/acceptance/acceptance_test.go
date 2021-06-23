@@ -70,8 +70,12 @@ func TestMain(m *testing.M) {
 	go func() {
 
 		for {
+			fmt.Println("checking netstat...")
 			cmd := exec.Command("netstat", "-plnut")
-			cmd.Start()
+			err := cmd.Start()
+			if err != nil {
+				fmt.Printf("NETSTAT FAILED: %+v\n", err)
+			}
 			//
 			//localhost := "127.0.0.1"
 			//_, elements, err := netstat.HasIPConnected(localhost)
@@ -99,7 +103,7 @@ func TestMain(m *testing.M) {
 			//	}
 			//}
 			//
-			time.Sleep(5 * time.Second)
+			time.Sleep(time.Second)
 		}
 	}()
 	os.Exit(m.Run())
