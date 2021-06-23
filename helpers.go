@@ -1,8 +1,11 @@
 package main
 
 import (
+	"log"
 	"net"
 	"os"
+	"os/exec"
+	"time"
 
 	"gitlab.com/gitlab-org/labkit/errortracking"
 )
@@ -12,6 +15,13 @@ import (
 func createSocket(addr string) (net.Listener, *os.File) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
+		log.Printf("failed to net.Listen: %+v\n", addr)
+		cmd := exec.Command("netstat", "-plnut")
+
+		cmd.Start()
+		//}()
+		time.Sleep(time.Second)
+
 		fatal(err, "could not create socket")
 	}
 

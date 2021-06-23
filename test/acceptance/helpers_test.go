@@ -364,6 +364,14 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 	if wait {
 		for _, spec := range listeners {
 			if err := spec.WaitUntilRequestSucceeds(waitCh); err != nil {
+				//go func() {
+				log.Printf("failed to open listener: %+v\n", spec)
+				cmd := exec.Command("netstat", "-plnut")
+				cmd.Stdout = out
+				cmd.Stderr = out
+				cmd.Start()
+				//}()
+				time.Sleep(time.Second)
 				cleanup()
 				t.Fatal(err)
 			}
