@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"testing"
-	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
@@ -67,46 +65,6 @@ func TestMain(m *testing.M) {
 		fmt.Println("Failed to load cert!")
 	}
 
-	go func() {
-		for {
-			fmt.Println("checking netstat...")
-			cmd := exec.Command("netstat", "-plnut")
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			err := cmd.Start()
-			if err != nil {
-				fmt.Printf("NETSTAT FAILED: %+v\n", err)
-			}
-			//
-			//localhost := "127.0.0.1"
-			//_, elements, err := netstat.HasIPConnected(localhost)
-			//if err != nil {
-			//	log.Printf("netstat.HasIPConnected: %+v\n", err)
-			//}
-			//
-			//for _, e := range elements {
-			//	log.Printf("HasIPConnected: %+v", e)
-			//}
-			//for _, port := range []string{
-			//	httpPort,
-			//	httpsPort,
-			//	httpProxyPort,
-			//	httpProxyV2Port,
-			//} {
-			//
-			//	_, elements, err := netstat.HasListeningPort(port)
-			//	if err != nil {
-			//		log.Printf("netstat.HasListeningPort: %+v\n", err)
-			//	}
-			//
-			//	for _, e := range elements {
-			//		log.Printf("HasListeningPort: %+v", e)
-			//	}
-			//}
-			//
-			time.Sleep(5 * time.Second)
-		}
-	}()
 	os.Exit(m.Run())
 }
 
