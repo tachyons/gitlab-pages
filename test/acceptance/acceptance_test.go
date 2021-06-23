@@ -68,7 +68,6 @@ func TestMain(m *testing.M) {
 	}
 
 	go func() {
-
 		for {
 			fmt.Println("checking netstat...")
 			cmd := exec.Command("netstat", "-plnut")
