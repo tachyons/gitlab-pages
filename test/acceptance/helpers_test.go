@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -20,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mozilla/mig/modules/netstat"
 	"github.com/pires/go-proxyproto"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
@@ -253,6 +255,21 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 	processCfg.extraArgs = append(processCfg.extraArgs, "-pages-root", wd, "-internal-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab")
 
 	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, processCfg.extraArgs...)
+
+	if strings.Contains(logBuf.String(), "bind: address already in use") {
+		log.Println("FAIL:")
+		cleanup()
+		for _, listener := range processCfg.listeners {
+			_, elements, err := netstat.HasListeningPort(listener.Port)
+			log.Printf("listening port: %q - err: %+v", listener.Port, err)
+			for _, element := range elements {
+				log.Printf("HasListeningPort: %+v", element)
+			}
+		}
+
+		//t.Log("retrying once...")
+		//logBuf, cleanup = runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, processCfg.extraArgs...) }
+	}
 
 	t.Cleanup(func() {
 		source.Close()

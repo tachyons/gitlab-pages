@@ -6,6 +6,7 @@ require (
 	github.com/andybalholm/brotli v1.0.3
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/fatih/color v1.9.0 // indirect
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.27.0
 	github.com/gorilla/context v1.1.1
@@ -17,9 +18,11 @@ require (
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/karlseguin/ccache/v2 v2.0.6
 	github.com/karrick/godirwalk v1.10.12
+	github.com/mozilla/mig v0.0.0-20190913234010-9e7e4f525805
 	github.com/namsral/flag v1.7.4-pre
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pires/go-proxyproto v0.2.0
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.6.0
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.7.0
