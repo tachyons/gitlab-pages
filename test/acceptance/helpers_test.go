@@ -216,11 +216,6 @@ func RunPagesProcessWithoutWait(t *testing.T, pagesBinary string, listeners []Li
 	return cleanup
 }
 
-func RunPagesProcessWithSSLCertFile(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, extraArgs ...string) (teardown func()) {
-	_, cleanup := runPagesProcess(t, true, pagesBinary, listeners, promPort, []string{"SSL_CERT_FILE=" + sslCertFile}, extraArgs...)
-	return cleanup
-}
-
 func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
 	_, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, extraArgs...)
 	return cleanup

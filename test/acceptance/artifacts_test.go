@@ -17,10 +17,7 @@ import (
 func TestArtifactProxyRequest(t *testing.T) {
 	skipUnlessEnabled(t, "not-inplace-chroot")
 
-	transport := (TestHTTPSClient.Transport).(*http.Transport)
-	defer func(t time.Duration) {
-		transport.ResponseHeaderTimeout = t
-	}(transport.ResponseHeaderTimeout)
+	transport := (TestHTTPSClient.Transport).(*http.Transport).Clone()
 	transport.ResponseHeaderTimeout = 5 * time.Second
 
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
@@ -49,12 +46,15 @@ func TestArtifactProxyRequest(t *testing.T) {
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.NoError(t, err)
-	defer os.Remove(keyFile)
-	defer os.Remove(certFile)
 
 	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 	testServer.StartTLS()
-	defer testServer.Close()
+
+	t.Cleanup(func() {
+		os.Remove(keyFile)
+		os.Remove(certFile)
+		testServer.Close()
+	})
 
 	tests := []struct {
 		name         string
@@ -131,16 +131,16 @@ func TestArtifactProxyRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			teardown := RunPagesProcessWithSSLCertFile(
-				t,
-				*pagesBinary,
-				supportedListeners(),
-				"",
-				certFile,
-				"-artifacts-server="+artifactServerURL,
-				tt.binaryOption,
+			args := []string{"-artifacts-server=" + artifactServerURL}
+			if tt.binaryOption != "" {
+				args = append(args, tt.binaryOption)
+			}
+
+			RunPagesProcessWithStubGitLabServer(t,
+				withListeners([]ListenSpec{httpListener}),
+				withArguments(args),
+				withEnv([]string{"SSL_CERT_FILE=" + certFile}),
 			)
-			defer teardown()
 
 			resp, err := GetPageFromListener(t, httpListener, tt.host, tt.path)
 			require.NoError(t, err)
@@ -149,7 +149,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 			require.Equal(t, tt.status, resp.StatusCode)
 			require.Equal(t, tt.contentType, resp.Header.Get("Content-Type"))
 
-			if !((tt.status == http.StatusBadGateway) || (tt.status == http.StatusNotFound) || (tt.status == http.StatusInternalServerError)) {
+			if tt.status == http.StatusOK {
 				body, err := ioutil.ReadAll(resp.Body)
 				require.NoError(t, err)
 				require.Equal(t, tt.content, string(body))
@@ -170,12 +170,15 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.NoError(t, err)
-	defer os.Remove(keyFile)
-	defer os.Remove(certFile)
 
 	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 	testServer.StartTLS()
-	defer testServer.Close()
+
+	t.Cleanup(func() {
+		os.Remove(keyFile)
+		os.Remove(certFile)
+		testServer.Close()
+	})
 
 	tests := []struct {
 		name         string
@@ -235,15 +238,13 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 				tt.binaryOption)
 			defer cleanup()
 
-			teardown := RunPagesProcessWithSSLCertFile(
-				t,
-				*pagesBinary,
-				supportedListeners(),
-				"",
-				certFile,
-				"-config="+configFile,
+			RunPagesProcessWithStubGitLabServer(t,
+				withListeners([]ListenSpec{httpsListener}),
+				withArguments([]string{
+					"-config=" + configFile,
+				}),
+				withEnv([]string{"SSL_CERT_FILE=" + certFile}),
 			)
-			defer teardown()
 
 			resp, err := GetRedirectPage(t, httpsListener, tt.host, tt.path)
 			require.NoError(t, err)

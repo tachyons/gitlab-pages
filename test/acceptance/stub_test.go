@@ -69,8 +69,15 @@ func withArguments(args []string) processOption {
 func makeGitLabPagesAccessStub(t *testing.T) *httptest.Server {
 	t.Helper()
 
-	return httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return httptest.NewUnstartedServer(apiHandler(t))
+}
+
+func apiHandler(t *testing.T) http.HandlerFunc {
+	t.Helper()
+
+	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		// TODO: move OAuth and user endpoints to NewGitlabDomainsSourceStub
 		case "/oauth/token":
 			require.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusOK)
@@ -78,13 +85,18 @@ func makeGitLabPagesAccessStub(t *testing.T) *httptest.Server {
 		case "/api/v4/user":
 			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 			w.WriteHeader(http.StatusOK)
+		case "/api/v4/internal/pages/status":
+			// Temporarily adding these handlers to this stub.
+			w.WriteHeader(http.StatusNoContent)
+		case "/api/v4/internal/pages":
+			defaultAPIHandler(t, &stubOpts{})(w, r)
 		default:
 			if handleAccessControlArtifactRequests(t, w, r) {
 				return
 			}
 			handleAccessControlRequests(t, w, r)
 		}
-	}))
+	}
 }
 
 func CreateHTTPSFixtureFiles(t *testing.T) (key string, cert string) {
