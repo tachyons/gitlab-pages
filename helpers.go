@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -18,9 +19,14 @@ func createSocket(addr string) (net.Listener, *os.File) {
 		log.Printf("failed to net.Listen: %+v\n", addr)
 		cmd := exec.Command("netstat", "-plnut")
 
-		cmd.Start()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Start()
+		if err != nil {
+			fmt.Printf("NETSTAT FAILED: %+v\n", err)
+		}
 		//}()
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		fatal(err, "could not create socket")
 	}

@@ -68,9 +68,13 @@ func TestMain(m *testing.M) {
 	}
 
 	go func() {
+
 		for {
+
 			fmt.Println("checking netstat...")
 			cmd := exec.Command("netstat", "-plnut")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
 			err := cmd.Start()
 			if err != nil {
 				fmt.Printf("NETSTAT FAILED: %+v\n", err)
