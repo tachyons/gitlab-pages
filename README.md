@@ -311,7 +311,6 @@ environment variable). Directives are specified in `key=value` format, like:
 
 ```
 pages-domain=example.com
-use-http2=false
 ```
 
 
