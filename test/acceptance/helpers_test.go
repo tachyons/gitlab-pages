@@ -245,7 +245,13 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 	source := NewGitlabDomainsSourceStub(t, processCfg.gitlabStubOpts)
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
-	processCfg.extraArgs = append(processCfg.extraArgs, "-pages-root", wd, "-internal-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab")
+	processCfg.extraArgs = append(processCfg.extraArgs,
+		"-pages-root", wd,
+		"-internal-gitlab-server", source.URL,
+		"-api-secret-key", gitLabAPISecretKey,
+		"-domain-config-source", "gitlab",
+		"-enable-disk", "false",
+	)
 
 	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, processCfg.extraArgs...)
 
