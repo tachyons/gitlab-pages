@@ -15,7 +15,7 @@
     - make test ARGS='-short'
     - make junit-report
 
-.test-acceptance-inplace:
+.tests-acceptance-inplace:
   extends: .tests-common
   script:
     - echo "Running just the acceptance tests daemonized (inplace)...."
