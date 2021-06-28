@@ -774,7 +774,7 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 }
 
 func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
-	skipUnlessEnabled(t)
+	//skipUnlessEnabled(t)
 
 	logBuf := RunPagesProcessWithStubGitLabServer(t) //withExtraArgument("enable-disk", "false"),
 
