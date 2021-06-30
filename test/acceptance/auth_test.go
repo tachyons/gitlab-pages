@@ -264,6 +264,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 
 func TestCustomErrorPageWithAuth(t *testing.T) {
 	skipUnlessEnabled(t, "not-inplace-chroot")
+
 	testServer := makeGitLabPagesAccessStub(t)
 	testServer.Start()
 	defer testServer.Close()

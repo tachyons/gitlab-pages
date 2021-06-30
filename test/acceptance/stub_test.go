@@ -50,6 +50,7 @@ func withEnv(envs []string) processOption {
 
 func withExtraArgument(key, value string) processOption {
 	return func(config *processConfig) {
+		// note: boolean arguments need to be defined using the `=` sign
 		config.extraArgs = append(config.extraArgs, fmt.Sprintf("-%s=%s", key, value))
 	}
 }

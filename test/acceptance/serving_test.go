@@ -14,7 +14,7 @@ import (
 )
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
-	//skipUnlessEnabled(t)
+	skipUnlessEnabled(t)
 
 	RunPagesProcessWithStubGitLabServer(t)
 
@@ -28,7 +28,7 @@ func TestUnknownHostReturnsNotFound(t *testing.T) {
 }
 
 func TestUnknownProjectReturnsNotFound(t *testing.T) {
-	//skipUnlessEnabled(t)
+	skipUnlessEnabled(t)
 
 	RunPagesProcessWithStubGitLabServer(t)
 
@@ -39,7 +39,7 @@ func TestUnknownProjectReturnsNotFound(t *testing.T) {
 }
 
 func TestGroupDomainReturns200(t *testing.T) {
-	//skipUnlessEnabled(t)
+	skipUnlessEnabled(t)
 
 	RunPagesProcessWithStubGitLabServer(t)
 
@@ -55,7 +55,7 @@ func TestGroupDomainReturns200(t *testing.T) {
 }
 
 func TestKnownHostReturns200(t *testing.T) {
-	//skipUnlessEnabled(t)
+	skipUnlessEnabled(t)
 
 	RunPagesProcessWithStubGitLabServer(t)
 
@@ -162,7 +162,7 @@ func TestNestedSubgroups(t *testing.T) {
 }
 
 func TestCustom404(t *testing.T) {
-	//skipUnlessEnabled(t)
+	skipUnlessEnabled(t)
 
 	RunPagesProcessWithStubGitLabServer(t)
 
@@ -224,7 +224,7 @@ func TestCustom404(t *testing.T) {
 }
 
 func TestCORSWhenDisabled(t *testing.T) {
-	//skipUnlessEnabled(t)
+	skipUnlessEnabled(t)
 
 	RunPagesProcessWithStubGitLabServer(t, withExtraArgument("disable-cross-origin-requests", "true"))
 
@@ -774,7 +774,7 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 }
 
 func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
-	//skipUnlessEnabled(t)
+	skipUnlessEnabled(t)
 
 	logBuf := RunPagesProcessWithStubGitLabServer(t) //withExtraArgument("enable-disk", "false"),
 

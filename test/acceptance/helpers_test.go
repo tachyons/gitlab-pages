@@ -250,7 +250,7 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 		"-internal-gitlab-server", source.URL,
 		"-api-secret-key", gitLabAPISecretKey,
 		"-domain-config-source", "gitlab",
-		"-enable-disk", "false",
+		"-enable-disk=false",
 	)
 
 	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, processCfg.extraArgs...)
