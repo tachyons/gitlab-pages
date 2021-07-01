@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -61,7 +61,6 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 		t.Helper()
 
 		var foundZips []string
-		handlerPaths := map[string]string{}
 		//path   "group.https-only.gitlab-example.com/project2/public.zip"
 		//handler"group.https-only.gitlab-example.com/project2/public.zip"
 		// walk over dir and save any paths containing a `.zip` file
@@ -78,13 +77,12 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 			if strings.HasSuffix(info.Name(), ".zip") {
 				project := strings.TrimPrefix(path, wd+"/"+dir)
 				foundZips = append(foundZips, project)
-				handlerPaths[strings.ToLower(project)] = path
 			}
 
 			return nil
 		})
 
-		testServerURL := newZipFileServer(t, handlerPaths)
+		testServerURL := newZipFileServer(t)
 
 		lookupPaths := make([]api.LookupPath, 0, len(foundZips))
 		// generate lookup paths
@@ -95,13 +93,10 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 			prefix := strings.TrimPrefix(project, dir)
 			prefix = strings.TrimSuffix(prefix, "/"+filepath.Base(project))
 
-			//urlPath :=
 			// use / as prefix when the current prefix matches the rootDomain, e.g.
 			// if request is group.gitlab-example.com/ and group/group.gitlab-example.com/public.zip exists
 			if prefix == "/"+rootDomain {
 				prefix = "/"
-				// so it can be found by the testServerURL handler
-				//urlPath = project + "/public.zip"
 			}
 
 			cfg, ok := perPrefixConfig[prefix]
@@ -116,7 +111,7 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 				Prefix:        prefix,
 				Source: api.Source{
 					Type: "zip",
-					Path: fmt.Sprintf("%s%s", testServerURL, strings.ToLower(project)),
+					Path: fmt.Sprintf("%s/zip?file=%s", testServerURL, url.QueryEscape(wd+"/"+dir+project)),
 				},
 			}
 
@@ -145,10 +140,8 @@ func customDomain(config projectConfig, serveFromDisk bool) responseFn {
 		path := fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk)
 		if !serveFromDisk {
 			cleanPath := filepath.Clean(wd + "/" + config.pathOnDisk + "/public.zip")
-			testServerURL := newZipFileServer(t, map[string]string{
-				"/" + config.pathOnDisk + "/public.zip": cleanPath,
-			})
-			path = fmt.Sprintf("%s/%s/public.zip", testServerURL, config.pathOnDisk)
+			testServerURL := newZipFileServer(t)
+			path = fmt.Sprintf("%s/zip?file=%s", testServerURL, url.QueryEscape(cleanPath))
 		}
 
 		return api.VirtualDomain{
@@ -173,23 +166,26 @@ func customDomain(config projectConfig, serveFromDisk bool) responseFn {
 	}
 }
 
-func newZipFileServer(t *testing.T, projectPaths map[string]string) string {
+func newZipFileServer(t *testing.T) string {
 	t.Helper()
 
 	mux := http.NewServeMux()
-	for urlPath, diskPath := range projectPaths {
-		fmt.Printf("creating handler for: %q in - %q\n\n", urlPath, diskPath)
-		mux.HandleFunc(urlPath, func(w http.ResponseWriter, r *http.Request) {
-			fmt.Printf("FULL REQ URL: %q\n", r.URL.Path)
-			fmt.Printf("INSIDE THE HANDLER FOR: %q - opening:%q\n\n", urlPath, diskPath)
-			fi, err := os.Lstat(diskPath)
-			require.NoError(t, err)
-			require.False(t, fi.IsDir())
-			http.ServeFile(w, r, diskPath)
-		})
-	}
-	v := reflect.ValueOf(mux).Elem()
-	fmt.Printf("routes: %v\n", v.FieldByName("m"))
+
+	mux.HandleFunc("/zip", func(w http.ResponseWriter, r *http.Request) {
+		file := r.URL.Query().Get("file")
+
+		fi, err := os.Lstat(file)
+		require.NoError(t, err)
+		require.False(t, fi.IsDir())
+		fmt.Printf("file: %q\nREQ HEADERS?: %+v\n\n", file, r.Header)
+		http.ServeFile(w, r, file)
+
+		if f, ok := w.(http.Flusher); ok {
+			fmt.Printf("ARE WE FLUSHING?\n\n")
+			f.Flush()
+		}
+	})
+
 	testServer := httptest.NewServer(mux)
 
 	t.Cleanup(func() {

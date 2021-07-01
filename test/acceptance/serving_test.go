@@ -57,7 +57,9 @@ func TestGroupDomainReturns200(t *testing.T) {
 func TestKnownHostReturns200(t *testing.T) {
 	skipUnlessEnabled(t)
 
-	RunPagesProcessWithStubGitLabServer(t)
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
 	tests := []struct {
 		name    string
@@ -96,20 +98,19 @@ func TestKnownHostReturns200(t *testing.T) {
 			content: "A subgroup project\n",
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for _, spec := range supportedListeners() {
-				rsp, err := GetPageFromListener(t, spec, tt.host, tt.path)
-				require.NoError(t, err)
-				require.Equal(t, http.StatusOK, rsp.StatusCode)
+			//for _, spec := range supportedListeners() {
+			rsp, err := GetPageFromListener(t, httpListener, tt.host, tt.path)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, rsp.StatusCode)
 
-				body, err := ioutil.ReadAll(rsp.Body)
-				require.NoError(t, err)
-				require.Equal(t, tt.content, string(body))
+			body, err := ioutil.ReadAll(rsp.Body)
+			require.NoError(t, err)
+			rsp.Body.Close()
 
-				rsp.Body.Close()
-			}
+			require.Equal(t, tt.content, string(body))
+			//}
 		})
 	}
 }
