@@ -245,7 +245,13 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 	source := NewGitlabDomainsSourceStub(t, processCfg.gitlabStubOpts)
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
-	processCfg.extraArgs = append(processCfg.extraArgs, "-pages-root", wd, "-internal-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab")
+	processCfg.extraArgs = append(
+		processCfg.extraArgs,
+		"-pages-root", wd,
+		"-internal-gitlab-server", source.URL,
+		"-api-secret-key", gitLabAPISecretKey,
+		"-domain-config-source", "gitlab",
+	)
 
 	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, processCfg.extraArgs...)
 
@@ -386,11 +392,13 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 	}
 
 	// most of our acceptance tests still work only with disk source
-	// TODO: remove this with -domain-config-source flag itself:
-	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/571
+	// TODO: remove this with -domain-config-source flag itself along with daemon-enable-jail:
 	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
+	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
 	if !contains(extraArgs, "-domain-config-source") {
-		args = append(args, "-domain-config-source", "disk")
+		args = append(args,
+			"-domain-config-source", "disk",
+		)
 	}
 
 	args = append(args, getPagesDaemonArgs(t)...)

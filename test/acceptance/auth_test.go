@@ -483,8 +483,11 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.NoError(t, err)
-	defer os.Remove(keyFile)
-	defer os.Remove(certFile)
+
+	t.Cleanup(func() {
+		os.Remove(keyFile)
+		os.Remove(certFile)
+	})
 
 	testServer := makeGitLabPagesAccessStub(t)
 	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
@@ -572,67 +575,64 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			teardown := runPages(t, *pagesBinary, supportedListeners(), "", certFile, testServer.URL)
+			teardown := runPages(t, *pagesBinary, []ListenSpec{httpsListener}, "", certFile, testServer.URL)
 			defer teardown()
 
-			rsp, err := GetRedirectPage(t, httpsListener, tt.host, tt.path)
+			rsp1, err1 := GetRedirectPage(t, httpsListener, tt.host, tt.path)
+			require.NoError(t, err1)
+			defer rsp1.Body.Close()
 
-			require.NoError(t, err)
-			defer rsp.Body.Close()
-
-			require.Equal(t, http.StatusFound, rsp.StatusCode)
-			cookie := rsp.Header.Get("Set-Cookie")
+			require.Equal(t, http.StatusFound, rsp1.StatusCode)
+			cookie := rsp1.Header.Get("Set-Cookie")
 
 			// Redirects to the projects under gitlab pages domain for authentication flow
-			url, err := url.Parse(rsp.Header.Get("Location"))
+			loc1, err := url.Parse(rsp1.Header.Get("Location"))
 			require.NoError(t, err)
-			require.Equal(t, "projects.gitlab-example.com", url.Host)
-			require.Equal(t, "/auth", url.Path)
-			state := url.Query().Get("state")
+			require.Equal(t, "projects.gitlab-example.com", loc1.Host)
+			require.Equal(t, "/auth", loc1.Path)
+			state := loc1.Query().Get("state")
 
-			rsp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
+			rsp2, err2 := GetRedirectPage(t, httpsListener, loc1.Host, loc1.Path+"?"+loc1.RawQuery)
+			require.NoError(t, err2)
+			defer rsp2.Body.Close()
 
-			require.NoError(t, err)
-			defer rsp.Body.Close()
-
-			require.Equal(t, http.StatusFound, rsp.StatusCode)
-			pagesDomainCookie := rsp.Header.Get("Set-Cookie")
+			require.Equal(t, http.StatusFound, rsp2.StatusCode)
+			pagesDomainCookie := rsp2.Header.Get("Set-Cookie")
 
 			// Go to auth page with correct state will cause fetching the token
-			authrsp, err := GetRedirectPageWithCookie(t, httpsListener, "projects.gitlab-example.com", "/auth?code=1&state="+
+			authrsp1, err := GetRedirectPageWithCookie(t, httpsListener, "projects.gitlab-example.com", "/auth?code=1&state="+
 				state, pagesDomainCookie)
-
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			defer authrsp1.Body.Close()
 
 			// Will redirect auth callback to correct host
-			url, err = url.Parse(authrsp.Header.Get("Location"))
+			authLoc, err := url.Parse(authrsp1.Header.Get("Location"))
 			require.NoError(t, err)
-			require.Equal(t, tt.host, url.Host)
-			require.Equal(t, "/auth", url.Path)
+			require.Equal(t, tt.host, authLoc.Host)
+			require.Equal(t, "/auth", authLoc.Path)
 
 			// Request auth callback in project domain
-			authrsp, err = GetRedirectPageWithCookie(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery, cookie)
+			authrsp2, err := GetRedirectPageWithCookie(t, httpsListener, authLoc.Host, authLoc.Path+"?"+authLoc.RawQuery, cookie)
 			require.NoError(t, err)
 
 			// server returns the ticket, user will be redirected to the project page
-			require.Equal(t, http.StatusFound, authrsp.StatusCode)
-			cookie = authrsp.Header.Get("Set-Cookie")
-			rsp, err = GetRedirectPageWithCookie(t, httpsListener, tt.host, tt.path, cookie)
+			require.Equal(t, http.StatusFound, authrsp2.StatusCode)
+			cookie = authrsp2.Header.Get("Set-Cookie")
 
-			require.NoError(t, err)
-			defer rsp.Body.Close()
+			rsp3, err3 := GetRedirectPageWithCookie(t, httpsListener, tt.host, tt.path, cookie)
+			require.NoError(t, err3)
+			defer rsp3.Body.Close()
 
-			require.Equal(t, tt.status, rsp.StatusCode)
-			require.Equal(t, "", rsp.Header.Get("Cache-Control"))
+			require.Equal(t, tt.status, rsp3.StatusCode)
+			require.Equal(t, "", rsp3.Header.Get("Cache-Control"))
 
 			if tt.redirectBack {
-				url, err = url.Parse(rsp.Header.Get("Location"))
+				loc3, err := url.Parse(rsp3.Header.Get("Location"))
 				require.NoError(t, err)
 
-				require.Equal(t, "https", url.Scheme)
-				require.Equal(t, tt.host, url.Host)
-				require.Equal(t, tt.path, url.Path)
+				require.Equal(t, "https", loc3.Scheme)
+				require.Equal(t, tt.host, loc3.Host)
+				require.Equal(t, tt.path, loc3.Path)
 			}
 		})
 	}

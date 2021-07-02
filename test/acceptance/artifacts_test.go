@@ -15,8 +15,6 @@ import (
 )
 
 func TestArtifactProxyRequest(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-
 	transport := (TestHTTPSClient.Transport).(*http.Transport).Clone()
 	transport.ResponseHeaderTimeout = 5 * time.Second
 
@@ -161,8 +159,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 }
 
 func TestPrivateArtifactProxyRequest(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-
 	setupTransport(t)
 
 	testServer := makeGitLabPagesAccessStub(t)

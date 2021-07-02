@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -79,6 +80,11 @@ func appMain() {
 
 	if config.Daemon.UID != 0 || config.Daemon.GID != 0 {
 		if err := daemonize(config); err != nil {
+			if strings.Contains(err.Error(), "signal:") {
+				log.WithField("signal", err.Error()).Info("daemon received signal")
+				return
+			}
+
 			errortracking.Capture(err)
 			fatal(err, "could not create pages daemon")
 		}

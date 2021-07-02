@@ -65,6 +65,12 @@ func TestFSOpen(t *testing.T) {
 			expectedErrMsg: "no such file or directory",
 			chrootPath:     wd + "/testdata",
 		},
+		"chroot_path_empty_finds_file": {
+			allowedPaths:    []string{wd + "/testdata"},
+			fileName:        wd + "/testdata/file1.txt",
+			expectedContent: "file1.txt\n",
+			chrootPath:      "",
+		},
 	}
 
 	for name, test := range tests {
@@ -150,6 +156,13 @@ func TestFileSystemPathCanServeHTTP(t *testing.T) {
 			chrootPath:         wd + "/testdata",
 			expectedStatusCode: http.StatusNotFound,
 			expectedContent:    "404 page not found\n",
+		},
+		"chroot_path_empty_in_unit_test_file_found": {
+			path:               wd + "/testdata",
+			fileName:           "file1.txt",
+			chrootPath:         "",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "file1.txt\n",
 		},
 	}
 
