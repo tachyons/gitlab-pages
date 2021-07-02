@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -178,8 +179,16 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 	return nil, fmt.Errorf("HTTP status: %d", resp.StatusCode)
 }
 
-func (gc *Client) endpoint(path string, params url.Values) (*url.URL, error) {
-	endpoint, err := gc.baseURL.Parse(path)
+func (gc *Client) endpoint(urlPath string, params url.Values) (*url.URL, error) {
+	parsedPath, err := url.Parse(urlPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// fix for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/587
+	// ensure gc.baseURL.Path is still present and append new urlPath
+	// it cleans double `/` in either path
+	endpoint, err := gc.baseURL.Parse(path.Clean(gc.baseURL.Path + parsedPath.Path))
 	if err != nil {
 		return nil, err
 	}
