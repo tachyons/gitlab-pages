@@ -50,6 +50,7 @@ test-acceptance:1.16:
 
 race:
   extends: .tests-common
+  image: golang:1.16
   script:
     - echo "Running race detector"
     - make setup
@@ -58,6 +59,7 @@ race:
 
 cover:
   extends: .tests-common
+  image: golang:1.16
   script:
     - make generate-mocks
     - make cover
