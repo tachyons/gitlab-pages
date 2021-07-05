@@ -50,10 +50,16 @@ func (mrt *meteredRoundTripper) newTracer(start time.Time) *httptrace.
 		ConnectDone: func(net string, addr string, err error) {
 			mrt.httpTraceObserve("httptrace.ClientTrace.ConnectDone", start)
 
-			log.WithFields(log.Fields{
+			l := log.WithFields(log.Fields{
 				"network": net,
 				"address": addr,
-			}).WithError(err).Traceln("httptrace.ClientTrace.ConnectDone")
+			})
+
+			if err != nil {
+				l.WithError(err).Error("httptrace.ClientTrace.ConnectDone")
+			}
+
+			l.Traceln("httptrace.ClientTrace.ConnectDone")
 		},
 		TLSHandshakeStart: func() {
 			mrt.httpTraceObserve("httptrace.ClientTrace.TLSHandshakeStart", start)
@@ -61,10 +67,16 @@ func (mrt *meteredRoundTripper) newTracer(start time.Time) *httptrace.
 		TLSHandshakeDone: func(connState tls.ConnectionState, err error) {
 			mrt.httpTraceObserve("httptrace.ClientTrace.TLSHandshakeDone", start)
 
-			log.WithFields(log.Fields{
+			l := log.WithFields(log.Fields{
 				"version":            connState.Version,
 				"connection_resumed": connState.DidResume,
-			}).WithError(err).Traceln("httptrace.ClientTrace.TLSHandshakeDone")
+			})
+
+			if err != nil {
+				l.WithError(err).Error("httptrace.ClientTrace.TLSHandshakeDone")
+			}
+
+			l.Traceln("httptrace.ClientTrace.TLSHandshakeDone")
 		},
 	}
 
