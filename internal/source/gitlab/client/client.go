@@ -188,7 +188,7 @@ func (gc *Client) endpoint(urlPath string, params url.Values) (*url.URL, error) 
 	// fix for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/587
 	// ensure gc.baseURL.Path is still present and append new urlPath
 	// it cleans double `/` in either path
-	endpoint, err := gc.baseURL.Parse(path.Clean(gc.baseURL.Path + parsedPath.Path))
+	endpoint, err := gc.baseURL.Parse(path.Join(gc.baseURL.Path, parsedPath.Path))
 	if err != nil {
 		return nil, err
 	}

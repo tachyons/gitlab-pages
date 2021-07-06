@@ -363,6 +363,11 @@ func Test_endpoint(t *testing.T) {
 		expectedURL    string
 		expectedErrMsg string
 	}{
+		"all_slashes": {
+			basePath:    "/",
+			urlPath:     "/",
+			expectedURL: "/",
+		},
 		"no_host": {
 			basePath:    "/base",
 			urlPath:     "/path",
