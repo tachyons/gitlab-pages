@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/http/httptrace"
+	"net/url"
 	"testing"
 	"time"
 
@@ -351,4 +352,75 @@ func defaultClient(t *testing.T, url string) *Client {
 	require.NoError(t, err)
 
 	return client
+}
+
+// prove fix for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/587
+func Test_endpoint(t *testing.T) {
+	tests := map[string]struct {
+		basePath       string
+		urlPath        string
+		params         url.Values
+		expectedURL    string
+		expectedErrMsg string
+	}{
+		"all_slashes": {
+			basePath:    "/",
+			urlPath:     "/",
+			expectedURL: "/",
+		},
+		"no_host": {
+			basePath:    "/base",
+			urlPath:     "/path",
+			expectedURL: "/base/path",
+		},
+		"base_url_without_path_and_with_query": {
+			basePath:    "https://gitlab.com",
+			urlPath:     "/api/v4/internal/pages",
+			params:      url.Values{"host": []string{"root.gitlab.io"}},
+			expectedURL: "https://gitlab.com/api/v4/internal/pages?host=root.gitlab.io",
+		},
+		"query_in_base_url_ingored": {
+			basePath:    "https://gitlab.com/path?query=true",
+			urlPath:     "/api/v4/internal/pages",
+			expectedURL: "https://gitlab.com/path/api/v4/internal/pages",
+		},
+		"base_url_with_path_and_with_query": {
+			basePath:    "https://gitlab.com/some/path",
+			urlPath:     "/api/v4/internal/pages",
+			params:      url.Values{"host": []string{"root.gitlab.io"}},
+			expectedURL: "https://gitlab.com/some/path/api/v4/internal/pages?host=root.gitlab.io",
+		},
+		"base_url_with_path_ends_in_slash": {
+			basePath:    "https://gitlab.com/some/path/",
+			urlPath:     "/api/v4/internal/pages",
+			expectedURL: "https://gitlab.com/some/path/api/v4/internal/pages",
+		},
+		"base_url_with_path_no_url_path": {
+			basePath:    "https://gitlab.com/some/path",
+			urlPath:     "",
+			expectedURL: "https://gitlab.com/some/path",
+		},
+		"url_path_is_not_a_url": {
+			basePath:       "https://gitlab.com",
+			urlPath:        "%",
+			expectedErrMsg: `parse "%": invalid URL escape "%"`,
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			gc, err := NewClient(tt.basePath, []byte("secret"), defaultClientConnTimeout, defaultJWTTokenExpiry)
+			require.NoError(t, err)
+
+			got, err := gc.endpoint(tt.urlPath, tt.params)
+			if tt.expectedErrMsg != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectedErrMsg)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedURL, got.String())
+		})
+	}
 }
