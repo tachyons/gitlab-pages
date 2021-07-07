@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -50,8 +51,8 @@ func New(cfg *config.GitLab) (*Gitlab, error) {
 
 // GetDomain return a representation of a domain that we have fetched from
 // GitLab
-func (g *Gitlab) GetDomain(name string) (*domain.Domain, error) {
-	lookup := g.client.Resolve(context.Background(), name)
+func (g *Gitlab) GetDomain(ctx context.Context, name string) (*domain.Domain, error) {
+	lookup := g.client.Resolve(ctx, name)
 
 	if lookup.Error != nil {
 		if errors.Is(lookup.Error, client.ErrUnauthorizedAPI) {
@@ -128,4 +129,22 @@ func (g *Gitlab) IsReady() bool {
 	defer g.mu.RUnlock()
 
 	return g.isReady
+}
+
+type CtxKey int
+
+const key CtxKey = 1
+
+func WithValue(ctx context.Context, value string) context.Context {
+	return context.WithValue(ctx, key, value)
+}
+
+func GetValue(ctx context.Context) string {
+	v, ok := ctx.Value(key).(string)
+	if !ok {
+		logrus.Error("key not found in context")
+		return ""
+	}
+
+	return v
 }

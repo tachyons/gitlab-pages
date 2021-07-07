@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -70,18 +69,14 @@ func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 }
 
 func (mrt *meteredRoundTripper) logResponse(req *http.Request, resp *http.Response) {
+
 	if logrus.GetLevel() == logrus.TraceLevel {
-		l := logging.LogRequest(req).WithFields(logrus.Fields{
+		logging.LogRequest(req).WithFields(logrus.Fields{
 			"client_name":     mrt.name,
 			"req_url":         req.URL.String(),
 			"res_status_code": resp.StatusCode,
-		})
-
-		for header, value := range resp.Header {
-			l = l.WithField(strings.ToLower(header), strings.Join(value, ";"))
-		}
-
-		l.Traceln("response from client")
+			"res_headers":     resp.Header,
+		}).Traceln("response from client")
 	}
 }
 

@@ -208,9 +208,6 @@ func (gc *Client) request(ctx context.Context, method string, endpoint *url.URL)
 		return nil, err
 	}
 
-	correlationID := correlation.ExtractFromContextOrGenerate(ctx)
-	ctx = correlation.ContextWithCorrelation(ctx, correlationID)
-
 	req = req.WithContext(ctx)
 
 	token, err := gc.token()

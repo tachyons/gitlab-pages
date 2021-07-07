@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -217,14 +218,14 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	http.Redirect(w, r, redirectURI, 302)
 }
 
-func (a *Auth) domainAllowed(name string, domains source.Source) bool {
+func (a *Auth) domainAllowed(ctx context.Context, name string, domains source.Source) bool {
 	isConfigured := (name == a.pagesDomain) || strings.HasSuffix("."+name, a.pagesDomain)
 
 	if isConfigured {
 		return true
 	}
 
-	domain, err := domains.GetDomain(name)
+	domain, err := domains.GetDomain(ctx, name)
 
 	// domain exists and there is no error
 	return (domain != nil && err == nil)
@@ -249,7 +250,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			host = proxyurl.Host
 		}
 
-		if !a.domainAllowed(host, domains) {
+		if !a.domainAllowed(r.Context(), host, domains) {
 			logRequest(r).WithField("domain", host).Warn("Domain is not configured")
 			httperrors.Serve401(w)
 			return true

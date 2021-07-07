@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	cryptotls "crypto/tls"
 	"errors"
 	"fmt"
@@ -66,7 +67,7 @@ func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate
 		return nil, nil
 	}
 
-	if domain, _ := a.domain(ch.ServerName); domain != nil {
+	if domain, _ := a.domain(context.Background(), ch.ServerName); domain != nil {
 		tls, _ := domain.EnsureCertificate()
 		return tls, nil
 	}
@@ -93,13 +94,13 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 
 func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, error) {
 	host := request.GetHostWithoutPort(r)
-	domain, err := a.domain(host)
+	domain, err := a.domain(r.Context(), host)
 
 	return host, domain, err
 }
 
-func (a *theApp) domain(host string) (*domain.Domain, error) {
-	return a.domains.GetDomain(host)
+func (a *theApp) domain(ctx context.Context, host string) (*domain.Domain, error) {
+	return a.domains.GetDomain(ctx, host)
 }
 
 // checkAuthAndServeNotFound performs the auth process if domain can't be found
@@ -346,12 +347,6 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	// Custom response headers
 	handler = a.customHeadersMiddleware(handler)
-	//handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	//	fmt.Printf("the req headers: %+v\n", r.Header)
-	//	fmt.Printf("the correlationID must have been here: %q\n", correlation.ExtractFromContext(r.Context()))
-	//	handler.ServeHTTP(w, r)
-	//	return
-	//})
 
 	// Correlation ID injection middleware
 	var correlationOpts []correlation.InboundHandlerOption
