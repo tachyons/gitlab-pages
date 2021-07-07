@@ -15,14 +15,14 @@ import (
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/hkdf"
 
-	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
@@ -270,7 +270,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 
 		url := fmt.Sprintf(authorizeURLTemplate, a.gitLabServer, a.clientID, a.redirectURI, state, a.authScope)
 
-		logRequest(r).WithFields(log.Fields{
+		logRequest(r).WithFields(logrus.Fields{
 			"gitlab_server": a.gitLabServer,
 			"pages_domain":  domain,
 		}).Info("Redirecting user to gitlab for oauth")
@@ -615,14 +615,8 @@ func checkResponseForInvalidToken(resp *http.Response, session *sessions.Session
 	return false
 }
 
-func logRequest(r *http.Request) *log.Entry {
-	state := r.URL.Query().Get("state")
-	return log.WithFields(log.Fields{
-		"correlation_id": correlation.ExtractFromContext(r.Context()),
-		"host":           r.Host,
-		"path":           r.URL.Path,
-		"state":          state,
-	})
+func logRequest(r *http.Request) *logrus.Entry {
+	return logging.LogRequest(r).WithField("state", r.URL.Query().Get("state"))
 }
 
 // generateKeys derives count hkdf keys from a secret, ensuring the key is

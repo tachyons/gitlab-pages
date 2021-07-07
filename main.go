@@ -7,9 +7,8 @@ import (
 	"os"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"gitlab.com/gitlab-org/labkit/errortracking"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
@@ -63,8 +62,8 @@ func appMain() {
 	log.WithFields(log.Fields{
 		"version":  VERSION,
 		"revision": REVISION,
-	}).Print("GitLab Pages Daemon")
-	log.Printf("URL: https://gitlab.com/gitlab-org/gitlab-pages")
+	}).Info("GitLab Pages Daemon")
+	log.Info("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
 	if err := os.Chdir(config.General.RootDir); err != nil {
 		fatal(err, "could not change directory into pagesRoot")
@@ -186,8 +185,6 @@ func printVersion(showVersion bool, version string) {
 }
 
 func main() {
-	log.SetOutput(os.Stderr)
-
 	rand.Seed(time.Now().UnixNano())
 
 	metrics.MustRegister()

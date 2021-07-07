@@ -12,7 +12,7 @@ import (
 
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/rs/cors"
-	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/go-mimedb"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -346,11 +346,17 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	// Custom response headers
 	handler = a.customHeadersMiddleware(handler)
+	//handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	//	fmt.Printf("the req headers: %+v\n", r.Header)
+	//	fmt.Printf("the correlationID must have been here: %q\n", correlation.ExtractFromContext(r.Context()))
+	//	handler.ServeHTTP(w, r)
+	//	return
+	//})
 
 	// Correlation ID injection middleware
 	var correlationOpts []correlation.InboundHandlerOption
 	if a.config.General.PropagateCorrelationID {
-		correlationOpts = append(correlationOpts, correlation.WithPropagation())
+		correlationOpts = append(correlationOpts, correlation.WithPropagation(), correlation.WithSetResponseHeader())
 	}
 	handler = correlation.InjectCorrelationID(handler, correlationOpts...)
 

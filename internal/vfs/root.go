@@ -5,7 +5,8 @@ import (
 	"os"
 	"strconv"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -27,15 +28,15 @@ func (i *instrumentedRoot) increment(operation string, err error) {
 	metrics.VFSOperations.WithLabelValues(i.name, operation, strconv.FormatBool(err == nil)).Inc()
 }
 
-func (i *instrumentedRoot) log() *log.Entry {
-	return log.WithField("vfs", i.name).WithField("root-path", i.rootPath)
+func (i *instrumentedRoot) log(ctx context.Context) *logrus.Entry {
+	return log.ContextLogger(ctx).WithField("vfs", i.name).WithField("root-path", i.rootPath)
 }
 
 func (i *instrumentedRoot) Lstat(ctx context.Context, name string) (os.FileInfo, error) {
 	fi, err := i.root.Lstat(ctx, name)
 
 	i.increment("Lstat", err)
-	i.log().
+	i.log(ctx).
 		WithField("name", name).
 		WithError(err).
 		Traceln("Lstat call")
@@ -47,7 +48,7 @@ func (i *instrumentedRoot) Readlink(ctx context.Context, name string) (string, e
 	target, err := i.root.Readlink(ctx, name)
 
 	i.increment("Readlink", err)
-	i.log().
+	i.log(ctx).
 		WithField("name", name).
 		WithField("ret-target", target).
 		WithError(err).
@@ -60,7 +61,7 @@ func (i *instrumentedRoot) Open(ctx context.Context, name string) (File, error) 
 	f, err := i.root.Open(ctx, name)
 
 	i.increment("Open", err)
-	i.log().
+	i.log(ctx).
 		WithField("name", name).
 		WithError(err).
 		Traceln("Open call")

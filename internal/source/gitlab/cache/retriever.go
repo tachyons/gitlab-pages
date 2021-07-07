@@ -5,7 +5,8 @@ import (
 	"errors"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/correlation"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
@@ -33,21 +34,30 @@ func NewRetriever(client api.Client, retrievalTimeout, maxRetrievalInterval time
 
 // Retrieve retrieves a lookup response from external source with timeout and
 // backoff. It has its own context with timeout.
-func (r *Retriever) Retrieve(domain string) (lookup api.Lookup) {
+func (r *Retriever) Retrieve(originalCtx context.Context, domain string) (lookup api.Lookup) {
+	logMsg := ""
+	correlationID := correlation.ExtractFromContext(originalCtx)
+
 	ctx, cancel := context.WithTimeout(context.Background(), r.retrievalTimeout)
 	defer cancel()
 
 	select {
 	case <-ctx.Done():
-		log.Debug("retrieval context done")
+
+		logMsg = "retrieval context done"
+
 		lookup = api.Lookup{Error: errors.New("retrieval context done")}
 	case lookup = <-r.resolveWithBackoff(ctx, domain):
-		log.WithFields(log.Fields{
-			"lookup_name":  lookup.Name,
-			"lookup_paths": lookup.Domain,
-			"lookup_error": lookup.Error,
-		}).Debug("retrieval response sent")
+		logMsg = "retrieval response sent"
 	}
+
+	log.WithFields(log.Fields{
+		"correlation_id":   correlationID,
+		"requested_domain": domain,
+		"lookup_name":      lookup.Name,
+		"lookup_paths":     lookup.Domain,
+		"lookup_error":     lookup.Error,
+	}).Debug(logMsg)
 
 	return lookup
 }

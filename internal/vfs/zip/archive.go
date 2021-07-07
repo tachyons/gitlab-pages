@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
@@ -101,9 +101,9 @@ func (a *zipArchive) openArchive(parentCtx context.Context, url string) (err err
 		err := ctx.Err()
 		switch err {
 		case context.Canceled:
-			log.WithError(err).Traceln("open zip archive request canceled")
+			log.ContextLogger(parentCtx).WithError(err).Traceln("open zip archive request canceled")
 		case context.DeadlineExceeded:
-			log.WithError(err).Traceln("open zip archive timed out")
+			log.ContextLogger(parentCtx).WithError(err).Traceln("open zip archive timed out")
 		}
 
 		return err

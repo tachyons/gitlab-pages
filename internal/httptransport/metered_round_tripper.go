@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 )
 
 type meteredRoundTripper struct {
@@ -68,8 +70,8 @@ func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 }
 
 func (mrt *meteredRoundTripper) logResponse(req *http.Request, resp *http.Response) {
-	if log.GetLevel() == log.TraceLevel {
-		l := log.WithFields(log.Fields{
+	if logrus.GetLevel() == logrus.TraceLevel {
+		l := logging.LogRequest(req).WithFields(logrus.Fields{
 			"client_name":     mrt.name,
 			"req_url":         req.URL.String(),
 			"res_status_code": resp.StatusCode,
@@ -79,7 +81,7 @@ func (mrt *meteredRoundTripper) logResponse(req *http.Request, resp *http.Respon
 			l = l.WithField(strings.ToLower(header), strings.Join(value, ";"))
 		}
 
-		l.Traceln("response")
+		l.Traceln("response from client")
 	}
 }
 

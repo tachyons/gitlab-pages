@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/karrick/godirwalk"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -294,7 +295,7 @@ func Watch(rootDomain string, updater domainsUpdater, interval time.Duration) {
 }
 
 func logConfiguredDomains(dm Map) {
-	if log.GetLevel() != log.DebugLevel {
+	if logrus.GetLevel() != logrus.DebugLevel {
 		return
 	}
 

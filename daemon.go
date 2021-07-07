@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/jail"
@@ -36,7 +36,7 @@ func daemonMain() {
 		fatal(os.ErrPermission, "could not get current working directory")
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"uid": syscall.Getuid(),
 		"gid": syscall.Getgid(),
 		"wd":  wd,
@@ -146,7 +146,7 @@ func chrootDaemon(cmd *exec.Cmd) (*jail.Jail, error) {
 }
 
 func jailCopyCertDir(cage *jail.Jail, sslCertDir, jailCertsDir string) error {
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"ssl-cert-dir": sslCertDir,
 	}).Debug("Copying certs from SSL_CERT_DIR")
 
@@ -164,7 +164,7 @@ func jailCopyCertDir(cage *jail.Jail, sslCertDir, jailCertsDir string) error {
 
 		err = cage.CopyTo(jailCertsDir+"/"+fi.Name(), sslCertDir+"/"+fi.Name())
 		if err != nil {
-			log.WithError(err).Errorf("failed to copy cert: %q", fi.Name())
+			logrus.WithError(err).Errorf("failed to copy cert: %q", fi.Name())
 			// Go on and try to copy other files. We don't want the whole
 			// startup process to fail due to a single failure here.
 		}
@@ -177,7 +177,7 @@ func jailDaemonCerts(cmd *exec.Cmd, cage *jail.Jail) error {
 	sslCertFile := os.Getenv("SSL_CERT_FILE")
 	sslCertDir := os.Getenv("SSL_CERT_DIR")
 	if sslCertFile == "" && sslCertDir == "" {
-		log.Warn("Neither SSL_CERT_FILE nor SSL_CERT_DIR environment variable is set. HTTPS requests will fail.")
+		logrus.Warn("Neither SSL_CERT_FILE nor SSL_CERT_DIR environment variable is set. HTTPS requests will fail.")
 		return nil
 	}
 
@@ -243,7 +243,7 @@ func jailCreate(cmd *exec.Cmd) (*jail.Jail, error) {
 	// https://github.com/golang/go/issues/22846
 	err = cage.Copy("/etc/nsswitch.conf")
 	if err != nil {
-		log.WithError(err).Warn("/etc/nsswitch.conf couldn't be copied to the jail, /etc/hosts might not be applicable")
+		logrus.WithError(err).Warn("/etc/nsswitch.conf couldn't be copied to the jail, /etc/hosts might not be applicable")
 	}
 
 	// Add certificates inside the jail
@@ -290,7 +290,7 @@ func daemonize(config *config.Config) error {
 		return err
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"uid":        uid,
 		"gid":        gid,
 		"in-place":   inPlace,
@@ -311,7 +311,7 @@ func daemonize(config *config.Config) error {
 		wrapper, err = jailDaemon(pagesRoot, cmd)
 	}
 	if err != nil {
-		log.WithError(err).Print("chroot failed")
+		logrus.WithError(err).Print("chroot failed")
 		return err
 	}
 	defer wrapper.Dispose()
@@ -323,7 +323,7 @@ func daemonize(config *config.Config) error {
 	_ = wrapper.Unshare()
 
 	if err := wrapper.Build(); err != nil {
-		log.WithError(err).Print("chroot build failed")
+		logrus.WithError(err).Print("chroot build failed")
 		return err
 	}
 
@@ -339,7 +339,7 @@ func daemonize(config *config.Config) error {
 
 	// Start the process
 	if err := cmd.Start(); err != nil {
-		log.WithError(err).Error("start failed")
+		logrus.WithError(err).Error("start failed")
 		return err
 	}
 
