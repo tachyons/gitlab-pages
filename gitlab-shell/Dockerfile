@@ -71,7 +71,7 @@ COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
 # Pull in gomplate
 COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 
-# AuthrorizedKeysCommand must be owned by root, and have all parent paths owned as root
+# AuthorizedKeysCommand must be owned by root, and have all parent paths owned as root
 RUN mv /scripts/authorized_keys /authorized_keys && chmod 0755 /authorized_keys
 
 RUN chown -R $GITLAB_USER:$GITLAB_USER /srv/gitlab-shell /scripts /etc/ssh

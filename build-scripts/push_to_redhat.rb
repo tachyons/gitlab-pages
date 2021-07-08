@@ -61,10 +61,10 @@ if ARGV.length < 1
   exit 1
 end
 
-# Add `-ubi8` to the commit ref if triggered with UBI_PIPELINE=true
-version = ARGV[0]
-if ENV['UBI_PIPELINE'] == 'true'
-  # we add `-ubi8` because this is probably from pipeline with UBI_PIPELINE set
+# Remove CE/EE suffix and add `-ubi8` to the commit ref if not already present.
+version = ARGV[0].sub(/-(ce|ee)$/, '')
+if not version.ends_with? '-ubi8'
+  # we add `-ubi8` to find the UBI images.
   version += '-ubi8'
 end
 
@@ -87,7 +87,7 @@ $IMAGE_VERSION_VAR.keys.each do |name|
   # it is assumed that the "version" (commit ref) from CLI param
   # is correct.
   if (ENV['CI_COMMIT_REF_NAME'] == 'master' || is_regular_tag)
-    version = ENV[$IMAGE_VERSION_VAR[name]]
+    version = ENV[$IMAGE_VERSION_VAR[name]].sub(/-(ce|ee)$/, '') + '-ubi8'
   end
 
   if secrets.has_key? name

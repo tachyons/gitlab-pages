@@ -55,16 +55,20 @@ RUN /gitlab-fetch \
         "${NAMESPACE}" \
         "${PROJECT}" \
         "${VERSION}" \
-    && cd ${PROJECT}-${VERSION} \
-    && cp ../REVISION REVISION \
+    && mkdir -p /srv \
+    && mv ${PROJECT}-${VERSION} /srv/gitlab \
+    && cp REVISION /srv/gitlab \
+    && cd /srv/gitlab \
     && printf 'gitlab-cloud-native-image' > INSTALLATION_TYPE \
     && for cfg in config/{gitlab,resque,secrets}.yml; do cp ${cfg}.example ${cfg} ; done \
     && cp config/database.yml.postgresql config/database.yml \
-    && bundle install --deployment --without development test mysql aws kerberos --jobs $(nproc) --retry 5 \
+    && bundle config set --local path /srv/gitlab/vendor/bundle \
+    && bundle config set --local deployment 'true' \
+    && bundle config set --local without 'development test mysql aws kerberos' \
+    && bundle install --jobs $(nproc) --retry 5 \
     && yarn install --production --pure-lockfile \
     && rm -rf node_modules/ tmp/ spec/ ee/spec/ \
-    && /build-scripts/cleanup-gems \
-    && mv ${PWD} /srv/gitlab \
+    && /build-scripts/cleanup-gems /srv/gitlab/vendor/bundle/ruby \
     && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt
 
 COPY --from=assets assets /srv/gitlab/public/assets/
