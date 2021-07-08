@@ -82,21 +82,29 @@ func BasicAccessLogger(handler http.Handler, format string, extraFields log.Extr
 		return nil, err
 	}
 
-	if extraFields == nil {
-		extraFields = func(r *http.Request) log.Fields {
-			return log.Fields{
-				"correlation_id": correlation.ExtractFromContext(r.Context()),
-				"pages_https":    request.IsHTTPS(r),
-				"pages_host":     r.Host,
-			}
-		}
-	}
-
 	return log.AccessLogger(handler,
-		log.WithExtraFields(extraFields),
+		log.WithExtraFields(enrichExtraFields(extraFields)),
 		log.WithAccessLogger(accessLogger),
 		log.WithXFFAllowed(func(sip string) bool { return false }),
 	), nil
+}
+
+func enrichExtraFields(extraFields log.ExtraFieldsGeneratorFunc) log.ExtraFieldsGeneratorFunc {
+	return func(r *http.Request) log.Fields {
+		enrichedFields := log.Fields{
+			"correlation_id": correlation.ExtractFromContext(r.Context()),
+			"pages_https":    request.IsHTTPS(r),
+			"pages_host":     r.Host,
+		}
+
+		if extraFields != nil {
+			for field, value := range extraFields(r) {
+				enrichedFields[field] = value
+			}
+		}
+
+		return enrichedFields
+	}
 }
 
 // AccessLogger configures the GitLab pages HTTP access logger middleware with extra log fields

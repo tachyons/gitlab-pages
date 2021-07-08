@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 	"golang.org/x/sys/unix"
 )
 

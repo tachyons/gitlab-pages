@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 )
 
 const (

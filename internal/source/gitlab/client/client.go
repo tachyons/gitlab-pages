@@ -28,6 +28,8 @@ import (
 // or a 401 given that the credentials used are wrong
 const ConnectionErrorMsg = "failed to connect to internal Pages API"
 
+const transportClientName = "gitlab_internal_api"
+
 // ErrUnauthorizedAPI is returned when resolving a domain with the GitLab API
 // returns a http.StatusUnauthorized. This happens if the common secret file
 // is not synced between gitlab-pages and gitlab-rails servers.
@@ -68,8 +70,11 @@ func NewClient(baseURL string, secretKey []byte, connectionTimeout, jwtTokenExpi
 		httpClient: &http.Client{
 			Timeout: connectionTimeout,
 			Transport: httptransport.NewMeteredRoundTripper(
-				correlation.NewInstrumentedRoundTripper(httptransport.DefaultTransport),
-				"gitlab_internal_api",
+				correlation.NewInstrumentedRoundTripper(
+					httptransport.DefaultTransport,
+					correlation.WithClientName(transportClientName),
+				),
+				transportClientName,
 				metrics.DomainsSourceAPITraceDuration,
 				metrics.DomainsSourceAPICallDuration,
 				metrics.DomainsSourceAPIReqTotal,
@@ -149,7 +154,6 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 	if err != nil {
 		return nil, err
 	}
-
 	resp, err := gc.httpClient.Do(req)
 	if err != nil {
 		return nil, err

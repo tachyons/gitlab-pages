@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 )
 
 const (

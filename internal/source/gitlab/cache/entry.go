@@ -72,7 +72,7 @@ func (e *Entry) Lookup() *api.Lookup {
 func (e *Entry) Retrieve(ctx context.Context) (lookup *api.Lookup) {
 	// We run the code within an additional func() to run both `e.setResponse`
 	// and `e.retrieve.Retrieve` asynchronously.
-	e.retrieve.Do(func() { go func() { e.setResponse(e.retriever.Retrieve(e.domain)) }() })
+	e.retrieve.Do(func() { go func() { e.setResponse(e.retriever.Retrieve(ctx, e.domain)) }() })
 
 	select {
 	case <-ctx.Done():

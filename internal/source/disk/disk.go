@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
@@ -25,7 +26,7 @@ func New() *Disk {
 }
 
 // GetDomain returns a domain from the domains map if it exists
-func (d *Disk) GetDomain(host string) (*domain.Domain, error) {
+func (d *Disk) GetDomain(ctx context.Context, host string) (*domain.Domain, error) {
 	host = strings.ToLower(host)
 
 	d.lock.RLock()

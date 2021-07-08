@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 )
 
 const (

@@ -1,6 +1,7 @@
 package source
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -113,7 +114,7 @@ func TestGetDomain(t *testing.T) {
 
 		domains := newTestDomains(t, newSource, sourceGitlab)
 
-		domain, err := domains.GetDomain(testDomain)
+		domain, err := domains.GetDomain(context.Background(), testDomain)
 		require.NoError(t, err)
 		require.NotNil(t, domain)
 	})
@@ -130,7 +131,7 @@ func TestGetDomain(t *testing.T) {
 
 		domains := newTestDomains(t, newSource, sourceAuto)
 
-		domain, err := domains.GetDomain(testDomain)
+		domain, err := domains.GetDomain(context.Background(), testDomain)
 		require.NoError(t, err)
 		require.NotNil(t, domain)
 	})
@@ -145,7 +146,7 @@ func TestGetDomain(t *testing.T) {
 
 		domains := newTestDomains(t, newSource, sourceGitlab)
 
-		domain, err := domains.GetDomain("does-not-exist.test.io")
+		domain, err := domains.GetDomain(context.Background(), "does-not-exist.test.io")
 		require.NoError(t, err)
 		require.Nil(t, domain)
 	})

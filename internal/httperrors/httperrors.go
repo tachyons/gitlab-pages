@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
-
+	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/errortracking"
+	"gitlab.com/gitlab-org/labkit/log"
 )
 
 type content struct {
@@ -184,8 +184,9 @@ func Serve500(w http.ResponseWriter) {
 // Serve500WithRequest returns a 500 error response / HTML page to the http.ResponseWriter
 func Serve500WithRequest(w http.ResponseWriter, r *http.Request, reason string, err error) {
 	log.WithFields(log.Fields{
-		"host": r.Host,
-		"path": r.URL.Path,
+		"correlation_id": correlation.ExtractFromContext(r.Context()),
+		"host":           r.Host,
+		"path":           r.URL.Path,
 	}).WithError(err).Error(reason)
 	errortracking.Capture(err, errortracking.WithRequest(r))
 	serveErrorPage(w, content500)

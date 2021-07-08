@@ -6,9 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"gitlab.com/gitlab-org/gitlab-pages/internal/host"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 )
 
 // Middleware handles acme challenges by redirecting them to GitLab instance
@@ -45,7 +44,7 @@ func isAcmeChallenge(path string) bool {
 func (m *Middleware) redirectToGitlab(w http.ResponseWriter, r *http.Request) bool {
 	redirectURL, err := url.Parse(m.GitlabURL)
 	if err != nil {
-		log.WithError(err).Error("Can't parse GitLab URL for acme challenge redirect")
+		logging.LogRequest(r).WithError(err).Error("Can't parse GitLab URL for acme challenge redirect")
 		return false
 	}
 
@@ -55,7 +54,7 @@ func (m *Middleware) redirectToGitlab(w http.ResponseWriter, r *http.Request) bo
 	query.Set("token", filepath.Base(r.URL.Path))
 	redirectURL.RawQuery = query.Encode()
 
-	log.WithField("redirect_url", redirectURL).Debug("Redirecting to GitLab for processing acme challenge")
+	logging.LogRequest(r).WithField("redirect_url", redirectURL).Debug("Redirecting to GitLab for processing acme challenge")
 
 	http.Redirect(w, r, redirectURL.String(), http.StatusTemporaryRedirect)
 	return true

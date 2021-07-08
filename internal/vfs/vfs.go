@@ -4,7 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -29,15 +30,15 @@ func (i *instrumentedVFS) increment(operation string, err error) {
 	metrics.VFSOperations.WithLabelValues(i.fs.Name(), operation, strconv.FormatBool(err == nil)).Inc()
 }
 
-func (i *instrumentedVFS) log() *log.Entry {
-	return log.WithField("vfs", i.fs.Name())
+func (i *instrumentedVFS) log(ctx context.Context) *logrus.Entry {
+	return log.ContextLogger(ctx).WithField("vfs", i.fs.Name())
 }
 
 func (i *instrumentedVFS) Root(ctx context.Context, path string) (Root, error) {
 	root, err := i.fs.Root(ctx, path)
 
 	i.increment("Root", err)
-	i.log().
+	i.log(ctx).
 		WithField("path", path).
 		WithError(err).
 		Traceln("Root call")

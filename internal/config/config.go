@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/namsral/flag"
-	log "github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )

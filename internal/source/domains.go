@@ -1,6 +1,7 @@
 package source
 
 import (
+	"context"
 	"fmt"
 
 	"gitlab.com/gitlab-org/labkit/log"
@@ -91,8 +92,8 @@ func (d *Domains) setGitLabClient(cfg *config.GitLab) error {
 // sources here because it allows us to switch behavior and the domain source
 // for some subset of domains, to test / PoC the new GitLab Domains Source that
 // we plan to use to replace the disk source.
-func (d *Domains) GetDomain(name string) (*domain.Domain, error) {
-	return d.source(name).GetDomain(name)
+func (d *Domains) GetDomain(ctx context.Context, name string) (*domain.Domain, error) {
+	return d.source(name).GetDomain(ctx, name)
 }
 
 // Read starts the disk domain source. It is DEPRECATED, because we want to
