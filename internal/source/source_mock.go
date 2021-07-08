@@ -1,6 +1,8 @@
 package source
 
 import (
+	"context"
+
 	"github.com/stretchr/testify/mock"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
@@ -12,7 +14,7 @@ type MockSource struct {
 }
 
 // GetDomain is a mocked function
-func (m *MockSource) GetDomain(name string) (*domain.Domain, error) {
+func (m *MockSource) GetDomain(ctx context.Context, name string) (*domain.Domain, error) {
 	args := m.Called(name)
 	err := args.Error(1)
 

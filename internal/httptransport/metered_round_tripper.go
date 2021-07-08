@@ -69,7 +69,6 @@ func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 }
 
 func (mrt *meteredRoundTripper) logResponse(req *http.Request, resp *http.Response) {
-
 	if logrus.GetLevel() == logrus.TraceLevel {
 		logging.LogRequest(req).WithFields(logrus.Fields{
 			"client_name":     mrt.name,

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"gitlab.com/gitlab-org/labkit/log"
 
@@ -185,6 +186,8 @@ func printVersion(showVersion bool, version string) {
 }
 
 func main() {
+	logrus.SetOutput(os.Stderr)
+
 	rand.Seed(time.Now().UnixNano())
 
 	metrics.MustRegister()

@@ -10,13 +10,11 @@ import (
 	"sync"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/log"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
@@ -129,22 +127,4 @@ func (g *Gitlab) IsReady() bool {
 	defer g.mu.RUnlock()
 
 	return g.isReady
-}
-
-type CtxKey int
-
-const key CtxKey = 1
-
-func WithValue(ctx context.Context, value string) context.Context {
-	return context.WithValue(ctx, key, value)
-}
-
-func GetValue(ctx context.Context) string {
-	v, ok := ctx.Value(key).(string)
-	if !ok {
-		logrus.Error("key not found in context")
-		return ""
-	}
-
-	return v
 }

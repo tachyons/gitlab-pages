@@ -351,7 +351,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Correlation ID injection middleware
 	var correlationOpts []correlation.InboundHandlerOption
 	if a.config.General.PropagateCorrelationID {
-		correlationOpts = append(correlationOpts, correlation.WithPropagation(), correlation.WithSetResponseHeader())
+		correlationOpts = append(correlationOpts, correlation.WithPropagation())
 	}
 	handler = correlation.InjectCorrelationID(handler, correlationOpts...)
 

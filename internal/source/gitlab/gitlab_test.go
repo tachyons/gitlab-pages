@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"context"
 	"net/http/httptest"
 	"testing"
 
@@ -15,7 +16,7 @@ func TestGetDomain(t *testing.T) {
 		client := client.StubClient{File: "client/testdata/test.gitlab.io.json"}
 		source := Gitlab{client: client}
 
-		domain, err := source.GetDomain("test.gitlab.io")
+		domain, err := source.GetDomain(context.Background(), "test.gitlab.io")
 		require.NoError(t, err)
 
 		require.Equal(t, "test.gitlab.io", domain.Name)
@@ -25,7 +26,7 @@ func TestGetDomain(t *testing.T) {
 		client := client.StubClient{File: "/dev/null"}
 		source := Gitlab{client: client}
 
-		domain, err := source.GetDomain("test.gitlab.io")
+		domain, err := source.GetDomain(context.Background(), "test.gitlab.io")
 
 		require.NotNil(t, err)
 		require.Nil(t, domain)
@@ -35,7 +36,7 @@ func TestGetDomain(t *testing.T) {
 		c := client.StubClient{Lookup: &api.Lookup{Error: client.ErrUnauthorizedAPI}}
 		source := Gitlab{client: c}
 
-		_, err := source.GetDomain("test")
+		_, err := source.GetDomain(context.Background(), "test")
 		require.EqualError(t, err, client.ErrUnauthorizedAPI.Error())
 		require.False(t, source.IsReady())
 	})
