@@ -31,6 +31,7 @@ func ParseHeaderString(customHeaders []string) (http.Header, error) {
 		}
 
 		for k, v := range keyValue {
+			k = textproto.CanonicalMIMEHeaderKey(strings.TrimSpace(k))
 			headers[k] = append(headers[k], v...)
 		}
 	}
