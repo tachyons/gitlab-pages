@@ -1,8 +1,10 @@
 package customheaders
 
 import (
+	"bufio"
 	"errors"
 	"net/http"
+	"net/textproto"
 	"strings"
 )
 
@@ -21,15 +23,16 @@ func AddCustomHeaders(w http.ResponseWriter, headers http.Header) {
 func ParseHeaderString(customHeaders []string) (http.Header, error) {
 	headers := http.Header{}
 	for _, keyValueString := range customHeaders {
-		keyValue := strings.SplitN(keyValueString, ":", 2)
-		if len(keyValue) != 2 {
+		keyValueString = strings.TrimSpace(keyValueString) + "\n\n"
+		tp := textproto.NewReader(bufio.NewReader(strings.NewReader(keyValueString)))
+		keyValue, err := tp.ReadMIMEHeader()
+		if err != nil {
 			return nil, errInvalidHeaderParameter
 		}
 
-		key := strings.TrimSpace(keyValue[0])
-		value := strings.TrimSpace(keyValue[1])
-
-		headers[key] = append(headers[key], value)
+		for k, v := range keyValue {
+			headers[k] = append(headers[k], v...)
+		}
 	}
 	return headers, nil
 }
