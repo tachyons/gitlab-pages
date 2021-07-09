@@ -7,10 +7,12 @@ ARG GSUTIL_VERSION=4.42
 ARG DNF_OPTS
 
 ADD gitlab-python.tar.gz /
+ADD gitaly.tar.gz /tmp/gitaly
 
 RUN dnf ${DNF_OPTS} install -by --nodocs gcc \
     && mkdir /assets \
     && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
+    && mv /tmp/gitaly/usr/local/bin/gitaly-backup /usr/local/bin \
     && cp -R --parents \
         /usr/local/lib/python3.8/site-packages \
         /usr/local/bin/ \
