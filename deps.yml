@@ -11,6 +11,9 @@ dependencies:
       - 597578
       - 42196
     gitlab_labels:
+      - group::distribution
+      - devops::enablement
+      - feature::maintenance
       - maintenance
       - dependencies.io
     gitlab_remove_source_branch: true
