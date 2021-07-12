@@ -2,10 +2,16 @@ package tls
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 )
+
+// ErrEmptyCert is returned when decoding a PEM certificate returns an empty byte array
+var ErrEmptyCert = errors.New("decode PEM certificate")
 
 // GetCertificateFunc returns the certificate to be used for given domain
 type GetCertificateFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
@@ -96,4 +102,33 @@ func configureCertificate(tlsConfig *tls.Config, cert, key []byte) error {
 func configureTLSCiphers(tlsConfig *tls.Config) {
 	tlsConfig.PreferServerCipherSuites = true
 	tlsConfig.CipherSuites = preferredCipherSuites
+}
+
+// VerifyCert reads a certificate and verifies that the domainName
+// belongs to the certificate as well as checking if it's expired
+func VerifyCert(domainName string, certificate []byte) error {
+	if len(certificate) == 0 {
+		return nil
+	}
+
+	block, _ := pem.Decode(certificate)
+	if block == nil {
+		return ErrEmptyCert
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return err
+	}
+
+	opts := x509.VerifyOptions{
+		DNSName: domainName,
+		Roots:   x509.NewCertPool(),
+	}
+
+	if _, err := cert.Verify(opts); err != nil {
+		return err
+	}
+
+	return nil
 }

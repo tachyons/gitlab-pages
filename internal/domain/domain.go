@@ -7,7 +7,10 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"gitlab.com/gitlab-org/labkit/errortracking"
+
+	pages_tls "gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -32,6 +35,26 @@ type Domain struct {
 
 // New creates a new domain with a resolver and existing certificates
 func New(name, cert, key string, resolver Resolver) *Domain {
+
+	//block, _ := pem.Decode(config.General.RootCertificate)
+	//if block == nil {
+	//	return fmt.Errorf("empty root certificate")
+	//}
+	//
+	//cert, err := x509.ParseCertificate(block.Bytes)
+	//if err != nil {
+	//	panic("failed to parse certificate: " + err.Error())
+	//}
+	//
+	//opts := x509.VerifyOptions{
+	//	DNSName: "*." + config.General.Domain,
+	//	Roots:   x509.NewCertPool(),
+	//}
+	//
+	//if _, err := cert.Verify(opts); err != nil {
+	//	return err
+	//}
+
 	return &Domain{
 		Name:            name,
 		CertificateCert: cert,
@@ -106,6 +129,10 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 	if d == nil || len(d.CertificateKey) == 0 || len(d.CertificateCert) == 0 {
 		return nil, errors.New("tls certificates can be loaded only for pages with configuration")
 	}
+	var multiError *multierror.Error
+	if err := pages_tls.VerifyCert(d.Name, []byte(d.CertificateCert)); err != nil {
+		multiError = multierror.Append(multiError, err)
+	}
 
 	d.certificateOnce.Do(func() {
 		var cert tls.Certificate
@@ -118,7 +145,9 @@ func (d *Domain) EnsureCertificate() (*tls.Certificate, error) {
 		}
 	})
 
-	return d.certificate, d.certificateError
+	multiError = multierror.Append(multiError, d.certificateError)
+
+	return d.certificate, multiError.ErrorOrNil()
 }
 
 // ServeFileHTTP returns true if something was served, false if not.

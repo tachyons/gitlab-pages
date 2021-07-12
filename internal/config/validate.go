@@ -5,8 +5,9 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/go-multierror"
+	"gitlab.com/gitlab-org/labkit/log"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
+	pages_tls "gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
 func validateConfig(config *Config) error {
@@ -18,7 +19,11 @@ func validateConfig(config *Config) error {
 		return err
 	}
 
-	return tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion)
+	if err := pages_tls.VerifyCert(config.General.Domain, config.General.RootCertificate); err != nil {
+		log.WithError(err).Warn("invalid root-cert, HTTPS connections may not work")
+	}
+
+	return pages_tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion)
 }
 
 func validateAuthConfig(config *Config) error {
