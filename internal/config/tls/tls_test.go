@@ -126,7 +126,6 @@ func genTestCert(t *testing.T, commonName string, expiry time.Duration) []byte {
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
-		KeyUs
 	}
 
 	/*
@@ -139,10 +138,10 @@ func genTestCert(t *testing.T, commonName string, expiry time.Duration) []byte {
 	   	}
 	   }
 	   if *isCA {
-	   	template.IsCA = true
-	   	template.KeyUsage |= x509.KeyUsageCertSign
 	   }
 	*/
+	template.IsCA = true
+	template.KeyUsage |= x509.KeyUsageCertSign
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(priv), priv)
 	require.NoError(t, err)

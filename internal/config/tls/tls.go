@@ -123,7 +123,7 @@ func VerifyCert(domainName string, certificate []byte) error {
 
 	opts := x509.VerifyOptions{
 		DNSName: domainName,
-		Roots:   x509.NewCertPool(),
+		//Roots:   x509.NewCertPool(),
 	}
 
 	if _, err := cert.Verify(opts); err != nil {
