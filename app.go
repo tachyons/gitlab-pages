@@ -70,7 +70,11 @@ func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate
 	if domain, _ := a.domain(context.Background(), ch.ServerName); domain != nil {
 		tls, err := domain.EnsureCertificate()
 		if err != nil {
-			log.WithField("pages_host", domain.Name).WithError(err).Warn("failed to load certificate for custom domain")
+			log.WithFields(log.Fields{
+				"pages_host":  domain.Name,
+				"local_addr":  ch.Conn.LocalAddr().String(),
+				"remote_addr": ch.Conn.RemoteAddr().String(),
+			}).WithError(err).Warn("failed to load certificate for custom domain")
 		}
 
 		return tls, nil
