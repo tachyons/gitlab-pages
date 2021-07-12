@@ -104,7 +104,12 @@ func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
 }
 
 func (fs *zipVFS) reconfigureTransport(cfg *config.Config) error {
-	fsTransport, err := httpfs.NewFileSystemPath(cfg.Zip.AllowedPaths, cfg.Zip.ChrootPath)
+	chrootPath := ""
+	if cfg.Daemon.EnableJail {
+		chrootPath = cfg.Zip.ChrootPath
+	}
+
+	fsTransport, err := httpfs.NewFileSystemPath(cfg.Zip.AllowedPaths, chrootPath)
 	if err != nil {
 		return err
 	}

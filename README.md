@@ -83,6 +83,11 @@ See [doc/development.md](doc/development.md)
 
 ### Run daemon **in secure mode**
 
+**Update**:
+
+Starting from GitLab 14.1 the 
+[jailing/chroot mechanism is disabled by default](https://docs.gitlab.com/ee/administration/pages/#jailing-mechanism-disabled-by-default-for-api-based-configuration).
+
 When compiled with `CGO_ENABLED=0` (which is the default), `gitlab-pages` is a
 static binary and so can be run in chroot with dropped privileges.
 

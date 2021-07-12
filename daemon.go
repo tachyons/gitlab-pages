@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/jail"
@@ -277,6 +278,7 @@ func daemonize(config *config.Config) error {
 	uid := config.Daemon.UID
 	gid := config.Daemon.GID
 	inPlace := config.Daemon.InplaceChroot
+	enableJail := config.Daemon.EnableJail
 	pagesRoot := config.General.RootDir
 
 	// Ensure pagesRoot is an absolute path. This will produce a different path
@@ -291,10 +293,11 @@ func daemonize(config *config.Config) error {
 	}
 
 	logrus.WithFields(logrus.Fields{
-		"uid":        uid,
-		"gid":        gid,
-		"in-place":   inPlace,
-		"pages-root": pagesRoot,
+		"uid":         uid,
+		"gid":         gid,
+		"in-place":    inPlace,
+		"enable-jail": enableJail,
+		"pages-root":  pagesRoot,
 	}).Info("running the daemon as unprivileged user")
 
 	cmd, err := daemonReexec(uid, gid, daemonRunProgram)
@@ -303,28 +306,24 @@ func daemonize(config *config.Config) error {
 	}
 	defer killProcess(cmd)
 
-	// Run daemon in chroot environment
-	var wrapper *jail.Jail
-	if inPlace {
-		wrapper, err = chrootDaemon(cmd)
-	} else {
-		wrapper, err = jailDaemon(pagesRoot, cmd)
-	}
-	if err != nil {
-		logrus.WithError(err).Print("chroot failed")
-		return err
-	}
-	defer wrapper.Dispose()
+	if enableJail {
+		wrapper, err := createChroot(cmd, pagesRoot, inPlace)
+		if err != nil {
+			log.WithError(err).Error("create chroot failed")
+			return err
+		}
+		defer wrapper.Dispose()
 
-	// Unshare mount namespace
-	// 1. If this fails, in a worst case changes to mounts will propagate to other processes
-	// 2. Ensures that jail mount is not propagated to the parent mount namespace
-	//    to avoid populating `tmp` directory with old mounts
-	_ = wrapper.Unshare()
+		// Unshare mount namespace
+		// 1. If this fails, in a worst case changes to mounts will propagate to other processes
+		// 2. Ensures that jail mount is not propagated to the parent mount namespace
+		//    to avoid populating `tmp` directory with old mounts
+		_ = wrapper.Unshare()
 
-	if err := wrapper.Build(); err != nil {
-		logrus.WithError(err).Print("chroot build failed")
-		return err
+		if err := wrapper.Build(); err != nil {
+			log.WithError(err).Error("chroot build failed")
+			return err
+		}
 	}
 
 	// Create a pipe to pass the configuration
@@ -354,6 +353,20 @@ func daemonize(config *config.Config) error {
 
 	// Wait for process to exit
 	return cmd.Wait()
+}
+
+func createChroot(cmd *exec.Cmd, pagesRoot string, inPlace bool) (*jail.Jail, error) {
+	// Run daemon in chroot environment
+	var wrapper *jail.Jail
+	var err error
+
+	if inPlace {
+		wrapper, err = chrootDaemon(cmd)
+	} else {
+		wrapper, err = jailDaemon(pagesRoot, cmd)
+	}
+
+	return wrapper, err
 }
 
 func updateFds(config *config.Config, cmd *exec.Cmd) {

@@ -86,6 +86,7 @@ type Daemon struct {
 	UID           uint
 	GID           uint
 	InplaceChroot bool
+	EnableJail    bool
 }
 
 // Cache configuration for GitLab API
@@ -226,6 +227,7 @@ func loadConfig() (*Config, error) {
 			UID:           *daemonUID,
 			GID:           *daemonGID,
 			InplaceChroot: *daemonInplaceChroot,
+			EnableJail:    *daemonEnableJail || *domainConfigSource == "disk",
 		},
 		Log: Log{
 			Format:  *logFormat,
@@ -303,6 +305,7 @@ func LogConfig(config *Config) {
 		"daemon-gid":                    *daemonGID,
 		"daemon-uid":                    *daemonUID,
 		"daemon-inplace-chroot":         *daemonInplaceChroot,
+		"daemon-enable-jail":            *daemonEnableJail,
 		"default-config-filename":       flag.DefaultConfigFlagname,
 		"disable-cross-origin-requests": *disableCrossOriginRequests,
 		"domain":                        config.General.Domain,
