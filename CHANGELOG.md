@@ -1,3 +1,21 @@
+## 1.41.0 (2021-07-13)
+
+### Added (1 change)
+
+- [Include /etc/nsswitch.conf in chroot jail](gitlab-org/gitlab-pages@56273e40459345534203433d02682c4539507c73) ([merge request](gitlab-org/gitlab-pages!499))
+
+### Fixed (1 change)
+
+- [Fix path trimming in GitLab client](gitlab-org/gitlab-pages@3388ae9caea138923dd2e682aa0315eed9c0fcf5) ([merge request](gitlab-org/gitlab-pages!512))
+
+### Changed (1 change)
+
+- [Disable chroot and add daemon-enable-jail flag](gitlab-org/gitlab-pages@4d1dcf7933442c4b062b85fe26a2aa6cc75a078d) ([merge request](gitlab-org/gitlab-pages!513))
+
+### Other (1 change)
+
+- [Improve observability of HTTP connections](gitlab-org/gitlab-pages@2b1887c217e04f05c885202d73de06f44f315460) ([merge request](gitlab-org/gitlab-pages!515))
+
 ## 1.40.0 (2021-06-09)
 
 ### Changed (1 change)
