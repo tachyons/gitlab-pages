@@ -46,6 +46,11 @@ var DomainResponses = map[string]responseFn{
 		projectID:  1234,
 		pathOnDisk: "group.acme/with.acme.challenge",
 	}),
+	"group.redirects.gitlab-example.com": generateVirtualDomainFromDir("group.redirects", "group.redirects.gitlab-example.com", nil),
+	"redirects.custom-domain.com": customDomain(projectConfig{
+		projectID:  1001,
+		pathOnDisk: "group.redirects/custom-domain",
+	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving
 	// make zip PROJECT_SUBDIR=group/project2
@@ -102,7 +107,8 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 				ProjectID:     cfg.projectID,
 				AccessControl: cfg.accessControl,
 				HTTPSOnly:     cfg.https,
-				Prefix:        prefix,
+				// gitlab.Resolve logic expects prefix to have ending slash
+				Prefix: ensureEndingSlash(prefix),
 				Source: api.Source{
 					Type: "zip",
 					Path: fmt.Sprintf("file://%s", wd+"/"+dir+project),
@@ -151,4 +157,12 @@ func customDomain(config projectConfig) responseFn {
 			},
 		}
 	}
+}
+
+func ensureEndingSlash(path string) string {
+	if strings.HasSuffix(path, "/") {
+		return path
+	}
+
+	return path + "/"
 }
