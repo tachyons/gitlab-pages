@@ -14,8 +14,6 @@ import (
 )
 
 func TestZipServing(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
@@ -207,8 +205,6 @@ func TestZipServingFromDisk(t *testing.T) {
 }
 
 func TestZipServingConfigShortTimeout(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
 	defer source.Close()
 

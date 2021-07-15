@@ -8,7 +8,6 @@ import (
 )
 
 func TestUnknownHTTPMethod(t *testing.T) {
-	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 

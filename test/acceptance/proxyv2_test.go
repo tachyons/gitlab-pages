@@ -10,10 +10,9 @@ import (
 )
 
 func TestProxyv2(t *testing.T) {
-	skipUnlessEnabled(t)
-
-	logBuf, teardown := RunPagesProcessWithOutput(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
+	logBuf := RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpsProxyv2Listener}),
+	)
 
 	// the dummy client IP 10.1.1.1 is set by TestProxyv2Client
 	tests := map[string]struct {
