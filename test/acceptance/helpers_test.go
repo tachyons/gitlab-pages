@@ -221,10 +221,6 @@ func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesBinary string, listen
 	return cleanup
 }
 
-func RunPagesProcessWithOutput(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (out *LogCaptureBuffer, teardown func()) {
-	return runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
-}
-
 func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 	chdir := false
 	chdirCleanup := testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)
@@ -359,13 +355,12 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 
 func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraArgs []string) (args, tempfiles []string) {
 	var hasHTTPS bool
-
 	args = append(args, "-log-verbose=true")
 
 	for _, spec := range listeners {
 		args = append(args, "-listen-"+spec.Type, spec.JoinHostPort())
 
-		if spec.Type == request.SchemeHTTPS {
+		if strings.Contains(spec.Type, request.SchemeHTTPS) {
 			hasHTTPS = true
 		}
 	}

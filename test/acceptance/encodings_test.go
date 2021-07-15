@@ -9,11 +9,9 @@ import (
 )
 
 func TestMIMETypes(t *testing.T) {
-	skipUnlessEnabled(t)
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
-
-	require.NoError(t, httpListener.WaitUntilRequestSucceeds(nil))
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
 	tests := map[string]struct {
 		file                string
@@ -40,8 +38,6 @@ func TestMIMETypes(t *testing.T) {
 }
 
 func TestCompressedEncoding(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	tests := []struct {
 		name     string
 		host     string
@@ -62,8 +58,9 @@ func TestCompressedEncoding(t *testing.T) {
 		},
 	}
 
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

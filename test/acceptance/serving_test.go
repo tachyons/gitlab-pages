@@ -14,8 +14,6 @@ import (
 )
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
@@ -28,8 +26,6 @@ func TestUnknownHostReturnsNotFound(t *testing.T) {
 }
 
 func TestUnknownProjectReturnsNotFound(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
@@ -39,8 +35,6 @@ func TestUnknownProjectReturnsNotFound(t *testing.T) {
 }
 
 func TestGroupDomainReturns200(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/")
@@ -55,8 +49,6 @@ func TestGroupDomainReturns200(t *testing.T) {
 }
 
 func TestKnownHostReturns200(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	tests := []struct {
@@ -116,8 +108,6 @@ func TestKnownHostReturns200(t *testing.T) {
 
 // TODO: remove along with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 func TestNestedSubgroups(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	maxNestedSubgroup := 21
 
 	pagesRoot, err := ioutil.TempDir("", "pages-root")
@@ -162,8 +152,6 @@ func TestNestedSubgroups(t *testing.T) {
 }
 
 func TestCustom404(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	tests := []struct {
@@ -224,8 +212,6 @@ func TestCustom404(t *testing.T) {
 }
 
 func TestCORSWhenDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t, withExtraArgument("disable-cross-origin-requests", "true"))
 
 	for _, spec := range supportedListeners() {
@@ -240,8 +226,6 @@ func TestCORSWhenDisabled(t *testing.T) {
 }
 
 func TestCORSAllowsGET(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
@@ -256,8 +240,6 @@ func TestCORSAllowsGET(t *testing.T) {
 }
 
 func TestCORSForbidsPOST(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
@@ -270,8 +252,6 @@ func TestCORSForbidsPOST(t *testing.T) {
 }
 
 func TestCustomHeaders(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t,
 		withExtraArgument("header", "X-Test1:Testing1"),
 		withExtraArgument("header", "X-Test2:Testing2"),
@@ -287,8 +267,6 @@ func TestCustomHeaders(t *testing.T) {
 }
 
 func TestKnownHostWithPortReturns200(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
@@ -301,8 +279,6 @@ func TestKnownHostWithPortReturns200(t *testing.T) {
 }
 
 func TestHttpToHttpsRedirectDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
@@ -317,8 +293,6 @@ func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 }
 
 func TestHttpToHttpsRedirectEnabled(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t, withExtraArgument("redirect-http", "true"))
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
@@ -366,8 +340,6 @@ func TestHTTPSRedirect(t *testing.T) {
 }
 
 func TestHttpsOnlyProjectEnabled(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -378,8 +350,6 @@ func TestHttpsOnlyProjectEnabled(t *testing.T) {
 }
 
 func TestHttpsOnlyProjectDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -390,8 +360,6 @@ func TestHttpsOnlyProjectDisabled(t *testing.T) {
 }
 
 func TestHttpsOnlyDomainDisabled(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -402,8 +370,6 @@ func TestHttpsOnlyDomainDisabled(t *testing.T) {
 }
 
 func TestDomainsSource(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	type args struct {
 		configSource string
 		domain       string
@@ -583,8 +549,6 @@ func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
 }
 
 func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetProxiedPageFromListener(t, proxyListener, "localhost", "group.gitlab-example.com", "project/")
@@ -595,8 +559,6 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 }
 
 func TestDomainResolverError(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	domainName := "new-source-test.gitlab.io"
 	opts := &stubOpts{
 		apiCalled: false,
@@ -689,8 +651,6 @@ func doCrossOriginRequest(t *testing.T, spec ListenSpec, method, reqMethod, url 
 }
 
 func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	RunPagesProcessWithStubGitLabServer(t)
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "project?q=test")
@@ -708,8 +668,6 @@ func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
 }
 
 func TestServerRepliesWithHeaders(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	tests := map[string]struct {
 		flags           []string
 		expectedHeaders map[string][]string
@@ -774,8 +732,6 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 }
 
 func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	logBuf := RunPagesProcessWithStubGitLabServer(t,
 		withExtraArgument("enable-disk", "false"),
 	)

@@ -9,8 +9,6 @@ import (
 )
 
 func TestPrometheusMetricsCanBeScraped(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 

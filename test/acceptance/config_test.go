@@ -11,8 +11,6 @@ import (
 )
 
 func TestEnvironmentVariablesConfig(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	envVarValue := "LISTEN_HTTP=" + net.JoinHostPort(httpListener.Host, httpListener.Port)
 
 	RunPagesProcessWithStubGitLabServer(t,
@@ -30,7 +28,6 @@ func TestEnvironmentVariablesConfig(t *testing.T) {
 }
 
 func TestMixedConfigSources(t *testing.T) {
-	skipUnlessEnabled(t)
 	envVarValue := "LISTEN_HTTP=" + net.JoinHostPort(httpListener.Host, httpListener.Port)
 
 	RunPagesProcessWithStubGitLabServer(t,
@@ -50,8 +47,6 @@ func TestMixedConfigSources(t *testing.T) {
 }
 
 func TestMultipleListenersFromEnvironmentVariables(t *testing.T) {
-	skipUnlessEnabled(t)
-
 	listenSpecs := []ListenSpec{{"http", "127.0.0.1", "37001"}, {"http", "127.0.0.1", "37002"}}
 	envVarValue := fmt.Sprintf("LISTEN_HTTP=%s,%s", net.JoinHostPort("127.0.0.1", "37001"), net.JoinHostPort("127.0.0.1", "37002"))
 

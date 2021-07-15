@@ -15,7 +15,6 @@ import (
 )
 
 func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
-	skipUnlessEnabled(t)
 	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "")
 	defer teardown()
 
@@ -27,7 +26,6 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 }
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
-	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -59,7 +57,6 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 }
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
-	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -71,7 +68,6 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
 }
 func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
-	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -90,7 +86,6 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 }
 
 func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
-	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -440,7 +435,6 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 }
 
 func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
-	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
@@ -455,7 +449,6 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 	require.Equal(t, "/auth", url.Path)
 }
 func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
-	skipUnlessEnabled(t)
 	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "")
 	defer teardown()
 
