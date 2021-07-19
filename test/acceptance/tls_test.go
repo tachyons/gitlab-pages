@@ -8,8 +8,9 @@ import (
 )
 
 func TestAcceptsSupportedCiphers(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpsListener}),
+	)
 
 	tlsConfig := &tls.Config{
 		CipherSuites: []uint16{
@@ -25,12 +26,11 @@ func TestAcceptsSupportedCiphers(t *testing.T) {
 	defer cleanup()
 
 	rsp, err := client.Get(httpsListener.URL("/"))
-
-	if rsp != nil {
-		rsp.Body.Close()
-	}
-
 	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		rsp.Body.Close()
+	})
 }
 
 func tlsConfigWithInsecureCiphersOnly() *tls.Config {
@@ -44,36 +44,32 @@ func tlsConfigWithInsecureCiphersOnly() *tls.Config {
 }
 
 func TestRejectsUnsupportedCiphers(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpsListener}),
+	)
 
 	client, cleanup := ClientWithConfig(tlsConfigWithInsecureCiphersOnly())
 	defer cleanup()
 
 	rsp, err := client.Get(httpsListener.URL("/"))
-
-	if rsp != nil {
-		rsp.Body.Close()
-	}
-
-	require.Error(t, err)
 	require.Nil(t, rsp)
+	require.Error(t, err)
 }
 
 func TestEnableInsecureCiphers(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-insecure-ciphers")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpsListener}),
+		withExtraArgument("-insecure-ciphers", "true"),
+	)
 
 	client, cleanup := ClientWithConfig(tlsConfigWithInsecureCiphersOnly())
 	defer cleanup()
 
 	rsp, err := client.Get(httpsListener.URL("/"))
-
-	if rsp != nil {
-		rsp.Body.Close()
-	}
-
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		rsp.Body.Close()
+	})
 }
 
 func TestTLSVersions(t *testing.T) {
@@ -90,7 +86,7 @@ func TestTLSVersions(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			args := []string{}
+			var args []string
 			if tc.tlsMin != "" {
 				args = append(args, "-tls-min-version", tc.tlsMin)
 			}
@@ -98,8 +94,10 @@ func TestTLSVersions(t *testing.T) {
 				args = append(args, "-tls-max-version", tc.tlsMax)
 			}
 
-			teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", args...)
-			defer teardown()
+			RunPagesProcessWithStubGitLabServer(t,
+				withListeners([]ListenSpec{httpsListener}),
+				withArguments(args),
+			)
 
 			tlsConfig := &tls.Config{}
 			if tc.tlsClient != 0 {
@@ -111,14 +109,11 @@ func TestTLSVersions(t *testing.T) {
 
 			rsp, err := client.Get(httpsListener.URL("/"))
 
-			if rsp != nil {
-				rsp.Body.Close()
-			}
-
 			if tc.expectError {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
+				rsp.Body.Close()
 			}
 		})
 	}
