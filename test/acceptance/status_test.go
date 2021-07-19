@@ -21,6 +21,8 @@ func TestStatusPage(t *testing.T) {
 }
 
 func TestStatusNotYetReady(t *testing.T) {
+	listeners := supportedListeners()
+
 	RunPagesProcessWithStubGitLabServer(t,
 		withoutWait,
 		withExtraArgument("pages-status", "/@statuscheck"),
@@ -30,8 +32,10 @@ func TestStatusNotYetReady(t *testing.T) {
 		}),
 	)
 
-	waitForRoundtrips(t, supportedListeners(), 5*time.Second)
-	for _, spec := range supportedListeners() {
+	waitForRoundtrips(t, listeners, time.Duration(len(listeners))*time.Second)
+
+	// test status on all supported listeners
+	for _, spec := range listeners {
 		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com", "@statuscheck")
 		require.NoError(t, err)
 		defer rsp.Body.Close()

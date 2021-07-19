@@ -8,8 +8,9 @@ import (
 )
 
 func TestUnknownHTTPMethod(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
 	req, err := http.NewRequest("UNKNOWN", httpListener.URL(""), nil)
 	require.NoError(t, err)
