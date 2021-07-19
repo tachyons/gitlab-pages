@@ -351,9 +351,9 @@ func TestHttpsOnlyProjectEnabled(t *testing.T) {
 }
 
 func TestHttpsOnlyProjectDisabled(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
-
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 	rsp, err := GetPageFromListener(t, httpListener, "test2.my-domain.com", "/")
 	require.NoError(t, err)
 	defer rsp.Body.Close()
