@@ -57,9 +57,14 @@ var DomainResponses = map[string]responseFn{
 		pathOnDisk: "group.https-only/project3",
 	}),
 	"test2.my-domain.com": customDomain(projectConfig{
-		projectID:  1002,
+		projectID:  1003,
 		https:      false,
 		pathOnDisk: "group.https-only/project4",
+	}),
+	"no.cert.com": customDomain(projectConfig{
+		projectID:  1004,
+		https:      true,
+		pathOnDisk: "group.https-only/project5",
 	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving

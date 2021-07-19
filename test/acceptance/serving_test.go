@@ -314,62 +314,53 @@ func TestHTTPSRedirect(t *testing.T) {
 	)
 
 	tests := map[string]struct {
+		domain         string
 		path           string
 		expectedStatus int
 	}{
 		"domain_https_only_true": {
+			domain:         "group.https-only.gitlab-example.com",
 			path:           "project1/",
 			expectedStatus: http.StatusMovedPermanently,
 		},
 		"domain_https_only_false": {
+			domain:         "group.https-only.gitlab-example.com",
 			path:           "project2/",
 			expectedStatus: http.StatusOK,
+		},
+		"custom_domain_https_enabled": {
+			domain:         "test.my-domain.com",
+			path:           "/index.html",
+			expectedStatus: http.StatusMovedPermanently,
+		},
+		"custom_domain_https_disabled": {
+			domain:         "test2.my-domain.com",
+			path:           "/",
+			expectedStatus: http.StatusOK,
+		},
+		"custom_domain_https_enabled_with_bad_certificate_is_still_redirected": {
+			domain:         "no.cert.com",
+			path:           "/",
+			expectedStatus: http.StatusMovedPermanently,
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// see testdata/api_responses.go for per prefix configuration response from the API
-			rsp, err := GetRedirectPage(t, httpListener, "group.https-only.gitlab-example.com", test.path)
+			rsp, err := GetRedirectPage(t, httpListener, test.domain, test.path)
 			require.NoError(t, err)
-			defer rsp.Body.Close()
+
+			t.Cleanup(func() {
+				rsp.Body.Close()
+			})
 
 			require.Equal(t, test.expectedStatus, rsp.StatusCode)
 		})
 	}
 }
 
-func TestHttpsOnlyProjectEnabled(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
-		withListeners([]ListenSpec{httpListener}),
-	)
-
-	rsp, err := GetRedirectPage(t, httpListener, "test.my-domain.com", "/index.html")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	require.Equal(t, http.StatusMovedPermanently, rsp.StatusCode)
-}
-
-func TestHttpsOnlyProjectDisabled(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
-		withListeners([]ListenSpec{httpListener}),
-	)
-	rsp, err := GetPageFromListener(t, httpListener, "test2.my-domain.com", "/")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	require.Equal(t, http.StatusOK, rsp.StatusCode)
-}
-
-func TestHttpsOnlyDomainDisabled(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
-
-	rsp, err := GetPageFromListener(t, httpListener, "no.cert.com", "/")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	require.Equal(t, http.StatusOK, rsp.StatusCode)
-}
-
+// TODO: remove with domain-source-config https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 func TestDomainsSource(t *testing.T) {
 	type args struct {
 		configSource string
@@ -513,6 +504,7 @@ func TestDomainsSource(t *testing.T) {
 // TestGitLabSourceBecomesUnauthorized proves workaround for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535
 // The first request will fail and display an error but subsequent requests will
 // serve from disk source when `domain-config-source=auto`
+// TODO: remove with domain-source-config https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
 	opts := &stubOpts{
 		// edge case https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535

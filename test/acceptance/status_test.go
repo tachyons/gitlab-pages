@@ -9,8 +9,10 @@ import (
 )
 
 func TestStatusPage(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "-pages-status=/@statuscheck")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+		withExtraArgument("pages-status", "/@statuscheck"),
+	)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
 	require.NoError(t, err)
@@ -19,23 +21,25 @@ func TestStatusPage(t *testing.T) {
 }
 
 func TestStatusNotYetReady(t *testing.T) {
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, supportedListeners(), "", "-pages-status=/@statuscheck", "-pages-root=../../shared/invalid-pages")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withoutWait,
+		withExtraArgument("pages-status", "/@statuscheck"),
+		withExtraArgument("pages-root", "../../shared/invalid-pages"),
+		withStubOptions(&stubOpts{
+			statusReadyCount: 100,
+		}),
+	)
 
 	waitForRoundtrips(t, supportedListeners(), 5*time.Second)
-	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
-}
+	for _, spec := range supportedListeners() {
+		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com", "@statuscheck")
+		require.NoError(t, err)
+		defer rsp.Body.Close()
+		require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
 
-func TestPageNotAvailableIfNotLoaded(t *testing.T) {
-	teardown := RunPagesProcessWithoutWait(t, *pagesBinary, supportedListeners(), "", "-pages-root=../../shared/invalid-pages")
-	defer teardown()
-	waitForRoundtrips(t, supportedListeners(), 5*time.Second)
-
-	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "index.html")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-	require.Equal(t, http.StatusServiceUnavailable, rsp.StatusCode)
+		rsp2, err2 := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "index.html")
+		require.NoError(t, err2)
+		defer rsp2.Body.Close()
+		require.Equal(t, http.StatusServiceUnavailable, rsp2.StatusCode, "page should not be served")
+	}
 }
