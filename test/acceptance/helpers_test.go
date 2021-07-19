@@ -211,11 +211,6 @@ func RunPagesProcess(t *testing.T, pagesBinary string, listeners []ListenSpec, p
 	return cleanup
 }
 
-func RunPagesProcessWithoutWait(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
-	_, cleanup := runPagesProcess(t, false, pagesBinary, listeners, promPort, nil, extraArgs...)
-	return cleanup
-}
-
 func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
 	_, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, extraArgs...)
 	return cleanup
