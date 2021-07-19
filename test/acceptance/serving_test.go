@@ -106,7 +106,7 @@ func TestKnownHostReturns200(t *testing.T) {
 	}
 }
 
-// TODO: remove along with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
+// TODO: remove along with support for disk configuration https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 func TestNestedSubgroups(t *testing.T) {
 	maxNestedSubgroup := 21
 
@@ -340,8 +340,9 @@ func TestHTTPSRedirect(t *testing.T) {
 }
 
 func TestHttpsOnlyProjectEnabled(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
 	rsp, err := GetRedirectPage(t, httpListener, "test.my-domain.com", "/index.html")
 	require.NoError(t, err)
