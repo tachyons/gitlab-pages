@@ -153,7 +153,7 @@ workflow:
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
   services:
   - docker:${DOCKER_VERSION}-dind
-  dependencies: []
+  needs: []
   retry: 1
   before_script:
     # Always compile assets for auto-deploy builds,
@@ -187,7 +187,6 @@ workflow:
   image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
   services:
   - docker:${DOCKER_VERSION}-dind
-  dependencies: []
   retry: 1
   before_script:
     # Always compile assets for auto-deploy builds,
@@ -217,6 +216,8 @@ workflow:
     paths:
       - artifacts/
   <<: *only-ubi
+  needs:
+    - gitlab-ubi-builder
 
 dependency_update:
   image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1
@@ -236,13 +237,13 @@ dependency_update:
 gitlab-ubi-builder:
   <<: *build-job-base
   stage: prepare
-  dependencies: []
   script:
     - export DOCKERFILE_EXT='.ubi8'
     - export IMAGE_TAG_EXT='-ubi8'
     - export UBI_BUILD_IMAGE='false'
     - mkdir -p artifacts/images
     - build_if_needed
+  needs: []
 
 danger-review:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:danger
@@ -268,8 +269,9 @@ gitlab-ruby:
   <<: *job-base
   <<: *except-deps
   stage: phase-one
-  dependencies:
-    - build:gitlab-ruby
+  needs:
+    - job: build:gitlab-ruby
+      optional: true
   script:
     - build_if_needed
     - push_tags
@@ -277,8 +279,6 @@ gitlab-ruby:
 build:gitlab-logger:
   <<: *build-job-base
   stage: prepare:phase-two
-  dependencies:
-    - build:gitlab-go
   script:
     - import_assets artifacts/ubi/gitlab-go.tar.gz
     - go_dir_version=$(get_version gitlab-go)
@@ -288,11 +288,13 @@ build:gitlab-logger:
                       --build-arg "GITLAB_LOGGER_SHA256=${GITLAB_LOGGER_SHA256}"
     - copy_assets
     - echo -n "${TARGET_VERSION}" > artifacts/container_versions/build_gitlab-logger_tag.txt
+  needs:
+    - build:gitlab-go
 
 gitlab-logger:
   <<: *job-base
   <<: *except-deps
-  stage: phase-two
+  stage: phase-three
   script:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
@@ -303,12 +305,12 @@ gitlab-logger:
     - push_tags
     - push_tags $GITLAB_LOGGER_VERSION${IMAGE_TAG_EXT}
     - echo -n "${TARGET_VERSION}" > artifacts/container_versions/gitlab-logger_tag.txt
+  needs:
+    - gitlab-go
 
 build:gitlab-pages:
   <<: *build-job-base
   stage: prepare:phase-two
-  dependencies:
-    - build:gitlab-go
   script:
     - import_assets artifacts/ubi/gitlab-go.tar.gz
     - go_dir_version=$(get_version gitlab-go)
@@ -320,11 +322,13 @@ build:gitlab-pages:
                       --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-go:$go_version${IMAGE_TAG_EXT}"
     - copy_assets
+  needs:
+    - build:gitlab-go
 
 gitlab-pages:
   <<: *job-base
   <<: *except-deps
-  stage: phase-three
+  stage: phase-four
   script:
     - import_assets artifacts/ubi/{gitlab-logger,gitlab-gomplate}.tar.gz
     - logger_target_version=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
@@ -346,13 +350,17 @@ gitlab-pages:
     - push_tags
     - push_tags $GITLAB_PAGES_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-pages_tag.txt
-  dependencies:
+  needs:
     - gitlab-go
     - gitlab-gomplate
     - gitlab-logger
-    - build:gitlab-logger
-    - build:gitlab-gomplate
-    - build:gitlab-pages
+    - gitlab-ruby
+    - job: build:gitlab-logger
+      optional: true
+    - job: build:gitlab-gomplate
+      optional: true
+    - job: build:gitlab-pages
+      optional: true
 
 build:gitlab-graphicsmagick:
   <<: *build-job-base
@@ -366,8 +374,6 @@ gitlab-graphicsmagick:
   <<: *job-base
   <<: *except-deps
   stage: phase-one
-  # dependencies:
-    # - build:gitlab-graphicsmagick
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${GM_VERSION}" | sha1sum))
     - export GM_VERSION_MINOR=$(expr match $GM_VERSION '\(^[0-9]\+.[0-9]\+\)')
@@ -388,8 +394,9 @@ gitlab-gomplate:
   <<: *job-base
   <<: *except-deps
   stage: phase-one
-  dependencies:
-    - build:gitlab-gomplate
+  needs:
+    - job: build:gitlab-gomplate
+      optional: true
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${GOMPLATE_VERSION}" | sha1sum))
     - build_if_needed --build-arg "GOMPLATE_VERSION=$GOMPLATE_VERSION"
@@ -409,8 +416,9 @@ postgresql:
   <<: *job-base
   <<: *except-deps
   stage: phase-one
-  dependencies:
-    - build:postgresql
+  needs:
+    - job: build:postgresql
+      optional: true
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PG_VERSION" | sha1sum))
     - build_if_needed --build-arg "PG_VERSION=$PG_VERSION"
@@ -444,8 +452,9 @@ kubectl:
   <<: *job-base
   <<: *except-deps
   stage: phase-one
-  dependencies:
-    - build:kubectl
+  needs:
+    - job: build:kubectl
+      optional: true
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"
@@ -479,8 +488,9 @@ gitlab-python:
   <<: *job-base
   <<: *except-deps
   stage: phase-one
-  dependencies:
-    - build:gitlab-python
+  needs:
+    - job: build:gitlab-python
+      optional: true
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$PYTHON_VERSION" | sha1sum))
     - build_if_needed --build-arg "PYTHON_VERSION=${PYTHON_VERSION}"
@@ -508,14 +518,13 @@ gitlab-go:
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
     - push_tags
-  dependencies:
+  needs:
     - gitlab-ruby
-    - build:gitlab-go
 
 build:gitlab-rails-ee:
   <<: *build-job-base
   stage: prepare:phase-three
-  dependencies:
+  needs:
     - build:gitlab-ruby
     - build:postgresql
     - build:gitlab-elasticsearch-indexer
@@ -538,11 +547,14 @@ gitlab-rails-ee:
   <<: *job-base
   <<: *only-ee
   stage: phase-five
-  dependencies:
-    - build:gitlab-rails-ee
+  needs:
     - git-base
     - postgresql
     - gitlab-graphicsmagick
+    - gitlab-ruby
+    - gitlab-elasticsearch-indexer
+    - job: build:gitlab-rails-ee
+      optional: true
   variables:
     RAILS_EE: "true"
   script:
@@ -596,7 +608,8 @@ gitlab-rails-ce:
   <<: *job-base
   <<: *except-ee
   stage: phase-five
-  dependencies:
+  needs:
+    - gitlab-ruby
     - postgresql
     - gitlab-graphicsmagick
   script:
@@ -639,7 +652,7 @@ gitlab-rails-ce:
 build:gitlab-task-runner-ee:
   <<: *build-job-base
   stage: prepare:phase-three
-  dependencies:
+  needs:
     - build:gitlab-python
     - build:gitaly
   script:
@@ -675,12 +688,14 @@ gitlab-task-runner-ee:
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITALY_IMAGE=$CI_REGISTRY_IMAGE/gitaly:$gitaly_container${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
-  dependencies:
+  needs:
     - gitlab-rails-ee
     - gitlab-python
-    - build:gitlab-task-runner-ee
-    - build:gitlab-python
     - gitaly
+    - job: build:gitlab-task-runner-ee
+      optional: true
+    - job: build:gitlab-python
+      optional: true
 
 gitlab-task-runner-ce:
   <<: *job-base
@@ -701,7 +716,7 @@ gitlab-task-runner-ce:
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
                       --build-arg "GITALY_IMAGE=$CI_REGISTRY_IMAGE/gitaly:$gitaly_container${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
-  dependencies:
+  needs:
     - gitlab-rails-ce
     - gitlab-python
     - gitaly
@@ -722,13 +737,13 @@ gitlab-geo-logcursor:
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
-  dependencies:
+  needs:
     - gitlab-rails-ee
 
 build:gitlab-webservice-ee:
   <<: *build-job-base
   stage: prepare:phase-two
-  dependencies:
+  needs:
     - build:gitlab-python
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
@@ -765,13 +780,16 @@ gitlab-webservice-ee:
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
-  dependencies:
+  needs:
     - gitlab-rails-ee
     - gitlab-python
     - gitlab-logger
-    - build:gitlab-webservice-ee
-    - build:gitlab-python
-    - build:gitlab-logger
+    - job: build:gitlab-webservice-ee
+      optional: true
+    - job: build:gitlab-python
+      optional: true
+    - job: build:gitlab-logger
+      optional: true
 
 gitlab-webservice-ce:
   <<: *job-base
@@ -795,16 +813,17 @@ gitlab-webservice-ce:
                       --build-arg "PYTHON_TAG=${python_version}"
                       --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
-  dependencies:
+  needs:
     - gitlab-rails-ce
     - gitlab-python
     - gitlab-logger
-    - build:gitlab-logger
+    - job: build:gitlab-logger
+      optional: true
 
 build:gitlab-sidekiq-ee:
   <<: *build-job-base
   stage: prepare:phase-two
-  dependencies:
+  needs:
     - build:gitlab-python
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
@@ -841,13 +860,16 @@ gitlab-sidekiq-ee:
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
-  dependencies:
+  needs:
     - gitlab-rails-ee
     - gitlab-python
     - gitlab-logger
-    - build:gitlab-python
-    - build:gitlab-sidekiq-ee
-    - build:gitlab-logger
+    - job: build:gitlab-python
+      optional: true
+    - job: build:gitlab-sidekiq-ee
+      optional: true
+    - job: build:gitlab-logger
+      optional: true
 
 gitlab-sidekiq-ce:
   <<: *job-base
@@ -871,16 +893,15 @@ gitlab-sidekiq-ce:
                       --build-arg "TAG=$rails_container"
                       --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
-  dependencies:
+  needs:
     - gitlab-rails-ce
     - gitlab-python
     - gitlab-logger
-    - build:gitlab-logger
 
 build:gitlab-exporter:
   <<: *build-job-base
   stage: prepare:phase-two
-  dependencies:
+  needs:
     - build:gitlab-ruby
     - build:postgresql
   script:
@@ -905,14 +926,15 @@ gitlab-exporter:
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_tags
     - push_tags $GITLAB_EXPORTER_VERSION${IMAGE_TAG_EXT}
-  dependencies:
+  needs:
     - gitlab-ruby
-    - build:gitlab-exporter
+    - job: build:gitlab-exporter
+      optional: true
 
 build:gitlab-mailroom:
   <<: *build-job-base
   stage: prepare:phase-two
-  dependencies:
+  needs:
     - build:gitlab-ruby
   script:
     - import_assets artifacts/ubi/gitlab-ruby.tar.gz
@@ -933,14 +955,15 @@ gitlab-mailroom:
                       --build-arg "RUBY_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_tags
     - push_tags $MAILROOM_VERSION${IMAGE_TAG_EXT}
-  dependencies:
-    - gitlab-ruby
-    - build:gitlab-mailroom
+  needs:
+      - gitlab-ruby
+      - job: build:gitlab-mailroom
+        optional: true
 
 build:gitlab-shell:
   <<: *build-job-base
   stage: prepare:phase-three
-  dependencies:
+  needs:
     - build:git-base
     - build:gitlab-go
     - build:gitlab-ruby
@@ -989,14 +1012,16 @@ gitlab-shell:
     - push_tags gitlab-$GITLAB_REF_SLUG${IMAGE_TAG_EXT}  # This can be removed during https://gitlab.com/gitlab-com/gl-infra/delivery/-/issues/1553
     - push_tags $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-shell_tag.txt
-  dependencies:
-    - gitlab-go
+  needs:
     - git-base
     - gitlab-gomplate
     - gitlab-logger
-    - build:gitlab-logger
-    - build:gitlab-gomplate
-    - build:gitlab-shell
+    - job: build:gitlab-logger
+      optional: true
+    - job: build:gitlab-gomplate
+      optional: true
+    - job: build:gitlab-shell
+      optional: true
 
 gitlab-shell-libproxyproto:
   <<: *job-base
@@ -1007,7 +1032,7 @@ gitlab-shell-libproxyproto:
     - build_if_needed --build-arg "TAG=$shell_container"
     - push_tags gitlab-$GITLAB_REF_SLUG
     - push_tags $GITLAB_SHELL_VERSION
-  dependencies:
+  needs:
     - gitlab-shell
   rules:
     - <<: *if_deps_pipeline
@@ -1038,8 +1063,11 @@ git-base:
   <<: *job-base
   <<: *except-deps
   stage: phase-three
-  dependencies:
-    - build:git-base
+  needs:
+    - gitlab-go
+    - gitlab-ruby
+    - job: build:git-base
+      optional: true
   script:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
@@ -1058,7 +1086,7 @@ git-base:
 build:gitlab-elasticsearch-indexer:
   <<: *build-job-base
   stage: prepare:phase-two
-  dependencies:
+  needs:
     - build:git-base
     - build:gitlab-go
   script:
@@ -1077,9 +1105,8 @@ gitlab-elasticsearch-indexer:
   <<: *job-base
   <<: *only-ee
   stage: phase-four
-  dependencies:
+  needs:
     - git-base
-    - build:gitlab-elasticsearch-indexer
   script:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
@@ -1097,7 +1124,7 @@ gitlab-elasticsearch-indexer:
 build:gitaly:
   <<: *build-job-base
   stage: prepare:phase-two
-  dependencies:
+  needs:
     - build:git-base
     - build:gitlab-go
     - build:gitlab-ruby
@@ -1138,14 +1165,15 @@ gitaly:
                       --build-arg "GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${git_version}${IMAGE_TAG_EXT}"
     - push_tags $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitaly_tag.txt
-  dependencies:
+  needs:
     - git-base
-    - build:gitaly
+    - job: build:gitaly
+      optional: true
 
 build:gitlab-container-registry:
   <<: *build-job-base
   stage: prepare:phase-two
-  dependencies:
+  needs:
     - build:git-base
     - build:gitlab-go
   script:
@@ -1178,17 +1206,18 @@ gitlab-container-registry:
                       --build-arg "REGISTRY_NAMESPACE=gitlab-org"
                       --build-arg "DEPENDENCY_PROXY=${DEPENDENCY_PROXY}"
     - push_tags $GITLAB_CONTAINER_REGISTRY_VERSION${IMAGE_TAG_EXT}
-  dependencies:
+  needs:
     - git-base
-    - gitlab-go
     - gitlab-gomplate
-    - build:gitlab-container-registry
-    - build:gitlab-gomplate
+    - job: build:gitlab-container-registry
+      optional: true
+    - job: build:gitlab-gomplate
+      optional: true
 
 build:gitlab-workhorse-ee:
   <<: *build-job-base
   stage: prepare:phase-four
-  dependencies:
+  needs:
     - build:git-base
     - build:gitlab-go
     - build:gitlab-rails-ee
@@ -1229,10 +1258,12 @@ gitlab-workhorse-ee:
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
-  dependencies:
+  needs:
     - git-base
     - gitlab-rails-ee
-    - build:gitlab-workhorse-ee
+    - gitlab-ruby
+    - job: build:gitlab-workhorse-ee
+      optional: true
 
 gitlab-workhorse-ce:
   <<: *job-base
@@ -1254,8 +1285,9 @@ gitlab-workhorse-ce:
                       --build-arg "RUBY_VERSION=$ruby_version"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ce"
     - push_tags $GITLAB_REF_SLUG
-  dependencies:
+  needs:
     - git-base
+    - gitlab-ruby
     - gitlab-rails-ce
 
 sync-images:
@@ -1291,7 +1323,7 @@ sync-images:
 ubi-assets-release:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:ubi-release
   stage: release
-  dependencies:
+  needs:
     - build:kubectl
     - build:postgresql
     - build:gitlab-python
