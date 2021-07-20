@@ -16,6 +16,7 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitaly" \
       description="Gitaly is a Git RPC service for handling all the git calls made by GitLab."
 
 ADD gitaly.tar.gz /
+ADD gitlab-logger.tar.gz /usr/local/bin
 
 COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
