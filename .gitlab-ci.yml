@@ -1146,10 +1146,13 @@ gitaly:
   <<: *except-deps
   stage: phase-five
   script:
+    - import_assets artifacts/ubi/gitlab-logger.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
+    - gitlab_logger_tag=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
+    - export GITLAB_LOGGER_TAG=($(echo -n "$go_version$gitlab_logger_tag$GITLAB_LOGGER_VERSION$(date -u +%D)" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$GITALY_SERVER_VERSION$git_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
@@ -1163,10 +1166,14 @@ gitaly:
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "CACHE_BUSTER=$GITALY_SERVER_VERSION$(date -uI)"
                       --build-arg "GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${git_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_LOGGER_TAG=${GITLAB_LOGGER_TAG}${IMAGE_TAG_EXT}"
     - push_tags $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitaly_tag.txt
   needs:
     - git-base
+    - gitlab-logger
+    - job: build:gitlab-logger
+      optional: true
     - job: build:gitaly
       optional: true
 
