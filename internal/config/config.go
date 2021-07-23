@@ -102,7 +102,7 @@ type Cache struct {
 // GitLab groups settings related to configuring GitLab client used to
 // interact with GitLab API
 type GitLab struct {
-	Server             string
+	PublicServer       string
 	InternalServer     string
 	APISecretKey       []byte
 	ClientHTTPTimeout  time.Duration
@@ -156,7 +156,7 @@ func internalGitlabServerFromFlags() string {
 		return *internalGitLabServer
 	}
 
-	return *gitLabServer
+	return *publicGitLabServer
 }
 
 func setGitLabAPISecretKey(secretFile string, config *Config) error {
@@ -276,7 +276,7 @@ func loadConfig() (*Config, error) {
 	}
 
 	// Populating remaining GitLab settings
-	config.GitLab.Server = *gitLabServer
+	config.GitLab.PublicServer = *publicGitLabServer
 
 	config.GitLab.InternalServer = internalGitlabServerFromFlags()
 
@@ -326,7 +326,7 @@ func LogConfig(config *Config) {
 		"status_path":                   config.General.StatusPath,
 		"tls-min-version":               *tlsMinVersion,
 		"tls-max-version":               *tlsMaxVersion,
-		"gitlab-server":                 config.GitLab.Server,
+		"gitlab-server":                 config.GitLab.PublicServer,
 		"internal-gitlab-server":        config.GitLab.InternalServer,
 		"api-secret-key":                *gitLabAPISecretKey,
 		"domain-config-source":          config.General.DomainConfigurationSource,

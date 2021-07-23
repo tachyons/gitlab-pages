@@ -55,18 +55,19 @@ var (
 
 // Auth handles authenticating users with GitLab API
 type Auth struct {
-	pagesDomain   string
-	clientID      string
-	clientSecret  string
-	redirectURI   string
-	gitLabServer  string
-	authSecret    string
-	authScope     string
-	jwtSigningKey []byte
-	jwtExpiry     time.Duration
-	apiClient     *http.Client
-	store         sessions.Store
-	now           func() time.Time // allows to stub time.Now() easily in tests
+	pagesDomain          string
+	clientID             string
+	clientSecret         string
+	redirectURI          string
+	internalGitlabServer string // used for exchanging OAuth code for token and Accessing API and checking if the user has access to the project
+	publicGitlabServer   string // used for redirecting users to gitlab on the start of OAuth workflow
+	authSecret           string
+	authScope            string
+	jwtSigningKey        []byte
+	jwtExpiry            time.Duration
+	apiClient            *http.Client
+	store                sessions.Store
+	now                  func() time.Time // allows to stub time.Now() easily in tests
 }
 
 type tokenResponse struct {
@@ -232,7 +233,7 @@ func (a *Auth) domainAllowed(ctx context.Context, name string, domains source.So
 }
 
 func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domains source.Source) bool {
-	// handle auth callback e.g. https://gitlab.io/auth?domain&domain&state=state
+	// handle auth callback e.g. https://gitlab.io/auth?domain=domain&state=state
 	if shouldProxyAuthToGitlab(r) {
 		domain := r.URL.Query().Get("domain")
 		state := r.URL.Query().Get("state")
@@ -269,11 +270,11 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			return true
 		}
 
-		url := fmt.Sprintf(authorizeURLTemplate, a.gitLabServer, a.clientID, a.redirectURI, state, a.authScope)
+		url := fmt.Sprintf(authorizeURLTemplate, a.publicGitlabServer, a.clientID, a.redirectURI, state, a.authScope)
 
 		logRequest(r).WithFields(logrus.Fields{
-			"gitlab_server": a.gitLabServer,
-			"pages_domain":  domain,
+			"public_gitlab_server": a.publicGitlabServer,
+			"pages_domain":         domain,
 		}).Info("Redirecting user to gitlab for oauth")
 
 		http.Redirect(w, r, url, 302)
@@ -377,7 +378,7 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 	token := tokenResponse{}
 
 	// Prepare request
-	url := fmt.Sprintf(tokenURLTemplate, a.gitLabServer)
+	url := fmt.Sprintf(tokenURLTemplate, a.internalGitlabServer)
 	content := fmt.Sprintf(tokenContentTemplate, a.clientID, a.clientSecret, code, a.redirectURI)
 	req, err := http.NewRequest("POST", url, strings.NewReader(content))
 
@@ -489,9 +490,9 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 	// Access token exists, authorize request
 	var url string
 	if projectID > 0 {
-		url = fmt.Sprintf(apiURLProjectTemplate, a.gitLabServer, projectID)
+		url = fmt.Sprintf(apiURLProjectTemplate, a.internalGitlabServer, projectID)
 	} else {
-		url = fmt.Sprintf(apiURLUserTemplate, a.gitLabServer)
+		url = fmt.Sprintf(apiURLUserTemplate, a.internalGitlabServer)
 	}
 	req, err := http.NewRequest("GET", url, nil)
 
@@ -643,7 +644,7 @@ func generateKeys(secret string, count int) ([][]byte, error) {
 }
 
 // New when authentication supported this will be used to create authentication handler
-func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, gitLabServer, authScope string) (*Auth, error) {
+func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internalGitlabServer, publicGitlabServer, authScope string) (*Auth, error) {
 	// generate 3 keys, 2 for the cookie store and 1 for JWT signing
 	keys, err := generateKeys(storeSecret, 3)
 	if err != nil {
@@ -651,11 +652,12 @@ func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, gitLabSe
 	}
 
 	return &Auth{
-		pagesDomain:  pagesDomain,
-		clientID:     clientID,
-		clientSecret: clientSecret,
-		redirectURI:  redirectURI,
-		gitLabServer: strings.TrimRight(gitLabServer, "/"),
+		pagesDomain:          pagesDomain,
+		clientID:             clientID,
+		clientSecret:         clientSecret,
+		redirectURI:          redirectURI,
+		internalGitlabServer: strings.TrimRight(internalGitlabServer, "/"),
+		publicGitlabServer:   strings.TrimRight(publicGitlabServer, "/"),
 		apiClient: &http.Client{
 			Timeout:   5 * time.Second,
 			Transport: httptransport.DefaultTransport,

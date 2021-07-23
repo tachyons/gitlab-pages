@@ -260,20 +260,17 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 	return logBuf
 }
 
-func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string) func() {
+func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []ListenSpec, internalServer string, publicServer string) func() {
 	configFile, cleanup := defaultConfigFileWith(t,
-		"gitlab-server=https://gitlab-auth.com",
+		"internal-gitlab-server="+internalServer,
+		"gitlab-server="+publicServer,
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
 	defer cleanup()
 
-	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, promPort, nil,
+	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, "", nil,
 		"-config="+configFile,
 	)
 	return cleanup2
-}
-
-func RunPagesProcessWithGitlabServer(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, gitlabServer string) func() {
-	return runPagesProcessWithGitlabServer(t, pagesBinary, listeners, promPort, nil, gitlabServer)
 }
 
 func RunPagesProcessWithGitlabServerWithSSLCertFile(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, gitlabServer string) func() {
@@ -580,6 +577,8 @@ type stubOpts struct {
 	m                   sync.RWMutex
 	apiCalled           bool
 	statusReadyCount    int
+	authHandler         http.HandlerFunc
+	userHandler         http.HandlerFunc
 	statusHandler       http.HandlerFunc
 	pagesHandler        http.HandlerFunc
 	pagesStatusResponse int
@@ -614,6 +613,20 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	}
 
 	mux.HandleFunc("/api/v4/internal/pages", pagesHandler)
+
+	authHandler := defaultAuthHandler(t, opts)
+	if opts.authHandler != nil {
+		authHandler = opts.authHandler
+	}
+
+	mux.HandleFunc("/oauth/token", authHandler)
+
+	userHandler := defaultUserHandler(t, opts)
+	if opts.userHandler != nil {
+		userHandler = opts.userHandler
+	}
+
+	mux.HandleFunc("/api/v4/user", userHandler)
 
 	return httptest.NewServer(mux)
 }
@@ -675,6 +688,25 @@ func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
 
 		// serve lookup from files
 		lookupFromFile(t, domain, w)
+	}
+}
+
+func defaultAuthHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "POST", r.Method)
+		err := json.NewEncoder(w).Encode(struct {
+			AccessToken string `json:"access_token"`
+		}{
+			AccessToken: "abc",
+		})
+		require.NoError(t, err)
+	}
+}
+
+func defaultUserHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

@@ -40,7 +40,7 @@ func validateAuthConfig(config *Config) error {
 		err := errors.New("auth-client-secret must be defined if authentication is supported")
 		result = multierror.Append(result, err)
 	}
-	if config.GitLab.Server == "" {
+	if config.GitLab.PublicServer == "" {
 		err := errors.New("gitlab-server must be defined if authentication is supported")
 		result = multierror.Append(result, err)
 	}
