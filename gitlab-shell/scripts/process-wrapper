@@ -3,6 +3,7 @@
 set -e
 
 KEYS_DIRECTORY="${KEYS_DIRECTORY:-/etc/ssh}"
+SSH_DAEMON="${SSH_DAEMON:-openssh}"
 
 if ls $KEYS_DIRECTORY/ssh_host_* 1> /dev/null 2>&1; then
   echo "Using existing Host Keys"
@@ -21,15 +22,20 @@ else
   fi
 fi
 
-if [ "${USE_GITLAB_LOGGER-0}" -eq 1 ]; then
-  /usr/local/bin/gitlab-logger /var/log/gitlab-shell &
-else
-  if command -v xtail >/dev/null; then
-    xtail /var/log/gitlab-shell &
-  else
-    touch /var/log/gitlab-shell/ssh.log
-    tail -f /var/log/gitlab-shell/* &
-  fi
-fi
 
-/usr/sbin/sshd -D -E /var/log/gitlab-shell/ssh.log
+if [ "${SSH_DAEMON}" == "gitlab-sshd" ]; then 
+  /srv/gitlab-shell/bin/gitlab-sshd -config-dir /srv/gitlab-shell
+else
+  if [ "${USE_GITLAB_LOGGER-0}" -eq 1 ]; then
+    /usr/local/bin/gitlab-logger /var/log/gitlab-shell &
+  else
+    if command -v xtail >/dev/null; then
+      xtail /var/log/gitlab-shell &
+    else
+      touch /var/log/gitlab-shell/ssh.log
+      tail -f /var/log/gitlab-shell/* &
+    fi
+  fi
+
+  /usr/sbin/sshd -D -E /var/log/gitlab-shell/ssh.log  
+fi
