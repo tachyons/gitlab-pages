@@ -11,6 +11,7 @@ setup: .GOPATH/.ok
 
 generate-mocks: .GOPATH/.ok
 	$Q bin/mockgen -source=internal/interface.go -destination=internal/mocks/mocks.go -package=mocks
+	$Q bin/mockgen -source=internal/source/source.go -destination=internal/mocks/source.go -package=mocks
 
 build: .GOPATH/.ok
 	$Q GOBIN=$(CURDIR)/bin go install $(if $V,-v) $(VERSION_FLAGS) -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)

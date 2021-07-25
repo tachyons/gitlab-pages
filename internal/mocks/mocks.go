@@ -5,10 +5,9 @@
 package mocks
 
 import (
+	gomock "github.com/golang/mock/gomock"
 	http "net/http"
 	reflect "reflect"
-
-	gomock "github.com/golang/mock/gomock"
 )
 
 // MockArtifact is a mock of Artifact interface

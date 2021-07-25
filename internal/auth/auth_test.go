@@ -10,11 +10,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/gorilla/sessions"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
 func createTestAuth(t *testing.T, internalServer string, publicServer string) *Auth {
@@ -82,7 +83,11 @@ func TestTryAuthenticate(t *testing.T) {
 	reqURL.Scheme = request.SchemeHTTPS
 	r := &http.Request{URL: reqURL}
 
-	require.Equal(t, false, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockSource := mocks.NewMockSource(mockCtrl)
+	require.Equal(t, false, auth.TryAuthenticate(result, r, mockSource))
 }
 
 func TestTryAuthenticateWithError(t *testing.T) {
@@ -95,7 +100,11 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	reqURL.Scheme = request.SchemeHTTPS
 	r := &http.Request{URL: reqURL}
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockSource := mocks.NewMockSource(mockCtrl)
+	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusUnauthorized, result.Code)
 }
 
@@ -114,7 +123,11 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	session.Values["state"] = "state"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockSource := mocks.NewMockSource(mockCtrl)
+	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusUnauthorized, result.Code)
 }
 
@@ -136,7 +149,11 @@ func TestTryAuthenticateRemoveTokenFromRedirect(t *testing.T) {
 	session.Values["proxy_auth_domain"] = "https://domain.com"
 	session.Save(r, result)
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockSource := mocks.NewMockSource(mockCtrl)
+	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusFound, result.Code)
 
 	redirect, err := url.Parse(result.Header().Get("Location"))
@@ -152,7 +169,11 @@ func TestTryAuthenticateWithDomainAndState(t *testing.T) {
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
 
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockSource := mocks.NewMockSource(mockCtrl)
+	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusFound, result.Code)
 	redirect, err := url.Parse(result.Header().Get("Location"))
 	require.NoError(t, err)
@@ -208,7 +229,12 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	})
 
 	result := httptest.NewRecorder()
-	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockSource := mocks.NewMockSource(mockCtrl)
+	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
 
 	res := result.Result()
 	defer res.Body.Close()
