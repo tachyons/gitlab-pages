@@ -13,7 +13,7 @@ import (
 
 // VFS abstracts the things Pages needs to serve a static site from disk.
 type VFS interface {
-	Root(ctx context.Context, path string) (Root, error)
+	Root(ctx context.Context, path string, cacheKey string) (Root, error)
 	Name() string
 	Reconfigure(config *config.Config) error
 }
@@ -34,8 +34,8 @@ func (i *instrumentedVFS) log(ctx context.Context) *logrus.Entry {
 	return log.ContextLogger(ctx).WithField("vfs", i.fs.Name())
 }
 
-func (i *instrumentedVFS) Root(ctx context.Context, path string) (Root, error) {
-	root, err := i.fs.Root(ctx, path)
+func (i *instrumentedVFS) Root(ctx context.Context, path string, cacheKey string) (Root, error) {
+	root, err := i.fs.Root(ctx, path, cacheKey)
 
 	i.increment("Root", err)
 	i.log(ctx).

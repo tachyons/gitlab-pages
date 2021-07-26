@@ -27,49 +27,58 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 
 	tests := map[string]struct {
 		vfsPath        string
+		sha256         string
 		path           string
 		expectedStatus int
 		expectedBody   string
 	}{
 		"accessing /index.html": {
 			vfsPath:        httpURL,
+			sha256:         "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			path:           "/index.html",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
 		"accessing /index.html from disk": {
 			vfsPath:        fileURL,
+			sha256:         "15c5438164ec67bb2225f68d7d7a2e0b608035264e5275b7e3302641aa25a528",
 			path:           "/index.html",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
 		"accessing /": {
 			vfsPath:        httpURL,
+			sha256:         "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			path:           "/",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
 		"accessing / from disk": {
 			vfsPath:        fileURL,
+			sha256:         "15c5438164ec67bb2225f68d7d7a2e0b608035264e5275b7e3302641aa25a528",
 			path:           "/",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
 		"accessing without /": {
 			vfsPath:        httpURL,
+			sha256:         "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			path:           "",
 			expectedStatus: http.StatusFound,
 			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
 		},
 		"accessing without / from disk": {
 			vfsPath:        fileURL,
+			sha256:         "15c5438164ec67bb2225f68d7d7a2e0b608035264e5275b7e3302641aa25a528",
 			path:           "",
 			expectedStatus: http.StatusFound,
 			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
 		},
 		"accessing archive that is 404": {
 			vfsPath: testServerURL + "/invalid.zip",
-			path:    "/index.html",
+			// the sha is needed or we would get a 500
+			sha256: "foo",
+			path:   "/index.html",
 			// we expect the status to not be set
 			expectedStatus: 0,
 		},
@@ -111,6 +120,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 				LookupPath: &serving.LookupPath{
 					Prefix: "/zip/",
 					Path:   test.vfsPath,
+					Sha256: test.sha256,
 				},
 				SubPath: test.path,
 			}

@@ -37,7 +37,7 @@ func (reader *Reader) serveRedirectsStatus(h serving.Handler, redirects *redirec
 // tryRedirects returns true if it successfully handled request
 func (reader *Reader) tryRedirects(h serving.Handler) bool {
 	ctx := h.Request.Context()
-	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
+	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.Sha256)
 	if vfs.IsNotExist(err) {
 		return false
 	} else if err != nil {
@@ -70,7 +70,7 @@ func (reader *Reader) tryRedirects(h serving.Handler) bool {
 func (reader *Reader) tryFile(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
-	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
+	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.Sha256)
 	if vfs.IsNotExist(err) {
 		return false
 	} else if err != nil {
@@ -133,7 +133,7 @@ func redirectPath(request *http.Request) string {
 func (reader *Reader) tryNotFound(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
-	root, err := reader.vfs.Root(ctx, h.LookupPath.Path)
+	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.Sha256)
 	if vfs.IsNotExist(err) {
 		return false
 	} else if err != nil {

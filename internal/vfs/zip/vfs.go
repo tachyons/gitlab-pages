@@ -164,15 +164,20 @@ func (fs *zipVFS) keyFromPath(path string) (string, error) {
 // If findOrOpenArchive returns errAlreadyCached, the for loop will continue
 // to try and find the cached archive or return if there's an error, for example
 // if the context is canceled.
-func (fs *zipVFS) Root(ctx context.Context, path string) (vfs.Root, error) {
-	key, err := fs.keyFromPath(path)
-	if err != nil {
-		return nil, err
+func (fs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.Root, error) {
+	// TODO: update acceptance tests mocked response to return a cacheKey
+	if cacheKey == "" {
+		k, err := fs.keyFromPath(path)
+		if err != nil {
+			return nil, err
+		}
+
+		cacheKey = k
 	}
 
 	// we do it in loop to not use any additional locks
 	for {
-		root, err := fs.findOrOpenArchive(ctx, key, path)
+		root, err := fs.findOrOpenArchive(ctx, cacheKey, path)
 		if err == errAlreadyCached {
 			continue
 		}
@@ -252,7 +257,7 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArch
 }
 
 // findOrOpenArchive gets archive from cache and tries to open it
-func (fs *zipVFS) findOrOpenArchive(ctx context.Context, key, path string) (*zipArchive, error) {
+func (fs *zipVFS) findOrOpenArchive(ctx context.Context, key string, path string) (*zipArchive, error) {
 	zipArchive, err := fs.findOrCreateArchive(ctx, key)
 	if err != nil {
 		return nil, err

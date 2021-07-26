@@ -23,17 +23,21 @@ func TestVFSRoot(t *testing.T) {
 
 	tests := map[string]struct {
 		path           string
+		sha256         string
 		expectedErrMsg string
 	}{
 		"zip_file_exists": {
-			path: "/public.zip",
+			path:   "/public.zip",
+			sha256: "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 		},
 		"zip_file_does_not_exist": {
 			path:           "/unknown",
+			sha256:         "filedoesnotexist",
 			expectedErrMsg: vfs.ErrNotExist{Inner: httprange.ErrNotFound}.Error(),
 		},
 		"invalid_url": {
 			path:           "/%",
+			sha256:         "invalidurl",
 			expectedErrMsg: "invalid URL",
 		},
 	}
@@ -42,7 +46,7 @@ func TestVFSRoot(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			root, err := vfs.Root(context.Background(), url+tt.path)
+			root, err := vfs.Root(context.Background(), url+tt.path, tt.sha256)
 			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.expectedErrMsg)
@@ -77,7 +81,8 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 	path := testServerURL + "/public.zip"
 
 	vfs := New(&zipCfg).(*zipVFS)
-	root, err := vfs.Root(context.Background(), path)
+	key := "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75"
+	root, err := vfs.Root(context.Background(), path, key)
 	require.NoError(t, err)
 
 	done := make(chan struct{})
@@ -93,13 +98,13 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 
 			default:
 				vfs.cache.Flush()
-				vfs.cache.SetDefault(path, root)
+				vfs.cache.SetDefault(key, root)
 			}
 		}
 	}()
 
 	require.Eventually(t, func() bool {
-		_, err := vfs.findOrOpenArchive(context.Background(), path, path)
+		_, err := vfs.findOrOpenArchive(context.Background(), key, path)
 		return err == errAlreadyCached
 	}, 3*time.Second, time.Nanosecond)
 }
@@ -113,6 +118,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 
 	tests := map[string]struct {
 		path               string
+		sha256             string
 		expirationInterval time.Duration
 		refreshInterval    time.Duration
 
@@ -122,6 +128,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 	}{
 		"after cache expiry of successful open a new archive is returned": {
 			path:               "/public.zip",
+			sha256:             "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			expirationInterval: expiryInterval,
 			expectNewArchive:   true,
 			expectOpenError:    false,
@@ -134,6 +141,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 		},
 		"subsequent open during refresh interval does refresh archive": {
 			path:                   "/public.zip",
+			sha256:                 "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			expirationInterval:     time.Second,
 			refreshInterval:        time.Second, // refresh always
 			expectNewArchive:       false,
@@ -142,6 +150,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 		},
 		"subsequent open before refresh interval does not refresh archive": {
 			path:                   "/public.zip",
+			sha256:                 "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			expirationInterval:     time.Second,
 			refreshInterval:        time.Millisecond, // very short interval should not refresh
 			expectNewArchive:       false,
@@ -170,7 +179,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 				path := testServerURL + test.path
 
 				// create a new archive and increase counters
-				archive1, err1 := vfs.findOrOpenArchive(context.Background(), path, path)
+				archive1, err1 := vfs.findOrOpenArchive(context.Background(), test.sha256, path)
 				if test.expectOpenError {
 					require.Error(t, err1)
 					require.Nil(t, archive1)
@@ -178,7 +187,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 					require.NoError(t, err1)
 				}
 
-				item1, exp1, found := vfs.cache.GetWithExpiration(path)
+				item1, exp1, found := vfs.cache.GetWithExpiration(test.sha256)
 				require.True(t, found)
 
 				// give some time to for timeouts to fire
@@ -186,7 +195,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 
 				if test.expectNewArchive {
 					// should return a new archive
-					archive2, err2 := vfs.findOrOpenArchive(context.Background(), path, path)
+					archive2, err2 := vfs.findOrOpenArchive(context.Background(), test.sha256, path)
 					if test.expectOpenError {
 						require.Error(t, err2)
 						require.Nil(t, archive2)
@@ -198,11 +207,11 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 				}
 
 				// should return exactly the same archive
-				archive2, err2 := vfs.findOrOpenArchive(context.Background(), path, path)
+				archive2, err2 := vfs.findOrOpenArchive(context.Background(), test.sha256, path)
 				require.Equal(t, archive1, archive2, "same archive is returned")
 				require.Equal(t, err1, err2, "same error for the same archive")
 
-				item2, exp2, found := vfs.cache.GetWithExpiration(path)
+				item2, exp2, found := vfs.cache.GetWithExpiration(test.sha256)
 				require.True(t, found)
 				require.Equal(t, item1, item2, "same item is returned")
 
@@ -224,9 +233,10 @@ func TestVFSReconfigureTransport(t *testing.T) {
 	fileURL := testhelpers.ToFileProtocol(t, "group/zip.gitlab.io/public.zip")
 
 	vfs := New(&zipCfg)
+	key := "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75"
 
 	// try to open a file URL without registering the file protocol
-	_, err := vfs.Root(context.Background(), fileURL)
+	_, err := vfs.Root(context.Background(), fileURL, key)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unsupported protocol scheme \"file\"")
 
@@ -237,7 +247,7 @@ func TestVFSReconfigureTransport(t *testing.T) {
 	err = vfs.Reconfigure(&config.Config{Zip: cfg})
 	require.NoError(t, err)
 
-	root, err := vfs.Root(context.Background(), fileURL)
+	root, err := vfs.Root(context.Background(), fileURL, key)
 	require.NoError(t, err)
 
 	fi, err := root.Lstat(context.Background(), "index.html")

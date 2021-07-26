@@ -96,7 +96,7 @@ func TestVFSRoot(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			rootVFS, err := localVFS.Root(context.Background(), filepath.Join(tmpDir, test.path))
+			rootVFS, err := localVFS.Root(context.Background(), filepath.Join(tmpDir, test.path), "")
 
 			if test.expectedIsNotExist {
 				require.Equal(t, test.expectedIsNotExist, vfs.IsNotExist(err))

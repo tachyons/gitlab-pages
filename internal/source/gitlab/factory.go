@@ -25,6 +25,7 @@ func fabricateLookupPath(size int, lookup api.LookupPath) *serving.LookupPath {
 	return &serving.LookupPath{
 		ServingType:        lookup.Source.Type,
 		Path:               lookup.Source.Path,
+		Sha256:             lookup.Source.Sha256,
 		Prefix:             lookup.Prefix,
 		IsNamespaceProject: (lookup.Prefix == "/" && size > 1),
 		IsHTTPSOnly:        lookup.HTTPSOnly,
