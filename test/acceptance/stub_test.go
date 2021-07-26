@@ -59,6 +59,12 @@ func withArguments(args []string) processOption {
 	}
 }
 
+func withStubOptions(opts *stubOpts) processOption {
+	return func(config *processConfig) {
+		config.gitlabStubOpts = opts
+	}
+}
+
 // makeGitLabPagesAccessStub provides a stub *httptest.Server to check pages_access API call.
 // the result is based on the project id.
 //
