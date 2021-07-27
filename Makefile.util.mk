@@ -11,15 +11,15 @@ lint: .GOPATH/.ok bin/golangci-lint
 format: .GOPATH/.ok bin/golangci-lint
 	$Q ./bin/golangci-lint run ./... --fix --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
 
-test: .GOPATH/.ok gitlab-pages
+test: .GOPATH/.ok .GOPATH/.ok bin/gotestsum gitlab-pages
 	rm -f tests.out
-	go test $(if $V,-v) ./... ${ARGS} 2>&1 | tee tests.out
+	./bin/gotestsum --junitfile junit-test-report.xml --format testname -- ./... ${ARGS}
 
-race: .GOPATH/.ok gitlab-pages
-	CGO_ENABLED=1 go test -race $(if $V,-v) $(allpackages) 2>&1 | tee tests.out
+race: .GOPATH/.ok .GOPATH/.ok bin/gotestsum gitlab-pages
+	CGO_ENABLED=1 ./bin/gotestsum --junitfile junit-test-report.xml --format testname -- -race $(if $V,-v) $(allpackages) ${ARGS}
 
-acceptance: .GOPATH/.ok gitlab-pages
-	go test $(if $V,-v) ./test/acceptance ${ARGS} 2>&1 | tee tests.out
+acceptance: .GOPATH/.ok .GOPATH/.ok bin/gotestsum gitlab-pages
+	./bin/gotestsum --junitfile junit-test-report.xml --format testname -- $(if $V,-v) ./test/acceptance ${ARGS}
 
 bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ $(allpackages)
@@ -52,8 +52,8 @@ deps-check: .GOPATH/.ok
 deps-download: .GOPATH/.ok
 	go mod download
 
-junit-report: .GOPATH/.ok bin/go-junit-report
-	cat tests.out | ./bin/go-junit-report -set-exit-code > junit-test-report.xml
+junit-report: .GOPATH/.ok bin/gotestsum
+	./bin/gotestsum --junitfile junit-test-report.xml --format testname
 
 changelog:
 	TOKEN='$(GITLAB_PRIVATE_TOKEN)' VERSION='$(shell cat VERSION)' BRANCH='$(BRANCH)'  bash ./.gitlab/scripts/changelog.sh

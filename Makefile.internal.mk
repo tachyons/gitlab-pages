@@ -29,6 +29,6 @@ bin/golangci-lint: .GOPATH/.ok
 	@test -x $@ || \
 	    { echo "Vendored golangci-lint not found, try running 'make setup'..."; exit 1; }
 
-bin/go-junit-report: .GOPATH/.ok
+bin/gotestsum: .GOPATH/.ok
 	@test -x $@ || \
-	    { echo "Vendored go-junit-report not found, try running 'make setup'..."; exit 1; }
+	    { echo "Vendored gotestsum not found, try running 'make setup'..."; exit 1; }
