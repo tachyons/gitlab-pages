@@ -13,21 +13,18 @@
   script:
     - echo "Running all unit tests without daemonizing..."
     - make test ARGS='-short'
-    - make junit-report
 
 .tests-acceptance-tmpdir:
   extends: .tests-common
   script:
     - echo "Running just the acceptance tests daemonized (tmpdir)...."
     - TEST_DAEMONIZE=tmpdir make acceptance
-    - make junit-report
 
 .tests-acceptance-inplace:
   extends: .tests-common
   script:
     - echo "Running just the acceptance tests daemonized (inplace)...."
     - TEST_DAEMONIZE=inplace make acceptance
-    - make junit-report
 
 test:1.14:
   extends: .tests-unit
@@ -72,7 +69,6 @@ race:
     - echo "Running race detector"
     - make setup
     - make race
-    - make junit-report
 
 cover:
   extends: .tests-common

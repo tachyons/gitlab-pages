@@ -13,7 +13,6 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/karlseguin/ccache/v2 v2.0.6
 	github.com/karrick/godirwalk v1.10.12
 	github.com/namsral/flag v1.7.4-pre
@@ -30,6 +29,6 @@ require (
 	gitlab.com/gitlab-org/labkit v1.3.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
-	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
-	golang.org/x/tools v0.1.0 // indirect
+	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
+	gotest.tools/gotestsum v1.7.0
 )
