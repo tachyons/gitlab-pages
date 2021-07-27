@@ -23,7 +23,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, res.StatusCode)
 
-	resp, err := http.Get("http://localhost:42345/metrics")
+	resp, err := http.Get("http://127.0.0.1:42345/metrics")
 	require.NoError(t, err)
 
 	defer resp.Body.Close()

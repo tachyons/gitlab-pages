@@ -311,7 +311,7 @@ func TestClientStatusClientTimeout(t *testing.T) {
 }
 
 func TestClientStatusConnectionRefused(t *testing.T) {
-	client := defaultClient(t, "http://localhost:1234")
+	client := defaultClient(t, "http://127.0.0.1:1234")
 
 	err := client.Status()
 	require.Error(t, err)

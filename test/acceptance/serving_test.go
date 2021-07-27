@@ -544,7 +544,7 @@ func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
 func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 	RunPagesProcessWithStubGitLabServer(t)
 
-	rsp, err := GetProxiedPageFromListener(t, proxyListener, "localhost", "group.gitlab-example.com", "project/")
+	rsp, err := GetProxiedPageFromListener(t, proxyListener, "127.0.0.1", "group.gitlab-example.com", "project/")
 
 	require.NoError(t, err)
 	rsp.Body.Close()
