@@ -45,7 +45,12 @@ module Checks
       return @@config if @@config
 
       config = YAML.load_file(File.join(config_directory, database_file))
-      @@config = config['production']
+      production_entry = config['production']
+      @@config = if production_entry.has_key? 'main'
+                   production_entry['main']
+                 else
+                   production_entry
+                 end
     end
 
     def self.database_schema_version
