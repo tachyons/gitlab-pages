@@ -107,7 +107,7 @@ func passSignals(cmd *exec.Cmd) {
 		return
 	}
 
-	s := make(chan os.Signal)
+	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGTERM, os.Interrupt, os.Kill)
 
 	go func() {
