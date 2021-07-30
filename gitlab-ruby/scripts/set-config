@@ -1,32 +1,41 @@
-#!/usr/bin/env ruby
+#!/bin/bash
 
-require 'erb'
-require 'fileutils'
-require 'yaml'
-require 'json'
+set -eo pipefail
 
-template_directory = ARGV.shift
-config_directory = ARGV.shift || template_directory
+TEMPLATE_DIRECTORY="$1"
+CONFIG_DIRECTORY="${2:-$1}"
 
-unless template_directory
-  puts 'usage: set-config <template_directory> [<config_directory>]'
+if [ -z "$TEMPLATE_DIRECTORY" ]; then
+  echo 'usage: set-config <template_directory> [<config_directory>]'
   exit 1
-end
+fi
 
-puts "Begin parsing .erb files from #{template_directory}"
+shopt -s nullglob  # Don't enter empty for loops
 
-Dir.glob(File.join(template_directory, '*.erb')).each do |file|
-  output_file = File.join(config_directory, File.basename(file, '.erb'))
-  puts "Writing #{output_file}"
-  template = ERB.new(File.read(file))
-  File.write(output_file, template.result)
-end
+if command -v erb &> /dev/null; then
+  echo "Begin parsing .erb templates from $TEMPLATE_DIRECTORY"
+  for template in ${TEMPLATE_DIRECTORY}/*.erb; do
+    output_file="${CONFIG_DIRECTORY}/$(basename $template '.erb')"
+    echo "Writing $output_file"
+    erb -U -r yaml -r json -r fileutils "$template" > "$output_file"
+  done
+fi
 
-if config_directory != template_directory
-  puts "Copying other config files found in #{template_directory}"
+if command -v gomplate &> /dev/null; then
+  echo "Begin parsing .tpl templates from $TEMPLATE_DIRECTORY"
+  for template in ${TEMPLATE_DIRECTORY}/*.tpl; do
+    output_file="${CONFIG_DIRECTORY}/$(basename $template '.tpl')"
+    echo "Writing $output_file"
+    gomplate --file "$template" --out "$output_file"
+  done
+fi
 
-  Dir.glob(File.join(template_directory, '*.{yml,yaml,toml,rb,json}')).each do |file|
-    puts "Copying #{File.basename(file)} into #{config_directory}"
-    FileUtils.cp(file, config_directory)
-  end
-end
+if [ "$CONFIG_DIRECTORY" != "$TEMPLATE_DIRECTORY" ]; then
+  echo "Copying other config files found in $TEMPLATE_DIRECTORY to $CONFIG_DIRECTORY"
+  for configfile in ${TEMPLATE_DIRECTORY}/*.{yml,yaml,toml,rb,json}; do
+    echo "Copying $(basename $configfile) into ${CONFIG_DIRECTORY}"
+    cp "$configfile" "$CONFIG_DIRECTORY/"
+  done
+fi
+
+shopt -u nullglob
