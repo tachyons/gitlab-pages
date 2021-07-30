@@ -39,7 +39,7 @@ type Transport interface {
 func NewTransport() *http.Transport {
 	return &http.Transport{
 		DialTLS: func(network, addr string) (net.Conn, error) {
-			return tls.Dial(network, addr, &tls.Config{RootCAs: pool()})
+			return tls.Dial(network, addr, &tls.Config{RootCAs: pool(), MinVersion: tls.VersionTLS12})
 		},
 		Proxy: http.ProxyFromEnvironment,
 		// overrides the DefaultMaxIdleConnsPerHost = 2
