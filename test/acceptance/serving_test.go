@@ -215,7 +215,7 @@ func TestCORSWhenDisabled(t *testing.T) {
 	RunPagesProcessWithStubGitLabServer(t, withExtraArgument("disable-cross-origin-requests", "true"))
 
 	for _, spec := range supportedListeners() {
-		for _, method := range []string{"GET", "OPTIONS"} {
+		for _, method := range []string{http.MethodGet, http.MethodOptions} {
 			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("project/"))
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode)
@@ -229,7 +229,21 @@ func TestCORSAllowsGET(t *testing.T) {
 	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
-		for _, method := range []string{"GET", "OPTIONS"} {
+		for _, method := range []string{http.MethodGet, http.MethodOptions} {
+			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("project/"))
+
+			require.Equal(t, http.StatusOK, rsp.StatusCode)
+			require.Equal(t, "*", rsp.Header.Get("Access-Control-Allow-Origin"))
+			require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
+		}
+	}
+}
+
+func TestCORSAllowsHEAD(t *testing.T) {
+	RunPagesProcessWithStubGitLabServer(t)
+
+	for _, spec := range supportedListeners() {
+		for _, method := range []string{http.MethodGet, http.MethodOptions, http.MethodHead} {
 			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("project/"))
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode)
@@ -243,7 +257,7 @@ func TestCORSForbidsPOST(t *testing.T) {
 	RunPagesProcessWithStubGitLabServer(t)
 
 	for _, spec := range supportedListeners() {
-		rsp := doCrossOriginRequest(t, spec, "OPTIONS", "POST", spec.URL("project/"))
+		rsp := doCrossOriginRequest(t, spec, http.MethodOptions, http.MethodPost, spec.URL("project/"))
 
 		require.Equal(t, http.StatusOK, rsp.StatusCode)
 		require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
