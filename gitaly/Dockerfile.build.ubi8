@@ -8,7 +8,7 @@ ARG PROJECT=gitaly
 ARG API_URL=
 ARG API_TOKEN=
 
-ARG BUNDLE_OPTIONS="--jobs 4 --without development test"
+ARG BUNDLE_OPTIONS="--jobs 4"
 
 ADD git-base.tar.gz /
 ADD gitlab-ruby.tar.gz /
@@ -28,16 +28,18 @@ RUN mkdir /assets \
         "${PROJECT}" \
         "${VERSION}" \
     && cd ${PROJECT}-${VERSION}/ruby \
+    && bundle config set --local without 'development test' \
     && bundle install ${BUNDLE_OPTIONS} \
     && cd .. \
     && cp -R ./ruby /srv/gitaly-ruby \
-    && mkdir /licenses && cp LICENSE /licenses/GitLab.txt \
+    && install -D LICENSE /licenses/GitLab.txt \
     && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features \
     && touch .ruby-bundle \
     && make install \
     && /build-scripts/cleanup-gems ${LIBDIR}/ruby/gems \
     && cp -R --parents \
       /usr/local/bin/gitaly* \
+      /usr/local/bin/praefect \
       ${LIBDIR}/ruby/gems/ \
       /srv/gitaly-ruby \
       /licenses \
