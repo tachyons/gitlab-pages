@@ -49,3 +49,7 @@ func (s *MultiStringFlag) sep() string {
 
 	return s.separator
 }
+
+func (s *MultiStringFlag) Len() int {
+	return len(s.value)
+}
