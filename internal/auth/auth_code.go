@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/securecookie"
 	"golang.org/x/crypto/hkdf"
 )
