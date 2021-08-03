@@ -649,7 +649,7 @@ gitlab-rails-ce:
     paths:
       - gitlab-rails/vendor/bundle
 
-build:gitlab-task-runner-ee:
+build:gitlab-toolbox-ee:
   <<: *build-job-base
   stage: prepare:phase-three
   needs:
@@ -664,7 +664,7 @@ build:gitlab-task-runner-ee:
     - build_if_needed --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
     - copy_assets
 
-gitlab-task-runner-ee:
+gitlab-toolbox-ee:
   <<: *job-base
   <<: *only-ee
   stage: phase-six
@@ -688,16 +688,18 @@ gitlab-task-runner-ee:
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITALY_IMAGE=$CI_REGISTRY_IMAGE/gitaly:$gitaly_container${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
+    - MIRROR=true push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT} ${CI_JOB_NAME/toolbox/task-runner}
+
   needs:
     - gitlab-rails-ee
     - gitlab-python
     - gitaly
-    - job: build:gitlab-task-runner-ee
+    - job: build:gitlab-toolbox-ee
       optional: true
     - job: build:gitlab-python
       optional: true
 
-gitlab-task-runner-ce:
+gitlab-toolbox-ce:
   <<: *job-base
   <<: *except-ee
   stage: phase-six
@@ -716,6 +718,7 @@ gitlab-task-runner-ce:
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
                       --build-arg "GITALY_IMAGE=$CI_REGISTRY_IMAGE/gitaly:$gitaly_container${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
+    - MIRROR=true push_tags $GITLAB_REF_SLUG ${CI_JOB_NAME/toolbox/task-runner}
   needs:
     - gitlab-rails-ce
     - gitlab-python
@@ -1348,7 +1351,7 @@ ubi-assets-release:
     - build:gitlab-elasticsearch-indexer
     - build:gitlab-workhorse-ee
     - build:gitlab-rails-ee
-    - build:gitlab-task-runner-ee
+    - build:gitlab-toolbox-ee
     - build:gitlab-webservice-ee
     - build:gitlab-sidekiq-ee
   rules:

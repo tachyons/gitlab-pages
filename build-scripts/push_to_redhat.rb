@@ -18,7 +18,7 @@ $IMAGE_VERSION_VAR = { 'alpine-certificates' => 'ALPINE_VERSION',
                        'gitlab-mailroom' => 'MAILROOM_VERSION',
                        'gitlab-shell' => 'GITLAB_SHELL_VERSION',
                        'gitlab-sidekiq-ee' => 'GITLAB_VERSION',
-                       'gitlab-task-runner-ee' => 'GITLAB_VERSION',
+                       'gitlab-toolbox-ee' => 'GITLAB_VERSION',
                        'gitlab-webservice-ee' => 'GITLAB_VERSION',
                        'gitlab-workhorse-ee' => 'GITLAB_VERSION',
                        'kubectl' => 'KUBECTL_VERSION' }

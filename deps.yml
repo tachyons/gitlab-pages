@@ -24,10 +24,10 @@ dependencies:
         - filename: ci_files/variables.yml
           pattern: 'S3CMD_VERSION: "(\S+)"'
           range: '>= 2.x.x'
-        - filename: gitlab-task-runner/Dockerfile
+        - filename: gitlab-toolbox/Dockerfile
           pattern: 'ARG S3CMD_VERSION="(\S+)"'
           range: '>= 2.x.x'
-        - filename: gitlab-task-runner/Dockerfile.build.ubi8
+        - filename: gitlab-toolbox/Dockerfile.build.ubi8
           pattern: 'ARG S3CMD_VERSION=(\S+)'
           range: '>= 2.x.x'
       # YQ

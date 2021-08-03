@@ -128,7 +128,7 @@ in one stage can be built concurrently. They do not depend on each other.
 **Stage III**
   * gitlab-geo-logcursor (final)
   * gitlab-sidekiq (final)
-  * gitlab-task-runner (final)
+  * gitlab-toolbox (final)
   * gitlab-webservice (final)
 
 The rule of thumb is that majority of final images have `LABEL` and `USER` Docker build
@@ -191,8 +191,8 @@ graph TD;
   gitlab-shell-->git-base;
   gitlab-sidekiq-->gitlab-python;
   gitlab-sidekiq-->gitlab-rails;
-  gitlab-task-runner-->gitlab-rails;
-  gitlab-task-runner-->gitlab-python;
+  gitlab-toolbox-->gitlab-rails;
+  gitlab-toolbox-->gitlab-python;
   gitlab-webservice-->gitlab-python;
   gitlab-webservice-->gitlab-rails;
   gitlab-workhorse-->gitlab-rails;

@@ -52,6 +52,6 @@ done
 
 # Apply special cases
 cp "${WORKSPACE}/gitlab-shell.tar.gz" "${SCRIPT_HOME}/../../gitaly"
-cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-task-runner"
+cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-toolbox"
 cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-webservice"
 cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-sidekiq"
