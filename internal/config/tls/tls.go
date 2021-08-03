@@ -47,7 +47,8 @@ func FlagUsage(minOrMax string) string {
 
 // Create returns tls.Config for given app configuration
 func Create(cert, key []byte, getCertificate GetCertificateFunc, insecureCiphers bool, tlsMinVersion uint16, tlsMaxVersion uint16) (*tls.Config, error) {
-	tlsConfig := &tls.Config{GetCertificate: getCertificate}
+	// set MinVersion to fix gosec: G402
+	tlsConfig := &tls.Config{GetCertificate: getCertificate, MinVersion: tls.VersionTLS12}
 
 	err := configureCertificate(tlsConfig, cert, key)
 	if err != nil {

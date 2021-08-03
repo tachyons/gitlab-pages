@@ -188,10 +188,6 @@ type lookupMock struct {
 }
 
 func (lm *lookupMock) GetLookup(ctx context.Context, domainName string) api.Lookup {
-	lookup := api.Lookup{
-		Name: domainName,
-	}
-
 	lookup, ok := lm.responses[domainName]
 	if !ok {
 		lookup.Error = domain.ErrDomainDoesNotExist

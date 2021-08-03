@@ -4,7 +4,7 @@
 [![coverage report](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/coverage.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
 
 This is a simple HTTP server written in Go, made to serve GitLab Pages with
-CNAMEs and SNI using HTTP/HTTP2. The minimum supported Go version is v1.14.
+CNAMEs and SNI using HTTP/HTTP2. The minimum supported Go version is v1.15.
 
 ### How it generates routes
 
