@@ -10,6 +10,10 @@ import (
 )
 
 func validateConfig(config *Config) error {
+	if err := validateListeners(config); err != nil {
+		return err
+	}
+
 	if err := validateAuthConfig(config); err != nil {
 		return err
 	}
@@ -19,6 +23,17 @@ func validateConfig(config *Config) error {
 	}
 
 	return tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion)
+}
+
+func validateListeners(config *Config) error {
+	if config.ListenHTTPStrings.Len() == 0 &&
+		config.ListenHTTPSStrings.Len() == 0 &&
+		config.ListenHTTPSProxyv2Strings.Len() == 0 &&
+		config.ListenProxyStrings.Len() == 0 {
+		return errors.New("no listener defined, please specify at least one --listen-* flag")
+	}
+
+	return nil
 }
 
 func validateAuthConfig(config *Config) error {
