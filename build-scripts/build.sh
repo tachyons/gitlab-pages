@@ -122,6 +122,14 @@ function tag_and_push(){
   fi
 }
 
+function tag_and_push_mirror(){
+  # Tag and push unless it is a UBI build image
+  if [ ! "${UBI_BUILD_IMAGE}" = 'true' -a -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
+    docker tag "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "$CI_REGISTRY_IMAGE/${2#build:*}:$1"
+    docker push "$CI_REGISTRY_IMAGE/${2#build:*}:$1"
+  fi
+}
+
 function get_version(){
   git ls-tree HEAD -- $1 | awk '{ print $3 }'
 }
@@ -148,6 +156,10 @@ function is_regular_tag(){
 
 function is_branch(){
   [ -n "${CI_COMMIT_BRANCH}" ]
+}
+
+function is_mirror(){
+  [ -n "${MIRROR}" ]
 }
 
 function trim_edition(){
@@ -185,6 +197,10 @@ function push_tags(){
     trimmed_tag=$(trim_edition $CI_COMMIT_TAG)
 
     tag_and_push $trimmed_tag
+  elif is_mirror; then
+    # If MIRROR is set, then use the second argument as the target image name
+    # rather than the job name.
+    tag_and_push_mirror ${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT} $2
   else
     # If a version was specified but on a branch or auto-deploy tag,
     # OR

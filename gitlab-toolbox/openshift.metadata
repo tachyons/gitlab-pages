@@ -1,4 +1,4 @@
-io.openshift.tags=gitlab-task-runner
+io.openshift.tags=gitlab-toolbox
 io.openshift.wants=gitlab-webservice
 io.k8s.description=Container with tools to diagnose GitLab application
 issues.
