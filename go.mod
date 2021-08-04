@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/andybalholm/brotli v1.0.3
 	github.com/cenkalti/backoff/v4 v4.0.2
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.27.0
 	github.com/gorilla/context v1.1.1

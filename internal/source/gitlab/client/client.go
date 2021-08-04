@@ -12,7 +12,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 
 	"gitlab.com/gitlab-org/labkit/correlation"
 
