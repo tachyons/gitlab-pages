@@ -115,18 +115,20 @@ function build_if_needed(){
 }
 
 function tag_and_push(){
-  # Tag and push unless it is a UBI build image
-  if [ ! "${UBI_BUILD_IMAGE}" = 'true' -a -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
-    docker tag "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$1"
-    docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$1"
-  fi
-}
+  local edition=$1
+  local mirror_image_name=$2
+  local source_image="${CI_REGISTRY_IMAGE}/${CI_JOB_NAME#build:*}:${CONTAINER_VERSION}${IMAGE_TAG_EXT}"
+  local target_image="${CI_REGISTRY_IMAGE}/${CI_JOB_NAME#build:*}:${edition}"
 
-function tag_and_push_mirror(){
+  # If mirror image name is defined, then override the target image name.
+  if [ -n "${mirror_image_name}" ]; then
+    target_image="${CI_REGISTRY_IMAGE}/${mirror_image_name#build:*}:$edition"
+  fi
+
   # Tag and push unless it is a UBI build image
   if [ ! "${UBI_BUILD_IMAGE}" = 'true' -a -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
-    docker tag "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "$CI_REGISTRY_IMAGE/${2#build:*}:$1"
-    docker push "$CI_REGISTRY_IMAGE/${2#build:*}:$1"
+    docker tag "${source_image}" "${target_image}"
+    docker push "${target_image}"
   fi
 }
 
@@ -158,10 +160,6 @@ function is_branch(){
   [ -n "${CI_COMMIT_BRANCH}" ]
 }
 
-function is_mirror(){
-  [ -n "${MIRROR}" ]
-}
-
 function trim_edition(){
   echo $1 | sed -e "s/-.e\(-ubi8\)\?$/\1/"
 }
@@ -176,6 +174,8 @@ function push_tags(){
     return 0
   fi
 
+  local mirror_image_name=$2
+
   # If a version has been specified and we are on master branch or a
   # non-auto-deploy tag, we use the specified version.
   if [ -n "$1" ] && (is_master || is_regular_tag); then
@@ -186,7 +186,7 @@ function push_tags(){
       edition=$(trim_edition $edition)
     fi
 
-    tag_and_push $edition
+    tag_and_push $edition $mirror_image_name
 
     # Once a SemVer tag is used, that gets precedence over CONTAINER_VERSION.
     # So we overwrite the recorded information.
@@ -196,17 +196,13 @@ function push_tags(){
     # the trimmed tag.
     trimmed_tag=$(trim_edition $CI_COMMIT_TAG)
 
-    tag_and_push $trimmed_tag
-  elif is_mirror; then
-    # If MIRROR is set, then use the second argument as the target image name
-    # rather than the job name.
-    tag_and_push_mirror ${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT} $2
+    tag_and_push $trimmed_tag $mirror_image_name
   else
     # If a version was specified but on a branch or auto-deploy tag,
     # OR
     # if no version was specified at all,
     # we use the slug.
-    tag_and_push ${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT}
+    tag_and_push ${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT} ${mirror_image_name}
   fi
 }
 
