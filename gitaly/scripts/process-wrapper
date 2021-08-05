@@ -4,8 +4,18 @@ set -e
 
 GITALY_CONFIG_FILE="${GITALY_CONFIG_FILE:-$CONFIG_TEMPLATE_DIRECTORY/config.toml}"
 
-echo "Starting Gitaly"
-/usr/local/bin/gitaly "$GITALY_CONFIG_FILE" >> /var/log/gitaly/gitaly.log 2>&1 &
+if [[ "${GITALY_SERVICE}" == "praefect" ]]; then
+  echo "Starting Praefect"
+  if [[ "${PRAEFECT_AUTO_MIGRATE}" == "true" ]]; then
+    echo "Running migrations"
+    /usr/local/bin/praefect -config "$PRAEFECT_CONFIG_FILE" sql-migrate
+  fi
+
+  /usr/local/bin/praefect -config "$PRAEFECT_CONFIG_FILE" >> /var/log/gitaly/praefect.log 2>&1 &
+else
+  echo "Starting Gitaly"
+  /usr/local/bin/gitaly "$GITALY_CONFIG_FILE" >> /var/log/gitaly/gitaly.log 2>&1 &
+fi
 
 if [ "${USE_GITLAB_LOGGER-0}" -eq 1 ]; then
     /usr/local/bin/gitlab-logger --json /var/log/gitaly
