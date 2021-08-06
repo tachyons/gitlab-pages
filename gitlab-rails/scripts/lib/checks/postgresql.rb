@@ -104,7 +104,7 @@ module Checks
       puts "Checking: #{production_databases.map(&:name).join(', ')}"
 
       results = production_databases.map do |db_config|
-        pool = ActiveRecord::Base.connection_handler.establish_connection(
+        ActiveRecord::Base.connection_handler.establish_connection(
           db_config, role: :writing, shard: db_config.name)
 
         Thread.new do
