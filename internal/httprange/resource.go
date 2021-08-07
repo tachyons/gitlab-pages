@@ -53,7 +53,7 @@ func (r *Resource) setError(err error) {
 }
 
 func (r *Resource) Request() (*http.Request, error) {
-	req, err := http.NewRequest("GET", r.URL(), nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", r.URL(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -71,12 +71,10 @@ func (r *Resource) Request() (*http.Request, error) {
 
 func NewResource(ctx context.Context, url string, httpClient *http.Client) (*Resource, error) {
 	// the `h.URL` is likely pre-signed URL or a file:// scheme that only supports GET requests
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req = req.WithContext(ctx)
 
 	// we fetch a single byte and ensure that range requests is additionally supported
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", 0, 0))

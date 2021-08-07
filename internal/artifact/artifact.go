@@ -77,7 +77,7 @@ func (a *Artifact) TryMakeRequest(host string, w http.ResponseWriter, r *http.Re
 }
 
 func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *url.URL, token string, additionalHandler func(*http.Response) bool) {
-	req, err := http.NewRequest("GET", reqURL.String(), nil)
+	req, err := http.NewRequestWithContext(r.Context(), "GET", reqURL.String(), nil)
 	if err != nil {
 		logging.LogRequest(r).WithError(err).Error(createArtifactRequestErrMsg)
 		errortracking.Capture(err, errortracking.WithRequest(r))
