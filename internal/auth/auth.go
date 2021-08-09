@@ -508,20 +508,22 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
 	resp, err := a.apiClient.Do(req)
 
-	if err == nil {
-		defer resp.Body.Close()
-	}
-
-	if err == nil && checkResponseForInvalidToken(resp, session, w, r) {
+	if err != nil {
+		logRequest(r).WithError(err).Error("Failed to retrieve info with token")
+		// call serve404 handler when auth fails
+		domain.ServeNotFoundAuthFailed(w, r)
 		return true
 	}
 
-	if err != nil || resp.StatusCode != 200 {
-		if err != nil {
-			logRequest(r).WithError(err).Error("Failed to retrieve info with token")
-		}
+	defer resp.Body.Close()
 
+	if checkResponseForInvalidToken(resp, session, w, r) {
+		return true
+	}
+
+	if resp.StatusCode != 200 {
 		// call serve404 handler when auth fails
+		logRequest(r).WithField("status", resp.Status).Error("Unexpected response fetching access token")
 		domain.ServeNotFoundAuthFailed(w, r)
 		return true
 	}
