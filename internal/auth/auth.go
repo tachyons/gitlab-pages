@@ -510,6 +510,7 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 
 	if err != nil {
 		logRequest(r).WithError(err).Error("Failed to retrieve info with token")
+		errortracking.Capture(err)
 		// call serve404 handler when auth fails
 		domain.ServeNotFoundAuthFailed(w, r)
 		return true
@@ -521,9 +522,10 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 		return true
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		// call serve404 handler when auth fails
 		logRequest(r).WithField("status", resp.Status).Error("Unexpected response fetching access token")
+		errortracking.Capture(fmt.Errorf("unexpected response fetching access token status: %d", resp.StatusCode))
 		domain.ServeNotFoundAuthFailed(w, r)
 		return true
 	}
