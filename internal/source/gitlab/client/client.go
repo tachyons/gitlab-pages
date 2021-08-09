@@ -203,12 +203,10 @@ func (gc *Client) endpoint(urlPath string, params url.Values) (*url.URL, error) 
 }
 
 func (gc *Client) request(ctx context.Context, method string, endpoint *url.URL) (*http.Request, error) {
-	req, err := http.NewRequest(method, endpoint.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, method, endpoint.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req = req.WithContext(ctx)
 
 	token, err := gc.token()
 	if err != nil {
