@@ -21,8 +21,8 @@ var (
 	metricsAddress          = flag.String("metrics-address", "", "The address to listen on for metrics requests")
 	sentryDSN               = flag.String("sentry-dsn", "", "The address for sending sentry crash reporting to")
 	sentryEnvironment       = flag.String("sentry-environment", "", "The environment for sentry crash reporting")
-	daemonUID               = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
-	daemonGID               = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
+	_                       = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
+	_                       = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
 	_                       = flag.Bool("daemon-enable-jail", false, "DEPRECATED and ignored, will be removed in 15.0")
 	_                       = flag.Bool("daemon-inplace-chroot", false, "DEPRECATED and ignored, will be removed in 15.0") // TODO: https://gitlab.com/gitlab-org/gitlab-pages/-/issues/599
 	propagateCorrelationID  = flag.Bool("propagate-correlation-id", false, "Reuse existing Correlation-ID from the incoming request header `X-Request-ID` if present")

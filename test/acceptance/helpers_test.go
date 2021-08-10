@@ -381,10 +381,6 @@ func getPagesDaemonArgs(t *testing.T) []string {
 
 	t.Log("Running pages as a daemon")
 
-	// This triggers the drop-privileges-and-chroot code in the pages daemon
-	out = append(out, "-daemon-uid", "0")
-	out = append(out, "-daemon-gid", "65534")
-
 	return out
 }
 

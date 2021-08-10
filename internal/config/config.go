@@ -18,7 +18,6 @@ type Config struct {
 	General         General
 	ArtifactsServer ArtifactsServer
 	Authentication  Auth
-	Daemon          Daemon
 	GitLab          GitLab
 	Listeners       Listeners
 	Log             Log
@@ -78,12 +77,6 @@ type Auth struct {
 	ClientSecret string
 	RedirectURI  string
 	Scope        string
-}
-
-// Daemon groups settings related to configuring GitLab Pages daemon
-type Daemon struct {
-	UID uint
-	GID uint
 }
 
 // Cache configuration for GitLab API
@@ -215,10 +208,6 @@ func loadConfig() (*Config, error) {
 			RedirectURI:  *redirectURI,
 			Scope:        *authScope,
 		},
-		Daemon: Daemon{
-			UID: *daemonUID,
-			GID: *daemonGID,
-		},
 		Log: Log{
 			Format:  *logFormat,
 			Verbose: *logVerbose,
@@ -281,8 +270,6 @@ func LogConfig(config *Config) {
 	log.WithFields(log.Fields{
 		"artifacts-server":              *artifactsServer,
 		"artifacts-server-timeout":      *artifactsServerTimeout,
-		"daemon-gid":                    *daemonGID,
-		"daemon-uid":                    *daemonUID,
 		"default-config-filename":       flag.DefaultConfigFlagname,
 		"disable-cross-origin-requests": *disableCrossOriginRequests,
 		"domain":                        config.General.Domain,
