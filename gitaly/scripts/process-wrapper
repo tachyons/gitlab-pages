@@ -8,7 +8,7 @@ PRAEFECT_CONFIG_FILE="${PRAEFECT_CONFIG_FILE:-$CONFIG_TEMPLATE_DIRECTORY/config.
 if [ "${USE_PRAEFECT_SERVICE:-0}" -eq 1 ]; then
   echo "Starting Praefect"
 
-if [ "${PRAEFECT_AUTO_MIGRATE:-1}" -eq 1 ]; then
+  if [ "${PRAEFECT_AUTO_MIGRATE:-1}" -eq 1 ]; then
     echo "Running migrations"
     /usr/local/bin/praefect -config "$PRAEFECT_CONFIG_FILE" sql-migrate
   fi
