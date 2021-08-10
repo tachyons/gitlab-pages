@@ -13,7 +13,6 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/karlseguin/ccache/v2 v2.0.6
-	github.com/karrick/godirwalk v1.10.12
 	github.com/namsral/flag v1.7.4-pre
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pires/go-proxyproto v0.2.0
