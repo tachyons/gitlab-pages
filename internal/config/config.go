@@ -291,10 +291,6 @@ func loadConfig() (*Config, error) {
 		config.Zip.ChrootPath = *pagesRoot
 	}
 
-	if err := validateConfig(config); err != nil {
-		return nil, err
-	}
-
 	return config, nil
 }
 
