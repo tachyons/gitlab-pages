@@ -229,39 +229,34 @@ func TestCORSAllowsMethod(t *testing.T) {
 	RunPagesProcessWithStubGitLabServer(t)
 
 	tests := []struct {
-		name                string
-		method              string
-		expectedStatus      int
-		expectedOrigin      string
-		expectedCredentials string
+		name           string
+		method         string
+		expectedStatus int
+		expectedOrigin string
 	}{
 		{
-			name:                "cors-allows-get",
-			method:              http.MethodGet,
-			expectedStatus:      http.StatusOK,
-			expectedOrigin:      "*",
-			expectedCredentials: "",
+			name:           "cors-allows-get",
+			method:         http.MethodGet,
+			expectedStatus: http.StatusOK,
+			expectedOrigin: "*",
 		},
 		{
-			name:                "cors-allows-options",
-			method:              http.MethodOptions,
-			expectedStatus:      http.StatusOK,
-			expectedOrigin:      "*",
-			expectedCredentials: "",
+			name:           "cors-allows-options",
+			method:         http.MethodOptions,
+			expectedStatus: http.StatusOK,
+			expectedOrigin: "*",
 		},
 		{
-			name:                "cors-allows-head",
-			method:              http.MethodHead,
-			expectedStatus:      http.StatusOK,
-			expectedOrigin:      "*",
-			expectedCredentials: "",
+			name:           "cors-allows-head",
+			method:         http.MethodHead,
+			expectedStatus: http.StatusOK,
+			expectedOrigin: "*",
 		},
 		{
-			name:                "cors-forbids-post",
-			method:              http.MethodPost,
-			expectedStatus:      http.StatusOK,
-			expectedOrigin:      "",
-			expectedCredentials: "",
+			name:           "cors-forbids-post",
+			method:         http.MethodPost,
+			expectedStatus: http.StatusOK,
+			expectedOrigin: "",
 		},
 	}
 
@@ -272,7 +267,6 @@ func TestCORSAllowsMethod(t *testing.T) {
 
 				require.Equal(t, tt.expectedStatus, rsp.StatusCode)
 				require.Equal(t, tt.expectedOrigin, rsp.Header.Get("Access-Control-Allow-Origin"))
-				require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
 			}
 		})
 	}
