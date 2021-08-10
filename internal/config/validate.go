@@ -9,7 +9,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
-func validateConfig(config *Config) error {
+// Validate values populated in Config
+func Validate(config *Config) error {
 	if err := validateListeners(config); err != nil {
 		return err
 	}

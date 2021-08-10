@@ -50,6 +50,10 @@ func appMain() {
 
 	printVersion(config.General.ShowVersion, VERSION)
 
+	if err := cfg.Validate(config); err != nil {
+		log.WithError(err).Fatal("invalid config settings")
+	}
+
 	if config.Sentry.DSN != "" {
 		initErrorReporting(config.Sentry.DSN, config.Sentry.Environment)
 	}

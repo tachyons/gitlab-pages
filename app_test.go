@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -84,12 +83,6 @@ func TestHealthCheckMiddleware(t *testing.T) {
 			body:   "not yet ready\n",
 		},
 	}
-
-	// required by LoadConfig
-	require.NoError(t, os.Setenv("LISTEN_HTTP", ":0"))
-	t.Cleanup(func() {
-		require.NoError(t, os.Unsetenv("LISTEN_HTTP"))
-	})
 
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err)
