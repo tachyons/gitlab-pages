@@ -185,7 +185,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	}
 
 	// Fetch access token with authorization code
-	token, err := a.fetchAccessToken(decryptedCode)
+	token, err := a.fetchAccessToken(r.Context(), decryptedCode)
 	if err != nil {
 		// Fetching token not OK
 		logRequest(r).WithError(err).WithField(
@@ -374,13 +374,13 @@ func verifyCodeAndStateGiven(r *http.Request) bool {
 	return r.URL.Query().Get("code") != "" && r.URL.Query().Get("state") != ""
 }
 
-func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
+func (a *Auth) fetchAccessToken(ctx context.Context, code string) (tokenResponse, error) {
 	token := tokenResponse{}
 
 	// Prepare request
 	url := fmt.Sprintf(tokenURLTemplate, a.internalGitlabServer)
 	content := fmt.Sprintf(tokenContentTemplate, a.clientID, a.clientSecret, code, a.redirectURI)
-	req, err := http.NewRequest("POST", url, strings.NewReader(content))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(content))
 
 	if err != nil {
 		return token, err
@@ -495,7 +495,7 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 	} else {
 		url = fmt.Sprintf(apiURLUserTemplate, a.internalGitlabServer)
 	}
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(r.Context(), "GET", url, nil)
 
 	if err != nil {
 		logRequest(r).WithError(err).Error(failAuthErrMsg)
