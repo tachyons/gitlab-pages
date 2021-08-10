@@ -272,7 +272,7 @@ func TestCORSAllowsMethod(t *testing.T) {
 
 				require.Equal(t, tt.expectedStatus, rsp.StatusCode)
 				require.Equal(t, tt.expectedOrigin, rsp.Header.Get("Access-Control-Allow-Origin"))
-				require.Equal(t, tt.expectedCredentials, rsp.Header.Get("Access-Control-Allow-Credentials"))
+				require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
 			}
 		})
 	}
