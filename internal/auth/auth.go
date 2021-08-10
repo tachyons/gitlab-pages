@@ -393,6 +393,8 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 		return token, err
 	}
 
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		err = errResponseNotOk
 		errortracking.Capture(err, errortracking.WithRequest(req))
@@ -400,7 +402,6 @@ func (a *Auth) fetchAccessToken(code string) (tokenResponse, error) {
 	}
 
 	// Parse response
-	defer resp.Body.Close()
 	err = json.NewDecoder(resp.Body).Decode(&token)
 	if err != nil {
 		return token, err
@@ -507,16 +508,24 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
 	resp, err := a.apiClient.Do(req)
 
-	if err == nil && checkResponseForInvalidToken(resp, session, w, r) {
+	if err != nil {
+		logRequest(r).WithError(err).Error("Failed to retrieve info with token")
+		errortracking.Capture(err)
+		// call serve404 handler when auth fails
+		domain.ServeNotFoundAuthFailed(w, r)
 		return true
 	}
 
-	if err != nil || resp.StatusCode != 200 {
-		if err != nil {
-			logRequest(r).WithError(err).Error("Failed to retrieve info with token")
-		}
+	defer resp.Body.Close()
 
+	if checkResponseForInvalidToken(resp, session, w, r) {
+		return true
+	}
+
+	if resp.StatusCode != http.StatusOK {
 		// call serve404 handler when auth fails
+		logRequest(r).WithField("status", resp.Status).Error("Unexpected response fetching access token")
+		errortracking.Capture(fmt.Errorf("unexpected response fetching access token status: %d", resp.StatusCode))
 		domain.ServeNotFoundAuthFailed(w, r)
 		return true
 	}
