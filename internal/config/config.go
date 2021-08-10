@@ -45,15 +45,14 @@ type Config struct {
 // General groups settings that are general to GitLab Pages and can not
 // be categorized under other head.
 type General struct {
-	Domain                    string
-	DomainConfigurationSource string
-	MaxConns                  int
-	MetricsAddress            string
-	RedirectHTTP              bool
-	RootCertificate           []byte
-	RootDir                   string
-	RootKey                   []byte
-	StatusPath                string
+	Domain          string
+	MaxConns        int
+	MetricsAddress  string
+	RedirectHTTP    bool
+	RootCertificate []byte
+	RootDir         string
+	RootKey         []byte
+	StatusPath      string
 
 	DisableCrossOriginRequests bool
 	InsecureCiphers            bool
@@ -187,7 +186,6 @@ func loadConfig() (*Config, error) {
 	config := &Config{
 		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
-			DomainConfigurationSource:  *domainConfigSource,
 			MaxConns:                   *maxConns,
 			MetricsAddress:             *metricsAddress,
 			RedirectHTTP:               *redirectHTTP,
@@ -227,7 +225,7 @@ func loadConfig() (*Config, error) {
 			UID:           *daemonUID,
 			GID:           *daemonGID,
 			InplaceChroot: *daemonInplaceChroot,
-			EnableJail:    *daemonEnableJail || *domainConfigSource == "disk",
+			EnableJail:    *daemonEnableJail,
 		},
 		Log: Log{
 			Format:  *logFormat,
@@ -325,7 +323,6 @@ func LogConfig(config *Config) {
 		"gitlab-server":                 config.GitLab.PublicServer,
 		"internal-gitlab-server":        config.GitLab.InternalServer,
 		"api-secret-key":                *gitLabAPISecretKey,
-		"domain-config-source":          config.General.DomainConfigurationSource,
 		"enable-disk":                   config.GitLab.EnableDisk,
 		"auth-redirect-uri":             config.Authentication.RedirectURI,
 		"auth-scope":                    config.Authentication.Scope,
