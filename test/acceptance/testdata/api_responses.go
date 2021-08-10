@@ -66,6 +66,17 @@ var DomainResponses = map[string]responseFn{
 		https:      true,
 		pathOnDisk: "group.https-only/project5",
 	}),
+	"group.auth.gitlab-example.com": generateVirtualDomainFromDir("group.auth", "group.auth.gitlab-example.com", map[string]projectConfig{
+		"/private.project": {
+			projectID:     1005,
+			accessControl: true,
+		},
+	}),
+	"private.domain.com": customDomain(projectConfig{
+		projectID:     1006,
+		accessControl: true,
+		pathOnDisk:    "group.auth/private.project",
+	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving
 	// make zip PROJECT_SUBDIR=group/project2

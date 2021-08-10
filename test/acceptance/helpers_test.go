@@ -256,11 +256,10 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 }
 
 func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []ListenSpec, internalServer string, publicServer string) func() {
-	configFile, cleanup := defaultConfigFileWith(t,
+	configFile := defaultConfigFileWith(t,
 		"internal-gitlab-server="+internalServer,
 		"gitlab-server="+publicServer,
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
-	defer cleanup()
 
 	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, "", nil,
 		"-config="+configFile,
@@ -292,10 +291,9 @@ func RunPagesProcessWithGitlabServerWithSSLCertDir(t *testing.T, pagesBinary str
 }
 
 func runPagesProcessWithGitlabServer(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, gitlabServer string) func() {
-	configFile, cleanup := defaultConfigFileWith(t,
+	configFile := defaultConfigFileWith(t,
 		"gitlab-server="+gitlabServer,
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
-	defer cleanup()
 
 	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, promPort, extraEnv,
 		"-config="+configFile)
@@ -720,7 +718,7 @@ func newConfigFile(t *testing.T, configs ...string) string {
 	return f.Name()
 }
 
-func defaultConfigFileWith(t *testing.T, configs ...string) (string, func()) {
+func defaultConfigFileWith(t *testing.T, configs ...string) string {
 	t.Helper()
 
 	configs = append(configs, "auth-client-id=clientID",
@@ -731,12 +729,12 @@ func defaultConfigFileWith(t *testing.T, configs ...string) (string, func()) {
 
 	name := newConfigFile(t, configs...)
 
-	cleanup := func() {
+	t.Cleanup(func() {
 		err := os.Remove(name)
 		require.NoError(t, err)
-	}
+	})
 
-	return name, cleanup
+	return name
 }
 
 func copyFile(dest, src string) error {

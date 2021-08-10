@@ -70,7 +70,9 @@ func appMain() {
 		"revision": REVISION,
 	}).Info("GitLab Pages Daemon")
 	log.Info("URL: https://gitlab.com/gitlab-org/gitlab-pages")
+	wd, err := os.Getwd()
 
+	fmt.Printf("wd: %q\nerr:%+v\nroot:%q\n", wd, err, config.General.RootDir)
 	if err := os.Chdir(config.General.RootDir); err != nil {
 		fatal(err, "could not change directory into pagesRoot")
 	}

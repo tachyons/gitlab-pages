@@ -15,8 +15,9 @@ import (
 )
 
 func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -26,8 +27,7 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 }
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpsListener})
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -57,8 +57,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 }
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpsListener})
 
 	rsp, err := GetPageFromListener(t, httpsListener, "projects.gitlab-example.com", "/auth?error=access_denied")
 
@@ -68,8 +67,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
 }
 func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpsListener})
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -86,8 +84,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 }
 
 func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpsListener})
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -110,6 +107,7 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, authrsp.StatusCode)
 }
 
+//  TODO: NEED TO MOVE THIS to handler in api_responses
 func handleAccessControlArtifactRequests(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
 	authorization := r.Header.Get("Authorization")
 
@@ -175,21 +173,19 @@ func sleepIfAuthorized(t *testing.T, authorization string, w http.ResponseWriter
 	}
 }
 
-func TestAccessControlUnderCustomDomain(t *testing.T) {
+func TestAccessControlUnderCustomDomainStandalone(t *testing.T) {
 	skipUnlessEnabled(t, "not-inplace-chroot")
 
-	testServer := makeGitLabPagesAccessStub(t)
-	testServer.Start()
-	defer testServer.Close()
-
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
-	defer teardown()
+	//
+	//teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
+	//defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpListener})
 
 	tests := map[string]struct {
 		domain string
 		path   string
 	}{
-		"private_domain": {
+		"private_domain_only": {
 			domain: "private.domain.com",
 			path:   "",
 		},
@@ -721,4 +717,25 @@ func getValidCookieAndState(t *testing.T, domain string) (string, string) {
 	require.NotEmpty(t, state)
 
 	return cookie, state
+}
+
+func runPagesWithAuth(t *testing.T, listeners []ListenSpec) {
+	t.Helper()
+
+	testServer := makeGitLabPagesAccessStub(t)
+	testServer.Start()
+	t.Cleanup(testServer.Close)
+
+	configFile := defaultConfigFileWith(t,
+		"internal-gitlab-server="+testServer.URL,
+		"gitlab-server=https://public-gitlab-auth.com",
+		"auth-redirect-uri=https://projects.gitlab-example.com/auth",
+	)
+
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners(listeners),
+		withArguments([]string{
+			"-config=" + configFile,
+		}),
+	)
 }
