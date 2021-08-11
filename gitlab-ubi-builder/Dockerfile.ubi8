@@ -10,7 +10,7 @@ ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
 ENV INCLUDEDIR=/usr/include
 
 RUN dnf ${DNF_OPTS} install -by --nodocs \
-        autoconf cmake gcc gcc-c++ make patch perl-libnetcfg-4:5.26.3-419.el8 perl-4:5.26.3 \
+        autoconf cmake gcc gcc-c++ make patch perl \
         bzip2 libedit ncurses uuid libarchive \
         curl-devel libicu-devel libffi-devel libuuid-devel openssl-devel ncurses-devel pcre2-devel zlib-devel \
     && mkdir -p ${BUILD_DIR} \
