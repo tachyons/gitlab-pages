@@ -8,7 +8,6 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.27.0
-	github.com/gorilla/context v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
