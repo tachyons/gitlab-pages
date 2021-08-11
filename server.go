@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/gorilla/context"
 	proxyproto "github.com/pires/go-proxyproto"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -46,7 +45,7 @@ func (ln *keepAliveListener) Accept() (net.Conn, error) {
 
 func (a *theApp) listenAndServe(config listenerConfig) error {
 	// create server
-	server := &http.Server{Handler: context.ClearHandler(config.handler), TLSConfig: config.tlsConfig}
+	server := &http.Server{Handler: config.handler, TLSConfig: config.tlsConfig}
 
 	// ensure http2 is enabled even if TLSConfig is not null
 	// See https://github.com/golang/go/blob/97cee43c93cfccded197cd281f0a5885cdb605b4/src/net/http/server.go#L2947-L2954
