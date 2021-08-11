@@ -45,7 +45,7 @@ const (
 )
 
 var (
-	corsHandler = cors.New(cors.Options{AllowedMethods: []string{"GET"}})
+	corsHandler = cors.New(cors.Options{AllowedMethods: []string{http.MethodGet, http.MethodHead}})
 )
 
 type theApp struct {

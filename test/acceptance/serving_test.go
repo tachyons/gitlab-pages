@@ -215,7 +215,7 @@ func TestCORSWhenDisabled(t *testing.T) {
 	RunPagesProcessWithStubGitLabServer(t, withExtraArgument("disable-cross-origin-requests", "true"))
 
 	for _, spec := range supportedListeners() {
-		for _, method := range []string{"GET", "OPTIONS"} {
+		for _, method := range []string{http.MethodGet, http.MethodHead, http.MethodOptions} {
 			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("project/"))
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode)
@@ -225,29 +225,50 @@ func TestCORSWhenDisabled(t *testing.T) {
 	}
 }
 
-func TestCORSAllowsGET(t *testing.T) {
+func TestCORSAllowsMethod(t *testing.T) {
 	RunPagesProcessWithStubGitLabServer(t)
 
-	for _, spec := range supportedListeners() {
-		for _, method := range []string{"GET", "OPTIONS"} {
-			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("project/"))
-
-			require.Equal(t, http.StatusOK, rsp.StatusCode)
-			require.Equal(t, "*", rsp.Header.Get("Access-Control-Allow-Origin"))
-			require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
-		}
+	tests := []struct {
+		name           string
+		method         string
+		expectedStatus int
+		expectedOrigin string
+	}{
+		{
+			name:           "cors-allows-get",
+			method:         http.MethodGet,
+			expectedStatus: http.StatusOK,
+			expectedOrigin: "*",
+		},
+		{
+			name:           "cors-allows-options",
+			method:         http.MethodOptions,
+			expectedStatus: http.StatusOK,
+			expectedOrigin: "*",
+		},
+		{
+			name:           "cors-allows-head",
+			method:         http.MethodHead,
+			expectedStatus: http.StatusOK,
+			expectedOrigin: "*",
+		},
+		{
+			name:           "cors-forbids-post",
+			method:         http.MethodPost,
+			expectedStatus: http.StatusOK,
+			expectedOrigin: "",
+		},
 	}
-}
 
-func TestCORSForbidsPOST(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, spec := range supportedListeners() {
+				rsp := doCrossOriginRequest(t, spec, tt.method, tt.method, spec.URL("project/"))
 
-	for _, spec := range supportedListeners() {
-		rsp := doCrossOriginRequest(t, spec, "OPTIONS", "POST", spec.URL("project/"))
-
-		require.Equal(t, http.StatusOK, rsp.StatusCode)
-		require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
-		require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Credentials"))
+				require.Equal(t, tt.expectedStatus, rsp.StatusCode)
+				require.Equal(t, tt.expectedOrigin, rsp.Header.Get("Access-Control-Allow-Origin"))
+			}
+		})
 	}
 }
 
