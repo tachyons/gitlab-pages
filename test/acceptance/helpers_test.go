@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/pires/go-proxyproto"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
@@ -584,7 +585,7 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 
 	currentStatusCount := 0
 
-	mux := http.NewServeMux()
+	router := mux.NewRouter()
 	statusHandler := func(w http.ResponseWriter, r *http.Request) {
 		if currentStatusCount < opts.statusReadyCount {
 			w.WriteHeader(http.StatusBadGateway)
@@ -598,30 +599,38 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 		statusHandler = opts.statusHandler
 	}
 
-	mux.HandleFunc("/api/v4/internal/pages/status", statusHandler)
+	router.HandleFunc("/api/v4/internal/pages/status", statusHandler)
 
 	pagesHandler := defaultAPIHandler(t, opts)
 	if opts.pagesHandler != nil {
 		pagesHandler = opts.pagesHandler
 	}
 
-	mux.HandleFunc("/api/v4/internal/pages", pagesHandler)
+	router.HandleFunc("/api/v4/internal/pages", pagesHandler)
 
 	authHandler := defaultAuthHandler(t, opts)
 	if opts.authHandler != nil {
 		authHandler = opts.authHandler
 	}
 
-	mux.HandleFunc("/oauth/token", authHandler)
+	router.HandleFunc("/oauth/token", authHandler)
 
 	userHandler := defaultUserHandler(t, opts)
 	if opts.userHandler != nil {
 		userHandler = opts.userHandler
 	}
 
-	mux.HandleFunc("/api/v4/user", userHandler)
+	router.HandleFunc("/api/v4/user", userHandler)
 
-	return httptest.NewServer(mux)
+	router.HandleFunc("/api/v4/projects/{project_id:[0-9]+}/pages_access", func(w http.ResponseWriter, r *http.Request) {
+		if handleAccessControlArtifactRequests(t, w, r) {
+			return
+		}
+
+		handleAccessControlRequests(t, w, r)
+	})
+
+	return httptest.NewServer(router)
 }
 
 func (o *stubOpts) setAPICalled(v bool) {

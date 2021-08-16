@@ -27,7 +27,16 @@ var DomainResponses = map[string]responseFn{
 	"zip-not-allowed-path.gitlab.io":  customDomain(projectConfig{pathOnDisk: "../../../../"}),
 	"group.gitlab-example.com":        generateVirtualDomainFromDir("group", "group.gitlab-example.com", nil),
 	"CapitalGroup.gitlab-example.com": generateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com", nil),
-	"group.404.gitlab-example.com":    generateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com", nil),
+	"group.404.gitlab-example.com": generateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com", map[string]projectConfig{
+		"/private_project": {
+			projectID:     1300,
+			accessControl: true,
+		},
+		"/private_unauthorized": {
+			projectID:     2000,
+			accessControl: true,
+		},
+	}),
 	"group.https-only.gitlab-example.com": generateVirtualDomainFromDir("group.https-only", "group.https-only.gitlab-example.com", map[string]projectConfig{
 		"/project1": {
 			projectID: 1000,
@@ -67,13 +76,21 @@ var DomainResponses = map[string]responseFn{
 		pathOnDisk: "group.https-only/project5",
 	}),
 	"group.auth.gitlab-example.com": generateVirtualDomainFromDir("group.auth", "group.auth.gitlab-example.com", map[string]projectConfig{
-		"/private.project": {
+		"/": {
 			projectID:     1005,
+			accessControl: true,
+		},
+		"/private.project": {
+			projectID:     1006,
+			accessControl: true,
+		},
+		"/private.project.1": {
+			projectID:     2006,
 			accessControl: true,
 		},
 	}),
 	"private.domain.com": customDomain(projectConfig{
-		projectID:     1006,
+		projectID:     1007,
 		accessControl: true,
 		pathOnDisk:    "group.auth/private.project",
 	}),

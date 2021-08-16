@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"testing"
 	"time"
 
@@ -107,78 +106,7 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, authrsp.StatusCode)
 }
 
-//  TODO: NEED TO MOVE THIS to handler in api_responses
-func handleAccessControlArtifactRequests(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
-	authorization := r.Header.Get("Authorization")
-
-	switch {
-	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/delayed_200.html`).MatchString(r.URL.Path):
-		sleepIfAuthorized(t, authorization, w)
-		return true
-	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/404.html`).MatchString(r.URL.Path):
-		w.WriteHeader(http.StatusNotFound)
-		return true
-	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/500.html`).MatchString(r.URL.Path):
-		returnIfAuthorized(t, authorization, w, http.StatusInternalServerError)
-		return true
-	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/200.html`).MatchString(r.URL.Path):
-		returnIfAuthorized(t, authorization, w, http.StatusOK)
-		return true
-	case regexp.MustCompile(`/api/v4/projects/group/subgroup/private/jobs/\d+/artifacts/200.html`).MatchString(r.URL.Path):
-		returnIfAuthorized(t, authorization, w, http.StatusOK)
-		return true
-	default:
-		return false
-	}
-}
-
-func handleAccessControlRequests(t *testing.T, w http.ResponseWriter, r *http.Request) {
-	allowedProjects := regexp.MustCompile(`/api/v4/projects/1\d{3}/pages_access`)
-	deniedProjects := regexp.MustCompile(`/api/v4/projects/2\d{3}/pages_access`)
-	invalidTokenProjects := regexp.MustCompile(`/api/v4/projects/3\d{3}/pages_access`)
-
-	switch {
-	case allowedProjects.MatchString(r.URL.Path):
-		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-		w.WriteHeader(http.StatusOK)
-	case deniedProjects.MatchString(r.URL.Path):
-		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-		w.WriteHeader(http.StatusUnauthorized)
-	case invalidTokenProjects.MatchString(r.URL.Path):
-		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
-	default:
-		t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusNotFound)
-	}
-}
-
-func returnIfAuthorized(t *testing.T, authorization string, w http.ResponseWriter, status int) {
-	if authorization != "" {
-		require.Equal(t, "Bearer abc", authorization)
-		w.WriteHeader(status)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
-}
-
-func sleepIfAuthorized(t *testing.T, authorization string, w http.ResponseWriter) {
-	if authorization != "" {
-		require.Equal(t, "Bearer abc", authorization)
-		time.Sleep(2 * time.Second)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
-}
-
 func TestAccessControlUnderCustomDomainStandalone(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-
-	//
-	//teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
-	//defer teardown()
 	runPagesWithAuth(t, []ListenSpec{httpListener})
 
 	tests := map[string]struct {
@@ -254,13 +182,7 @@ func TestAccessControlUnderCustomDomainStandalone(t *testing.T) {
 }
 
 func TestCustomErrorPageWithAuth(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-	testServer := makeGitLabPagesAccessStub(t)
-	testServer.Start()
-	defer testServer.Close()
-
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpListener})
 
 	tests := []struct {
 		name              string
@@ -290,7 +212,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 		{
 			name:   "private_namespace_with_private_project_auth_failed",
 			domain: "group.auth.gitlab-example.com",
-			// project ID is 2000
+			// project ID is 2005 which causes a 401
 			path:              "/private.project.1/unknown",
 			expectedErrorPage: "The page you're looking for could not be found.",
 		},
@@ -722,12 +644,12 @@ func getValidCookieAndState(t *testing.T, domain string) (string, string) {
 func runPagesWithAuth(t *testing.T, listeners []ListenSpec) {
 	t.Helper()
 
-	testServer := makeGitLabPagesAccessStub(t)
-	testServer.Start()
-	t.Cleanup(testServer.Close)
+	//testServer := makeGitLabPagesAccessStub(t)
+	//testServer.Start()
+	//t.Cleanup(testServer.Close)
 
 	configFile := defaultConfigFileWith(t,
-		"internal-gitlab-server="+testServer.URL,
+		//"internal-gitlab-server="+testServer.URL,
 		"gitlab-server=https://public-gitlab-auth.com",
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth",
 	)

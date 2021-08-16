@@ -3,7 +3,6 @@ package httptransport
 import (
 	"context"
 	"net/http"
-	"net/http/httptrace"
 	"strconv"
 	"time"
 
@@ -45,8 +44,8 @@ func NewMeteredRoundTripper(transport http.RoundTripper, name string, tracerVec,
 func (mrt *meteredRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	start := time.Now()
 
-	ctx := httptrace.WithClientTrace(r.Context(), mrt.newTracer(start))
-	ctx, cancel := context.WithCancel(ctx)
+	//ctx := httptrace.WithClientTrace(r.Context(), mrt.newTracer(start))
+	ctx, cancel := context.WithCancel(r.Context())
 
 	timer := time.AfterFunc(mrt.ttfbTimeout, cancel)
 	defer timer.Stop()
