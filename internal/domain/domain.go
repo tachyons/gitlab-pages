@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 
@@ -162,7 +161,6 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 // that failed authentication so that we serve the custom namespace error page for
 // public namespace domains
 func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("serveNamespaceNotFound-1\n")
 	// clone r and override the path and try to resolve the domain name
 	clonedReq := r.Clone(context.Background())
 	clonedReq.URL.Path = "/"
@@ -179,32 +177,29 @@ func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 		httperrors.Serve503(w)
 		return
 	}
-	fmt.Printf("serveNamespaceNotFound-2\n")
-	fmt.Printf("namespaceDomain.LookupPath:%+v\n", namespaceDomain.LookupPath)
+
 	// for namespace domains that have no access control enabled
 	if !namespaceDomain.LookupPath.HasAccessControl {
 		namespaceDomain.ServeNotFoundHTTP(w, r)
 		return
 	}
-	fmt.Printf("serveNamespaceNotFound-3\n")
+
 	httperrors.Serve404(w)
 }
 
 // ServeNotFoundAuthFailed handler to be called when auth failed so the correct custom
 // 404 page is served.
 func (d *Domain) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("ServeNotFoundAuthFailed-1\n")
 	lookupPath, err := d.GetLookupPath(r)
 	if err != nil {
 		httperrors.Serve404(w)
 		return
 	}
-	fmt.Printf("ServeNotFoundAuthFailed-2\n")
 
 	if d.IsNamespaceProject(r) && !lookupPath.HasAccessControl {
 		d.ServeNotFoundHTTP(w, r)
 		return
 	}
-	fmt.Printf("ServeNotFoundAuthFailed-3\n")
+
 	d.serveNamespaceNotFound(w, r)
 }

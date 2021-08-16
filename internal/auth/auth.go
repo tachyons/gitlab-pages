@@ -10,7 +10,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 	"time"
@@ -507,9 +506,6 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 	}
 
 	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
-
-	dreq, err := httputil.DumpRequestOut(req, false)
-	fmt.Printf("Fetching access token: %s\n%+v\n", dreq, err)
 	resp, err := a.apiClient.Do(req)
 
 	if err != nil {

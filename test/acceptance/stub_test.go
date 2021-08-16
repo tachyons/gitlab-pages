@@ -138,7 +138,6 @@ func CreateGitLabAPISecretKeyFixtureFile(t *testing.T) (filepath string) {
 	return secretfile.Name()
 }
 
-//  TODO: NEED TO MOVE THIS to handler in api_responses
 func handleAccessControlArtifactRequests(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
 	authorization := r.Header.Get("Authorization")
 

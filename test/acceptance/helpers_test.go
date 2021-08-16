@@ -545,8 +545,6 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 type stubOpts struct {
 	m                   sync.RWMutex
 	apiCalled           bool
-	enableSSL           bool
-	enableSSLEnv        bool
 	statusReadyCount    int
 	authHandler         http.HandlerFunc
 	userHandler         http.HandlerFunc

@@ -94,7 +94,6 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 
 func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, error) {
 	host := request.GetHostWithoutPort(r)
-
 	domain, err := a.domain(r.Context(), host)
 
 	return host, domain, err
