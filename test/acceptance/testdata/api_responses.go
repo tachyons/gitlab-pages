@@ -88,6 +88,22 @@ var DomainResponses = map[string]responseFn{
 			projectID:     2006,
 			accessControl: true,
 		},
+		"/private.project.2": {
+			projectID:     3006,
+			accessControl: true,
+		},
+		"/subgroup/private.project": {
+			projectID:     1007,
+			accessControl: true,
+		},
+		"/subgroup/private.project.1": {
+			projectID:     2007,
+			accessControl: true,
+		},
+		"/subgroup/private.project.2": {
+			projectID:     3007,
+			accessControl: true,
+		},
 	}),
 	"private.domain.com": customDomain(projectConfig{
 		projectID:     1007,

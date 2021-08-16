@@ -95,12 +95,6 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, error) {
 	host := request.GetHostWithoutPort(r)
 
-	// TODO: @jaime REMOVE THIS CHECK AND OPEN AN ISSUE
-	if host == a.config.General.Domain || host == "127.0.0.1" {
-		// skip resolving the domain with the internal API
-		return host, nil, nil
-	}
-
 	domain, err := a.domain(r.Context(), host)
 
 	return host, domain, err

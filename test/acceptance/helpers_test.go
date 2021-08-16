@@ -256,24 +256,11 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 	return logBuf
 }
 
-func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []ListenSpec, internalServer string, publicServer string) func() {
-	configFile := defaultConfigFileWith(t,
-		"internal-gitlab-server="+internalServer,
-		"gitlab-server="+publicServer,
-		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
-
-	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, "", nil,
-		"-config="+configFile,
-	)
-	return cleanup2
+func RunPagesProcessWithGitlabServerWithSSLCertFile(t *testing.T, listeners []ListenSpec, sslCertFile string) {
+	runPagesWithAuthAndEnv(t, listeners, []string{"SSL_CERT_FILE=" + sslCertFile})
 }
 
-func RunPagesProcessWithGitlabServerWithSSLCertFile(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, gitlabServer string) func() {
-	return runPagesProcessWithGitlabServer(t, pagesBinary, listeners, promPort,
-		[]string{"SSL_CERT_FILE=" + sslCertFile}, gitlabServer)
-}
-
-func RunPagesProcessWithGitlabServerWithSSLCertDir(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, gitlabServer string) func() {
+func RunPagesProcessWithGitlabServerWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCertFile string) {
 	// Create temporary cert dir
 	sslCertDir, err := ioutil.TempDir("", "pages-test-SSL_CERT_DIR")
 	require.NoError(t, err)
@@ -282,23 +269,11 @@ func RunPagesProcessWithGitlabServerWithSSLCertDir(t *testing.T, pagesBinary str
 	err = copyFile(sslCertDir+"/"+path.Base(sslCertFile), sslCertFile)
 	require.NoError(t, err)
 
-	innerCleanup := runPagesProcessWithGitlabServer(t, pagesBinary, listeners, promPort,
-		[]string{"SSL_CERT_DIR=" + sslCertDir}, gitlabServer)
+	runPagesWithAuthAndEnv(t, listeners, []string{"SSL_CERT_DIR=" + sslCertDir})
 
-	return func() {
-		innerCleanup()
+	t.Cleanup(func() {
 		os.RemoveAll(sslCertDir)
-	}
-}
-
-func runPagesProcessWithGitlabServer(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, gitlabServer string) func() {
-	configFile := defaultConfigFileWith(t,
-		"gitlab-server="+gitlabServer,
-		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
-
-	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, promPort, extraEnv,
-		"-config="+configFile)
-	return cleanup2
+	})
 }
 
 func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
@@ -570,6 +545,8 @@ func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Durati
 type stubOpts struct {
 	m                   sync.RWMutex
 	apiCalled           bool
+	enableSSL           bool
+	enableSSLEnv        bool
 	statusReadyCount    int
 	authHandler         http.HandlerFunc
 	userHandler         http.HandlerFunc
@@ -766,4 +743,14 @@ func copyFile(dest, src string) error {
 
 	_, err = io.Copy(destFile, srcFile)
 	return err
+}
+
+func setupTransport(t *testing.T) {
+	t.Helper()
+
+	transport := (TestHTTPSClient.Transport).(*http.Transport)
+	defer func(t time.Duration) {
+		transport.ResponseHeaderTimeout = t
+	}(transport.ResponseHeaderTimeout)
+	transport.ResponseHeaderTimeout = 5 * time.Second
 }
