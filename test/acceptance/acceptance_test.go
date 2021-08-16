@@ -67,20 +67,3 @@ func TestMain(m *testing.M) {
 
 	os.Exit(m.Run())
 }
-
-func skipUnlessEnabled(t *testing.T, conditions ...string) {
-	t.Helper()
-
-	for _, condition := range conditions {
-		switch condition {
-		case "not-inplace-chroot":
-			if os.Getenv("TEST_DAEMONIZE") == "inplace" {
-				t.Log("Not supported with -daemon-inplace-chroot")
-				t.SkipNow()
-			}
-		default:
-			t.Error("Unknown condition:", condition)
-			t.FailNow()
-		}
-	}
-}

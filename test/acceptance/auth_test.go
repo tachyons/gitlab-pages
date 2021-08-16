@@ -1,22 +1,20 @@
 package acceptance_test
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
-	teardown := RunPagesProcess(t, *pagesBinary, supportedListeners(), "", "")
-	defer teardown()
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -26,8 +24,7 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 }
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpsListener})
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -57,8 +54,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 }
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpsListener})
 
 	rsp, err := GetPageFromListener(t, httpsListener, "projects.gitlab-example.com", "/auth?error=access_denied")
 
@@ -68,8 +64,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
 }
 func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpsListener})
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -86,8 +81,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 }
 
 func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpsListener})
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -110,86 +104,14 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, authrsp.StatusCode)
 }
 
-func handleAccessControlArtifactRequests(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
-	authorization := r.Header.Get("Authorization")
-
-	switch {
-	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/delayed_200.html`).MatchString(r.URL.Path):
-		sleepIfAuthorized(t, authorization, w)
-		return true
-	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/404.html`).MatchString(r.URL.Path):
-		w.WriteHeader(http.StatusNotFound)
-		return true
-	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/500.html`).MatchString(r.URL.Path):
-		returnIfAuthorized(t, authorization, w, http.StatusInternalServerError)
-		return true
-	case regexp.MustCompile(`/api/v4/projects/group/private/jobs/\d+/artifacts/200.html`).MatchString(r.URL.Path):
-		returnIfAuthorized(t, authorization, w, http.StatusOK)
-		return true
-	case regexp.MustCompile(`/api/v4/projects/group/subgroup/private/jobs/\d+/artifacts/200.html`).MatchString(r.URL.Path):
-		returnIfAuthorized(t, authorization, w, http.StatusOK)
-		return true
-	default:
-		return false
-	}
-}
-
-func handleAccessControlRequests(t *testing.T, w http.ResponseWriter, r *http.Request) {
-	allowedProjects := regexp.MustCompile(`/api/v4/projects/1\d{3}/pages_access`)
-	deniedProjects := regexp.MustCompile(`/api/v4/projects/2\d{3}/pages_access`)
-	invalidTokenProjects := regexp.MustCompile(`/api/v4/projects/3\d{3}/pages_access`)
-
-	switch {
-	case allowedProjects.MatchString(r.URL.Path):
-		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-		w.WriteHeader(http.StatusOK)
-	case deniedProjects.MatchString(r.URL.Path):
-		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-		w.WriteHeader(http.StatusUnauthorized)
-	case invalidTokenProjects.MatchString(r.URL.Path):
-		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, "{\"error\":\"invalid_token\"}")
-	default:
-		t.Logf("Unexpected r.URL.RawPath: %q", r.URL.Path)
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusNotFound)
-	}
-}
-
-func returnIfAuthorized(t *testing.T, authorization string, w http.ResponseWriter, status int) {
-	if authorization != "" {
-		require.Equal(t, "Bearer abc", authorization)
-		w.WriteHeader(status)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
-}
-
-func sleepIfAuthorized(t *testing.T, authorization string, w http.ResponseWriter) {
-	if authorization != "" {
-		require.Equal(t, "Bearer abc", authorization)
-		time.Sleep(2 * time.Second)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
-}
-
-func TestAccessControlUnderCustomDomain(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-
-	testServer := makeGitLabPagesAccessStub(t)
-	testServer.Start()
-	defer testServer.Close()
-
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
-	defer teardown()
+func TestAccessControlUnderCustomDomainStandalone(t *testing.T) {
+	runPagesWithAuth(t, []ListenSpec{httpListener})
 
 	tests := map[string]struct {
 		domain string
 		path   string
 	}{
-		"private_domain": {
+		"private_domain_only": {
 			domain: "private.domain.com",
 			path:   "",
 		},
@@ -258,13 +180,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 }
 
 func TestCustomErrorPageWithAuth(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-	testServer := makeGitLabPagesAccessStub(t)
-	testServer.Start()
-	defer testServer.Close()
-
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpListener})
 
 	tests := []struct {
 		name              string
@@ -294,7 +210,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 		{
 			name:   "private_namespace_with_private_project_auth_failed",
 			domain: "group.auth.gitlab-example.com",
-			// project ID is 2000
+			// project ID is 2005 which causes a 401
 			path:              "/private.project.1/unknown",
 			expectedErrorPage: "The page you're looking for could not be found.",
 		},
@@ -367,14 +283,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 }
 
 func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-
-	testServer := makeGitLabPagesAccessStub(t)
-	testServer.Start()
-	defer testServer.Close()
-
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{proxyListener})
 
 	rsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/", "", true)
 	require.NoError(t, err)
@@ -435,8 +344,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 }
 
 func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpListener})
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
 	require.NoError(t, err)
@@ -448,9 +356,9 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 	require.Equal(t, "projects.gitlab-example.com", url.Host)
 	require.Equal(t, "/auth", url.Path)
 }
+
 func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), "https://internal-gitlab-auth.com", "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{httpListener})
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/project/nonexistent/")
 	require.NoError(t, err)
@@ -458,119 +366,79 @@ func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 }
 
-func setupTransport(t *testing.T) {
-	transport := (TestHTTPSClient.Transport).(*http.Transport)
-	defer func(t time.Duration) {
-		transport.ResponseHeaderTimeout = t
-	}(transport.ResponseHeaderTimeout)
-	transport.ResponseHeaderTimeout = 5 * time.Second
-}
-
-type runPagesFunc func(t *testing.T, pagesPath string, listeners []ListenSpec, promPort string, sslCertFile string, authServer string) func()
+type runPagesFunc func(t *testing.T, listeners []ListenSpec, sslCertFile string)
 
 func testAccessControl(t *testing.T, runPages runPagesFunc) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-
 	setupTransport(t)
 
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	require.NoError(t, err)
 
 	t.Cleanup(func() {
 		os.Remove(keyFile)
 		os.Remove(certFile)
 	})
 
-	testServer := makeGitLabPagesAccessStub(t)
-	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
-	testServer.StartTLS()
-	defer testServer.Close()
-
-	tests := []struct {
+	tests := map[string]struct {
 		host         string
 		path         string
 		status       int
 		redirectBack bool
-		name         string
 	}{
-		{
-			name:         "project with access",
+		"project_with_access": {
 			host:         "group.auth.gitlab-example.com",
 			path:         "/private.project/",
 			status:       http.StatusOK,
 			redirectBack: false,
 		},
-		{
-			name:         "project without access",
+		"project_without_access": {
 			host:         "group.auth.gitlab-example.com",
 			path:         "/private.project.1/",
 			status:       http.StatusNotFound, // Do not expose project existed
 			redirectBack: false,
 		},
-		{
-			name:         "invalid token test should redirect back",
+		"invalid_token_test_should_redirect_back": {
 			host:         "group.auth.gitlab-example.com",
 			path:         "/private.project.2/",
 			status:       http.StatusFound,
 			redirectBack: true,
 		},
-		{
-			name:         "no project should redirect to login and then return 404",
+		"no_project_should_redirect_to_login_and_then_return404": {
 			host:         "group.auth.gitlab-example.com",
 			path:         "/nonexistent/",
 			status:       http.StatusNotFound,
 			redirectBack: false,
 		},
-		{
-			name:         "no project should redirect to login and then return 404",
-			host:         "nonexistent.gitlab-example.com",
-			path:         "/nonexistent/",
-			status:       http.StatusNotFound,
-			redirectBack: false,
-		}, // subgroups
-		{
-			name:         "[subgroup] project with access",
+		// subgroups
+		"subgroup_project_with_access": {
 			host:         "group.auth.gitlab-example.com",
 			path:         "/subgroup/private.project/",
 			status:       http.StatusOK,
 			redirectBack: false,
 		},
-		{
-			name:         "[subgroup] project without access",
+		"subgroup_project_without_access": {
 			host:         "group.auth.gitlab-example.com",
 			path:         "/subgroup/private.project.1/",
 			status:       http.StatusNotFound, // Do not expose project existed
 			redirectBack: false,
 		},
-		{
-			name:         "[subgroup] invalid token test should redirect back",
+		"subgroup_invalid_token_test_should_redirect_back": {
 			host:         "group.auth.gitlab-example.com",
 			path:         "/subgroup/private.project.2/",
 			status:       http.StatusFound,
 			redirectBack: true,
 		},
-		{
-			name:         "[subgroup] no project should redirect to login and then return 404",
+		"subgroup_no_project_should_redirect_to_login_and_then_return404": {
 			host:         "group.auth.gitlab-example.com",
-			path:         "/subgroup/nonexistent/",
-			status:       http.StatusNotFound,
-			redirectBack: false,
-		},
-		{
-			name:         "[subgroup] no project should redirect to login and then return 404",
-			host:         "nonexistent.gitlab-example.com",
 			path:         "/subgroup/nonexistent/",
 			status:       http.StatusNotFound,
 			redirectBack: false,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			teardown := runPages(t, *pagesBinary, []ListenSpec{httpsListener}, "", certFile, testServer.URL)
-			defer teardown()
+	runPages(t, []ListenSpec{httpsListener}, certFile)
 
+	for tn, tt := range tests {
+		t.Run(tn, func(t *testing.T) {
 			rsp1, err1 := GetRedirectPage(t, httpsListener, tt.host, tt.path)
 			require.NoError(t, err1)
 			defer rsp1.Body.Close()
@@ -643,14 +511,7 @@ func TestAccessControlWithSSLCertDir(t *testing.T) {
 // Read the issue description if any changes to internal/auth/ break this test.
 // Related to https://tools.ietf.org/html/rfc6749#section-10.6.
 func TestHijackedCode(t *testing.T) {
-	skipUnlessEnabled(t, "not-inplace-chroot")
-
-	testServer := makeGitLabPagesAccessStub(t)
-	testServer.Start()
-	defer testServer.Close()
-
-	teardown := RunPagesProcessWithAuth(t, *pagesBinary, supportedListeners(), testServer.URL, "https://public-gitlab-auth.com")
-	defer teardown()
+	runPagesWithAuth(t, []ListenSpec{proxyListener})
 
 	/****ATTACKER******/
 	// get valid cookie for a different private project
@@ -721,4 +582,27 @@ func getValidCookieAndState(t *testing.T, domain string) (string, string) {
 	require.NotEmpty(t, state)
 
 	return cookie, state
+}
+
+func runPagesWithAuth(t *testing.T, listeners []ListenSpec) {
+	t.Helper()
+
+	runPagesWithAuthAndEnv(t, listeners, nil)
+}
+
+func runPagesWithAuthAndEnv(t *testing.T, listeners []ListenSpec, env []string) {
+	t.Helper()
+
+	configFile := defaultConfigFileWith(t,
+		"gitlab-server=https://public-gitlab-auth.com",
+		"auth-redirect-uri=https://projects.gitlab-example.com/auth",
+	)
+
+	RunPagesProcessWithStubGitLabServer(t,
+		withListeners(listeners),
+		withArguments([]string{
+			"-config=" + configFile,
+		}),
+		withEnv(env),
+	)
 }

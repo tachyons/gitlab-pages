@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/pires/go-proxyproto"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
@@ -255,25 +256,11 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 	return logBuf
 }
 
-func RunPagesProcessWithAuth(t *testing.T, pagesBinary string, listeners []ListenSpec, internalServer string, publicServer string) func() {
-	configFile, cleanup := defaultConfigFileWith(t,
-		"internal-gitlab-server="+internalServer,
-		"gitlab-server="+publicServer,
-		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
-	defer cleanup()
-
-	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, "", nil,
-		"-config="+configFile,
-	)
-	return cleanup2
+func RunPagesProcessWithGitlabServerWithSSLCertFile(t *testing.T, listeners []ListenSpec, sslCertFile string) {
+	runPagesWithAuthAndEnv(t, listeners, []string{"SSL_CERT_FILE=" + sslCertFile})
 }
 
-func RunPagesProcessWithGitlabServerWithSSLCertFile(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, gitlabServer string) func() {
-	return runPagesProcessWithGitlabServer(t, pagesBinary, listeners, promPort,
-		[]string{"SSL_CERT_FILE=" + sslCertFile}, gitlabServer)
-}
-
-func RunPagesProcessWithGitlabServerWithSSLCertDir(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, sslCertFile string, gitlabServer string) func() {
+func RunPagesProcessWithGitlabServerWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCertFile string) {
 	// Create temporary cert dir
 	sslCertDir, err := ioutil.TempDir("", "pages-test-SSL_CERT_DIR")
 	require.NoError(t, err)
@@ -282,24 +269,11 @@ func RunPagesProcessWithGitlabServerWithSSLCertDir(t *testing.T, pagesBinary str
 	err = copyFile(sslCertDir+"/"+path.Base(sslCertFile), sslCertFile)
 	require.NoError(t, err)
 
-	innerCleanup := runPagesProcessWithGitlabServer(t, pagesBinary, listeners, promPort,
-		[]string{"SSL_CERT_DIR=" + sslCertDir}, gitlabServer)
+	runPagesWithAuthAndEnv(t, listeners, []string{"SSL_CERT_DIR=" + sslCertDir})
 
-	return func() {
-		innerCleanup()
+	t.Cleanup(func() {
 		os.RemoveAll(sslCertDir)
-	}
-}
-
-func runPagesProcessWithGitlabServer(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, gitlabServer string) func() {
-	configFile, cleanup := defaultConfigFileWith(t,
-		"gitlab-server="+gitlabServer,
-		"auth-redirect-uri=https://projects.gitlab-example.com/auth")
-	defer cleanup()
-
-	_, cleanup2 := runPagesProcess(t, true, pagesBinary, listeners, promPort, extraEnv,
-		"-config="+configFile)
-	return cleanup2
+	})
 }
 
 func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
@@ -586,7 +560,7 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 
 	currentStatusCount := 0
 
-	mux := http.NewServeMux()
+	router := mux.NewRouter()
 	statusHandler := func(w http.ResponseWriter, r *http.Request) {
 		if currentStatusCount < opts.statusReadyCount {
 			w.WriteHeader(http.StatusBadGateway)
@@ -600,30 +574,38 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 		statusHandler = opts.statusHandler
 	}
 
-	mux.HandleFunc("/api/v4/internal/pages/status", statusHandler)
+	router.HandleFunc("/api/v4/internal/pages/status", statusHandler)
 
 	pagesHandler := defaultAPIHandler(t, opts)
 	if opts.pagesHandler != nil {
 		pagesHandler = opts.pagesHandler
 	}
 
-	mux.HandleFunc("/api/v4/internal/pages", pagesHandler)
+	router.HandleFunc("/api/v4/internal/pages", pagesHandler)
 
 	authHandler := defaultAuthHandler(t, opts)
 	if opts.authHandler != nil {
 		authHandler = opts.authHandler
 	}
 
-	mux.HandleFunc("/oauth/token", authHandler)
+	router.HandleFunc("/oauth/token", authHandler)
 
 	userHandler := defaultUserHandler(t, opts)
 	if opts.userHandler != nil {
 		userHandler = opts.userHandler
 	}
 
-	mux.HandleFunc("/api/v4/user", userHandler)
+	router.HandleFunc("/api/v4/user", userHandler)
 
-	return httptest.NewServer(mux)
+	router.HandleFunc("/api/v4/projects/{project_id:[0-9]+}/pages_access", func(w http.ResponseWriter, r *http.Request) {
+		if handleAccessControlArtifactRequests(t, w, r) {
+			return
+		}
+
+		handleAccessControlRequests(t, w, r)
+	})
+
+	return httptest.NewServer(router)
 }
 
 func (o *stubOpts) setAPICalled(v bool) {
@@ -720,7 +702,7 @@ func newConfigFile(t *testing.T, configs ...string) string {
 	return f.Name()
 }
 
-func defaultConfigFileWith(t *testing.T, configs ...string) (string, func()) {
+func defaultConfigFileWith(t *testing.T, configs ...string) string {
 	t.Helper()
 
 	configs = append(configs, "auth-client-id=clientID",
@@ -731,12 +713,12 @@ func defaultConfigFileWith(t *testing.T, configs ...string) (string, func()) {
 
 	name := newConfigFile(t, configs...)
 
-	cleanup := func() {
+	t.Cleanup(func() {
 		err := os.Remove(name)
 		require.NoError(t, err)
-	}
+	})
 
-	return name, cleanup
+	return name
 }
 
 func copyFile(dest, src string) error {
@@ -759,4 +741,14 @@ func copyFile(dest, src string) error {
 
 	_, err = io.Copy(destFile, srcFile)
 	return err
+}
+
+func setupTransport(t *testing.T) {
+	t.Helper()
+
+	transport := (TestHTTPSClient.Transport).(*http.Transport)
+	defer func(t time.Duration) {
+		transport.ResponseHeaderTimeout = t
+	}(transport.ResponseHeaderTimeout)
+	transport.ResponseHeaderTimeout = 5 * time.Second
 }
