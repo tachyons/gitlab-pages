@@ -88,7 +88,7 @@ func TestHealthCheckMiddleware(t *testing.T) {
 	require.NoError(t, err)
 	cfg.General.StatusPath = "/-/healthcheck"
 
-	domains, err := source.NewDomains("auto", &cfg.GitLab)
+	domains, err := source.NewDomains(&cfg.GitLab)
 	require.NoError(t, err)
 
 	app := theApp{

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"path"
 	"strings"
 	"testing"
 	"time"
@@ -101,51 +99,6 @@ func TestKnownHostReturns200(t *testing.T) {
 				require.Equal(t, tt.content, string(body))
 
 				rsp.Body.Close()
-			}
-		})
-	}
-}
-
-// TODO: remove along with support for disk configuration https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
-func TestNestedSubgroups(t *testing.T) {
-	maxNestedSubgroup := 21
-
-	pagesRoot, err := ioutil.TempDir("", "pages-root")
-	require.NoError(t, err)
-	defer os.RemoveAll(pagesRoot)
-
-	makeProjectIndex := func(subGroupPath string) {
-		projectPath := path.Join(pagesRoot, "nested", subGroupPath, "project", "public")
-		require.NoError(t, os.MkdirAll(projectPath, 0755))
-
-		projectIndex := path.Join(projectPath, "index.html")
-		require.NoError(t, ioutil.WriteFile(projectIndex, []byte("index"), 0644))
-	}
-	makeProjectIndex("")
-
-	paths := []string{""}
-	for i := 1; i < maxNestedSubgroup*2; i++ {
-		subGroupPath := fmt.Sprintf("%ssub%d/", paths[i-1], i)
-		paths = append(paths, subGroupPath)
-
-		makeProjectIndex(subGroupPath)
-	}
-
-	teardown := RunPagesProcessWithoutGitLabStub(t, *pagesBinary, supportedListeners(), "", "-pages-root", pagesRoot)
-	defer teardown()
-
-	for nestingLevel, path := range paths {
-		t.Run(fmt.Sprintf("nested level %d", nestingLevel), func(t *testing.T) {
-			for _, spec := range supportedListeners() {
-				rsp, err := GetPageFromListener(t, spec, "nested.gitlab-example.com", path+"project/")
-
-				require.NoError(t, err)
-				rsp.Body.Close()
-				if nestingLevel <= maxNestedSubgroup {
-					require.Equal(t, http.StatusOK, rsp.StatusCode)
-				} else {
-					require.Equal(t, http.StatusNotFound, rsp.StatusCode)
-				}
 			}
 		})
 	}
@@ -471,7 +424,7 @@ func TestDomainsSource(t *testing.T) {
 
 			gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 
-			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", tt.args.configSource}
+			pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey}
 			teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", []string{}, pagesArgs...)
 			defer teardown()
 

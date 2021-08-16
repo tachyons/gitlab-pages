@@ -8,9 +8,9 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 )
 
-// Domains struct represents a map of all domains supported by pages. 
+// Domains struct represents a map of all domains supported by pages.
 type Domains struct {
-	gitlab       Source
+	gitlab Source
 }
 
 // NewDomains is a factory method for domains initializing a mutex. It should
