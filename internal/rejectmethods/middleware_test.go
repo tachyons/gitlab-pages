@@ -25,6 +25,7 @@ func TestNewMiddleware(t *testing.T) {
 			middleware.ServeHTTP(recorder, tmpRequest)
 
 			result := recorder.Result()
+			defer result.Body.Close()
 
 			require.Equal(t, http.StatusOK, result.StatusCode)
 		})
@@ -37,6 +38,7 @@ func TestNewMiddleware(t *testing.T) {
 		middleware.ServeHTTP(recorder, tmpRequest)
 
 		result := recorder.Result()
+		defer result.Body.Close()
 
 		require.Equal(t, http.StatusMethodNotAllowed, result.StatusCode)
 	})

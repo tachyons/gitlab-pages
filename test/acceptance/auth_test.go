@@ -37,6 +37,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	require.NoError(t, err)
 	rsp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
 	require.NoError(t, err)
+	defer rsp.Body.Close()
 
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
 	require.Equal(t, 1, len(rsp.Header["Location"]))
@@ -174,6 +175,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 			// Fetch page in custom domain
 			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, tt.path, cookie)
 			require.NoError(t, err)
+			defer authrsp.Body.Close()
 			require.Equal(t, http.StatusOK, authrsp.StatusCode)
 		})
 	}
@@ -272,6 +274,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 			// Fetch page in custom domain
 			anotherResp, err := GetRedirectPageWithCookie(t, httpListener, tt.domain, tt.path, groupCookie)
 			require.NoError(t, err)
+			defer anotherResp.Body.Close()
 
 			require.Equal(t, http.StatusNotFound, anotherResp.StatusCode)
 
@@ -340,6 +343,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 	authrsp, err = GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/",
 		cookie, true)
 	require.NoError(t, err)
+	defer authrsp.Body.Close()
 	require.Equal(t, http.StatusOK, authrsp.StatusCode)
 }
 
@@ -475,6 +479,7 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 			// Request auth callback in project domain
 			authrsp2, err := GetRedirectPageWithCookie(t, httpsListener, authLoc.Host, authLoc.Path+"?"+authLoc.RawQuery, cookie)
 			require.NoError(t, err)
+			defer authrsp2.Body.Close()
 
 			// server returns the ticket, user will be redirected to the project page
 			require.Equal(t, http.StatusFound, authrsp2.StatusCode)
@@ -558,7 +563,7 @@ func TestHijackedCode(t *testing.T) {
 	impersonatingRes, err := GetProxyRedirectPageWithCookie(t, proxyListener, targetDomain,
 		"/auth?code="+hijackedCode+"&state="+attackerState, attackerCookie, true)
 	require.NoError(t, err)
-	defer authrsp.Body.Close()
+	defer impersonatingRes.Body.Close()
 
 	require.Equal(t, impersonatingRes.StatusCode, http.StatusInternalServerError, "should fail to decode code")
 }

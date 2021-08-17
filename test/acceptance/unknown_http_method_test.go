@@ -18,6 +18,7 @@ func TestUnknownHTTPMethod(t *testing.T) {
 
 	resp, err := DoPagesRequest(t, httpListener, req)
 	require.NoError(t, err)
+	defer resp.Body.Close()
 
 	require.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 }

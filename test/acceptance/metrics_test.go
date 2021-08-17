@@ -21,6 +21,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	res, err := GetPageFromListener(t, httpListener, "zip.gitlab.io",
 		"/symlink.html")
 	require.NoError(t, err)
+	defer res.Body.Close()
 	require.Equal(t, http.StatusOK, res.StatusCode)
 
 	resp, err := http.Get("http://127.0.0.1:42345/metrics")
