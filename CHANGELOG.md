@@ -1,3 +1,17 @@
+## 1.42.0 (2021-08-17)
+
+### Changed (2 changes)
+
+- [feat: add CORS header to HEAD requests](gitlab-org/gitlab-pages@52f82517edfa6c2c1a3220d6ab5cf1440faf2d17) ([merge request](gitlab-org/gitlab-pages!531))
+- [Use internal-gitlab-server in auth-related tasks](gitlab-org/gitlab-pages@7a9c492b619078aed6f9c3f95cf21640afd63100) ([merge request](gitlab-org/gitlab-pages!507))
+
+### Other (4 changes)
+
+- [fix: do not fail to print --version](gitlab-org/gitlab-pages@5186f78c179578757a2673264155aa8b287a0efb) ([merge request](gitlab-org/gitlab-pages!539))
+- [build: replace jwt-go with maintained fork](gitlab-org/gitlab-pages@436803f5975eefd697c83d6ad6e5c43360be8310) ([merge request](gitlab-org/gitlab-pages!533))
+- [refactor: fail to start without listeners](gitlab-org/gitlab-pages@0dc345e1a3278ea4b922e2a7bf4952caf20bc139) ([merge request](gitlab-org/gitlab-pages!532))
+- [ci: use gotestsum for running tests](gitlab-org/gitlab-pages@778c290a0eed19a4203c167915d42a223ebc7c5e) ([merge request](gitlab-org/gitlab-pages!528))
+
 ## 1.41.0 (2021-07-13)
 
 ### Added (1 change)
