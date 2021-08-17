@@ -134,7 +134,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 				args = append(args, tt.binaryOption)
 			}
 
-			RunPagesProcessWithStubGitLabServer(t,
+			RunPagesProcess(t,
 				withListeners([]ListenSpec{httpListener}),
 				withArguments(args),
 				withEnv([]string{"SSL_CERT_FILE=" + certFile}),
@@ -233,7 +233,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 				"auth-redirect-uri=https://projects.gitlab-example.com/auth",
 				tt.binaryOption)
 
-			RunPagesProcessWithStubGitLabServer(t,
+			RunPagesProcess(t,
 				withListeners([]ListenSpec{httpsListener}),
 				withArguments([]string{
 					"-config=" + configFile,

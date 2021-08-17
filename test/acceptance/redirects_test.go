@@ -10,7 +10,7 @@ import (
 )
 
 func TestDisabledRedirects(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 		withEnv([]string{"FF_ENABLE_REDIRECTS=false"}),
 	)
@@ -31,7 +31,7 @@ func TestDisabledRedirects(t *testing.T) {
 }
 
 func TestRedirectStatusPage(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 	)
 
@@ -47,7 +47,7 @@ func TestRedirectStatusPage(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 	)
 

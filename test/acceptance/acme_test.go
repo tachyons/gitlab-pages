@@ -15,7 +15,7 @@ const (
 )
 
 func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 	)
 
@@ -53,7 +53,7 @@ func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
 }
 
 func TestAcmeChallengesWhenItIsConfigured(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 		withExtraArgument("gitlab-server", "https://gitlab-acme.com"),
 	)

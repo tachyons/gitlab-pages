@@ -10,7 +10,7 @@ import (
 )
 
 func TestProxyv2(t *testing.T) {
-	logBuf := RunPagesProcessWithStubGitLabServer(t,
+	logBuf := RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsProxyv2Listener}),
 	)
 

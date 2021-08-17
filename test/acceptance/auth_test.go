@@ -12,7 +12,7 @@ import (
 )
 
 func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 	)
 
@@ -104,7 +104,7 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, authrsp.StatusCode)
 }
 
-func TestAccessControlUnderCustomDomainStandalone(t *testing.T) {
+func TestAccessControlUnderCustomDomain(t *testing.T) {
 	runPagesWithAuth(t, []ListenSpec{httpListener})
 
 	tests := map[string]struct {
@@ -500,11 +500,11 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 }
 
 func TestAccessControlWithSSLCertFile(t *testing.T) {
-	testAccessControl(t, RunPagesProcessWithGitlabServerWithSSLCertFile)
+	testAccessControl(t, RunPagesProcessWithSSLCertFile)
 }
 
 func TestAccessControlWithSSLCertDir(t *testing.T) {
-	testAccessControl(t, RunPagesProcessWithGitlabServerWithSSLCertDir)
+	testAccessControl(t, RunPagesProcessWithSSLCertDir)
 }
 
 // This proves the fix for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/262
@@ -598,7 +598,7 @@ func runPagesWithAuthAndEnv(t *testing.T, listeners []ListenSpec, env []string) 
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth",
 	)
 
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners(listeners),
 		withArguments([]string{
 			"-config=" + configFile,

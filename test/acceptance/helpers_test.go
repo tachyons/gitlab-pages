@@ -202,12 +202,12 @@ func (l ListenSpec) JoinHostPort() string {
 	return net.JoinHostPort(l.Host, l.Port)
 }
 
-// RunPagesProcess will start a gitlab-pages process with the specified listeners
+// RunPagesProcessWithoutGitLabStub will start a gitlab-pages process with the specified listeners
 // and return a function you can call to shut it down again. Use
 // GetPageFromProcess to do a HTTP GET against a listener.
 //
 // If run as root via sudo, the gitlab-pages process will drop privileges
-func RunPagesProcess(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
+func RunPagesProcessWithoutGitLabStub(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
 	_, cleanup := runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
 	return cleanup
 }
@@ -217,7 +217,7 @@ func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesBinary string, listen
 	return cleanup
 }
 
-func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *LogCaptureBuffer {
+func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 	chdir := false
 	chdirCleanup := testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)
 
@@ -256,11 +256,11 @@ func RunPagesProcessWithStubGitLabServer(t *testing.T, opts ...processOption) *L
 	return logBuf
 }
 
-func RunPagesProcessWithGitlabServerWithSSLCertFile(t *testing.T, listeners []ListenSpec, sslCertFile string) {
+func RunPagesProcessWithSSLCertFile(t *testing.T, listeners []ListenSpec, sslCertFile string) {
 	runPagesWithAuthAndEnv(t, listeners, []string{"SSL_CERT_FILE=" + sslCertFile})
 }
 
-func RunPagesProcessWithGitlabServerWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCertFile string) {
+func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCertFile string) {
 	// Create temporary cert dir
 	sslCertDir, err := ioutil.TempDir("", "pages-test-SSL_CERT_DIR")
 	require.NoError(t, err)

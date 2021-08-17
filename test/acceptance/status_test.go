@@ -9,7 +9,7 @@ import (
 )
 
 func TestStatusPage(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 		withExtraArgument("pages-status", "/@statuscheck"),
 	)
@@ -23,7 +23,7 @@ func TestStatusPage(t *testing.T) {
 func TestStatusNotYetReady(t *testing.T) {
 	listeners := supportedListeners()
 
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withoutWait,
 		withExtraArgument("pages-status", "/@statuscheck"),
 		withExtraArgument("pages-root", "../../shared/invalid-pages"),
