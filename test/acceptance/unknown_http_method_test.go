@@ -8,7 +8,7 @@ import (
 )
 
 func TestUnknownHTTPMethod(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 	)
 

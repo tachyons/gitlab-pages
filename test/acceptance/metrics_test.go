@@ -12,7 +12,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withExtraArgument("max-conns", "10"),
 		withExtraArgument("metrics-address", ":42345"),
 	)

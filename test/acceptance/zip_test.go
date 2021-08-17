@@ -5,26 +5,18 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestZipServing(t *testing.T) {
 	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 	defer cleanup()
 
-	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
-	defer source.Close()
-
-	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
-
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab"}
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, supportedListeners(), "", []string{}, pagesArgs...)
-	defer teardown()
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
 	tests := map[string]struct {
 		host               string
@@ -105,26 +97,9 @@ func TestZipServing(t *testing.T) {
 }
 
 func TestZipServingFromDisk(t *testing.T) {
-	chdir := false
-	defer testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)()
-
-	_, cleanup := newZipFileServerURL(t, "shared/pages/group/zip.gitlab.io/public.zip")
-	defer cleanup()
-
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-
-	source := NewGitlabDomainsSourceStub(t, &stubOpts{
-		pagesRoot: wd,
-	})
-
-	defer source.Close()
-
-	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
-
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab", "-pages-root", wd}
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, supportedListeners(), "", []string{}, pagesArgs...)
-	defer teardown()
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
 
 	tests := map[string]struct {
 		host               string
@@ -205,19 +180,10 @@ func TestZipServingFromDisk(t *testing.T) {
 }
 
 func TestZipServingConfigShortTimeout(t *testing.T) {
-	source := NewGitlabDomainsSourceStub(t, &stubOpts{})
-	defer source.Close()
-
-	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
-
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "gitlab",
-		"-zip-open-timeout=1ns"} // <- test purpose
-
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, supportedListeners(), "", []string{}, pagesArgs...)
-	defer teardown()
-
-	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
-	defer cleanup()
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+		withExtraArgument("zip-open-timeout", "1ns"),
+	)
 
 	response, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", "/")
 	require.NoError(t, err)

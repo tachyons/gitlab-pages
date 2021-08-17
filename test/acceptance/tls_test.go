@@ -8,7 +8,7 @@ import (
 )
 
 func TestAcceptsSupportedCiphers(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsListener}),
 	)
 
@@ -44,7 +44,7 @@ func tlsConfigWithInsecureCiphersOnly() *tls.Config {
 }
 
 func TestRejectsUnsupportedCiphers(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsListener}),
 	)
 
@@ -57,7 +57,7 @@ func TestRejectsUnsupportedCiphers(t *testing.T) {
 }
 
 func TestEnableInsecureCiphers(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsListener}),
 		withExtraArgument("-insecure-ciphers", "true"),
 	)
@@ -94,7 +94,7 @@ func TestTLSVersions(t *testing.T) {
 				args = append(args, "-tls-max-version", tc.tlsMax)
 			}
 
-			RunPagesProcessWithStubGitLabServer(t,
+			RunPagesProcess(t,
 				withListeners([]ListenSpec{httpsListener}),
 				withArguments(args),
 			)

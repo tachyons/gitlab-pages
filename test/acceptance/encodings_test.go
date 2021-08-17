@@ -9,7 +9,7 @@ import (
 )
 
 func TestMIMETypes(t *testing.T) {
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 	)
 
@@ -58,7 +58,7 @@ func TestCompressedEncoding(t *testing.T) {
 		},
 	}
 
-	RunPagesProcessWithStubGitLabServer(t,
+	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 	)
 
