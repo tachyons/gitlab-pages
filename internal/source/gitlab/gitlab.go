@@ -25,7 +25,6 @@ import (
 type Gitlab struct {
 	client     api.Resolver
 	mu         sync.RWMutex
-	isReady    bool
 	enableDisk bool
 }
 
@@ -41,8 +40,6 @@ func New(cfg *config.GitLab) (*Gitlab, error) {
 		enableDisk: cfg.EnableDisk,
 	}
 
-	g.isReady = true
-
 	return g, nil
 }
 
@@ -54,10 +51,6 @@ func (g *Gitlab) GetDomain(ctx context.Context, name string) (*domain.Domain, er
 	if lookup.Error != nil {
 		if errors.Is(lookup.Error, client.ErrUnauthorizedAPI) {
 			log.WithError(lookup.Error).Error("Pages cannot communicate with an instance of the GitLab API. Please sync your gitlab-secrets.json file: https://docs.gitlab.com/ee/administration/pages/#pages-cannot-communicate-with-an-instance-of-the-gitlab-api")
-
-			g.mu.Lock()
-			g.isReady = false
-			g.mu.Unlock()
 		}
 
 		return nil, lookup.Error
@@ -122,8 +115,5 @@ func sortLookupsByPrefixLengthDesc(lookups []api.LookupPath) {
 
 // IsReady returns the value of Gitlab `isReady` which is updated by `Poll`.
 func (g *Gitlab) IsReady() bool {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	return g.isReady
+	return true
 }
