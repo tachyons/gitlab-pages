@@ -7,7 +7,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"sync"
 
 	"gitlab.com/gitlab-org/labkit/log"
 
@@ -24,7 +23,6 @@ import (
 // information about domains from GitLab instance.
 type Gitlab struct {
 	client     api.Resolver
-	mu         sync.RWMutex
 	enableDisk bool
 }
 
