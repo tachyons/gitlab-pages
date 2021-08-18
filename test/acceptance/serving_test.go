@@ -492,46 +492,6 @@ func TestDomainsSource(t *testing.T) {
 	}
 }
 
-// TestGitLabSourceBecomesUnauthorized proves workaround for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535
-// The first request will fail and display an error but subsequent requests will
-// serve from disk source when `domain-config-source=auto`
-// TODO: remove with domain-source-config https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
-func TestGitLabSourceBecomesUnauthorized(t *testing.T) {
-	opts := &stubOpts{
-		// edge case https://gitlab.com/gitlab-org/gitlab-pages/-/issues/535
-		pagesStatusResponse: http.StatusUnauthorized,
-	}
-	source := NewGitlabDomainsSourceStub(t, opts)
-	defer source.Close()
-
-	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
-
-	pagesArgs := []string{"-gitlab-server", source.URL, "-api-secret-key", gitLabAPISecretKey, "-domain-config-source", "auto"}
-	teardown := RunPagesProcessWithEnvs(t, true, *pagesBinary, []ListenSpec{httpListener}, "", []string{}, pagesArgs...)
-	defer teardown()
-
-	domain := "test.domain.com"
-	failedResponse, err := GetPageFromListener(t, httpListener, domain, "/")
-	require.NoError(t, err)
-
-	require.True(t, opts.getAPICalled(), "API should be called")
-	require.Equal(t, http.StatusBadGateway, failedResponse.StatusCode, "first response should fail with 502")
-
-	// make request again
-	opts.setAPICalled(false)
-
-	response, err := GetPageFromListener(t, httpListener, domain, "/")
-	require.NoError(t, err)
-	defer response.Body.Close()
-
-	require.False(t, opts.getAPICalled(), "API should not be called after the first failure")
-	require.Equal(t, http.StatusOK, response.StatusCode, "second response should succeed")
-
-	body, err := ioutil.ReadAll(response.Body)
-	require.NoError(t, err)
-	require.Equal(t, "main-dir\n", string(body), "content mismatch")
-}
-
 func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{proxyListener}),
