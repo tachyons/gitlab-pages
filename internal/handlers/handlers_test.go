@@ -79,7 +79,7 @@ func TestNotFoundWithTokenIsNotHandled(t *testing.T) {
 	reqURL, _ := url.Parse("/")
 	r := &http.Request{URL: reqURL}
 	response := &http.Response{StatusCode: http.StatusNotFound}
-	// nolint:bodyclose // FIXME
+	// nolint:bodyclose // TODO investigate https://gitlab.com/gitlab-org/gitlab-pages/-/issues/606
 	handled := handlers.checkIfLoginRequiredOrInvalidToken(w, r, "token")(response)
 
 	require.False(t, handled)
@@ -98,7 +98,7 @@ func TestNotFoundWithoutTokenIsNotHandledWhenNotAuthSupport(t *testing.T) {
 	reqURL, _ := url.Parse("/")
 	r := &http.Request{URL: reqURL}
 	response := &http.Response{StatusCode: http.StatusNotFound}
-	// nolint:bodyclose // FIXME
+	// nolint:bodyclose // TODO investigate https://gitlab.com/gitlab-org/gitlab-pages/-/issues/606
 	handled := handlers.checkIfLoginRequiredOrInvalidToken(w, r, "")(response)
 
 	require.False(t, handled)
@@ -117,7 +117,7 @@ func TestNotFoundWithoutTokenIsHandled(t *testing.T) {
 	reqURL, _ := url.Parse("/")
 	r := &http.Request{URL: reqURL}
 	response := &http.Response{StatusCode: http.StatusNotFound}
-	// nolint:bodyclose // FIXME
+	// nolint:bodyclose // TODO investigate https://gitlab.com/gitlab-org/gitlab-pages/-/issues/606
 	handled := handlers.checkIfLoginRequiredOrInvalidToken(w, r, "")(response)
 
 	require.True(t, handled)
@@ -136,7 +136,7 @@ func TestInvalidTokenResponseIsHandled(t *testing.T) {
 	reqURL, _ := url.Parse("/")
 	r := &http.Request{URL: reqURL}
 	response := &http.Response{StatusCode: http.StatusUnauthorized}
-	// nolint:bodyclose // FIXME
+	// nolint:bodyclose // TODO investigate https://gitlab.com/gitlab-org/gitlab-pages/-/issues/606
 	handled := handlers.checkIfLoginRequiredOrInvalidToken(w, r, "token")(response)
 
 	require.True(t, handled)
