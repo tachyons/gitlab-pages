@@ -280,6 +280,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			// Request auth callback in project domain
 			authrsp, err = GetRedirectPageWithCookie(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery, cookie)
 			require.NoError(t, err)
+			defer authrsp.Body.Close()
 
 			// server returns the ticket, user will be redirected to the project page
 			require.Equal(t, http.StatusFound, authrsp.StatusCode)

@@ -65,7 +65,10 @@ func setSessionValues(t *testing.T, r *http.Request, store sessions.Store, value
 	session.Values = values
 	session.Save(tmpRequest, result)
 
-	for _, cookie := range result.Result().Cookies() {
+	res := result.Result()
+	defer res.Body.Close()
+
+	for _, cookie := range res.Cookies() {
 		r.AddCookie(cookie)
 	}
 }
@@ -206,10 +209,14 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 
 	result := httptest.NewRecorder()
 	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
+
+	res := result.Result()
+	defer res.Body.Close()
+
 	require.Equal(t, http.StatusFound, result.Code)
 	require.Equal(t, "https://pages.gitlab-example.com/project/", result.Header().Get("Location"))
-	require.Equal(t, 600, result.Result().Cookies()[0].MaxAge)
-	require.Equal(t, https, result.Result().Cookies()[0].Secure)
+	require.Equal(t, 600, res.Cookies()[0].MaxAge)
+	require.Equal(t, https, res.Cookies()[0].Secure)
 }
 
 func TestTryAuthenticateWithCodeAndStateOverHTTP(t *testing.T) {
@@ -465,9 +472,12 @@ func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
 	r := &http.Request{URL: reqURL, Host: "pages.gitlab-example.com", RequestURI: "/test"}
 
 	resp := &http.Response{StatusCode: http.StatusUnauthorized, Body: ioutil.NopCloser(bytes.NewReader([]byte("{\"error\":\"invalid_token\"}")))}
+	defer resp.Body.Close()
 
 	require.Equal(t, true, auth.CheckResponseForInvalidToken(result, r, resp))
-	require.Equal(t, http.StatusFound, result.Result().StatusCode)
+	res := result.Result()
+	defer res.Body.Close()
+	require.Equal(t, http.StatusFound, res.StatusCode)
 	require.Equal(t, "http://pages.gitlab-example.com/test", result.Header().Get("Location"))
 }
 
