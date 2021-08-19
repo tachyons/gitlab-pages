@@ -375,42 +375,6 @@ func TestDomainsSource(t *testing.T) {
 				apiCalled:  true,
 			},
 		},
-		{
-			name: "disk_source_domain_exists",
-			args: args{
-				configSource: "disk",
-				// test.domain.com sourced from disk configuration
-				domain:    "test.domain.com",
-				urlSuffix: "/",
-			},
-			want: want{
-				statusCode: http.StatusOK,
-				content:    "main-dir\n",
-				apiCalled:  false,
-			},
-		},
-		{
-			name: "disk_source_domain_does_not_exist",
-			args: args{
-				configSource: "disk",
-				domain:       "non-existent-domain.gitlab.io",
-			},
-			want: want{
-				statusCode: http.StatusNotFound,
-				apiCalled:  false,
-			},
-		},
-		{
-			name: "disk_source_domain_should_not_exist_under_hashed_dir",
-			args: args{
-				configSource: "disk",
-				domain:       "hashed.com",
-			},
-			want: want{
-				statusCode: http.StatusNotFound,
-				apiCalled:  false,
-			},
-		},
 	}
 
 	for _, tt := range tests {
