@@ -49,7 +49,7 @@ func (d *Domains) setGitLabClient(cfg *config.GitLab) error {
 // for some subset of domains, to test / PoC the new GitLab Domains Source that
 // we plan to use to replace the disk source.
 func (d *Domains) GetDomain(ctx context.Context, name string) (*domain.Domain, error) {
-	return d.source(name).GetDomain(ctx, name)
+	return d.gitlab.GetDomain(ctx, name)
 }
 
 // IsReady checks if the disk domain source managed to traverse entire pages
@@ -57,8 +57,4 @@ func (d *Domains) GetDomain(ctx context.Context, name string) (*domain.Domain, e
 // it entirely when disk source gets removed.
 func (d *Domains) IsReady() bool {
 	return d.gitlab.IsReady()
-}
-
-func (d *Domains) source(domain string) Source {
-	return d.gitlab
 }
