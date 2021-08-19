@@ -50,6 +50,18 @@ test-acceptance-inplace:1.16:
   extends: .tests-acceptance-inplace
   image: golang:1.16
 
+test:1.17:
+  extends: .tests-unit
+  image: golang:1.17
+
+test-acceptance:1.17:
+  extends: .tests-acceptance-tmpdir
+  image: golang:1.17
+
+test-acceptance-inplace:1.17:
+  extends: .tests-acceptance-inplace
+  image: golang:1.17
+
 race:
   extends: .tests-common
   script:
