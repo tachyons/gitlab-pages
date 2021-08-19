@@ -59,7 +59,7 @@ type theApp struct {
 }
 
 func (a *theApp) isReady() bool {
-	return a.domains.IsReady()
+	return true
 }
 
 func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {

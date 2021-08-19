@@ -51,10 +51,3 @@ func (d *Domains) setGitLabClient(cfg *config.GitLab) error {
 func (d *Domains) GetDomain(ctx context.Context, name string) (*domain.Domain, error) {
 	return d.gitlab.GetDomain(ctx, name)
 }
-
-// IsReady checks if the disk domain source managed to traverse entire pages
-// filesystem and is ready for use. It is DEPRECATED, because we want to remove
-// it entirely when disk source gets removed.
-func (d *Domains) IsReady() bool {
-	return d.gitlab.IsReady()
-}

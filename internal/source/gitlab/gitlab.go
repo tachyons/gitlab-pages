@@ -110,8 +110,3 @@ func sortLookupsByPrefixLengthDesc(lookups []api.LookupPath) {
 		return len(lookups[i].Prefix) > len(lookups[j].Prefix)
 	})
 }
-
-// IsReady returns the value of Gitlab `isReady` which is updated by `Poll`.
-func (g *Gitlab) IsReady() bool {
-	return true
-}
