@@ -514,41 +514,11 @@ func ClientWithConfig(tlsConfig *tls.Config) (*http.Client, func()) {
 	return client, tr.CloseIdleConnections
 }
 
-func waitForRoundtrips(t *testing.T, listeners []ListenSpec, timeout time.Duration) {
-	nListening := 0
-	start := time.Now()
-	for _, spec := range listeners {
-		for time.Since(start) < timeout {
-			req, err := http.NewRequest("GET", spec.URL("/"), nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			client := QuickTimeoutHTTPSClient
-			if spec.Type == "https-proxyv2" {
-				client = QuickTimeoutProxyv2Client
-			}
-
-			if response, err := client.Transport.RoundTrip(req); err == nil {
-				nListening++
-				response.Body.Close()
-				break
-			}
-
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
-
-	require.Equal(t, len(listeners), nListening, "all listeners must be accepting TCP connections")
-}
-
 type stubOpts struct {
 	m                   sync.RWMutex
 	apiCalled           bool
-	statusReadyCount    int
 	authHandler         http.HandlerFunc
 	userHandler         http.HandlerFunc
-	statusHandler       http.HandlerFunc
 	pagesHandler        http.HandlerFunc
 	pagesStatusResponse int
 	pagesRoot           string
@@ -558,23 +528,7 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	t.Helper()
 	require.NotNil(t, opts)
 
-	currentStatusCount := 0
-
 	router := mux.NewRouter()
-	statusHandler := func(w http.ResponseWriter, r *http.Request) {
-		if currentStatusCount < opts.statusReadyCount {
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-
-		w.WriteHeader(http.StatusNoContent)
-	}
-
-	if opts.statusHandler != nil {
-		statusHandler = opts.statusHandler
-	}
-
-	router.HandleFunc("/api/v4/internal/pages/status", statusHandler)
 
 	pagesHandler := defaultAPIHandler(t, opts)
 	if opts.pagesHandler != nil {

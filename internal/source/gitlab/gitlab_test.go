@@ -38,7 +38,6 @@ func TestGetDomain(t *testing.T) {
 
 		_, err := source.GetDomain(context.Background(), "test")
 		require.EqualError(t, err, client.ErrUnauthorizedAPI.Error())
-		require.False(t, source.IsReady())
 	})
 }
 
