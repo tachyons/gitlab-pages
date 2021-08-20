@@ -8,21 +8,26 @@ class String
 end
 
 class ObjectStorageBackup
-  attr_accessor :name, :local_tar_path, :remote_bucket_name, :tmp_bucket_name, :backend
+  attr_accessor :name, :local_tar_path, :remote_bucket_name, :tmp_bucket_name, :backend, :s3_tool
 
-  def initialize(name, local_tar_path, remote_bucket_name, tmp_bucket_name = 'tmp', backend = 's3')
+  def initialize(name, local_tar_path, remote_bucket_name, tmp_bucket_name = 'tmp', backend = 's3', s3_tool = 's3cmd')
     @name = name
     @local_tar_path = local_tar_path
     @remote_bucket_name = remote_bucket_name
     @tmp_bucket_name = tmp_bucket_name
     @backend = backend
+    @s3_tool = s3_tool
   end
 
   def backup
     if @backend == "s3"
-      # Check bucket existence by listing, limit 1 to optimize
-      check_bucket_cmd = %W(s3cmd --limit=1 ls s3://#{@remote_bucket_name})
-      cmd = %W(s3cmd --stop-on-error --delete-removed sync s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
+      if @s3_tool == "s3cmd"
+        check_bucket_cmd = %W(s3cmd --limit=1 ls s3://#{@remote_bucket_name})
+        cmd = %W(s3cmd --stop-on-error --delete-removed sync s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
+      elsif @s3_tool == "awscli"
+        check_bucket_cmd = %W(aws s3api head-bucket --bucket #{@remote_bucket_name})
+        cmd = %W(aws s3 sync --delete s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
+      end
     elsif @backend == "gcs"
       check_bucket_cmd = %W(gsutil ls gs://#{@remote_bucket_name})
       cmd = %W(gsutil -m rsync -r gs://#{@remote_bucket_name} /srv/gitlab/tmp/#{@name})
@@ -37,7 +42,7 @@ class ObjectStorageBackup
 
     puts "Dumping #{@name} ...".blue
 
-    # create the destination: gsutils requires it to exist, s3cmd does not
+    # create the destination: gsutils requires it to exist
     FileUtils.mkdir_p("/srv/gitlab/tmp/#{@name}", mode: 0700)
 
     output, status = run_cmd(cmd)
@@ -76,7 +81,11 @@ class ObjectStorageBackup
   def upload_to_object_storage(source_path)
     dir_name = File.basename(source_path)
     if @backend == "s3"
-      cmd = %W(s3cmd --stop-on-error sync #{source_path}/ s3://#{@remote_bucket_name}/#{dir_name}/)
+      if @s3_tool == "s3cmd"
+        cmd = %W(s3cmd --stop-on-error sync #{source_path}/ s3://#{@remote_bucket_name}/#{dir_name}/)
+      elsif @s3_tool == "awscli"
+        cmd = %W(aws s3 sync #{source_path}/ s3://#{@remote_bucket_name}/#{dir_name}/)
+      end
     elsif @backend == "gcs"
       cmd = %W(gsutil -m rsync -r #{source_path}/ gs://#{@remote_bucket_name}/#{dir_name})
     end
@@ -90,7 +99,11 @@ class ObjectStorageBackup
     backup_file_name = "#{@name}.#{Time.now.to_i}"
 
     if @backend == "s3"
-      cmd = %W(s3cmd sync s3://#{@remote_bucket_name} s3://#{@tmp_bucket_name}/#{backup_file_name}/)
+      if @s3_tool == "s3cmd"
+        cmd = %W(s3cmd sync s3://#{@remote_bucket_name} s3://#{@tmp_bucket_name}/#{backup_file_name}/)
+      elsif @s3_tool == "awscli"
+        cmd = %W(aws s3 sync s3://#{@remote_bucket_name} s3://#{@tmp_bucket_name}/#{backup_file_name}/)
+      end
     elsif @backend == "gcs"
       cmd = %W(gsutil -m rsync -r gs://#{@remote_bucket_name} gs://#{@tmp_bucket_name}/#{backup_file_name}/)
     end
@@ -102,7 +115,11 @@ class ObjectStorageBackup
 
   def cleanup
     if @backend == "s3"
-      cmd = %W(s3cmd --stop-on-error del --force --recursive s3://#{@remote_bucket_name})
+      if @s3_tool == "s3cmd"
+        cmd = %W(s3cmd --stop-on-error del --force --recursive s3://#{@remote_bucket_name})
+      elsif @s3_tool == "awscli"
+        cmd = %W(aws s3 rm --recursive s3://#{@remote_bucket_name})
+      end
     elsif @backend == "gcs"
       # Check if the bucket has any objects
       list_objects_cmd = %W(gsutil ls gs://#{@remote_bucket_name}/)
