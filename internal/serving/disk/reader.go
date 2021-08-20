@@ -57,6 +57,11 @@ func (reader *Reader) tryRedirects(h serving.Handler) bool {
 		return false
 	}
 
+	if status == http.StatusOK {
+		h.SubPath = strings.TrimPrefix(rewrittenURL.Path, h.LookupPath.Prefix)
+		return reader.tryFile(h)
+	}
+
 	http.Redirect(h.Writer, h.Request, rewrittenURL.Path, status)
 	return true
 }

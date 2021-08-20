@@ -19,13 +19,19 @@ import (
 
 const (
 	// ConfigFile is the default name of the file containing the redirect rules.
-	// It follows Netlify's syntax but we don't support the special options yet like splats, placeholders, query parameters
+	// It follows Netlify's syntax but we don't support all of the special options yet
 	//  - https://docs.netlify.com/routing/redirects/
 	//  - https://docs.netlify.com/routing/redirects/redirect-options/
 	ConfigFile = "_redirects"
 
 	// Check https://gitlab.com/gitlab-org/gitlab-pages/-/issues/472 before increasing this value
 	maxConfigSize = 64 * 1024
+
+	// maxPathSegments is used to limit the number of path segments allowed in rules URLs
+	maxPathSegments = 25
+
+	// FFEnablePlaceholders used to check whether placeholder matching is enabled or not
+	FFEnablePlaceholders = "FF_ENABLE_PLACEHOLDERS"
 )
 
 var (
@@ -45,6 +51,7 @@ var (
 	errNoParams                        = errors.New("params not supported")
 	errUnsupportedStatus               = errors.New("status not supported")
 	errNoForce                         = errors.New("force! not supported")
+	errTooManyPathSegments             = errors.New("url path cannot contain more than 25 forward slashes")
 	regexpPlaceholder                  = regexp.MustCompile(`(?i)/:[a-z]+`)
 )
 
@@ -75,15 +82,16 @@ func (r *Redirects) Status() string {
 
 // Rewrite takes in a URL and uses the parsed Netlify rules to rewrite
 // the URL to the new location if it matches any rule
-func (r *Redirects) Rewrite(url *url.URL) (*url.URL, int, error) {
-	rule := r.match(url)
+func (r *Redirects) Rewrite(originalURL *url.URL) (*url.URL, int, error) {
+	rule, newPath := r.match(originalURL.Path)
 	if rule == nil {
 		return nil, 0, ErrNoRedirect
 	}
 
-	newURL, err := url.Parse(rule.To)
+	newURL, err := url.Parse(newPath)
+
 	log.WithFields(log.Fields{
-		"url":         url,
+		"url":         originalURL,
 		"newURL":      newURL,
 		"err":         err,
 		"rule.From":   rule.From,

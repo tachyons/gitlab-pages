@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -14,7 +15,18 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
+// enablePlaceholders enables the FF_ENABLE_PLACEHOLDERS in tests
+func enablePlaceholders(t *testing.T) {
+	t.Helper()
+
+	orig := os.Getenv(FFEnablePlaceholders)
+	os.Setenv(FFEnablePlaceholders, "true")
+	t.Cleanup(func() { os.Setenv(FFEnablePlaceholders, orig) })
+}
+
 func TestRedirectsRewrite(t *testing.T) {
+	enablePlaceholders(t)
+
 	tests := []struct {
 		name           string
 		url            string
@@ -85,6 +97,30 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/cake-portal  /still-alive 301",
 			expectedURL:    "/still-alive",
 			expectedStatus: 301,
+			expectedErr:    "",
+		},
+		{
+			name:           "matches_splat_rule",
+			url:            "/the-cake/is-delicious",
+			rule:           "/the-cake/* /is-a-lie 200",
+			expectedURL:    "/is-a-lie",
+			expectedStatus: 200,
+			expectedErr:    "",
+		},
+		{
+			name:           "replaces_splat_placeholdes",
+			url:            "/from/weighted/companion/cube/path",
+			rule:           "/from/*/path /to/:splat/path 200",
+			expectedURL:    "/to/weighted/companion/cube/path",
+			expectedStatus: 200,
+			expectedErr:    "",
+		},
+		{
+			name:           "matches_placeholder_rule",
+			url:            "/the/cake/is/delicious",
+			rule:           "/the/:placeholder/is/delicious /the/:placeholder/is/a/lie 200",
+			expectedURL:    "/the/cake/is/a/lie",
+			expectedStatus: 200,
 			expectedErr:    "",
 		},
 	}

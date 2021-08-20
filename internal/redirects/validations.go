@@ -3,9 +3,16 @@ package redirects
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	netlifyRedirects "github.com/tj/go-redirects"
+)
+
+var (
+	regexPlaceholder            = regexp.MustCompile(`(?i)^:[a-z]+$`)
+	regexSplat                  = regexp.MustCompile(`^\*$`)
+	regexPlaceholderReplacement = regexp.MustCompile(`(?i):(?P<placeholder>[a-z]+)`)
 )
 
 // validateURL runs validations against a rule URL.
@@ -29,21 +36,30 @@ func validateURL(urlText string) error {
 		return errNoStartingForwardSlashInURLPath
 	}
 
-	// No support for splats, https://docs.netlify.com/routing/redirects/redirect-options/#splats
-	if strings.Contains(url.Path, "*") {
-		return errNoSplats
-	}
+	if placeholdersEnabled() {
+		// Limit the number of path segments a rule can contain.
+		// This prevents the matching logic from generating regular
+		// expressions that are too large/complex.
+		if strings.Count(url.Path, "/") > maxPathSegments {
+			return errTooManyPathSegments
+		}
+	} else {
+		// No support for splats, https://docs.netlify.com/routing/redirects/redirect-options/#splats
+		if strings.Contains(url.Path, "*") {
+			return errNoSplats
+		}
 
-	// No support for placeholders, https://docs.netlify.com/routing/redirects/redirect-options/#placeholders
-	if regexpPlaceholder.MatchString(url.Path) {
-		return errNoPlaceholders
+		// No support for placeholders, https://docs.netlify.com/routing/redirects/redirect-options/#placeholders
+		if regexpPlaceholder.MatchString(url.Path) {
+			return errNoPlaceholders
+		}
 	}
 
 	return nil
 }
 
 // validateRule runs all validation rules on the provided rule.
-// Returns `nil` if the rule is valid.
+// Returns `nil` if the rule is valid
 func validateRule(r netlifyRedirects.Rule) error {
 	if err := validateURL(r.From); err != nil {
 		return err
@@ -60,7 +76,7 @@ func validateRule(r netlifyRedirects.Rule) error {
 
 	// We strictly validate return status codes
 	switch r.Status {
-	case http.StatusMovedPermanently, http.StatusFound:
+	case http.StatusOK, http.StatusMovedPermanently, http.StatusFound:
 		// noop
 	default:
 		return errUnsupportedStatus
@@ -69,18 +85,6 @@ func validateRule(r netlifyRedirects.Rule) error {
 	// No support for rules that use ! force
 	if r.Force {
 		return errNoForce
-	}
-
-	return nil
-}
-
-// match returns the first redirect or rewrite rule that matches the requested URL
-func (r *Redirects) match(url *url.URL) *netlifyRedirects.Rule {
-	for _, rule := range r.rules {
-		// TODO: Likely this should include host comparison once we have domain-level redirects
-		if normalizePath(rule.From) == normalizePath(url.Path) && validateRule(rule) == nil {
-			return &rule
-		}
 	}
 
 	return nil
