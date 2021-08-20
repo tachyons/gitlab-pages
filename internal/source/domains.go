@@ -8,7 +8,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 )
 
-// Domains struct represents a map of all domains supported by pages.
+// Domains struct wraps the GitLab client to fetch a domain configuration
+// TODO: remove/refactor this package https://gitlab.com/gitlab-org/gitlab-pages/-/issues/608
 type Domains struct {
 	gitlab Source
 }
