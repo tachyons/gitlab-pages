@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	redirects "gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
 )
 
 func TestDisabledRedirects(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
-		withEnv([]string{"FF_ENABLE_REDIRECTS=false"}),
+		withEnv([]string{"FF_ENABLE_REDIRECTS=false", redirects.FFEnablePlaceholders + "=true"}),
 	)
 
 	// Test that redirects status page is forbidden
@@ -33,6 +35,7 @@ func TestDisabledRedirects(t *testing.T) {
 func TestRedirectStatusPage(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
+		withEnv([]string{redirects.FFEnablePlaceholders + "=true"}),
 	)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/_redirects")
@@ -42,13 +45,14 @@ func TestRedirectStatusPage(t *testing.T) {
 	require.NoError(t, err)
 	defer rsp.Body.Close()
 
-	require.Contains(t, string(body), "11 rules")
+	require.Contains(t, string(body), "14 rules")
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
 func TestRedirect(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
+		withEnv([]string{redirects.FFEnablePlaceholders + "=true"}),
 	)
 
 	// Test that serving a file still works with redirects enabled
@@ -98,6 +102,13 @@ func TestRedirect(t *testing.T) {
 			path:             "/redirect-portal.html",
 			expectedStatus:   http.StatusFound,
 			expectedLocation: "/magic-land.html",
+		},
+		// Permanent redirect for splat (*) with replacement (:splat)
+		{
+			host:             "group.redirects.gitlab-example.com",
+			path:             "/project-redirects/jobs/assistant-to-the-regional-manager.html",
+			expectedStatus:   http.StatusMovedPermanently,
+			expectedLocation: "/project-redirects/careers/assistant-to-the-regional-manager.html",
 		},
 	}
 

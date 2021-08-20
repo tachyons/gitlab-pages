@@ -7,30 +7,27 @@ import (
 )
 
 func Test_normalizePath(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		name     string
 		path     string
 		expected string
 	}{
-		{
-			name:     "add_trailing_slash",
+		"add_trailing_slash": {
 			path:     "foo",
 			expected: "foo/",
 		},
-		{
-			name:     "leave_existing_trailing_slash",
+		"leave_existing_trailing_slash": {
 			path:     "foo/",
 			expected: "foo/",
 		},
-		{
-			name:     "leave_existing_double_trailing_slash",
+		"leave_existing_double_trailing_slash": {
 			path:     "foo//",
 			expected: "foo//",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			got := normalizePath(tt.path)
 			require.Equal(t, tt.expected, got)
 		})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -14,8 +15,15 @@ import (
 )
 
 func generateRedirectsFile(dirPath string, count int) error {
-	content := strings.Repeat("/goto.html /target.html 301\n", count)
-	content = content + "/entrance.html /exit.html 301\n"
+	content := "/start.html /redirect.html 301\n"
+	if placeholdersEnabled() {
+		content += strings.Repeat("/foo/*/bar /foo/:splat/qux 200\n", count/2)
+		content += strings.Repeat("/foo/:placeholder /qux/:placeholder 200\n", count/2)
+	} else {
+		content += strings.Repeat("/goto.html /target.html 301\n", count)
+	}
+
+	content += "/entrance.html /exit.html 301\n"
 
 	return ioutil.WriteFile(path.Join(dirPath, ConfigFile), []byte(content), 0600)
 }
@@ -41,7 +49,17 @@ func benchmarkRedirectsRewrite(b *testing.B, redirectsCount int) {
 	}
 }
 
-func BenchmarkRedirectsRewrite(b *testing.B) {
+func BenchmarkRedirectsRewrite_withoutPlaceholders(b *testing.B) {
+	b.Run("10 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 10) })
+	b.Run("100 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 100) })
+	b.Run("1000 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 1000) })
+}
+
+func BenchmarkRedirectsRewrite_PlaceholdersEnabled(b *testing.B) {
+	orig := os.Getenv(FFEnablePlaceholders)
+	os.Setenv(FFEnablePlaceholders, "true")
+	b.Cleanup(func() { os.Setenv(FFEnablePlaceholders, orig) })
+
 	b.Run("10 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 10) })
 	b.Run("100 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 100) })
 	b.Run("1000 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 1000) })
