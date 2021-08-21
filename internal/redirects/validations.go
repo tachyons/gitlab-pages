@@ -89,3 +89,15 @@ func validateRule(r netlifyRedirects.Rule) error {
 
 	return nil
 }
+
+// validateRedirectsFile runs rules on the _redirects file as a whole.
+// Returns `nil` if no errors are found.
+// Does not run rule-specific validations - this is
+// handled by `validateRule` instead.
+func validateRedirectsFile(r *Redirects) error {
+	if len(r.rules) > maxRuleCount {
+		return errTooManyRules
+	}
+
+	return nil
+}

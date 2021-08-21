@@ -30,6 +30,9 @@ const (
 	// maxPathSegments is used to limit the number of path segments allowed in rules URLs
 	maxPathSegments = 25
 
+	// maxRuleCount is used to limit the total number of rules allowed in _redirects
+	maxRuleCount = 1000
+
 	// FFEnablePlaceholders used to check whether placeholder matching is enabled or not
 	FFEnablePlaceholders = "FF_ENABLE_PLACEHOLDERS"
 )
@@ -51,7 +54,8 @@ var (
 	errNoParams                        = errors.New("params not supported")
 	errUnsupportedStatus               = errors.New("status not supported")
 	errNoForce                         = errors.New("force! not supported")
-	errTooManyPathSegments             = errors.New("url path cannot contain more than 25 forward slashes")
+	errTooManyPathSegments             = fmt.Errorf("url path cannot contain more than %d forward slashes", maxPathSegments)
+	errTooManyRules                    = fmt.Errorf("_redirects file may not contain more than %d rules", maxRuleCount)
 	regexpPlaceholder                  = regexp.MustCompile(`(?i)/:[a-z]+`)
 )
 
@@ -68,6 +72,10 @@ func (r *Redirects) Status() string {
 
 	messages := make([]string, 0, len(r.rules)+1)
 	messages = append(messages, fmt.Sprintf("%d rules", len(r.rules)))
+
+	if err := validateRedirectsFile(r); err != nil {
+		messages = append(messages, fmt.Sprintf("error: %s", err.Error()))
+	}
 
 	for i, rule := range r.rules {
 		if err := validateRule(rule); err != nil {
