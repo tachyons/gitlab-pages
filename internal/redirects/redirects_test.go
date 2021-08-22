@@ -16,7 +16,7 @@ import (
 )
 
 // enablePlaceholders enables the FF_ENABLE_PLACEHOLDERS in tests
-func enablePlaceholders(t *testing.T) {
+func enablePlaceholders(t testing.TB) {
 	t.Helper()
 
 	orig := os.Getenv(FFEnablePlaceholders)

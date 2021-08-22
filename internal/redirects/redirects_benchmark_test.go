@@ -4,7 +4,6 @@ import (
 	"context"
 	"io/ioutil"
 	"net/url"
-	"os"
 	"path"
 	"strings"
 	"testing"
@@ -56,9 +55,7 @@ func BenchmarkRedirectsRewrite_withoutPlaceholders(b *testing.B) {
 }
 
 func BenchmarkRedirectsRewrite_PlaceholdersEnabled(b *testing.B) {
-	orig := os.Getenv(FFEnablePlaceholders)
-	os.Setenv(FFEnablePlaceholders, "true")
-	b.Cleanup(func() { os.Setenv(FFEnablePlaceholders, orig) })
+	enablePlaceholders(b)
 
 	b.Run("10 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 10) })
 	b.Run("100 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 100) })
