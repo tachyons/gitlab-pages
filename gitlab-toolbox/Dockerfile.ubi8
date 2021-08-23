@@ -1,4 +1,31 @@
-ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
-ARG TAG="master"
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-toolbox"
-FROM ${FROM_IMAGE}:${TAG}
+ARG RAILS_IMAGE=
+
+FROM ${RAILS_IMAGE}
+
+ARG GITLAB_VERSION
+ARG GITLAB_USER=git
+ARG DNF_OPTS
+ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
+
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-toolbox" \
+      name="GitLab Toolbox" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="Toolbox is an entry point for interaction with other containers in the cluster." \
+      description="Toolbox is an entry point for interaction with other containers in the cluster. It contains scripts for running Rake tasks, backup, restore, and tools to intract with object storage."
+
+ADD gitlab-toolbox-ee.tar.gz /
+ADD gitlab-python.tar.gz /
+
+COPY scripts/bin/* /usr/local/bin/
+COPY scripts/lib/* ${LIBDIR}/ruby/vendor_ruby/
+
+RUN dnf clean all \
+    && rm -r /var/cache/dnf \
+    && dnf ${DNF_OPTS} install -by --nodocs ca-certificates openssl
+
+USER ${GITLAB_USER}:${GITLAB_USER}
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
