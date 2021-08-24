@@ -8,15 +8,16 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/rs/cors"
+	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/go-mimedb"
-	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
@@ -42,6 +43,9 @@ import (
 
 const (
 	xForwardedHost = "X-Forwarded-Host"
+
+	pathPrefixArtifacts = "/-/"
+	pathPrefixAuth      = "/auth"
 )
 
 var (
@@ -56,6 +60,7 @@ type theApp struct {
 	Handlers       *handlers.Handlers
 	AcmeMiddleware *acme.Middleware
 	CustomHeaders  http.Header
+	knownPaths     []string
 }
 
 func (a *theApp) isReady() bool {
@@ -94,6 +99,17 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 
 func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, error) {
 	host := request.GetHostWithoutPort(r)
+	// do not fetch domain's config if it's a known path || host
+	for _, path := range a.knownPaths {
+		if strings.HasPrefix(r.URL.Path, path) {
+			return host, nil, nil
+		}
+	}
+
+	if host == a.config.General.Domain {
+		return host, nil, nil
+	}
+
 	domain, err := a.domain(r.Context(), host)
 
 	return host, domain, err
@@ -221,6 +237,7 @@ func (a *theApp) acmeMiddleware(handler http.Handler) http.Handler {
 // authMiddleware handles authentication requests
 func (a *theApp) authMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("authMiddleware do we have a correlation ID yet? %q\n", correlation.ExtractFromContext(r.Context()))
 		if a.Auth.TryAuthenticate(w, r, a.domains) {
 			return
 		}
@@ -500,7 +517,13 @@ func runApp(config *cfg.Config) {
 		log.WithError(err).Fatal("could not create domains config source")
 	}
 
-	a := theApp{config: config, domains: domains}
+	knownPaths := []string{
+		pathPrefixArtifacts,
+		pathPrefixAuth,
+		config.General.StatusPath,
+	}
+
+	a := theApp{config: config, domains: domains, knownPaths: knownPaths}
 
 	err = logging.ConfigureLogging(a.config.Log.Format, a.config.Log.Verbose)
 	if err != nil {

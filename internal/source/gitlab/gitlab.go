@@ -10,6 +10,8 @@ import (
 
 	"gitlab.com/gitlab-org/labkit/log"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
@@ -98,7 +100,7 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 				SubPath:    subPath}, nil
 		}
 	}
-
+	logging.LogRequest(r).WithError(domain.ErrDomainDoesNotExist).Errorf("no lookup path for: %q", r.URL.Path)
 	return nil, domain.ErrDomainDoesNotExist
 }
 

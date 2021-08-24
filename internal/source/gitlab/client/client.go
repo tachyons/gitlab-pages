@@ -110,6 +110,7 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	}
 
 	if resp == nil {
+		fmt.Printf("response is nil....\n")
 		return api.Lookup{Name: host, Error: domain.ErrDomainDoesNotExist}
 	}
 

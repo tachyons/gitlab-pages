@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -47,6 +48,7 @@ func (d *Domain) String() string {
 
 func (d *Domain) resolve(r *http.Request) (*serving.Request, error) {
 	if d == nil {
+		fmt.Printf("d is nil in reslove\n")
 		return nil, ErrDomainDoesNotExist
 	}
 
@@ -126,6 +128,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	request, err := d.resolve(r)
 	if err != nil {
 		if errors.Is(err, ErrDomainDoesNotExist) {
+			fmt.Printf("ServeFileHTTP ErrDomainDoesNotExist\n")
 			// serve generic 404
 			httperrors.Serve404(w)
 			return true
@@ -144,6 +147,7 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	request, err := d.resolve(r)
 	if err != nil {
 		if errors.Is(err, ErrDomainDoesNotExist) {
+			fmt.Printf("ServeNotFoundHTTP ErrDomainDoesNotExist\n")
 			// serve generic 404
 			httperrors.Serve404(w)
 			return
@@ -168,6 +172,7 @@ func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 	namespaceDomain, err := d.Resolver.Resolve(clonedReq)
 	if err != nil {
 		if errors.Is(err, ErrDomainDoesNotExist) {
+			fmt.Printf("serveNamespaceNotFound ErrDomainDoesNotExist\n")
 			// serve generic 404
 			httperrors.Serve404(w)
 			return

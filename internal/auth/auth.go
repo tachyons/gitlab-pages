@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/correlation"
 	"golang.org/x/crypto/hkdf"
 
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -433,6 +434,9 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 		state := base64.URLEncoding.EncodeToString(securecookie.GenerateRandomKey(16))
 		session.Values["state"] = state
 		session.Values["uri"] = getRequestAddress(r)
+		correlationID := correlation.ExtractFromContext(r.Context())
+		fmt.Printf("do we have the ID here?\n%q\n", correlationID)
+		session.Values["correlation_id"] = correlationID
 
 		// Clear possible proxying
 		delete(session.Values, "proxy_auth_domain")
