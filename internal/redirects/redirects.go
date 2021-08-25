@@ -55,7 +55,7 @@ var (
 	errUnsupportedStatus               = errors.New("status not supported")
 	errNoForce                         = errors.New("force! not supported")
 	errTooManyPathSegments             = fmt.Errorf("url path cannot contain more than %d forward slashes", maxPathSegments)
-	errTooManyRules                    = fmt.Errorf("_redirects file contains more than the maximum %d rules, so no rules will be processed", maxRuleCount)
+	errTooManyRules                    = fmt.Errorf("_redirects file may not contain more than %d rules", maxRuleCount)
 	regexpPlaceholder                  = regexp.MustCompile(`(?i)/:[a-z]+`)
 )
 
@@ -72,6 +72,10 @@ func (r *Redirects) Status() string {
 
 	messages := make([]string, 0, len(r.rules)+1)
 	messages = append(messages, fmt.Sprintf("%d rules", len(r.rules)))
+
+	if err := validateRedirectsFile(r); err != nil {
+		messages = append(messages, fmt.Sprintf("error: %s", err.Error()))
+	}
 
 	for i, rule := range r.rules {
 		if err := validateRule(rule); err != nil {
@@ -130,10 +134,6 @@ func ParseRedirects(ctx context.Context, root vfs.Root) *Redirects {
 	redirectRules, err := netlifyRedirects.Parse(reader)
 	if err != nil {
 		return &Redirects{error: errFailedToParseConfig}
-	}
-
-	if len(redirectRules) > maxRuleCount {
-		return &Redirects{error: errTooManyRules}
 	}
 
 	return &Redirects{rules: redirectRules}

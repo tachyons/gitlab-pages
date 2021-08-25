@@ -201,12 +201,6 @@ func TestRedirectsParseRedirects(t *testing.T) {
 			expectedRules: 0,
 			expectedErr:   errFailedToParseConfig.Error(),
 		},
-		{
-			name:          "Too many redirect rules",
-			redirectsFile: strings.Repeat("/goto.html /target.html 301\n", maxRuleCount+1),
-			expectedRules: 0,
-			expectedErr:   errTooManyRules.Error(),
-		},
 	}
 
 	for _, tt := range tests {
