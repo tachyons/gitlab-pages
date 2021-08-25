@@ -3,6 +3,7 @@ package redirects
 import (
 	"context"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -29,7 +30,7 @@ func generateRedirectsFile(dirPath string, count int) error {
 func benchmarkRedirectsRewrite(b *testing.B, redirectsCount int) {
 	ctx := context.Background()
 
-	root, tmpDir := testhelpers.TmpDir(nil, "ParseRedirects_benchmarks")
+	root, tmpDir := testhelpers.TmpDir(b, "ParseRedirects_benchmarks")
 
 	err := generateRedirectsFile(tmpDir, redirectsCount)
 	require.NoError(b, err)
@@ -49,7 +50,7 @@ func benchmarkRedirectsRewrite(b *testing.B, redirectsCount int) {
 func BenchmarkRedirectsRewrite_withoutPlaceholders(b *testing.B) {
 	b.Run("10 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 10) })
 	b.Run("100 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 100) })
-	b.Run("1000 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 1000) })
+	b.Run("1000 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 998) })
 }
 
 func BenchmarkRedirectsRewrite_PlaceholdersEnabled(b *testing.B) {
@@ -57,13 +58,13 @@ func BenchmarkRedirectsRewrite_PlaceholdersEnabled(b *testing.B) {
 
 	b.Run("10 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 10) })
 	b.Run("100 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 100) })
-	b.Run("1000 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 1000) })
+	b.Run("1000 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 998) })
 }
 
 func benchmarkRedirectsParseRedirects(b *testing.B, redirectsCount int) {
 	ctx := context.Background()
 
-	root, tmpDir := testhelpers.TmpDir(nil, "ParseRedirects_benchmarks")
+	root, tmpDir := testhelpers.TmpDir(b, "ParseRedirects_benchmarks")
 
 	err := generateRedirectsFile(tmpDir, redirectsCount)
 	require.NoError(b, err)
@@ -77,5 +78,5 @@ func benchmarkRedirectsParseRedirects(b *testing.B, redirectsCount int) {
 func BenchmarkRedirectsParseRedirects(b *testing.B) {
 	b.Run("10 redirects", func(b *testing.B) { benchmarkRedirectsParseRedirects(b, 10) })
 	b.Run("100 redirects", func(b *testing.B) { benchmarkRedirectsParseRedirects(b, 100) })
-	b.Run("1000 redirects", func(b *testing.B) { benchmarkRedirectsParseRedirects(b, 1000) })
+	b.Run("1000 redirects", func(b *testing.B) { benchmarkRedirectsParseRedirects(b, 998) })
 }
