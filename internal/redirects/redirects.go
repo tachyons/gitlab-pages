@@ -55,7 +55,6 @@ var (
 	errUnsupportedStatus               = errors.New("status not supported")
 	errNoForce                         = errors.New("force! not supported")
 	errTooManyPathSegments             = fmt.Errorf("url path cannot contain more than %d forward slashes", maxPathSegments)
-	errTooManyRules                    = fmt.Errorf("_redirects file may not contain more than %d rules", maxRuleCount)
 	regexpPlaceholder                  = regexp.MustCompile(`(?i)/:[a-z]+`)
 )
 
@@ -73,11 +72,21 @@ func (r *Redirects) Status() string {
 	messages := make([]string, 0, len(r.rules)+1)
 	messages = append(messages, fmt.Sprintf("%d rules", len(r.rules)))
 
-	if err := validateRedirectsFile(r); err != nil {
-		messages = append(messages, fmt.Sprintf("error: %s", err.Error()))
-	}
-
 	for i, rule := range r.rules {
+		if i >= maxRuleCount {
+			messages = append([]string{
+				fmt.Sprintf(
+					"The _redirects file contains (%d) rules, more than the maximum of %d rules. Only the first %d rules will be processed.",
+					len(r.rules),
+					maxRuleCount,
+					maxRuleCount,
+				)},
+				messages...,
+			)
+
+			break
+		}
+
 		if err := validateRule(rule); err != nil {
 			messages = append(messages, fmt.Sprintf("rule %d: error: %s", i+1, err.Error()))
 		} else {

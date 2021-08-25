@@ -15,24 +15,22 @@ import (
 
 var fs = vfs.Instrumented(&local.VFS{})
 
-func TmpDir(t *testing.T, pattern string) (vfs.Root, string, func()) {
+func TmpDir(tb testing.TB, pattern string) (vfs.Root, string) {
+	tb.Helper()
+
 	tmpDir, err := ioutil.TempDir("", pattern)
-	if t != nil {
-		require.NoError(t, err)
-	}
+	require.NoError(tb, err)
 
 	// On some systems `/tmp` can be a symlink
 	tmpDir, err = filepath.EvalSymlinks(tmpDir)
-	if t != nil {
-		require.NoError(t, err)
-	}
+	require.NoError(tb, err)
 
 	root, err := fs.Root(context.Background(), tmpDir)
-	if t != nil {
-		require.NoError(t, err)
-	}
+	require.NoError(tb, err)
 
-	return root, tmpDir, func() {
-		os.RemoveAll(tmpDir)
-	}
+	tb.Cleanup(func() {
+		require.NoError(tb, os.RemoveAll(tmpDir))
+	})
+
+	return root, tmpDir
 }

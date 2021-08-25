@@ -100,11 +100,12 @@ func matchesRule(rule *netlifyRedirects.Rule, path string) (bool, string) {
 //
 // If no rule matches, this function returns `nil` and an empty string
 func (r *Redirects) match(path string) (*netlifyRedirects.Rule, string) {
-	if validateRedirectsFile(r) != nil {
-		return nil, ""
-	}
-
 	for i := range r.rules {
+		if i >= maxRuleCount {
+			// do not process any more rules
+			return nil, ""
+		}
+
 		// assign rule to a new var to prevent the following gosec error
 		// G601: Implicit memory aliasing in for loop
 		rule := r.rules[i]

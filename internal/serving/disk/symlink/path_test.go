@@ -85,8 +85,7 @@ func testEvalSymlinks(t *testing.T, wd, path, want string) {
 }
 
 func TestEvalSymlinks(t *testing.T) {
-	_, tmpDir, cleanup := testhelpers.TmpDir(t, "symlink_tests")
-	defer cleanup()
+	_, tmpDir := testhelpers.TmpDir(t, "symlink_tests")
 
 	// Create the symlink farm using relative paths.
 	for _, d := range EvalSymlinksTestDirs {
@@ -124,8 +123,7 @@ func TestEvalSymlinks(t *testing.T) {
 }
 
 func TestEvalSymlinksIsNotExist(t *testing.T) {
-	root, _, cleanup := testhelpers.TmpDir(t, "symlink_tests")
-	defer cleanup()
+	root, _ := testhelpers.TmpDir(t, "symlink_tests")
 
 	_, err := symlink.EvalSymlinks(context.Background(), root, "notexist")
 	if !os.IsNotExist(err) {
@@ -145,8 +143,7 @@ func TestEvalSymlinksIsNotExist(t *testing.T) {
 }
 
 func TestIssue13582(t *testing.T) {
-	root, tmpDir, cleanup := testhelpers.TmpDir(t, "symlink_tests")
-	defer cleanup()
+	root, tmpDir := testhelpers.TmpDir(t, "symlink_tests")
 
 	dir := filepath.Join(tmpDir, "dir")
 	err := os.Mkdir(dir, 0755)
