@@ -2,7 +2,6 @@ package redirects
 
 import (
 	"context"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -160,8 +159,7 @@ func TestRedirectsRewrite(t *testing.T) {
 func TestRedirectsParseRedirects(t *testing.T) {
 	ctx := context.Background()
 
-	root, tmpDir, cleanup := testhelpers.TmpDir(t, "ParseRedirects_tests")
-	defer cleanup()
+	root, tmpDir := testhelpers.TmpDir(t, "ParseRedirects_tests")
 
 	tests := []struct {
 		name          string
@@ -206,7 +204,7 @@ func TestRedirectsParseRedirects(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.redirectsFile != "" {
-				err := ioutil.WriteFile(path.Join(tmpDir, ConfigFile), []byte(tt.redirectsFile), 0600)
+				err := os.WriteFile(path.Join(tmpDir, ConfigFile), []byte(tt.redirectsFile), 0600)
 				require.NoError(t, err)
 			}
 
@@ -221,4 +219,37 @@ func TestRedirectsParseRedirects(t *testing.T) {
 			require.Len(t, redirects.rules, tt.expectedRules)
 		})
 	}
+}
+
+func TestMaxRuleCount(t *testing.T) {
+	root, tmpDir := testhelpers.TmpDir(t, "TooManyRules_tests")
+
+	err := os.WriteFile(path.Join(tmpDir, ConfigFile), []byte(strings.Repeat("/goto.html /target.html 301\n", maxRuleCount-1)+
+		"/1000.html /target1000 301\n"+
+		"/1001.html /target1001 301\n",
+	), 0600)
+	require.NoError(t, err)
+
+	redirects := ParseRedirects(context.Background(), root)
+
+	testFn := func(path, expectedToURL string, expectedStatus int, expectedErr string) func(t *testing.T) {
+		return func(t *testing.T) {
+			originalURL, err := url.Parse(path)
+			require.NoError(t, err)
+
+			toURL, status, err := redirects.Rewrite(originalURL)
+			if expectedErr != "" {
+				require.EqualError(t, err, expectedErr)
+				return
+			}
+
+			require.NoError(t, err)
+
+			require.Equal(t, expectedToURL, toURL.String())
+			require.Equal(t, expectedStatus, status)
+		}
+	}
+
+	t.Run("maxRuleCount matches", testFn("/1000.html", "/target1000", 301, ""))
+	t.Run("maxRuleCount+1 does not match", testFn("/1001.html", "", 0, ErrNoRedirect.Error()))
 }
