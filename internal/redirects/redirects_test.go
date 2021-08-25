@@ -2,7 +2,6 @@ package redirects
 
 import (
 	"context"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -205,7 +204,7 @@ func TestRedirectsParseRedirects(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.redirectsFile != "" {
-				err := ioutil.WriteFile(path.Join(tmpDir, ConfigFile), []byte(tt.redirectsFile), 0600)
+				err := os.WriteFile(path.Join(tmpDir, ConfigFile), []byte(tt.redirectsFile), 0600)
 				require.NoError(t, err)
 			}
 
@@ -225,7 +224,7 @@ func TestRedirectsParseRedirects(t *testing.T) {
 func TestMaxRuleCount(t *testing.T) {
 	root, tmpDir := testhelpers.TmpDir(t, "TooManyRules_tests")
 
-	err := ioutil.WriteFile(path.Join(tmpDir, ConfigFile), []byte(strings.Repeat("/goto.html /target.html 301\n", maxRuleCount-1)+
+	err := os.WriteFile(path.Join(tmpDir, ConfigFile), []byte(strings.Repeat("/goto.html /target.html 301\n", maxRuleCount-1)+
 		"/1000.html /target1000 301\n"+
 		"/1001.html /target1001 301\n",
 	), 0600)

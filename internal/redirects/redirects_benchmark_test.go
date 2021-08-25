@@ -2,7 +2,6 @@ package redirects
 
 import (
 	"context"
-	"io/ioutil"
 	"net/url"
 	"path"
 	"strings"
@@ -24,7 +23,7 @@ func generateRedirectsFile(dirPath string, count int) error {
 
 	content += "/entrance.html /exit.html 301\n"
 
-	return ioutil.WriteFile(path.Join(dirPath, ConfigFile), []byte(content), 0600)
+	return os.WriteFile(path.Join(dirPath, ConfigFile), []byte(content), 0600)
 }
 
 func benchmarkRedirectsRewrite(b *testing.B, redirectsCount int) {
