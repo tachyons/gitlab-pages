@@ -27,6 +27,21 @@ license_scanning:
 gemnasium-dependency_scanning:
   <<: *rules-for-scanners
 
+gemnasium-tools-dependency_scanning:
+  stage: prepare
+  image:
+    name: "$SECURE_ANALYZERS_PREFIX/gemnasium:$DS_MAJOR_VERSION"
+  script:
+    - /analyzer run --target-dir ./tools
+
+gemnasium-tools-license_scanning:
+  stage: prepare
+  image:
+    name: "$SECURE_ANALYZERS_PREFIX/license-finder:$LICENSE_MANAGEMENT_VERSION"
+    entrypoint: [""]
+  script:
+    - CI_PROJECT_DIR=$(pwd)/tools /run.sh analyze .
+
 secret_detection:
   stage: prepare
   rules:

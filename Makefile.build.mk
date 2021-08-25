@@ -6,11 +6,8 @@ all: gitlab-pages
 
 setup: .GOPATH/.ok
 	mkdir -p bin/
-	# Installing dev tools defined in tools.go
-	@cat ./tools.go | \
-		grep _ | \
-		awk -F'"' '{print $$2}' | \
-		GOBIN=$(CURDIR)/bin xargs -tI % go install %
+	# Installing dev tools defined in go.tools
+	awk '/_/ {print $$2}' ./tools/main.go | xargs -tI % go install ${V:+-v -x} -modfile=tools/go.mod -mod=mod %
 
 generate-mocks: .GOPATH/.ok
 	$Q bin/mockgen -source=internal/interface.go -destination=internal/mocks/mocks.go -package=mocks
