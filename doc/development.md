@@ -11,8 +11,6 @@ Create `gitlab-pages.conf` in the root of this project:
 pages-domain=192.168.1.135.nip.io
 pages-root=shared/pages
 listen-http=:8090
-# WARNING: to be deprecated in https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
-domain-config-source=disk
 log-verbose=true
 ```
 
