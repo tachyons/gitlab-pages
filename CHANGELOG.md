@@ -1,3 +1,19 @@
+## 1.43.0 (2021-08-26)
+
+### Added (1 change)
+
+- [Splat and placeholder support in _redirects](gitlab-org/gitlab-pages@5fff32dd852a27151a08dea0cb2a8fd2983d7f65) ([merge request](gitlab-org/gitlab-pages!458))
+
+### Changed (2 changes)
+
+- [feat: Add _redirects max rule count validation](gitlab-org/gitlab-pages@65188a6f442d2fa5f34be815564c151f3a52e8a7) by @nfriend ([merge request](gitlab-org/gitlab-pages!555))
+- [build: bump go to 1.16](gitlab-org/gitlab-pages@e1c89e281f9af0e15a0d3035ce4ff1fe1ada2b79) by @feistel ([merge request](gitlab-org/gitlab-pages!547))
+
+### Removed (2 changes)
+
+- [refactor: remove chroot/jail logic](gitlab-org/gitlab-pages@6b7b256de67436735b948e63663a875d7043a8dd) by @feistel ([merge request](gitlab-org/gitlab-pages!536))
+- [refactor: remove support for disk configuration source](gitlab-org/gitlab-pages@5e9447161081a73d15ae81cd21da683fde7c2e9b) by @feistel ([merge request](gitlab-org/gitlab-pages!541))
+
 ## 1.42.0 (2021-08-17)
 
 ### Changed (2 changes)
