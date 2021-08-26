@@ -23,8 +23,8 @@ var (
 	sentryEnvironment       = flag.String("sentry-environment", "", "The environment for sentry crash reporting")
 	daemonUID               = flag.Uint("daemon-uid", 0, "Drop privileges to this user")
 	daemonGID               = flag.Uint("daemon-gid", 0, "Drop privileges to this group")
-	daemonInplaceChroot     = flag.Bool("daemon-inplace-chroot", false, "Fall back to a non-bind-mount chroot of -pages-root when daemonizing")
-	daemonEnableJail        = flag.Bool("daemon-enable-jail", false, "Enable legacy jailing mechanism (disabled by default for API-based configuration, and always enabled for disk-basec configuration)")
+	_                       = flag.Bool("daemon-enable-jail", false, "DEPRECATED and ignored, will be removed in 15.0")
+	_                       = flag.Bool("daemon-inplace-chroot", false, "DEPRECATED and ignored, will be removed in 15.0") // TODO: https://gitlab.com/gitlab-org/gitlab-pages/-/issues/599
 	propagateCorrelationID  = flag.Bool("propagate-correlation-id", false, "Reuse existing Correlation-ID from the incoming request header `X-Request-ID` if present")
 	logFormat               = flag.String("log-format", "json", "The log output format: 'text' or 'json'")
 	logVerbose              = flag.Bool("log-verbose", false, "Verbose logging")

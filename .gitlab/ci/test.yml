@@ -11,31 +11,31 @@
 .tests-unit:
   extends: .tests-common
   script:
-    - echo "Running all unit tests without daemonizing..."
+    - echo "Running all unit tests..."
     - make test ARGS='-short'
 
-.tests-acceptance-tmpdir:
+.tests-acceptance:
   extends: .tests-common
   script:
-    - echo "Running just the acceptance tests daemonized (tmpdir)...."
-    - TEST_DAEMONIZE=tmpdir make acceptance
+    - echo "Running just the acceptance tests...."
+    - make acceptance
 
-.tests-acceptance-inplace:
+.tests-acceptance-daemonize:
   extends: .tests-common
   script:
-    - echo "Running just the acceptance tests daemonized (inplace)...."
-    - TEST_DAEMONIZE=inplace make acceptance
+    - echo "Running just the acceptance tests as daemon...."
+    - make acceptance ARGS='-daemonize'
 
 test:1.16:
   extends: .tests-unit
   image: golang:1.16
 
 test-acceptance:1.16:
-  extends: .tests-acceptance-tmpdir
+  extends: .tests-acceptance
   image: golang:1.16
 
-test-acceptance-inplace:1.16:
-  extends: .tests-acceptance-inplace
+test-acceptance-daemonize:1.16:
+  extends: .tests-acceptance-daemonize
   image: golang:1.16
 
 test:1.17:
@@ -43,11 +43,11 @@ test:1.17:
   image: golang:1.17
 
 test-acceptance:1.17:
-  extends: .tests-acceptance-tmpdir
+  extends: .tests-acceptance
   image: golang:1.17
 
-test-acceptance-inplace:1.17:
-  extends: .tests-acceptance-inplace
+test-acceptance-daemonize:1.17:
+  extends: .tests-acceptance-daemonize
   image: golang:1.17
 
 race:

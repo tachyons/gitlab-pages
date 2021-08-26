@@ -82,10 +82,8 @@ type Auth struct {
 
 // Daemon groups settings related to configuring GitLab Pages daemon
 type Daemon struct {
-	UID           uint
-	GID           uint
-	InplaceChroot bool
-	EnableJail    bool
+	UID uint
+	GID uint
 }
 
 // Cache configuration for GitLab API
@@ -144,10 +142,6 @@ type ZipServing struct {
 	RefreshInterval    time.Duration
 	OpenTimeout        time.Duration
 	AllowedPaths       []string
-	// TODO: this is a temporary workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/326117#note_546346101
-	// where daemon-inplace-chroot=true fails to serve zip archives when pages_serve_with_zip_file_protocol is enabled
-	// To be removed along with chroot support https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
-	ChrootPath string
 }
 
 func internalGitlabServerFromFlags() string {
@@ -222,10 +216,8 @@ func loadConfig() (*Config, error) {
 			Scope:        *authScope,
 		},
 		Daemon: Daemon{
-			UID:           *daemonUID,
-			GID:           *daemonGID,
-			InplaceChroot: *daemonInplaceChroot,
-			EnableJail:    *daemonEnableJail,
+			UID: *daemonUID,
+			GID: *daemonGID,
 		},
 		Log: Log{
 			Format:  *logFormat,
@@ -282,13 +274,6 @@ func loadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	// TODO: this is a temporary workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/326117#note_546346101
-	// where daemon-inplace-chroot=true fails to serve zip archives when pages_serve_with_zip_file_protocol is enabled
-	// To be removed along with chroot support https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
-	if config.Daemon.InplaceChroot {
-		config.Zip.ChrootPath = *pagesRoot
-	}
-
 	return config, nil
 }
 
@@ -298,8 +283,6 @@ func LogConfig(config *Config) {
 		"artifacts-server-timeout":      *artifactsServerTimeout,
 		"daemon-gid":                    *daemonGID,
 		"daemon-uid":                    *daemonUID,
-		"daemon-inplace-chroot":         *daemonInplaceChroot,
-		"daemon-enable-jail":            *daemonEnableJail,
 		"default-config-filename":       flag.DefaultConfigFlagname,
 		"disable-cross-origin-requests": *disableCrossOriginRequests,
 		"domain":                        config.General.Domain,
