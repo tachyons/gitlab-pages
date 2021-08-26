@@ -1,50 +1,39 @@
 .tests-common:
-  extends: .go-mod-cache
-  stage: test
+  extends: .common
   needs: ['download deps']
   artifacts:
     reports:
       junit: junit-test-report.xml
 
-.tests-unit:
+.tests-matrix:
   extends: .tests-common
+  image: golang:${GO_VERSION}
+  parallel:
+    matrix:
+      - GO_VERSION: ["1.16", "1.17"]
+
+tests:
+  extends: .tests-matrix
   script:
     - echo "Running all unit tests..."
     - make test ARGS='-short'
 
-.tests-acceptance:
-  extends: .tests-common
+tests-acceptance:
+  extends: .tests-matrix
   script:
     - echo "Running just the acceptance tests...."
     - make acceptance
-
-test:1.16:
-  extends: .tests-unit
-  image: golang:1.16
-
-test-acceptance:1.16:
-  extends: .tests-acceptance
-  image: golang:1.16
-
-test:1.17:
-  extends: .tests-unit
-  image: golang:1.17
-
-test-acceptance:1.17:
-  extends: .tests-acceptance
-  image: golang:1.17
 
 race:
   extends: .tests-common
   script:
     - echo "Running race detector"
-    - make setup
     - make race
 
 cover:
   extends: .tests-common
   script:
-    - make generate-mocks
+    - echo "Running coverage testing"
     - make cover
   coverage: '/total:.+\(statements\).+\d+\.\d+/'
   artifacts:
@@ -69,5 +58,7 @@ code_quality:
 
 check deps:
   extends: .tests-common
+  before_script:
+    - echo skipping
   script:
     - make deps-check
