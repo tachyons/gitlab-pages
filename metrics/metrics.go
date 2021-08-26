@@ -130,7 +130,7 @@ var (
 		[]string{"op", "cache"},
 	)
 
-	// ZipCachedArchives is the number of entries in the cache
+	// ZipCachedEntries is the number of entries in the cache
 	ZipCachedEntries = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "gitlab_pages_zip_cached_entries",
