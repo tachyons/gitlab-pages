@@ -35,6 +35,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -49,7 +50,7 @@ var (
 
 type theApp struct {
 	config         *cfg.Config
-	source         *gitlab.Gitlab
+	source         source.Source
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
 	Handlers       *handlers.Handlers
