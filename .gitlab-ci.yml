@@ -21,7 +21,7 @@ default:
 
 .common:
   before_script:
-    - make setup
+    - make cisetup
   variables:
     GOPATH: $CI_PROJECT_DIR/.GOPATH
   cache:

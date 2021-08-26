@@ -9,6 +9,11 @@ setup: .GOPATH/.ok
 	# Installing dev tools defined in go.tools
 	awk '/_/ {print $$2}' ./tools/main.go | xargs -tI % go install ${V:+-v -x} -modfile=tools/go.mod -mod=mod %
 
+cisetup: .GOPATH/.ok
+	mkdir -p bin/
+	# Installing dev tools defined in go.tools
+	awk '/_/ {print $$2}' ./tools/main.go | grep -v -e mockgen -e golangci | xargs -tI % go install ${V:+-v -x} -modfile=tools/go.mod -mod=mod %
+
 generate-mocks: .GOPATH/.ok
 	$Q bin/mockgen -source=internal/interface.go -destination=internal/mocks/mocks.go -package=mocks
 	$Q bin/mockgen -source=internal/source/source.go -destination=internal/mocks/source.go -package=mocks
