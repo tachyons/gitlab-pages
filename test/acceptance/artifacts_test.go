@@ -59,7 +59,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 		host         string
 		path         string
 		status       int
-		binaryOption string
 		content      string
 		length       int64
 		cacheControl string
@@ -70,7 +69,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 			host:         "group.gitlab-example.com",
 			path:         "/-/project/-/jobs/1/artifacts/200.html",
 			status:       http.StatusOK,
-			binaryOption: "",
 			content:      content,
 			length:       contentLength,
 			cacheControl: "max-age=3600",
@@ -81,7 +79,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 			host:         "group.gitlab-example.com",
 			path:         "/-/subgroup/project/-/jobs/1/artifacts/200.html",
 			status:       http.StatusOK,
-			binaryOption: "",
 			content:      content,
 			length:       contentLength,
 			cacheControl: "max-age=3600",
@@ -92,7 +89,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 			host:         "group.gitlab-example.com",
 			path:         "/-/project/-/jobs/1/artifacts/delayed_200.html",
 			status:       http.StatusBadGateway,
-			binaryOption: "-artifacts-server-timeout=1",
 			content:      "",
 			length:       0,
 			cacheControl: "",
@@ -103,7 +99,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 			host:         "group.gitlab-example.com",
 			path:         "/-/project/-/jobs/1/artifacts/404.html",
 			status:       http.StatusNotFound,
-			binaryOption: "",
 			content:      "",
 			length:       0,
 			cacheControl: "",
@@ -114,7 +109,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 			host:         "group.gitlab-example.com",
 			path:         "/-/project/-/jobs/1/artifacts/500.html",
 			status:       http.StatusInternalServerError,
-			binaryOption: "",
 			content:      "",
 			length:       0,
 			cacheControl: "",
@@ -127,18 +121,18 @@ func TestArtifactProxyRequest(t *testing.T) {
 	artifactServerURL := testServer.URL + "/api/v4"
 	t.Log("Artifact server URL", artifactServerURL)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			args := []string{"-artifacts-server=" + artifactServerURL}
-			if tt.binaryOption != "" {
-				args = append(args, tt.binaryOption)
-			}
+	args := []string{"-artifacts-server=" + artifactServerURL, "-artifacts-server-timeout=1"}
 
-			RunPagesProcess(t,
-				withListeners([]ListenSpec{httpListener}),
-				withArguments(args),
-				withEnv([]string{"SSL_CERT_FILE=" + certFile}),
-			)
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+		withArguments(args),
+		withEnv([]string{"SSL_CERT_FILE=" + certFile}),
+	)
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
 			resp, err := GetPageFromListener(t, httpListener, tt.host, tt.path)
 			require.NoError(t, err)
@@ -177,46 +171,40 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	})
 
 	tests := []struct {
-		name         string
-		host         string
-		path         string
-		status       int
-		binaryOption string
+		name   string
+		host   string
+		path   string
+		status int
 	}{
 		{
-			name:         "basic proxied request for private project",
-			host:         "group.gitlab-example.com",
-			path:         "/-/private/-/jobs/1/artifacts/200.html",
-			status:       http.StatusOK,
-			binaryOption: "",
+			name:   "basic proxied request for private project",
+			host:   "group.gitlab-example.com",
+			path:   "/-/private/-/jobs/1/artifacts/200.html",
+			status: http.StatusOK,
 		},
 		{
-			name:         "basic proxied request for subgroup",
-			host:         "group.gitlab-example.com",
-			path:         "/-/subgroup/private/-/jobs/1/artifacts/200.html",
-			status:       http.StatusOK,
-			binaryOption: "",
+			name:   "basic proxied request for subgroup",
+			host:   "group.gitlab-example.com",
+			path:   "/-/subgroup/private/-/jobs/1/artifacts/200.html",
+			status: http.StatusOK,
 		},
 		{
-			name:         "502 error while attempting to proxy",
-			host:         "group.gitlab-example.com",
-			path:         "/-/private/-/jobs/1/artifacts/delayed_200.html",
-			status:       http.StatusBadGateway,
-			binaryOption: "artifacts-server-timeout=1",
+			name:   "502 error while attempting to proxy",
+			host:   "group.gitlab-example.com",
+			path:   "/-/private/-/jobs/1/artifacts/delayed_200.html",
+			status: http.StatusBadGateway,
 		},
 		{
-			name:         "Proxying 404 from server",
-			host:         "group.gitlab-example.com",
-			path:         "/-/private/-/jobs/1/artifacts/404.html",
-			status:       http.StatusNotFound,
-			binaryOption: "",
+			name:   "Proxying 404 from server",
+			host:   "group.gitlab-example.com",
+			path:   "/-/private/-/jobs/1/artifacts/404.html",
+			status: http.StatusNotFound,
 		},
 		{
-			name:         "Proxying 500 from server",
-			host:         "group.gitlab-example.com",
-			path:         "/-/private/-/jobs/1/artifacts/500.html",
-			status:       http.StatusInternalServerError,
-			binaryOption: "",
+			name:   "Proxying 500 from server",
+			host:   "group.gitlab-example.com",
+			path:   "/-/private/-/jobs/1/artifacts/500.html",
+			status: http.StatusInternalServerError,
 		},
 	}
 
@@ -225,21 +213,24 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	artifactServerURL := testServer.URL + "/api/v4"
 	t.Log("Artifact server URL", artifactServerURL)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			configFile := defaultConfigFileWith(t,
-				"gitlab-server="+testServer.URL,
-				"artifacts-server="+artifactServerURL,
-				"auth-redirect-uri=https://projects.gitlab-example.com/auth",
-				tt.binaryOption)
+	configFile := defaultConfigFileWith(t,
+		"gitlab-server="+testServer.URL,
+		"artifacts-server="+artifactServerURL,
+		"auth-redirect-uri=https://projects.gitlab-example.com/auth",
+		"artifacts-server-timeout=1")
 
-			RunPagesProcess(t,
-				withListeners([]ListenSpec{httpsListener}),
-				withArguments([]string{
-					"-config=" + configFile,
-				}),
-				withEnv([]string{"SSL_CERT_FILE=" + certFile}),
-			)
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpsListener}),
+		withArguments([]string{
+			"-config=" + configFile,
+		}),
+		withEnv([]string{"SSL_CERT_FILE=" + certFile}),
+	)
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
 			resp, err := GetRedirectPage(t, httpsListener, tt.host, tt.path)
 			require.NoError(t, err)
