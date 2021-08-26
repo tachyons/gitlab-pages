@@ -367,8 +367,7 @@ func contains(slice []string, s string) bool {
 }
 
 func getPagesDaemonArgs(t *testing.T) []string {
-	mode := os.Getenv("TEST_DAEMONIZE")
-	if mode == "" {
+	if !(*daemonize) {
 		return nil
 	}
 
@@ -379,17 +378,6 @@ func getPagesDaemonArgs(t *testing.T) []string {
 	}
 
 	out := []string{}
-
-	switch mode {
-	case "tmpdir":
-		out = append(out, "-daemon-inplace-chroot=false")
-	case "inplace":
-		out = append(out, "-daemon-inplace-chroot=true")
-	default:
-		t.Log("Unknown daemonize mode", mode)
-		t.FailNow()
-		return nil
-	}
 
 	t.Log("Running pages as a daemon")
 
