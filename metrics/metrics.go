@@ -4,38 +4,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// TODO: remove disk source metrics https://gitlab.com/gitlab-org/gitlab-pages/-/issues/382
 var (
-	// DomainsServed counts the total number of sites served
-	DomainsServed = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "gitlab_pages_served_domains",
-		Help: "The number of sites served by this Pages app",
-	})
-
-	// DomainFailedUpdates counts the number of failed site updates
-	DomainFailedUpdates = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "gitlab_pages_domains_failed_total",
-		Help: "The total number of site updates that have failed since daemon start",
-	})
-
-	// DomainUpdates counts the number of site updates successfully processed
-	DomainUpdates = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "gitlab_pages_domains_updated_total",
-		Help: "The total number of site updates successfully processed since daemon start",
-	})
-
-	// DomainLastUpdateTime is the UNIX timestamp of the last update
-	DomainLastUpdateTime = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "gitlab_pages_last_domain_update_seconds",
-		Help: "UNIX timestamp of the last update",
-	})
-
-	// DomainsConfigurationUpdateDuration is the time it takes to update domains configuration from disk
-	DomainsConfigurationUpdateDuration = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "gitlab_pages_domains_configuration_update_duration",
-		Help: "The time (in seconds) it takes to update domains configuration from disk",
-	})
-
 	// DomainsSourceCacheHit is the number of GitLab API call cache hits
 	DomainsSourceCacheHit = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "gitlab_pages_domains_source_cache_hit",
@@ -220,11 +189,6 @@ var (
 // MustRegister collectors with the Prometheus client
 func MustRegister() {
 	prometheus.MustRegister(
-		DomainsServed,
-		DomainFailedUpdates,
-		DomainUpdates,
-		DomainLastUpdateTime,
-		DomainsConfigurationUpdateDuration,
 		DomainsSourceCacheHit,
 		DomainsSourceCacheMiss,
 		DomainsSourceAPIReqTotal,
