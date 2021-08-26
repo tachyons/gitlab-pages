@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -64,30 +63,4 @@ func TestMultipleListenersFromEnvironmentVariables(t *testing.T) {
 		rsp.Body.Close()
 		require.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
-}
-
-// TODO: remove along chroot https://gitlab.com/gitlab-org/gitlab-pages/-/issues/561
-func TestEnableJailFromEnvironment(t *testing.T) {
-	out, teardown := runPagesProcess(t,
-		true,
-		*pagesBinary,
-		[]ListenSpec{httpListener},
-		"",
-		[]string{
-			"DAEMON_ENABLE_JAIL=true",
-		},
-		"-domain-config-source", "disk",
-	)
-	t.Cleanup(teardown)
-
-	require.Eventually(t, func() bool {
-		require.Contains(t, out.String(), "\"daemon-enable-jail\":true")
-		return true
-	}, time.Second, 10*time.Millisecond)
-
-	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/")
-
-	require.NoError(t, err)
-	rsp.Body.Close()
-	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }

@@ -41,8 +41,8 @@ var (
 	gitlabRetrievalInterval = flag.Duration("gitlab-retrieval-interval", time.Second, "The interval to wait before retrying to resolve a domain's configuration via the GitLab API")
 	gitlabRetrievalRetries  = flag.Int("gitlab-retrieval-retries", 3, "The maximum number of times to retry to resolve a domain's configuration via the API")
 
-	domainConfigSource = flag.String("domain-config-source", "gitlab", "Domain configuration source 'disk', 'auto' or 'gitlab' (default: 'gitlab'). DEPRECATED: gitlab-pages will use the API-based configuration starting from 14.3 see https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/5993")
-	enableDisk         = flag.Bool("enable-disk", true, "Enable disk access, shall be disabled in environments where shared disk storage isn't available")
+	_          = flag.String("domain-config-source", "gitlab", "DEPRECATED and has not affect, see https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/541")
+	enableDisk = flag.Bool("enable-disk", true, "Enable disk access, shall be disabled in environments where shared disk storage isn't available")
 
 	clientID           = flag.String("auth-client-id", "", "GitLab application Client ID")
 	clientSecret       = flag.String("auth-client-secret", "", "GitLab application Client Secret")

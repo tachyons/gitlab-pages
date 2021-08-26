@@ -3,7 +3,6 @@ module gitlab.com/gitlab-org/gitlab-pages
 go 1.16
 
 require (
-	github.com/andybalholm/brotli v1.0.3
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/mock v1.3.1
 	github.com/gorilla/handlers v1.4.2
@@ -12,7 +11,6 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/karlseguin/ccache/v2 v2.0.6
-	github.com/karrick/godirwalk v1.10.12
 	github.com/namsral/flag v1.7.4-pre
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pires/go-proxyproto v0.2.0

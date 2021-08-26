@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -79,20 +80,29 @@ func TestHealthCheckMiddleware(t *testing.T) {
 		{
 			name:   "Healthcheck request",
 			path:   "/-/healthcheck",
-			status: http.StatusServiceUnavailable,
-			body:   "not yet ready\n",
+			status: http.StatusOK,
+			body:   "success\n",
 		},
 	}
 
-	cfg, err := config.LoadConfig()
-	require.NoError(t, err)
-	cfg.General.StatusPath = "/-/healthcheck"
+	validCfg := config.GitLab{
+		InternalServer:     "server",
+		APISecretKey:       []byte("secret"),
+		ClientHTTPTimeout:  time.Second,
+		JWTTokenExpiration: time.Second,
+	}
 
-	domains, err := source.NewDomains("auto", &cfg.GitLab)
+	domains, err := source.NewDomains(&validCfg)
 	require.NoError(t, err)
+
+	cfg := config.Config{
+		General: config.General{
+			StatusPath: "/-/healthcheck",
+		},
+	}
 
 	app := theApp{
-		config:  cfg,
+		config:  &cfg,
 		domains: domains,
 	}
 
