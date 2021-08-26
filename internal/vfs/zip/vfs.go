@@ -104,8 +104,7 @@ func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
 }
 
 func (fs *zipVFS) reconfigureTransport(cfg *config.Config) error {
-	// TODO: remove chrootPath from httpsfs package: https://gitlab.com/gitlab-org/gitlab-pages/-/issues/598
-	fsTransport, err := httpfs.NewFileSystemPath(cfg.Zip.AllowedPaths, "")
+	fsTransport, err := httpfs.NewFileSystemPath(cfg.Zip.AllowedPaths)
 	if err != nil {
 		return err
 	}
