@@ -1,7 +1,7 @@
 package httpfs
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -87,7 +87,7 @@ func TestFSOpen(t *testing.T) {
 
 			require.NoError(t, err)
 
-			content, err := ioutil.ReadAll(got)
+			content, err := io.ReadAll(got)
 			require.NoError(t, err)
 
 			require.Equal(t, test.expectedContent, string(content))
@@ -192,7 +192,7 @@ func TestFileSystemPathCanServeHTTP(t *testing.T) {
 			defer res.Body.Close()
 
 			require.Equal(t, test.expectedStatusCode, res.StatusCode)
-			content, err := ioutil.ReadAll(res.Body)
+			content, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
 
 			require.Equal(t, test.expectedContent, string(content))

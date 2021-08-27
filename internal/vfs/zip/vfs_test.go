@@ -2,7 +2,7 @@ package zip
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -55,7 +55,7 @@ func TestVFSRoot(t *testing.T) {
 			f, err := root.Open(context.Background(), "index.html")
 			require.NoError(t, err)
 
-			content, err := ioutil.ReadAll(f)
+			content, err := io.ReadAll(f)
 			require.NoError(t, err)
 			require.Equal(t, "zip.gitlab.io/project/index.html\n", string(content))
 

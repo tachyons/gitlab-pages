@@ -1,7 +1,7 @@
 package acceptance_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -49,7 +49,7 @@ func TestRewrites(t *testing.T) {
 			require.NoError(t, err)
 			defer rsp.Body.Close()
 
-			body, err := ioutil.ReadAll(rsp.Body)
+			body, err := io.ReadAll(rsp.Body)
 			require.NoError(t, err)
 
 			require.Contains(t, string(body), tt.expectedBody)

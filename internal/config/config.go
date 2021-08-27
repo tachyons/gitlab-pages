@@ -3,7 +3,7 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -157,7 +157,7 @@ func setGitLabAPISecretKey(secretFile string, config *Config) error {
 		return nil
 	}
 
-	encoded, err := ioutil.ReadFile(secretFile)
+	encoded, err := os.ReadFile(secretFile)
 	if err != nil {
 		return fmt.Errorf("reading secret file: %w", err)
 	}
@@ -259,7 +259,7 @@ func loadConfig() (*Config, error) {
 		{&config.General.RootKey, *pagesRootKey},
 	} {
 		if file.path != "" {
-			if *file.contents, err = ioutil.ReadFile(file.path); err != nil {
+			if *file.contents, err = os.ReadFile(file.path); err != nil {
 				return nil, err
 			}
 		}

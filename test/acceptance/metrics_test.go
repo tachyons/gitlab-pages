@@ -1,7 +1,7 @@
 package acceptance_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -28,7 +28,7 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	require.Contains(t, string(body), "gitlab_pages_http_in_flight_requests 0")

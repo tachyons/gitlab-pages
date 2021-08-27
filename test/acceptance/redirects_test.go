@@ -2,7 +2,7 @@ package acceptance_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -41,7 +41,7 @@ func TestRedirectStatusPage(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/_redirects")
 	require.NoError(t, err)
 
-	body, err := ioutil.ReadAll(rsp.Body)
+	body, err := io.ReadAll(rsp.Body)
 	require.NoError(t, err)
 	defer rsp.Body.Close()
 

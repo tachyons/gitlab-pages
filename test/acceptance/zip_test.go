@@ -1,7 +1,7 @@
 package acceptance_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -88,7 +88,7 @@ func TestZipServing(t *testing.T) {
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
 
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			require.NoError(t, err)
 
 			require.Contains(t, string(body), tt.expectedContent, "content mismatch")
@@ -171,7 +171,7 @@ func TestZipServingFromDisk(t *testing.T) {
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
 
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			require.NoError(t, err)
 
 			require.Contains(t, string(body), tt.expectedContent, "content mismatch")

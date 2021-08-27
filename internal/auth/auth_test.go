@@ -3,7 +3,7 @@ package auth
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -301,7 +301,7 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 
 	require.Equal(t, http.StatusNotFound, res.StatusCode)
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 	require.Equal(t, string(body), "Generic 404")
 }
@@ -471,7 +471,7 @@ func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL, Host: "pages.gitlab-example.com", RequestURI: "/test"}
 
-	resp := &http.Response{StatusCode: http.StatusUnauthorized, Body: ioutil.NopCloser(bytes.NewReader([]byte("{\"error\":\"invalid_token\"}")))}
+	resp := &http.Response{StatusCode: http.StatusUnauthorized, Body: io.NopCloser(bytes.NewReader([]byte("{\"error\":\"invalid_token\"}")))}
 	defer resp.Body.Close()
 
 	require.Equal(t, true, auth.CheckResponseForInvalidToken(result, r, resp))
@@ -489,7 +489,7 @@ func TestCheckResponseForInvalidTokenWhenNotInvalidToken(t *testing.T) {
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
 
-	resp := &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(bytes.NewReader([]byte("ok")))}
+	resp := &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader([]byte("ok")))}
 
 	require.Equal(t, false, auth.CheckResponseForInvalidToken(result, r, resp))
 }

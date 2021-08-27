@@ -3,7 +3,7 @@ package acceptance_test
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -142,7 +142,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 			require.Equal(t, tt.contentType, resp.Header.Get("Content-Type"))
 
 			if tt.status == http.StatusOK {
-				body, err := ioutil.ReadAll(resp.Body)
+				body, err := io.ReadAll(resp.Body)
 				require.NoError(t, err)
 				require.Equal(t, tt.content, string(body))
 				require.Equal(t, tt.length, resp.ContentLength)

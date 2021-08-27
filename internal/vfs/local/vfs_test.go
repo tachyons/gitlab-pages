@@ -2,7 +2,6 @@ package local
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,7 +15,7 @@ import (
 var localVFS = &VFS{}
 
 func tmpDir(t *testing.T) (string, func()) {
-	tmpDir, err := ioutil.TempDir("", "vfs")
+	tmpDir, err := os.MkdirTemp("", "vfs")
 	require.NoError(t, err)
 
 	// On some systems `/tmp` can be a symlink
@@ -44,7 +43,7 @@ func TestVFSRoot(t *testing.T) {
 	require.NoError(t, err)
 
 	filePath := filepath.Join(tmpDir, "file")
-	err = ioutil.WriteFile(filePath, []byte{}, 0644)
+	err = os.WriteFile(filePath, []byte{}, 0644)
 	require.NoError(t, err)
 
 	symlinks := map[string]string{

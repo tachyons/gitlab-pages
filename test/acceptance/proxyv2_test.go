@@ -1,7 +1,7 @@
 package acceptance_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -41,7 +41,7 @@ func TestProxyv2(t *testing.T) {
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
 
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			require.NoError(t, err)
 
 			require.Contains(t, string(body), tt.expectedContent, "content mismatch")
