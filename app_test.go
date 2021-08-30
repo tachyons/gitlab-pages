@@ -13,7 +13,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 )
 
 func Test_setRequestScheme(t *testing.T) {
@@ -92,7 +92,7 @@ func TestHealthCheckMiddleware(t *testing.T) {
 		JWTTokenExpiration: time.Second,
 	}
 
-	domains, err := source.NewDomains(&validCfg)
+	source, err := gitlab.New(&validCfg)
 	require.NoError(t, err)
 
 	cfg := config.Config{
@@ -102,8 +102,8 @@ func TestHealthCheckMiddleware(t *testing.T) {
 	}
 
 	app := theApp{
-		config:  &cfg,
-		domains: domains,
+		config: &cfg,
+		source: source,
 	}
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

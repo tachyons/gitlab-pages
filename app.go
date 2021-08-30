@@ -50,7 +50,7 @@ var (
 
 type theApp struct {
 	config         *cfg.Config
-	domains        *source.Domains
+	source         source.Source
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
 	Handlers       *handlers.Handlers
@@ -100,7 +100,7 @@ func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, erro
 }
 
 func (a *theApp) domain(ctx context.Context, host string) (*domain.Domain, error) {
-	return a.domains.GetDomain(ctx, host)
+	return a.source.GetDomain(ctx, host)
 }
 
 // checkAuthAndServeNotFound performs the auth process if domain can't be found
@@ -221,7 +221,7 @@ func (a *theApp) acmeMiddleware(handler http.Handler) http.Handler {
 // authMiddleware handles authentication requests
 func (a *theApp) authMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if a.Auth.TryAuthenticate(w, r, a.domains) {
+		if a.Auth.TryAuthenticate(w, r, a.source) {
 			return
 		}
 
@@ -493,12 +493,12 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 }
 
 func runApp(config *cfg.Config) {
-	domains, err := source.NewDomains(&config.GitLab)
+	source, err := gitlab.New(&config.GitLab)
 	if err != nil {
 		log.WithError(err).Fatal("could not create domains config source")
 	}
 
-	a := theApp{config: config, domains: domains}
+	a := theApp{config: config, source: source}
 
 	err = logging.ConfigureLogging(a.config.Log.Format, a.config.Log.Verbose)
 	if err != nil {
