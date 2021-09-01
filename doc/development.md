@@ -141,7 +141,6 @@ This is an example of developing GitLab Pages inside the [GitLab Development Kit
    gitlab-server=http://127.0.0.1.nip.io:3000
    # run make gitlab-pages-secret in your $GDK_ROOT
    api-secret-key=$GDK_ROOT/gitlab-pages-secret
-   domain-config-source=gitlab # preferred way, requires api-secret-key and internal-gitlab-server
    log-verbose=true
    ## the following settings are only needed if you want to test auth for private projects
    auth-client-id=$CLIENT_ID # generate a new OAuth application in http://127.0.0.1.nip.io:3000/admin/applications
