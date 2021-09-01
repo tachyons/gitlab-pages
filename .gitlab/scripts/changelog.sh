@@ -18,7 +18,7 @@ function generate_changelog() {
         --fail \
         --silent \
         --show-error \
-        "https://gitlab.com/api/v4/projects/$PROJECT_ID/repository/changelog"
+        "https://gitlab.com/api/v4/projects/$PROJECT_ID/repository/changelog?message=\"docs: add changelog for version $VERSION\""
 }
 
 echo 'Updating changelog on the remote branch...'
