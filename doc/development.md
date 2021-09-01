@@ -137,6 +137,7 @@ This is an example of developing GitLab Pages inside the [GitLab Development Kit
    pages-root=$GDK_ROOT/gitlab/shared/pages # absolute path inside $GDK_ROOT
    pages-domain=pages.127.0.0.1.nip.io
    internal-gitlab-server=http://127.0.0.1.nip.io:3000
+   gitlab-server=http://127.0.0.1.nip.io:3000
    api-secret-key=$GDK_ROOT/gitlab-pages-secret # run make gitlab-pages-secret in your $GDK_ROOT
    domain-config-source=gitlab # preferred way, requires api-secret-key and internal-gitlab-server
    log-verbose=true
