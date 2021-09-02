@@ -57,7 +57,7 @@ func appMain() {
 	if config.Sentry.DSN != "" {
 		err := initErrorReporting(config.Sentry.DSN, config.Sentry.Environment)
 		if err != nil {
-			log.WithError(err).Fatal("Failed to initialize errortracking")
+			log.WithError(err).Warn("Failed to initialize errortracking")
 		}
 	}
 
