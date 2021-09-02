@@ -2,6 +2,7 @@ package redirects
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -55,7 +56,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			url:            "/cake-portal.html",
 			rule:           "/cake-portal.html  /still-alive.html 301",
 			expectedURL:    "/still-alive.html",
-			expectedStatus: 301,
+			expectedStatus: http.StatusMovedPermanently,
 			expectedErr:    "",
 		},
 		{
@@ -71,7 +72,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			url:            "/cake-portal",
 			rule:           "/cake-portal/  /still-alive/ 301",
 			expectedURL:    "/still-alive/",
-			expectedStatus: 301,
+			expectedStatus: http.StatusMovedPermanently,
 			expectedErr:    "",
 		},
 		{
@@ -79,7 +80,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			url:            "/cake-portal/",
 			rule:           "/cake-portal/  /still-alive/ 301",
 			expectedURL:    "/still-alive/",
-			expectedStatus: 301,
+			expectedStatus: http.StatusMovedPermanently,
 			expectedErr:    "",
 		},
 		{
@@ -87,7 +88,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			url:            "/cake-portal",
 			rule:           "/cake-portal  /still-alive 301",
 			expectedURL:    "/still-alive",
-			expectedStatus: 301,
+			expectedStatus: http.StatusMovedPermanently,
 			expectedErr:    "",
 		},
 		{
@@ -95,7 +96,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			url:            "/cake-portal/",
 			rule:           "/cake-portal  /still-alive 301",
 			expectedURL:    "/still-alive",
-			expectedStatus: 301,
+			expectedStatus: http.StatusMovedPermanently,
 			expectedErr:    "",
 		},
 		{
@@ -103,7 +104,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			url:            "/the-cake/is-delicious",
 			rule:           "/the-cake/* /is-a-lie 200",
 			expectedURL:    "/is-a-lie",
-			expectedStatus: 200,
+			expectedStatus: http.StatusOK,
 			expectedErr:    "",
 		},
 		{
@@ -111,7 +112,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			url:            "/from/weighted/companion/cube/path",
 			rule:           "/from/*/path /to/:splat/path 200",
 			expectedURL:    "/to/weighted/companion/cube/path",
-			expectedStatus: 200,
+			expectedStatus: http.StatusOK,
 			expectedErr:    "",
 		},
 		{
@@ -119,7 +120,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			url:            "/the/cake/is/delicious",
 			rule:           "/the/:placeholder/is/delicious /the/:placeholder/is/a/lie 200",
 			expectedURL:    "/the/cake/is/a/lie",
-			expectedStatus: 200,
+			expectedStatus: http.StatusOK,
 			expectedErr:    "",
 		},
 	}
@@ -250,6 +251,6 @@ func TestMaxRuleCount(t *testing.T) {
 		}
 	}
 
-	t.Run("maxRuleCount matches", testFn("/1000.html", "/target1000", 301, ""))
+	t.Run("maxRuleCount matches", testFn("/1000.html", "/target1000", http.StatusMovedPermanently, ""))
 	t.Run("maxRuleCount+1 does not match", testFn("/1001.html", "", 0, ErrNoRedirect.Error()))
 }

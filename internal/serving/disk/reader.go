@@ -88,7 +88,7 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 		if endsWithSlash(urlPath) {
 			fullPath, err = reader.resolvePath(ctx, root, h.SubPath, "index.html")
 		} else {
-			http.Redirect(h.Writer, h.Request, redirectPath(h.Request), 302)
+			http.Redirect(h.Writer, h.Request, redirectPath(h.Request), http.StatusFound)
 			return true
 		}
 	}
