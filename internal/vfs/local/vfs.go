@@ -3,7 +3,6 @@ package local
 import (
 	"context"
 	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -22,16 +21,12 @@ func (localFs VFS) Root(ctx context.Context, path string, cacheKey string) (vfs.
 	}
 
 	rootPath, err = filepath.EvalSymlinks(rootPath)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, &vfs.ErrNotExist{Inner: err}
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 
 	fi, err := os.Lstat(rootPath)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, &vfs.ErrNotExist{Inner: err}
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 
