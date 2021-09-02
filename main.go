@@ -24,8 +24,8 @@ var VERSION = "dev"
 // REVISION stores the information about the git revision of application
 var REVISION = "HEAD"
 
-func initErrorReporting(sentryDSN, sentryEnvironment string) {
-	errortracking.Initialize(
+func initErrorReporting(sentryDSN, sentryEnvironment string) error {
+	return errortracking.Initialize(
 		errortracking.WithSentryDSN(sentryDSN),
 		errortracking.WithVersion(fmt.Sprintf("%s-%s", VERSION, REVISION)),
 		errortracking.WithLoggerName("gitlab-pages"),
@@ -55,7 +55,10 @@ func appMain() {
 	}
 
 	if config.Sentry.DSN != "" {
-		initErrorReporting(config.Sentry.DSN, config.Sentry.Environment)
+		err := initErrorReporting(config.Sentry.DSN, config.Sentry.Environment)
+		if err != nil {
+			log.WithError(err).Warn("Failed to initialize errortracking")
+		}
 	}
 
 	err = logging.ConfigureLogging(config.Log.Format, config.Log.Verbose)
