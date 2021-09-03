@@ -2,7 +2,6 @@ ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
 ARG GO_TAG="master"
 ARG RUBY_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ruby:master"
-ARG GITLAB_LOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
 
 ARG GOMPLATE_TAG=
 ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
@@ -33,7 +32,6 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
-FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
 FROM ${GOMPLATE_IMAGE} as gomplate
 
 FROM ${RUBY_IMAGE}
@@ -48,9 +46,6 @@ RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab
 
 COPY --from=builder /usr/local/bin/gitlab-pages /bin/gitlab-pages
-
-# Pull in gitlab-logger
-COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
 
 # Pull in gomplate
 COPY --from=gomplate /gomplate /usr/local/bin/gomplate
