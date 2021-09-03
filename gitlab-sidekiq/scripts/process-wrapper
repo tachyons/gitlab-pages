@@ -43,6 +43,9 @@ fi
 #
 # See https://gitlab.com/gitlab-org/build/CNG/-/merge_requests/418#note_320550297
 #
+# switch to runtime directory
+cd /srv/gitlab
+
 /srv/gitlab/bin/$(
     /srv/gitlab/bin/sidekiq-cluster \
         --dryrun \
