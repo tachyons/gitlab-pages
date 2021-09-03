@@ -18,7 +18,6 @@ LABEL source="https://gitlab.com/gitlab-org/gitlab-pages" \
       description="Serve static websites from GitLab repositories."
 
 ADD gitlab-pages.tar.gz /
-ADD gitlab-logger.tar.gz /usr/local/bin
 ADD gitlab-gomplate.tar.gz /
 
 COPY scripts/ /scripts

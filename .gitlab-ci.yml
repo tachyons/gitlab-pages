@@ -330,13 +330,11 @@ gitlab-pages:
   <<: *except-deps
   stage: phase-four
   script:
-    - import_assets artifacts/ubi/{gitlab-logger,gitlab-gomplate}.tar.gz
-    - logger_target_version=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
+    - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
-    - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GITLAB_LOGGER_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$go_version$gomplate_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - build_if_needed --build-arg "GITLAB_PAGES_VERSION=$GITLAB_PAGES_VERSION"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
@@ -344,7 +342,6 @@ gitlab-pages:
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "DEPENDENCY_PROXY=${DEPENDENCY_PROXY}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
-                      --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
     - push_tags
@@ -353,10 +350,7 @@ gitlab-pages:
   needs:
     - gitlab-go
     - gitlab-gomplate
-    - gitlab-logger
     - gitlab-ruby
-    - job: build:gitlab-logger
-      optional: true
     - job: build:gitlab-gomplate
       optional: true
     - job: build:gitlab-pages
