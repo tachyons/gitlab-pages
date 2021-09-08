@@ -69,7 +69,7 @@ func newArchive(fs *zipVFS, openTimeout time.Duration) *zipArchive {
 		files:          make(map[string]*zip.File),
 		directories:    make(map[string]*zip.FileHeader),
 		openTimeout:    openTimeout,
-		cacheNamespace: strconv.FormatInt(atomic.AddInt64(&fs.archiveCount, 1), 10) + ":",
+		cacheNamespace: strconv.FormatInt(atomic.AddInt64(fs.archiveCount, 1), 10) + ":",
 	}
 }
 
