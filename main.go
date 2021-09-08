@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -121,9 +122,10 @@ func createAppListeners(config *cfg.Config) []io.Closer {
 	for _, addr := range config.ListenHTTPStrings.Split() {
 		l, f := createSocket(addr)
 		closers = append(closers, l, f)
-
+		_, port, _ := net.SplitHostPort(l.Addr().String())
 		log.WithFields(log.Fields{
-			"listener": addr,
+			"listener": l.Addr().String(),
+			"port":     port,
 		}).Debug("Set up HTTP listener")
 
 		httpListeners = append(httpListeners, f.Fd())

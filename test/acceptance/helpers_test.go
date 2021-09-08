@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -162,7 +163,7 @@ func (l ListenSpec) URL(suffix string) string {
 
 // Returns only once this spec points at a working TCP server
 func (l ListenSpec) WaitUntilRequestSucceeds(done chan struct{}) error {
-	timeout := 5 * time.Second
+	timeout := time.Second
 	for start := time.Now(); time.Since(start) < timeout; {
 		select {
 		case <-done:
@@ -200,23 +201,11 @@ func (l ListenSpec) WaitUntilRequestSucceeds(done chan struct{}) error {
 func (l ListenSpec) JoinHostPort() string {
 	return net.JoinHostPort(l.Host, l.Port)
 }
-
-// RunPagesProcessWithoutGitLabStub will start a gitlab-pages process with the specified listeners
-// and return a function you can call to shut it down again. Use
-// GetPageFromProcess to do a HTTP GET against a listener.
-//
-// If run as root via sudo, the gitlab-pages process will drop privileges
-func RunPagesProcessWithoutGitLabStub(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
-	_, cleanup := runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
-	return cleanup
-}
-
-func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
-	_, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, extraArgs...)
-	return cleanup
-}
-
 func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
+	return RunPagesProcessWithCh(t, nil, opts...)
+}
+
+func RunPagesProcessWithCh(t *testing.T, portCh chan string, opts ...processOption) *LogCaptureBuffer {
 	chdir := false
 	chdirCleanup := testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)
 
@@ -243,7 +232,7 @@ func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 		"-api-secret-key", gitLabAPISecretKey,
 	)
 
-	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, processCfg.extraArgs...)
+	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, portCh, processCfg.extraArgs...)
 
 	t.Cleanup(func() {
 		source.Close()
@@ -274,7 +263,9 @@ func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCert
 	})
 }
 
-func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
+var portRegexp = regexp.MustCompile("\"port\":\"([0-9]*?)\"")
+
+func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, portCh chan string, extraArgs ...string) (*LogCaptureBuffer, func()) {
 	t.Helper()
 
 	_, err := os.Stat(pagesBinary)
@@ -290,6 +281,26 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 	cmd.Stderr = out
 	require.NoError(t, cmd.Start())
 	t.Logf("Running %s %v", pagesBinary, args)
+	go func() {
+		if portCh != nil {
+			defer close(portCh)
+			for i := 0; i < 20; i++ {
+				match := portRegexp.FindStringSubmatch(logBuf.String())
+				if len(match) > 1 {
+					fmt.Printf("FOUND THE PORT!: %q\n", match[1])
+					//port = match[1]
+					portCh <- match[1]
+					//close(portCh)
+					return
+				}
+				//fmt.Printf("what is the logbuf output:%s\n", logBuf.String())
+				time.Sleep(100 * time.Millisecond)
+
+			}
+			//portCh <- "49999"
+			//close(portCh)
+		}
+	}()
 
 	waitCh := make(chan struct{})
 	go func() {

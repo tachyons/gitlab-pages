@@ -12,15 +12,24 @@ import (
 )
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
-	RunPagesProcess(t)
+	portCh := make(chan string)
+	RunPagesProcessWithCh(t, portCh, withListeners([]ListenSpec{httpListener}), withoutWait)
 
-	for _, spec := range supportedListeners() {
-		rsp, err := GetPageFromListener(t, spec, "invalid.invalid", "")
-
-		require.NoError(t, err)
-		rsp.Body.Close()
-		require.Equal(t, http.StatusNotFound, rsp.StatusCode)
+	port := <-portCh
+	fmt.Printf("WE SHOULD HAVE GOT THE PORT... %q\n", port)
+	listener := ListenSpec{
+		Type: "http",
+		Host: "127.0.0.1",
+		Port: port,
 	}
+	fmt.Printf("THE LISTENER's PORT?: %q\n", listener.Port)
+	//for _, spec := range supportedListeners() {
+	rsp, err := GetPageFromListener(t, listener, "invalid.invalid", "")
+
+	require.NoError(t, err)
+	rsp.Body.Close()
+	require.Equal(t, http.StatusNotFound, rsp.StatusCode)
+	//}
 }
 
 func TestUnknownProjectReturnsNotFound(t *testing.T) {
