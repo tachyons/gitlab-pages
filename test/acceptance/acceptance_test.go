@@ -18,7 +18,7 @@ var (
 	pagesBinary = flag.String("gitlab-pages-binary", "../../gitlab-pages", "Path to the gitlab-pages binary")
 	daemonize   = flag.Bool("daemonize", false, "run tests as daemon")
 
-	httpPort        = "36000"
+	httpPort        = "0"
 	httpsPort       = "37000"
 	httpProxyPort   = "38000"
 	httpProxyV2Port = "39000"
