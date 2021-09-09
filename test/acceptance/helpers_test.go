@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -261,7 +260,7 @@ func RunPagesProcessWithSSLCertFile(t *testing.T, listeners []ListenSpec, sslCer
 
 func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCertFile string) {
 	// Create temporary cert dir
-	sslCertDir, err := ioutil.TempDir("", "pages-test-SSL_CERT_DIR")
+	sslCertDir, err := os.MkdirTemp("", "pages-test-SSL_CERT_DIR")
 	require.NoError(t, err)
 
 	// Copy sslCertFile into temp cert dir
@@ -621,7 +620,7 @@ func defaultUserHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
 func newConfigFile(t *testing.T, configs ...string) string {
 	t.Helper()
 
-	f, err := ioutil.TempFile(os.TempDir(), "gitlab-pages-config")
+	f, err := os.CreateTemp(os.TempDir(), "gitlab-pages-config")
 	require.NoError(t, err)
 	defer f.Close()
 

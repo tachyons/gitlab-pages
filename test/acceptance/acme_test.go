@@ -1,7 +1,7 @@
 package acceptance_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -44,7 +44,7 @@ func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
 			defer rsp.Body.Close()
 			require.NoError(t, err)
 			require.Equal(t, test.expectedStatus, rsp.StatusCode)
-			body, err := ioutil.ReadAll(rsp.Body)
+			body, err := io.ReadAll(rsp.Body)
 			require.NoError(t, err)
 
 			require.Contains(t, string(body), test.expectedContent)
@@ -85,7 +85,7 @@ func TestAcmeChallengesWhenItIsConfigured(t *testing.T) {
 			defer rsp.Body.Close()
 			require.NoError(t, err)
 			require.Equal(t, test.expectedStatus, rsp.StatusCode)
-			body, err := ioutil.ReadAll(rsp.Body)
+			body, err := io.ReadAll(rsp.Body)
 			require.NoError(t, err)
 
 			require.Contains(t, string(body), test.expectedContent)

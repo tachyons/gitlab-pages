@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -87,7 +86,7 @@ func NewResource(ctx context.Context, url string, httpClient *http.Client) (*Res
 	}
 
 	defer func() {
-		io.CopyN(ioutil.Discard, res.Body, 1) // since we want to read a single byte
+		io.CopyN(io.Discard, res.Body, 1) // since we want to read a single byte
 		res.Body.Close()
 	}()
 

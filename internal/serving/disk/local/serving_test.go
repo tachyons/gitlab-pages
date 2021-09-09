@@ -1,7 +1,7 @@
 package local
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -82,7 +82,7 @@ func TestDisk_ServeFileHTTP(t *testing.T) {
 			defer resp.Body.Close()
 
 			require.Equal(t, test.expectedStatus, resp.StatusCode)
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 
 			require.Contains(t, string(body), test.expectedBody)

@@ -2,7 +2,7 @@ package acceptance_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -40,7 +40,7 @@ func TestGroupDomainReturns200(t *testing.T) {
 	defer rsp.Body.Close()
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 
-	body, err := ioutil.ReadAll(rsp.Body)
+	body, err := io.ReadAll(rsp.Body)
 	require.NoError(t, err)
 
 	require.Equal(t, string(body), "OK\n")
@@ -94,7 +94,7 @@ func TestKnownHostReturns200(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, rsp.StatusCode)
 
-				body, err := ioutil.ReadAll(rsp.Body)
+				body, err := io.ReadAll(rsp.Body)
 				require.NoError(t, err)
 				require.Equal(t, tt.content, string(body))
 
@@ -156,7 +156,7 @@ func TestCustom404(t *testing.T) {
 				defer rsp.Body.Close()
 				require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 
-				page, err := ioutil.ReadAll(rsp.Body)
+				page, err := io.ReadAll(rsp.Body)
 				require.NoError(t, err)
 				require.Contains(t, string(page), test.content)
 			}
@@ -409,7 +409,7 @@ func TestDomainResolverError(t *testing.T) {
 
 			require.Equal(t, http.StatusBadGateway, response.StatusCode)
 
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			require.NoError(t, err)
 
 			require.Contains(t, string(body), "Something went wrong (502)", "content mismatch")

@@ -2,7 +2,7 @@ package acceptance_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -278,7 +278,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 
 			require.Equal(t, http.StatusNotFound, anotherResp.StatusCode)
 
-			page, err := ioutil.ReadAll(anotherResp.Body)
+			page, err := io.ReadAll(anotherResp.Body)
 			require.NoError(t, err)
 			require.Contains(t, string(page), tt.expectedErrorPage)
 		})

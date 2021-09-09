@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -118,7 +117,7 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	// larger than 512 bytes, the response body will not be closed properly, thus
 	// we need to close it manually in every case.
 	defer func() {
-		io.Copy(ioutil.Discard, resp.Body)
+		io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
 	}()
 
@@ -154,7 +153,7 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 
 	// nolint: errcheck
 	// best effort to discard and close the response body
-	io.Copy(ioutil.Discard, resp.Body)
+	io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 
 	// StatusNoContent means that a domain does not exist, it is not an error

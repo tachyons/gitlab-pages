@@ -2,7 +2,6 @@ package testhelpers
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,7 +17,7 @@ var fs = vfs.Instrumented(&local.VFS{})
 func TmpDir(tb testing.TB, pattern string) (vfs.Root, string) {
 	tb.Helper()
 
-	tmpDir, err := ioutil.TempDir("", pattern)
+	tmpDir, err := os.MkdirTemp("", pattern)
 	require.NoError(tb, err)
 
 	// On some systems `/tmp` can be a symlink

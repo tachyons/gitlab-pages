@@ -1,7 +1,7 @@
 package httptransport
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -27,7 +27,7 @@ func TestReconfigureMeteredRoundTripper(t *testing.T) {
 	defer res.Body.Close()
 
 	require.Equal(t, http.StatusOK, res.StatusCode)
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 
 	require.Equal(t, "httptransport/testdata/file.html\n", string(body))

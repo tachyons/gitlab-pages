@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/rand"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -77,7 +76,7 @@ func testOpen(t *testing.T, zip *zipArchive) {
 			}
 
 			require.NoError(t, err)
-			data, err := ioutil.ReadAll(f)
+			data, err := io.ReadAll(f)
 			require.NoError(t, err)
 
 			require.Equal(t, tt.expectedContent, string(data))
@@ -173,7 +172,7 @@ func TestOpenCached(t *testing.T) {
 			require.NoError(t, err)
 			defer f.Close()
 
-			_, err = ioutil.ReadAll(f)
+			_, err = io.ReadAll(f)
 			if test.expectedReadErr != nil {
 				require.Equal(t, test.expectedReadErr, err)
 				status, _ := zip.(*zipArchive).openStatus()
@@ -354,7 +353,7 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 
 	file, err := zip.Open(context.Background(), "index.html")
 	require.NoError(t, err)
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	require.NoError(t, err)
 
 	require.Equal(t, "zip.gitlab.io/project/index.html\n", string(data))
@@ -478,7 +477,7 @@ func benchmarkArchiveRead(b *testing.B, size int64) {
 		f, err := z.Open(context.Background(), "file.txt")
 		require.NoError(b, err)
 
-		_, err = io.Copy(ioutil.Discard, f)
+		_, err = io.Copy(io.Discard, f)
 		require.NoError(b, err)
 
 		require.NoError(b, f.Close())

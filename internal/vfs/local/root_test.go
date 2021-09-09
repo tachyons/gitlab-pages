@@ -2,7 +2,7 @@ package local
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -288,7 +288,7 @@ func TestOpen(t *testing.T) {
 
 			require.NoError(t, err, "Open")
 
-			data, err := ioutil.ReadAll(file)
+			data, err := io.ReadAll(file)
 			require.NoError(t, err, "ReadAll")
 			require.Equal(t, test.expectedContent, string(data), "ReadAll")
 		})

@@ -2,9 +2,9 @@ package acceptance_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -110,18 +110,18 @@ func apiHandler(t *testing.T) http.HandlerFunc {
 func CreateHTTPSFixtureFiles(t *testing.T) (key string, cert string) {
 	t.Helper()
 
-	keyfile, err := ioutil.TempFile("", "https-fixture")
+	keyfile, err := os.CreateTemp("", "https-fixture")
 	require.NoError(t, err)
 	key = keyfile.Name()
 	keyfile.Close()
 
-	certfile, err := ioutil.TempFile("", "https-fixture")
+	certfile, err := os.CreateTemp("", "https-fixture")
 	require.NoError(t, err)
 	cert = certfile.Name()
 	certfile.Close()
 
-	require.NoError(t, ioutil.WriteFile(key, []byte(fixture.Key), 0644))
-	require.NoError(t, ioutil.WriteFile(cert, []byte(fixture.Certificate), 0644))
+	require.NoError(t, os.WriteFile(key, []byte(fixture.Key), 0644))
+	require.NoError(t, os.WriteFile(cert, []byte(fixture.Certificate), 0644))
 
 	return keyfile.Name(), certfile.Name()
 }
@@ -129,11 +129,11 @@ func CreateHTTPSFixtureFiles(t *testing.T) (key string, cert string) {
 func CreateGitLabAPISecretKeyFixtureFile(t *testing.T) (filepath string) {
 	t.Helper()
 
-	secretfile, err := ioutil.TempFile("", "gitlab-api-secret")
+	secretfile, err := os.CreateTemp("", "gitlab-api-secret")
 	require.NoError(t, err)
 	secretfile.Close()
 
-	require.NoError(t, ioutil.WriteFile(secretfile.Name(), []byte(fixture.GitLabAPISecretKey), 0644))
+	require.NoError(t, os.WriteFile(secretfile.Name(), []byte(fixture.GitLabAPISecretKey), 0644))
 
 	return secretfile.Name()
 }

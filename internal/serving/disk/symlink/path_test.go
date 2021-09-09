@@ -6,7 +6,6 @@ package symlink_test
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -156,7 +155,7 @@ func TestIssue13582(t *testing.T) {
 		t.Fatal(err)
 	}
 	file := filepath.Join(linkToDir, "file")
-	err = ioutil.WriteFile(file, nil, 0644)
+	err = os.WriteFile(file, nil, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
