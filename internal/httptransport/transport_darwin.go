@@ -98,7 +98,7 @@ func readUniqueDirectoryEntries(dir string) ([]os.DirEntry, error) {
 		return nil, err
 	}
 	uniq := des[:0]
-	for _, de := range fis {
+	for _, de := range des {
 		if !isSameDirSymlink(de, dir) {
 			uniq = append(uniq, de)
 		}
@@ -109,7 +109,7 @@ func readUniqueDirectoryEntries(dir string) ([]os.DirEntry, error) {
 // isSameDirSymlink reports whether fi in dir is a symlink with a
 // target not containing a slash.
 func isSameDirSymlink(de os.DirEntry, dir string) bool {
-	if de.Mode()&os.ModeSymlink == 0 {
+	if de.Type()&os.ModeSymlink == 0 {
 		return false
 	}
 	target, err := os.Readlink(filepath.Join(dir, de.Name()))
