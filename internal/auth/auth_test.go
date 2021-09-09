@@ -96,7 +96,7 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 
 	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
-	require.Equal(t, 401, result.Code)
+	require.Equal(t, http.StatusUnauthorized, result.Code)
 }
 
 func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
@@ -115,7 +115,7 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	session.Save(r, result)
 
 	require.Equal(t, true, auth.TryAuthenticate(result, r, source.NewMockSource()))
-	require.Equal(t, 401, result.Code)
+	require.Equal(t, http.StatusUnauthorized, result.Code)
 }
 
 func TestTryAuthenticateRemoveTokenFromRedirect(t *testing.T) {
@@ -260,7 +260,7 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	require.False(t, contentServed)
 
 	// notFoundContent wasn't served so the default response from CheckAuthentication should be 200
-	require.Equal(t, 200, result.Code)
+	require.Equal(t, http.StatusOK, result.Code)
 }
 
 func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
@@ -299,7 +299,7 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	res := w.Result()
 	defer res.Body.Close()
 
-	require.Equal(t, 404, res.StatusCode)
+	require.Equal(t, http.StatusNotFound, res.StatusCode)
 
 	body, err := ioutil.ReadAll(res.Body)
 	require.NoError(t, err)
@@ -339,7 +339,7 @@ func TestCheckAuthenticationWhenInvalidToken(t *testing.T) {
 
 	contentServed := auth.CheckAuthentication(result, r, &domainMock{projectID: 1000})
 	require.True(t, contentServed)
-	require.Equal(t, 302, result.Code)
+	require.Equal(t, http.StatusFound, result.Code)
 }
 
 func TestCheckAuthenticationWithoutProject(t *testing.T) {
@@ -374,7 +374,7 @@ func TestCheckAuthenticationWithoutProject(t *testing.T) {
 
 	contentServed := auth.CheckAuthenticationWithoutProject(result, r, &domainMock{projectID: 0})
 	require.False(t, contentServed)
-	require.Equal(t, 200, result.Code)
+	require.Equal(t, http.StatusOK, result.Code)
 }
 
 func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
@@ -409,7 +409,7 @@ func TestCheckAuthenticationWithoutProjectWhenInvalidToken(t *testing.T) {
 
 	contentServed := auth.CheckAuthenticationWithoutProject(result, r, &domainMock{projectID: 0})
 	require.True(t, contentServed)
-	require.Equal(t, 302, result.Code)
+	require.Equal(t, http.StatusFound, result.Code)
 }
 
 func TestGenerateKeys(t *testing.T) {
@@ -489,7 +489,7 @@ func TestCheckResponseForInvalidTokenWhenNotInvalidToken(t *testing.T) {
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
 
-	resp := &http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader([]byte("ok")))}
+	resp := &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(bytes.NewReader([]byte("ok")))}
 
 	require.Equal(t, false, auth.CheckResponseForInvalidToken(result, r, resp))
 }

@@ -114,7 +114,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 			return nil, errsave
 		}
 
-		http.Redirect(w, r, getRequestAddress(r), 302)
+		http.Redirect(w, r, getRequestAddress(r), http.StatusFound)
 		return nil, errsession
 	}
 
@@ -216,7 +216,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 		"redirect_uri", redirectURI,
 	).Info("Authentication was successful, redirecting user back to requested page")
 
-	http.Redirect(w, r, redirectURI, 302)
+	http.Redirect(w, r, redirectURI, http.StatusFound)
 }
 
 func (a *Auth) domainAllowed(ctx context.Context, name string, domains source.Source) bool {
@@ -277,7 +277,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 			"pages_domain":         domain,
 		}).Info("Redirecting user to gitlab for oauth")
 
-		http.Redirect(w, r, url, 302)
+		http.Redirect(w, r, url, http.StatusFound)
 
 		return true
 	}
@@ -324,7 +324,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 
 		// Redirect pages to originating domain with code and state to finish
 		// authentication process
-		http.Redirect(w, r, proxyDomain+r.URL.Path+"?"+query.Encode(), 302)
+		http.Redirect(w, r, proxyDomain+r.URL.Path+"?"+query.Encode(), http.StatusFound)
 		return true
 	}
 
@@ -448,7 +448,7 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 
 		// Because the pages domain might be in public suffix list, we have to
 		// redirect to pages domain to trigger authorization flow
-		http.Redirect(w, r, a.getProxyAddress(r, state), 302)
+		http.Redirect(w, r, a.getProxyAddress(r, state), http.StatusFound)
 
 		return true
 	}
@@ -473,7 +473,7 @@ func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	http.Redirect(w, r, getRequestAddress(r), 302)
+	http.Redirect(w, r, getRequestAddress(r), http.StatusFound)
 }
 
 // IsAuthSupported checks if pages is running with the authentication support
