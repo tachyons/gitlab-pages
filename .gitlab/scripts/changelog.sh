@@ -12,9 +12,11 @@ else
     PROJECT_ID="$PUBLIC_PROJECT_ID"
 fi
 
+MESSAGE="docs: add changelog for version $VERSION"
+
 function generate_changelog() {
     curl --header "PRIVATE-TOKEN: $TOKEN" \
-        --data "version=$VERSION&branch=$BRANCH" \
+        --data "version=$VERSION&branch=$BRANCH&message=$MESSAGE" \
         --fail \
         --silent \
         --show-error \
