@@ -12,6 +12,8 @@ ADD gitaly.tar.gz /tmp/gitaly
 RUN dnf ${DNF_OPTS} install -by --nodocs gcc \
     && mkdir /assets \
     && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
+    && pip3 cache purge \
+    && find /usr/local/lib/python3.8 -name '__pycache__' -type d -exec rm -r {} + \
     && mv /tmp/gitaly/usr/local/bin/gitaly-backup /usr/local/bin \
     && cp -R --parents \
         /usr/local/lib/python3.8/site-packages \

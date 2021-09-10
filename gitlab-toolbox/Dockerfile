@@ -27,6 +27,8 @@ RUN apt-get update \
   && ldconfig \
   && pip3 install --upgrade s3cmd==${S3CMD_VERSION} \
   && pip3 install gsutil==${GSUTIL_VERSION} crcmod \
+  && pip3 cache purge \
+  && find /usr/local/lib/python3.8 -name '__pycache__' -type d -print -exec rm -r {} + \
   && apt-get purge -y --auto-remove gcc \
   && rm -rf /var/lib/apt/lists/*
 
