@@ -2,6 +2,7 @@ ARG BUILD_IMAGE=
 
 FROM ${BUILD_IMAGE}
 
+ARG AWSCLI_VERSION=1.20.25
 ARG S3CMD_VERSION=2.1.0
 ARG GSUTIL_VERSION=4.42
 ARG DNF_OPTS
@@ -11,7 +12,7 @@ ADD gitaly.tar.gz /tmp/gitaly
 
 RUN dnf ${DNF_OPTS} install -by --nodocs gcc \
     && mkdir /assets \
-    && pip3 install s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
+    && pip3 install awscli==${AWSCLI_VERSION} s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
     && mv /tmp/gitaly/usr/local/bin/gitaly-backup /usr/local/bin \
     && cp -R --parents \
         /usr/local/lib/python3.8/site-packages \

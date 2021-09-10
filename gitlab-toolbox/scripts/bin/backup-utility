@@ -4,6 +4,7 @@ set -e
 ACTION=""
 export BACKUP_BUCKET_NAME=${BACKUP_BUCKET_NAME-gitlab-backups}
 export BACKUP_BACKEND=${BACKUP_BACKEND-s3}
+export S3_TOOL=${S3_TOOL-s3cmd}
 S3_CMD_BACKUP_OPTION=""
 
 rails_dir=/srv/gitlab
@@ -34,11 +35,13 @@ function usage()
                                             Can be either 's3' or 'gcs'.
      --s3config CONFIG                      S3 backend configuration to use for backups storage.
                                             Special config file for s3cmd (see: https://s3tools.org/usage)
-     --storage-class CLASSNAME              Pass this storage class to the gcs or s3cmd for more cost-efficient
+                                            Not required when using the awscli tool.
+     --s3tool TOOL                          S3 CLI tool to use. Can be either 's3cmd' or 'awscli'.
+     --storage-class CLASSNAME              Pass this storage class to the gcs, s3cmd or aws cli for more cost-efficient
                                             storage of backups.
      --maximum-backups N                    Only keep the most recent N number of backups, deleting others after success.
                                             Requires s3config credentials to be able to list and delete objects.
-     --cleanup                              Run the backup cleanup without creating a new backup. Can be used with the 
+     --cleanup                              Run the backup cleanup without creating a new backup. Can be used with the
                                             'maximum-backups' option to clean old remote backups.
 HEREDOC
 }
@@ -59,13 +62,17 @@ function fetch_remote_backup(){
     curl --retry 6 --progress-bar -o $output_path $1
   else # It's a timestamp
     file_name="$1_gitlab_backup.tar"
-    if [ "${BACKUP_BACKEND}" = "s3" ]; then
-      s3cmd ${S3_CMD_BACKUP_OPTION} get "s3://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null
-    elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
-      gsutil cp "gs://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null
-    else
-      echo "Unknown backend: ${BACKUP_BACKEND}"
-    fi
+    case "$BACKUP_BACKEND" in
+      s3)
+        case "$S3_TOOL" in
+          s3cmd) s3cmd ${S3_CMD_BACKUP_OPTION} get "s3://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null ;;
+          awscli) aws s3 cp "s3://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null ;;
+          *) echo "Unknown S3 tool: ${S3_TOOL}" ;;
+        esac
+        ;;
+      gcs) gsutil cp "gs://$BACKUP_BUCKET_NAME/$file_name" $output_path > /dev/null ;;
+      *) echo "Unknown backend: ${BACKUP_BACKEND}" ;;
+    esac
   fi
   echo $output_path
 }
@@ -109,7 +116,18 @@ function get_existing_backups(){
   # Example: TIMESTAMP_YYYY_MM_DD_VERSION_gitlab_backup.tar
   case $BACKUP_BACKEND in
     s3)
-      existing_backups=($(s3cmd ${S3_CMD_BACKUP_OPTION} ls s3://$BACKUP_BUCKET_NAME --rinclude '^\d{10}_\d{4}_\d{2}_\d{2}_.+_gitlab_backup.tar$' | awk '{print $4}' | LC_ALL=C sort))
+      case "$S3_TOOL" in
+        s3cmd)
+          existing_backups=($(s3cmd ${S3_CMD_BACKUP_OPTION} ls s3://$BACKUP_BUCKET_NAME --rinclude '^\d{10}_\d{4}_\d{2}_\d{2}_.+_gitlab_backup.tar$' | awk '{print $4}' | LC_ALL=C sort))
+          ;;
+        awscli)
+          existing_backups=($(aws s3 ls "s3://$BACKUP_BUCKET_NAME" | awk '{print $4}' | grep -E '^\d{10}_\d{4}_\d{2}_\d{2}_.+_gitlab_backup.tar$' | LC_ALL=C sort))
+          ;;
+        *)
+          echo "Unknown S3 tool: ${S3_TOOL}"
+          exit 1
+          ;;
+      esac
       ;;
     gcs)
       # Note: gsutil doesn't support regex, so we need to try to match the prefix as best we can with wildcards
@@ -125,14 +143,23 @@ function get_existing_backups(){
 
 function remove_backup(){
   local backup_to_remove=$1
-  if [ "${BACKUP_BACKEND}" = "s3" ]; then
-    s3cmd ${S3_CMD_BACKUP_OPTION} del ${backup_to_remove} > /dev/null
-  elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
-    gsutil rm ${backup_to_remove} > /dev/null
-  else
-    echo "Unknown backend for backup: ${BACKUP_BACKEND}"
-    exit 1
-  fi
+  case "$BACKUP_BACKEND" in
+    s3)
+      case "$S3_TOOL" in
+        s3cmd) s3cmd ${S3_CMD_BACKUP_OPTION} del ${backup_to_remove} > /dev/null ;;
+        awscli) aws s3 rm "s3://${BACKUP_BUCKET_NAME}/${backup_to_remove}" > /dev/null ;;
+        *)
+          echo "Unknown S3 tool: $S3_TOOL"
+          exit 1
+          ;;
+      esac
+      ;;
+    gcs) gsutil rm ${backup_to_remove} > /dev/null ;;
+    *)
+      echo "Unknown backend for backup: ${BACKUP_BACKEND}"
+      exit 1
+      ;;
+  esac
 }
 
 function cleanup(){
@@ -202,23 +229,41 @@ function backup(){
   skipped=$(get_skipped $backup_name)
   write_backup_info $skipped
   pack_backup $backup_name
-  if [ "${BACKUP_BACKEND}" = "s3" ]; then
-    if [ -z "${STORAGE_CLASS}" ]; then
-      s3cmd ${S3_CMD_BACKUP_OPTION} put ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
-    else
-      s3cmd ${S3_CMD_BACKUP_OPTION} put --storage-class "${STORAGE_CLASS}" ${backup_tars_path}/${backup_name}.tar s3://$BACKUP_BUCKET_NAME > /dev/null
-    fi
-    echo "[DONE] Backup can be found at s3://$BACKUP_BUCKET_NAME/${backup_name}.tar"
-  elif [ "${BACKUP_BACKEND}" = "gcs" ]; then
-    if [ -z "${STORAGE_CLASS}" ]; then
-      gsutil cp -n ${backup_tars_path}/${backup_name}.tar gs://$BACKUP_BUCKET_NAME > /dev/null
-    else
-      gsutil cp -s "${STORAGE_CLASS}" -n ${backup_tars_path}/${backup_name}.tar gs://$BACKUP_BUCKET_NAME > /dev/null
-    fi
-    echo "[DONE] Backup can be found at gs://$BACKUP_BUCKET_NAME/${backup_name}.tar"
-  else
-    echo "Unknown backend for backup: ${BACKUP_BACKEND}"
-  fi
+  case "$BACKUP_BACKEND" in
+    s3)
+      case "$S3_TOOL" in
+        s3cmd)
+          if [ -z "${STORAGE_CLASS}" ]; then
+            s3cmd ${S3_CMD_BACKUP_OPTION} put \
+              "${backup_tars_path}/${backup_name}.tar" "s3://$BACKUP_BUCKET_NAME" > /dev/null
+          else
+            s3cmd ${S3_CMD_BACKUP_OPTION} put --storage-class "${STORAGE_CLASS}" \
+              "${backup_tars_path}/${backup_name}.tar" "s3://$BACKUP_BUCKET_NAME" > /dev/null
+          fi
+          ;;
+        awscli)
+          if [ -z "${STORAGE_CLASS}" ]; then
+            aws s3 cp \
+              "${backup_tars_path}/${backup_name}.tar" "s3://$BACKUP_BUCKET_NAME" > /dev/null
+          else
+            aws s3 cp --storage-class "${STORAGE_CLASS}" \
+              "${backup_tars_path}/${backup_name}.tar" "s3://$BACKUP_BUCKET_NAME" > /dev/null
+          fi
+          ;;
+        *) echo "Unknown S3 tool: $S3_TOOL" ;;
+      esac
+      echo "[DONE] Backup can be found at s3://$BACKUP_BUCKET_NAME/${backup_name}.tar"
+      ;;
+    gcs)
+      if [ -z "${STORAGE_CLASS}" ]; then
+        gsutil cp -n ${backup_tars_path}/${backup_name}.tar gs://$BACKUP_BUCKET_NAME > /dev/null
+      else
+        gsutil cp -s "${STORAGE_CLASS}" -n ${backup_tars_path}/${backup_name}.tar gs://$BACKUP_BUCKET_NAME > /dev/null
+      fi
+      echo "[DONE] Backup can be found at gs://$BACKUP_BUCKET_NAME/${backup_name}.tar"
+      ;;
+    *) echo "Unknown backend for backup: ${BACKUP_BACKEND}" ;;
+  esac
 
   cleanup
 }
@@ -300,6 +345,11 @@ do
       shift
       shift
       ;;
+    --s3tool)
+      export S3_TOOL="$2"
+      shift
+      shift
+      ;;
     --s3config)
       if [ ! -f $2 ]; then
         echo "s3cmd file specified does not exist";
@@ -312,7 +362,7 @@ do
     --restore)
       if [ -z "$ACTION" ]; then
         ACTION="restore"
-      else 
+      else
         echo "Only one action at a time is supported"
         exit 1
       fi
@@ -334,7 +384,7 @@ do
       ;;
     --maximum-backups)
       export MAXIMUM_BACKUPS="$2"
-      if ! [[ $MAXIMUM_BACKUPS =~ ^-?[0-9]+$ ]]; then 
+      if ! [[ $MAXIMUM_BACKUPS =~ ^-?[0-9]+$ ]]; then
         echo "Value specified for --maximum-backups must be an integer. Got: ${MAXIMUM_BACKUPS}"
         exit 1
       fi
@@ -344,7 +394,7 @@ do
     --cleanup)
       if [ -z "$ACTION" ]; then
         ACTION="cleanup"
-      else 
+      else
         echo "Only one action at a time is supported"
         exit 1
       fi

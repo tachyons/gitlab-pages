@@ -7,4 +7,5 @@ abort("restore_item and tar path needs to be passed as arguments to the script")
 bucket_name = ENV["#{ARGV[0].upcase}_BUCKET_NAME"] || "gitlab-#{ARGV[0]}"
 tmp_bucket  = ENV['TMP_BUCKET_NAME'] || 'tmp'
 backend_type = ENV['BACKUP_BACKEND'] || 's3'
-ObjectStorageBackup.new(ARGV[0], ARGV[1], bucket_name, tmp_bucket, backend_type).restore
+s3_tool = ENV['S3_TOOL'] || 's3cmd'
+ObjectStorageBackup.new(ARGV[0], ARGV[1], bucket_name, tmp_bucket, backend_type, s3_tool).restore

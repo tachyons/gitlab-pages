@@ -18,7 +18,19 @@ dependencies:
       - dependencies.io
     gitlab_remove_source_branch: true
     remotes:
-      # S3cmd
+      # AWS CLI
+      https://github.com/aws/aws-cli.git:
+        replace_in_files:
+        - filename: ci_files/variables.yml
+          pattern: 'AWSCLI_VERSION: "(\S+)"'
+          range: '>= 1.x.x'
+        - filename: gitlab-toolbox/Dockerfile
+          pattern: 'ARG AWSCLI_VERSION="(\S+)"'
+          range: '>= 1.x.x'
+        - filename: gitlab-toolbox/Dockerfile.build.ubi8
+          pattern: 'ARG AWSCLI_VERSION=(\S+)'
+          range: '>= 1.x.x'
+      # s3cmd
       https://github.com/s3tools/s3cmd.git:
         replace_in_files:
         - filename: ci_files/variables.yml
