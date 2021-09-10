@@ -10,6 +10,7 @@ FROM ${GITALY_IMAGE} AS gitaly
 
 FROM ${FROM_IMAGE}:${TAG}
 
+ARG AWSCLI_VERSION="1.20.25"
 ARG S3CMD_VERSION="2.1.0"
 ARG GSUTIL_VERSION="4.43"
 
@@ -25,7 +26,7 @@ RUN apt-get update \
   openssl \
   tar \
   && ldconfig \
-  && pip3 install --upgrade s3cmd==${S3CMD_VERSION} \
+  && pip3 install --upgrade awscli==${AWSCLI_VERSION} s3cmd==${S3CMD_VERSION} \
   && pip3 install gsutil==${GSUTIL_VERSION} crcmod \
   && pip3 cache purge \
   && find /usr/local/lib/python3.8 -name '__pycache__' -type d -print -exec rm -r {} + \
