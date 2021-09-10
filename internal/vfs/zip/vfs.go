@@ -48,7 +48,9 @@ type zipVFS struct {
 	dataOffsetCache *lruCache
 	readlinkCache   *lruCache
 
-	archiveCount int64
+	// the `int64` needs to be 64bit aligned on some 32bit systems
+	// https://gitlab.com/gitlab-org/gitlab/-/issues/337261
+	archiveCount *int64
 	httpClient   *http.Client
 }
 
@@ -72,6 +74,7 @@ func New(cfg *config.ZipServing) vfs.VFS {
 				httptransport.DefaultTTFBTimeout,
 			),
 		},
+		archiveCount: new(int64),
 	}
 
 	zipVFS.resetCache()
