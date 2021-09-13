@@ -1,7 +1,6 @@
 package ratelimiter
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -15,10 +14,10 @@ const (
 	// DefaultMaxTimePerDomain is the maximum time to keep a domain in the rate limiter map
 	DefaultMaxTimePerDomain = 30 * time.Second
 
-	// DefaultRatePerDomainPerSecond transformed to rate.Limit = 1 / DefaultRatePerDomainPerSecond.
-	// The default value is equivalent to 100 requests per second per domain
-	DefaultRatePerDomainPerSecond = 0.01
-	// DefaultPerDomainMaxBurstPerSecond is the maximum burst in requests. TODO need to understand and test this
+	// DefaultRatePerDomainPerSecond the maximum number of requests per second to be allowed per domain
+	DefaultRatePerDomainPerSecond = 100
+	// DefaultPerDomainMaxBurstPerSecond is the maximum burst in requests. It means the maximum number of requests
+	// at any given time, including DefaultRatePerDomainPerSecond
 	DefaultPerDomainMaxBurstPerSecond = 100
 )
 
@@ -95,7 +94,8 @@ func (rl *RateLimiter) getDomainCounter(domain string) *counter {
 	if !ok {
 		newCounter := &counter{
 			lastSeen: rl.now(),
-			limiter:  rate.NewLimiter(rate.Limit(rl.domainRatePerSecond), rl.perDomainBurstPerSecond),
+			// the first argument is the number of requests per second that will be allowed,
+			limiter: rate.NewLimiter(rate.Limit(rl.domainRatePerSecond), rl.perDomainBurstPerSecond),
 		}
 
 		rl.perDomain[domain] = newCounter
@@ -108,16 +108,11 @@ func (rl *RateLimiter) getDomainCounter(domain string) *counter {
 
 // DomainAllowed checks that the requested domain can be accessed within
 // the maxCountPerDomain in the given domainWindow.
-func (rl *RateLimiter) DomainAllowed(domain string) (res bool) {
-
+func (rl *RateLimiter) DomainAllowed(domain string) bool {
 	counter := rl.getDomainCounter(domain)
-	defer func() {
-		fmt.Printf("limiter info: limit: %f - burst: %d\n", counter.limiter.Limit(), counter.limiter.Burst())
-		fmt.Printf("calling DomainAllowed for: %q returned: %t\n", domain, res)
-	}()
 
 	// TODO: we could use Wait(ctx) if we want to moderate the request rate rather than denying requests
-	return counter.limiter.Allow()
+	return counter.limiter.AllowN(rl.now(), 1)
 }
 
 func (rl *RateLimiter) cleanup() {

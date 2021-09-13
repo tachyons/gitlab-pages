@@ -15,6 +15,8 @@ import (
 	"github.com/rs/cors"
 	"gitlab.com/gitlab-org/labkit/log"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
+
 	"gitlab.com/gitlab-org/go-mimedb"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -336,6 +338,10 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Metrics
 	metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
 	handler = metricsMiddleware(handler)
+
+	if !a.config.General.DisableRateLimiter {
+		handler = middleware.DomainRateLimiter(ratelimiter.New())(handler)
+	}
 
 	handler = a.routingMiddleware(handler)
 

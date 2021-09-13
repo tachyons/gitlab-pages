@@ -34,6 +34,13 @@ var (
      <p>Make sure the address is correct and that the page hasn't moved.</p>
      <p>Please contact your GitLab administrator if you think this is a mistake.</p>`,
 	}
+	content429 = content{
+		http.StatusTooManyRequests,
+		"Too many requests (429)",
+		"429",
+		"Too many requests.",
+		`<p>The resource that you are attempting to access is being rate limited.</p>`,
+	}
 	content500 = content{
 		http.StatusInternalServerError,
 		"Something went wrong (500)",
@@ -174,6 +181,11 @@ func Serve401(w http.ResponseWriter) {
 // Serve404 returns a 404 error response / HTML page to the http.ResponseWriter
 func Serve404(w http.ResponseWriter) {
 	serveErrorPage(w, content404)
+}
+
+// Serve429 returns a 429 error response / HTML page to the http.ResponseWriter
+func Serve429(w http.ResponseWriter) {
+	serveErrorPage(w, content429)
 }
 
 // Serve500 returns a 500 error response / HTML page to the http.ResponseWriter

@@ -12,6 +12,7 @@ var (
 	pagesRootCert           = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
 	pagesRootKey            = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 	redirectHTTP            = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
+	disableRateLimiter      = flag.Bool("disable-rate-limiter", false, "Disable in-built rate limiter")
 	_                       = flag.Bool("use-http2", true, "DEPRECATED: HTTP2 is always enabled for pages")
 	pagesRoot               = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 	pagesDomain             = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")

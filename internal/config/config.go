@@ -45,14 +45,15 @@ type Config struct {
 // General groups settings that are general to GitLab Pages and can not
 // be categorized under other head.
 type General struct {
-	Domain          string
-	MaxConns        int
-	MetricsAddress  string
-	RedirectHTTP    bool
-	RootCertificate []byte
-	RootDir         string
-	RootKey         []byte
-	StatusPath      string
+	Domain             string
+	DisableRateLimiter bool
+	MaxConns           int
+	MetricsAddress     string
+	RedirectHTTP       bool
+	RootCertificate    []byte
+	RootDir            string
+	RootKey            []byte
+	StatusPath         string
 
 	DisableCrossOriginRequests bool
 	InsecureCiphers            bool
@@ -180,6 +181,7 @@ func loadConfig() (*Config, error) {
 	config := &Config{
 		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
+			DisableRateLimiter:         *disableRateLimiter,
 			MaxConns:                   *maxConns,
 			MetricsAddress:             *metricsAddress,
 			RedirectHTTP:               *redirectHTTP,
