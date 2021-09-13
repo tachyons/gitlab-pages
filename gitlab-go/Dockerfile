@@ -4,7 +4,7 @@ ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby"
 
 FROM ${FROM_IMAGE}:${TAG}
 
-ARG GO_VERSION=1.17
+ARG GO_VERSION=1.16.4
 ARG BUILD_DIR=/tmp/build
 
 ENV GO_URL="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
