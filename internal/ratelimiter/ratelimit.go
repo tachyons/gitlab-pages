@@ -1,6 +1,7 @@
 package ratelimiter
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -108,9 +109,14 @@ func (rl *RateLimiter) getDomainCounter(domain string) *counter {
 
 // DomainAllowed checks that the requested domain can be accessed within
 // the maxCountPerDomain in the given domainWindow.
-func (rl *RateLimiter) DomainAllowed(domain string) bool {
-	counter := rl.getDomainCounter(domain)
+func (rl *RateLimiter) DomainAllowed(domain string) (res bool) {
+	defer func() {
+		fmt.Printf("was domain: %q allowed? - %t\n", domain, res)
+	}()
 
+	counter := rl.getDomainCounter(domain)
+	counter.limiter.Reserve()
+	fmt.Printf("COUNTER DETAILS? now: %s :limit: %f burst: %d\n", rl.now(), counter.limiter.Limit(), counter.limiter.Burst())
 	// TODO: we could use Wait(ctx) if we want to moderate the request rate rather than denying requests
 	return counter.limiter.AllowN(rl.now(), 1)
 }

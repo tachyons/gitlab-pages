@@ -47,6 +47,7 @@ type Config struct {
 type General struct {
 	Domain             string
 	DisableRateLimiter bool
+	RateLimitPerDomain float64
 	MaxConns           int
 	MetricsAddress     string
 	RedirectHTTP       bool
@@ -182,6 +183,7 @@ func loadConfig() (*Config, error) {
 		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
 			DisableRateLimiter:         *disableRateLimiter,
+			RateLimitPerDomain:         *reqDomainPerSecond,
 			MaxConns:                   *maxConns,
 			MetricsAddress:             *metricsAddress,
 			RedirectHTTP:               *redirectHTTP,

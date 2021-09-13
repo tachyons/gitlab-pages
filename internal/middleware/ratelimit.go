@@ -13,13 +13,10 @@ import (
 func DomainRateLimiter(rl *ratelimiter.RateLimiter) func(http.Handler) http.Handler {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			d := request.GetDomain(r)
-			if d != nil {
-				if !rl.DomainAllowed(d.Name) {
-					//w.WriteHeader(http.StatusTooManyRequests)
-					httperrors.Serve429(w)
-					return
-				}
+			host := request.GetHostWithoutPort(r)
+			if !rl.DomainAllowed(host) {
+				httperrors.Serve429(w)
+				return
 			}
 
 			handler.ServeHTTP(w, r)

@@ -340,7 +340,11 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = metricsMiddleware(handler)
 
 	if !a.config.General.DisableRateLimiter {
-		handler = middleware.DomainRateLimiter(ratelimiter.New())(handler)
+		handler = middleware.DomainRateLimiter(
+			ratelimiter.New(
+				ratelimiter.WithDomainRatePerSecond(a.config.General.RateLimitPerDomain),
+			),
+		)(handler)
 	}
 
 	handler = a.routingMiddleware(handler)

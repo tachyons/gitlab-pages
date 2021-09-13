@@ -5,6 +5,8 @@ import (
 
 	"github.com/namsral/flag"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
@@ -13,6 +15,7 @@ var (
 	pagesRootKey            = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 	redirectHTTP            = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
 	disableRateLimiter      = flag.Bool("disable-rate-limiter", false, "Disable in-built rate limiter")
+	reqDomainPerSecond      = flag.Float64("req-domain-per-second", ratelimiter.DefaultRatePerDomainPerSecond, "Requests per domain limit per second")
 	_                       = flag.Bool("use-http2", true, "DEPRECATED: HTTP2 is always enabled for pages")
 	pagesRoot               = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
 	pagesDomain             = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
