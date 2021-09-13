@@ -343,6 +343,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		handler = middleware.DomainRateLimiter(
 			ratelimiter.New(
 				ratelimiter.WithDomainRatePerSecond(a.config.General.RateLimitPerDomain),
+				ratelimiter.WithDomainBurstPerSecond(a.config.General.RateLimitMax),
 			),
 		)(handler)
 	}

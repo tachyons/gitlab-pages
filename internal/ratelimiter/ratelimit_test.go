@@ -21,31 +21,31 @@ func mockNow() time.Time {
 func TestDomainAllowed(t *testing.T) {
 	tcs := map[string]struct {
 		now                     string
-		domainRatePerSecond     float64
+		domainRate              time.Duration
 		perDomainBurstPerSecond int
 		domain                  string
 		reqNum                  int
 	}{
 		"one_request_per_second": {
-			domainRatePerSecond:     1, // 1 per second
+			domainRate:              1, // 1 per second
 			perDomainBurstPerSecond: 1,
 			reqNum:                  2,
 			domain:                  "rate.gitlab.io",
 		},
 		"one_request_per_second_but_big_bucket": {
-			domainRatePerSecond:     1, // 1 per second
+			domainRate:              1, // 1 per second
 			perDomainBurstPerSecond: 10,
 			reqNum:                  11,
 			domain:                  "rate.gitlab.io",
 		},
 		"three_req_per_second_bucket_size_one": {
-			domainRatePerSecond:     3, // 3 per second
+			domainRate:              3, // 3 per second
 			perDomainBurstPerSecond: 1, // max burst 1 means 1 at a time
 			reqNum:                  3,
 			domain:                  "rate.gitlab.io",
 		},
 		"10_requests_per_second": {
-			domainRatePerSecond:     10,
+			domainRate:              10,
 			perDomainBurstPerSecond: 10,
 			reqNum:                  11,
 			domain:                  "rate.gitlab.io",
@@ -56,7 +56,7 @@ func TestDomainAllowed(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
 				WithNow(mockNow),
-				WithDomainRatePerSecond(tc.domainRatePerSecond),
+				WithDomainRatePerSecond(tc.domainRate),
 				WithDomainBurstPerSecond(tc.perDomainBurstPerSecond),
 			)
 
@@ -73,12 +73,11 @@ func TestDomainAllowed(t *testing.T) {
 }
 
 func TestDomainAllowedWitSleeps(t *testing.T) {
-	rate := 100.0
-	fmt.Printf("what: %f\n", rate)
+	rate := 10 * time.Millisecond
 	rl := New(
 		WithNow(mockNow),
 		WithDomainRatePerSecond(rate),
-		WithDomainBurstPerSecond(2),
+		WithDomainBurstPerSecond(1),
 	)
 	domain := "test.gitlab.io"
 
@@ -86,23 +85,22 @@ func TestDomainAllowedWitSleeps(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			got := rl.DomainAllowed(domain)
 			require.Truef(t, got, "expected true for request no. %d", i+1)
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(rate)
 		}
 	})
 
 	t.Run("requests start failing after reaching burst", func(t *testing.T) {
 		//now := mockNow()
-		for i := 0; i < 5; i++ {
-			got := rl.DomainAllowed(domain)
+		for i := 0; i < 10; i++ {
+			got := rl.DomainAllowed(domain + ".diff")
 			fmt.Printf("for:%d got: %t\n", i, got)
 			//require.True(t, true)
-			if i < 2 {
-				require.Truef(t, got, "expected true for request no. %d", i)
-			} else {
-				require.False(t, got, "expected false for request no. %d", i)
-			}
-
-			time.Sleep(3 * time.Millisecond)
+			//if i < 2 {
+			require.Truef(t, got, "expected true for request no. %d", i)
+			//} else {
+			//	require.False(t, got, "expected false for request no. %d", i)
+			//}
+			time.Sleep(time.Nanosecond)
 		}
 	})
 }

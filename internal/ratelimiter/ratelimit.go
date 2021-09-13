@@ -15,11 +15,15 @@ const (
 	// DefaultMaxTimePerDomain is the maximum time to keep a domain in the rate limiter map
 	DefaultMaxTimePerDomain = 30 * time.Second
 
+	//example https://www.fatalerrors.org/a/design-and-implementation-of-time-rate-limiter-for-golang-standard-library.html
+
 	// DefaultRatePerDomainPerSecond the maximum number of requests per second to be allowed per domain
-	DefaultRatePerDomainPerSecond = 100
-	// DefaultPerDomainMaxBurstPerSecond is the maximum burst in requests. It means the maximum number of requests
-	// at any given time, including DefaultRatePerDomainPerSecond
-	DefaultPerDomainMaxBurstPerSecond = 100
+	// 1 request every 25ms = 40 rps
+	DefaultRatePerDomainPerSecond = 25 * time.Millisecond
+	// DefaultPerDomainMaxBurstPerSecond is the maximum burst allowed per rate limiter
+	// 40 items in the bucket is the max
+	// so if there are 40 rquests in 25 milliseconds they will succeed, but request 41st will fail
+	DefaultPerDomainMaxBurstPerSecond = 40
 )
 
 type counter struct {
@@ -34,7 +38,7 @@ type RateLimiter struct {
 	now                     func() time.Time
 	cleanupTimer            *time.Ticker
 	maxTimePerDomain        time.Duration
-	domainRatePerSecond     float64
+	domainRatePerSecond     time.Duration
 	perDomainBurstPerSecond int
 	domainMux               *sync.RWMutex
 	// TODO: this could be an LRU cache like what we do in the zip VFS instead of cleaning manually ?
@@ -74,9 +78,9 @@ func WithCleanupInterval(d time.Duration) Option {
 	}
 }
 
-func WithDomainRatePerSecond(r float64) Option {
+func WithDomainRatePerSecond(d time.Duration) Option {
 	return func(rl *RateLimiter) {
-		rl.domainRatePerSecond = r
+		rl.domainRatePerSecond = d
 	}
 }
 
@@ -96,7 +100,7 @@ func (rl *RateLimiter) getDomainCounter(domain string) *counter {
 		newCounter := &counter{
 			lastSeen: rl.now(),
 			// the first argument is the number of requests per second that will be allowed,
-			limiter: rate.NewLimiter(rate.Limit(rl.domainRatePerSecond), rl.perDomainBurstPerSecond),
+			limiter: rate.NewLimiter(rate.Every(rl.domainRatePerSecond), rl.perDomainBurstPerSecond),
 		}
 
 		rl.perDomain[domain] = newCounter
@@ -117,6 +121,7 @@ func (rl *RateLimiter) DomainAllowed(domain string) (res bool) {
 	counter := rl.getDomainCounter(domain)
 	counter.limiter.Reserve()
 	fmt.Printf("COUNTER DETAILS? now: %s :limit: %f burst: %d\n", rl.now(), counter.limiter.Limit(), counter.limiter.Burst())
+	counter.limiter.Burst()
 	// TODO: we could use Wait(ctx) if we want to moderate the request rate rather than denying requests
 	return counter.limiter.AllowN(rl.now(), 1)
 }

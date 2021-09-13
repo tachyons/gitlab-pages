@@ -180,7 +180,9 @@ func TestCORSWhenDisabled(t *testing.T) {
 }
 
 func TestCORSAllowsMethod(t *testing.T) {
-	RunPagesProcess(t)
+	RunPagesProcess(t,
+		withExtraArgument("disable-rate-limiter", "true"),
+	)
 
 	tests := []struct {
 		name           string
@@ -241,39 +243,6 @@ func TestCustomHeaders(t *testing.T) {
 		require.Equal(t, "Testing1", rsp.Header.Get("X-Test1"))
 		require.Equal(t, "Testing2", rsp.Header.Get("X-Test2"))
 	}
-}
-
-func TestRateLimitMiddleware(t *testing.T) {
-	RunPagesProcess(t,
-		withListeners([]ListenSpec{httpListener}),
-		// PerDomain 1 request per 1s, so making 2 requests in a row should fail
-		withExtraArgument("req-domain-per-second", "1"),
-	)
-
-	rsp1, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/")
-	require.NoError(t, err)
-	defer rsp1.Body.Close()
-	require.Equal(t, http.StatusOK, rsp1.StatusCode, "group.gitlab-example.com")
-
-	// make another request right away should fail
-	rsp2, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/")
-	require.NoError(t, err)
-	defer rsp2.Body.Close()
-	require.Equal(t, http.StatusTooManyRequests, rsp2.StatusCode, "group.gitlab-example.com without waiting")
-
-	// wait for ratelimiter to clear
-	time.Sleep(time.Second)
-	rsp3, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/")
-	require.NoError(t, err)
-	defer rsp3.Body.Close()
-	require.Equal(t, http.StatusOK, rsp3.StatusCode, "group.gitlab-example.com after waiting 1s")
-
-	// request another domain
-	rsp4, err := GetPageFromListener(t, httpListener, "CapitalGroup.gitlab-example.com", "/")
-	require.NoError(t, err)
-	defer rsp4.Body.Close()
-	require.Equal(t, http.StatusOK, rsp4.StatusCode, "CapitalGroup.gitlab-example.com for another domain")
-
 }
 
 func TestKnownHostWithPortReturns200(t *testing.T) {

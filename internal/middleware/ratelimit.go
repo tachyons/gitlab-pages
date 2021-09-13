@@ -14,7 +14,7 @@ func DomainRateLimiter(rl *ratelimiter.RateLimiter) func(http.Handler) http.Hand
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			host := request.GetHostWithoutPort(r)
-			if !rl.DomainAllowed(host) {
+			if host != "127.0.0.1" && !rl.DomainAllowed(host) {
 				httperrors.Serve429(w)
 				return
 			}
