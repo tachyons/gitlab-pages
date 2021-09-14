@@ -1,10 +1,10 @@
 package ratelimiter
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,7 +14,6 @@ var (
 )
 
 func mockNow() time.Time {
-	validTime = validTime.Add(time.Millisecond)
 	return validTime
 }
 
@@ -56,8 +55,8 @@ func TestDomainAllowed(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
 				WithNow(mockNow),
-				WithDomainRatePerSecond(tc.domainRate),
-				WithDomainBurstPerSecond(tc.perDomainBurstPerSecond),
+				WithPerDomainFrequency(tc.domainRate),
+				WithPerDomainBurstSize(tc.perDomainBurstPerSecond),
 			)
 
 			for i := 0; i < tc.reqNum; i++ {
@@ -75,32 +74,27 @@ func TestDomainAllowed(t *testing.T) {
 func TestDomainAllowedWitSleeps(t *testing.T) {
 	rate := 10 * time.Millisecond
 	rl := New(
-		WithNow(mockNow),
-		WithDomainRatePerSecond(rate),
-		WithDomainBurstPerSecond(1),
+		WithPerDomainFrequency(rate),
+		WithPerDomainBurstSize(1),
 	)
 	domain := "test.gitlab.io"
 
-	t.Run("one request every millisecond with burst 1", func(t *testing.T) {
+	t.Run("one request every 10ms with burst 1", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			got := rl.DomainAllowed(domain)
-			require.Truef(t, got, "expected true for request no. %d", i+1)
+			assert.Truef(t, got, "expected true for request no. %d", i+1)
 			time.Sleep(rate)
 		}
 	})
 
 	t.Run("requests start failing after reaching burst", func(t *testing.T) {
-		//now := mockNow()
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 5; i++ {
 			got := rl.DomainAllowed(domain + ".diff")
-			fmt.Printf("for:%d got: %t\n", i, got)
-			//require.True(t, true)
-			//if i < 2 {
-			require.Truef(t, got, "expected true for request no. %d", i)
-			//} else {
-			//	require.False(t, got, "expected false for request no. %d", i)
-			//}
-			time.Sleep(time.Nanosecond)
+			if i < 1 {
+				require.Truef(t, got, "expected true for request no. %d", i)
+			} else {
+				require.False(t, got, "expected false for request no. %d", i)
+			}
 		}
 	})
 }

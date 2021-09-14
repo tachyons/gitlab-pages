@@ -1,19 +1,19 @@
-package middleware
+package ratelimiter
 
 import (
+	"net"
 	"net/http"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
 // DomainRateLimiter middleware ensures that the requested domain can be served by the current
 // rate limit. See -rate-limiter
-func DomainRateLimiter(rl *ratelimiter.RateLimiter) func(http.Handler) http.Handler {
+func DomainRateLimiter(rl *RateLimiter) func(http.Handler) http.Handler {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			host := request.GetHostWithoutPort(r)
+			host := getHost(r)
+
 			if host != "127.0.0.1" && !rl.DomainAllowed(host) {
 				httperrors.Serve429(w)
 				return
@@ -22,4 +22,13 @@ func DomainRateLimiter(rl *ratelimiter.RateLimiter) func(http.Handler) http.Hand
 			handler.ServeHTTP(w, r)
 		})
 	}
+}
+
+func getHost(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
+
+	return host
 }

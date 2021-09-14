@@ -45,17 +45,17 @@ type Config struct {
 // General groups settings that are general to GitLab Pages and can not
 // be categorized under other head.
 type General struct {
-	Domain             string
-	DisableRateLimiter bool
-	RateLimitPerDomain time.Duration
-	RateLimitMax       int
-	MaxConns           int
-	MetricsAddress     string
-	RedirectHTTP       bool
-	RootCertificate    []byte
-	RootDir            string
-	RootKey            []byte
-	StatusPath         string
+	Domain                      string
+	EnableRateLimiter           bool
+	RateLimitPerDomainFrequency time.Duration
+	RateLimitPerDomainBurstSize int
+	MaxConns                    int
+	MetricsAddress              string
+	RedirectHTTP                bool
+	RootCertificate             []byte
+	RootDir                     string
+	RootKey                     []byte
+	StatusPath                  string
 
 	DisableCrossOriginRequests bool
 	InsecureCiphers            bool
@@ -182,20 +182,20 @@ func setGitLabAPISecretKey(secretFile string, config *Config) error {
 func loadConfig() (*Config, error) {
 	config := &Config{
 		General: General{
-			Domain:                     strings.ToLower(*pagesDomain),
-			DisableRateLimiter:         *disableRateLimiter,
-			RateLimitPerDomain:         *reqDomainPerSecond,
-			RateLimitMax:               *reqDomainBucketSize,
-			MaxConns:                   *maxConns,
-			MetricsAddress:             *metricsAddress,
-			RedirectHTTP:               *redirectHTTP,
-			RootDir:                    *pagesRoot,
-			StatusPath:                 *pagesStatus,
-			DisableCrossOriginRequests: *disableCrossOriginRequests,
-			InsecureCiphers:            *insecureCiphers,
-			PropagateCorrelationID:     *propagateCorrelationID,
-			CustomHeaders:              header.Split(),
-			ShowVersion:                *showVersion,
+			Domain:                      strings.ToLower(*pagesDomain),
+			EnableRateLimiter:           *enableRateLimiter,
+			RateLimitPerDomainFrequency: *rateLimitPerDomain,
+			RateLimitPerDomainBurstSize: *rateLimitPerDomainBurstSize,
+			MaxConns:                    *maxConns,
+			MetricsAddress:              *metricsAddress,
+			RedirectHTTP:                *redirectHTTP,
+			RootDir:                     *pagesRoot,
+			StatusPath:                  *pagesStatus,
+			DisableCrossOriginRequests:  *disableCrossOriginRequests,
+			InsecureCiphers:             *insecureCiphers,
+			PropagateCorrelationID:      *propagateCorrelationID,
+			CustomHeaders:               header.Split(),
+			ShowVersion:                 *showVersion,
 		},
 		GitLab: GitLab{
 			ClientHTTPTimeout:  *gitlabClientHTTPTimeout,

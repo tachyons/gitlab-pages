@@ -339,11 +339,11 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
 	handler = metricsMiddleware(handler)
 
-	if !a.config.General.DisableRateLimiter {
-		handler = middleware.DomainRateLimiter(
+	if a.config.General.EnableRateLimiter {
+		handler = ratelimiter.DomainRateLimiter(
 			ratelimiter.New(
-				ratelimiter.WithDomainRatePerSecond(a.config.General.RateLimitPerDomain),
-				ratelimiter.WithDomainBurstPerSecond(a.config.General.RateLimitMax),
+				ratelimiter.WithPerDomainFrequency(a.config.General.RateLimitPerDomainFrequency),
+				ratelimiter.WithPerDomainBurstSize(a.config.General.RateLimitPerDomainBurstSize),
 			),
 		)(handler)
 	}

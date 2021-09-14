@@ -180,9 +180,7 @@ func TestCORSWhenDisabled(t *testing.T) {
 }
 
 func TestCORSAllowsMethod(t *testing.T) {
-	RunPagesProcess(t,
-		withExtraArgument("disable-rate-limiter", "true"),
-	)
+	RunPagesProcess(t)
 
 	tests := []struct {
 		name           string
