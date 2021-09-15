@@ -8,11 +8,6 @@ import (
 )
 
 const (
-	// DefaultCleanupInterval is the time at which cleanup will run
-	DefaultCleanupInterval = 30 * time.Second
-	// DefaultMaxTimePerDomain is the maximum time to keep a domain in the rate limiter map
-	DefaultMaxTimePerDomain = 30 * time.Second
-
 	// DefaultPerDomainFrequency the maximum number of requests per second to be allowed per domain.
 	// The default value of 25ms equals 1 request every 25ms -> 40 rps
 	DefaultPerDomainFrequency = 25 * time.Millisecond
@@ -27,11 +22,6 @@ const (
 	defaultDomainsExpirationInterval = time.Hour
 )
 
-type counter struct {
-	limiter  *rate.Limiter
-	lastSeen time.Time
-}
-
 // Option function to configure a RateLimiter
 type Option func(*RateLimiter)
 
@@ -42,8 +32,6 @@ type Option func(*RateLimiter)
 // the time since counter.lastSeen is greater than the domainMaxTTL.
 type RateLimiter struct {
 	now                func() time.Time
-	cleanupTimer       *time.Ticker
-	domainMaxTTL       time.Duration
 	perDomainFrequency time.Duration
 	perDomainBurstSize int
 	//domainMux          *sync.RWMutex
@@ -55,8 +43,6 @@ type RateLimiter struct {
 func New(opts ...Option) *RateLimiter {
 	rl := &RateLimiter{
 		now:                time.Now,
-		cleanupTimer:       time.NewTicker(DefaultCleanupInterval),
-		domainMaxTTL:       DefaultMaxTimePerDomain,
 		perDomainFrequency: DefaultPerDomainFrequency,
 		perDomainBurstSize: DefaultPerDomainBurstSize,
 		//domainMux:          &sync.RWMutex{},
@@ -74,13 +60,6 @@ func New(opts ...Option) *RateLimiter {
 func WithNow(now func() time.Time) Option {
 	return func(rl *RateLimiter) {
 		rl.now = now
-	}
-}
-
-// WithCleanupInterval replaces the RateLimiter cleanup interval
-func WithCleanupInterval(d time.Duration) Option {
-	return func(rl *RateLimiter) {
-		rl.cleanupTimer.Reset(d)
 	}
 }
 
