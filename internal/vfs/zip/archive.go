@@ -203,7 +203,7 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 		return nil, errNotFile
 	}
 
-	dataOffset, err := a.fs.dataOffsetCache.findOrFetch(a.cacheNamespace, name, func() (interface{}, error) {
+	dataOffset, err := a.fs.dataOffsetCache.FindOrFetch(a.cacheNamespace, name, func() (interface{}, error) {
 		return file.DataOffset()
 	})
 	if err != nil {
@@ -252,7 +252,7 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 		return "", errNotSymlink
 	}
 
-	symlinkValue, err := a.fs.readlinkCache.findOrFetch(a.cacheNamespace, name, func() (interface{}, error) {
+	symlinkValue, err := a.fs.readlinkCache.FindOrFetch(a.cacheNamespace, name, func() (interface{}, error) {
 		rc, err := file.Open()
 		if err != nil {
 			return nil, err
