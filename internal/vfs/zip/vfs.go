@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/httpfs"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
-
 	"github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httpfs"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/lru"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -35,6 +35,10 @@ var (
 	errAlreadyCached = errors.New("archive already cached")
 )
 
+type lruCache interface {
+	FindOrFetch(cacheNamespace, key string, fetchFn func() (interface{}, error)) (interface{}, error)
+}
+
 // zipVFS is a simple cached implementation of the vfs.VFS interface
 type zipVFS struct {
 	cache     *cache.Cache
@@ -45,8 +49,8 @@ type zipVFS struct {
 	cacheRefreshInterval    time.Duration
 	cacheCleanupInterval    time.Duration
 
-	dataOffsetCache *lruCache
-	readlinkCache   *lruCache
+	dataOffsetCache lruCache
+	readlinkCache   lruCache
 
 	// the `int64` needs to be 64bit aligned on some 32bit systems
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/337261
@@ -80,8 +84,20 @@ func New(cfg *config.ZipServing) vfs.VFS {
 	zipVFS.resetCache()
 
 	// TODO: To be removed with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/480
-	zipVFS.dataOffsetCache = newLruCache("data-offset", defaultDataOffsetItems, defaultDataOffsetExpirationInterval)
-	zipVFS.readlinkCache = newLruCache("readlink", defaultReadlinkItems, defaultReadlinkExpirationInterval)
+	zipVFS.dataOffsetCache = lru.New(
+		"data-offset",
+		defaultDataOffsetItems,
+		defaultDataOffsetExpirationInterval,
+		metrics.ZipCachedEntries,
+		metrics.ZipCacheRequests,
+	)
+	zipVFS.readlinkCache = lru.New(
+		"readlink",
+		defaultReadlinkItems,
+		defaultReadlinkExpirationInterval,
+		metrics.ZipCachedEntries,
+		metrics.ZipCacheRequests,
+	)
 
 	return zipVFS
 }
