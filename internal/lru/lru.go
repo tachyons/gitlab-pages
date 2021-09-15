@@ -17,7 +17,8 @@ const getsPerPromote = 64
 // needs to be pruned on OOM, this prunes 1/16 of items
 const itemsToPruneDiv = 16
 
-type lru struct {
+// Cache wraps a ccache and allows setting custom metrics for hits/misses.
+type Cache struct {
 	op                  string
 	duration            time.Duration
 	cache               *ccache.Cache
@@ -26,7 +27,7 @@ type lru struct {
 }
 
 // New creates an LRU cache
-func New(op string, maxEntries int64, duration time.Duration, cachedEntriesMetric *prometheus.GaugeVec, cacheRequestsMetric *prometheus.CounterVec) *lru {
+func New(op string, maxEntries int64, duration time.Duration, cachedEntriesMetric *prometheus.GaugeVec, cacheRequestsMetric *prometheus.CounterVec) *Cache {
 	configuration := ccache.Configure()
 	configuration.MaxSize(maxEntries)
 	configuration.ItemsToPrune(uint32(maxEntries) / itemsToPruneDiv)
@@ -35,7 +36,7 @@ func New(op string, maxEntries int64, duration time.Duration, cachedEntriesMetri
 		cachedEntriesMetric.WithLabelValues(op).Dec()
 	})
 
-	return &lru{
+	return &Cache{
 		op:                  op,
 		cache:               ccache.New(configuration),
 		duration:            duration,
@@ -46,7 +47,7 @@ func New(op string, maxEntries int64, duration time.Duration, cachedEntriesMetri
 
 // FindOrFetch will try to get the item from the cache if exists and is not expired.
 // If it can't find it, it will call fetchFn to retrieve the item and cache it.
-func (c *lru) FindOrFetch(cacheNamespace, key string, fetchFn func() (interface{}, error)) (interface{}, error) {
+func (c *Cache) FindOrFetch(cacheNamespace, key string, fetchFn func() (interface{}, error)) (interface{}, error) {
 	item := c.cache.Get(cacheNamespace + key)
 
 	if item != nil && !item.Expired() {
