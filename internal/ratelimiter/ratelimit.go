@@ -1,7 +1,6 @@
 package ratelimiter
 
 import (
-	"sync"
 	"time"
 
 	"gitlab.com/gitlab-org/labkit/log"
@@ -21,6 +20,11 @@ const (
 	// E.g. The first 40 requests within 25ms will succeed, but the 41st will fail until the next
 	// refill occurs at DefaultPerDomainFrequency, allowing only 1 request per rate frequency.
 	DefaultPerDomainBurstSize = 40
+
+	// avg of ~18,000 unique domains per hour
+	// https://log.gprd.gitlab.net/app/lens#/edit/3c45a610-15c9-11ec-a012-eb2e5674cacf?_g=h@e78830b
+	defaultDomainsItems              = 20000
+	defaultDomainsExpirationInterval = time.Hour
 )
 
 type counter struct {
@@ -42,9 +46,9 @@ type RateLimiter struct {
 	domainMaxTTL       time.Duration
 	perDomainFrequency time.Duration
 	perDomainBurstSize int
-	domainMux          *sync.RWMutex
-	// TODO: this could be an LRU cache like what we do in the zip VFS instead of cleaning manually ?
-	perDomain map[string]*counter
+	//domainMux          *sync.RWMutex
+	domainsCache *lruCache
+	// TODO: add sourceIPCache
 }
 
 // New creates a new RateLimiter with default values that can be configured via Option functions
@@ -55,15 +59,13 @@ func New(opts ...Option) *RateLimiter {
 		domainMaxTTL:       DefaultMaxTimePerDomain,
 		perDomainFrequency: DefaultPerDomainFrequency,
 		perDomainBurstSize: DefaultPerDomainBurstSize,
-		domainMux:          &sync.RWMutex{},
-		perDomain:          make(map[string]*counter),
+		//domainMux:          &sync.RWMutex{},
+		domainsCache: newLruCache("domains", defaultDomainsItems, defaultDomainsExpirationInterval),
 	}
 
 	for _, opt := range opts {
 		opt(rl)
 	}
-
-	go rl.cleanup()
 
 	return rl
 }
@@ -96,48 +98,27 @@ func WithPerDomainBurstSize(burst int) Option {
 	}
 }
 
-func (rl *RateLimiter) getDomainCounter(domain string) *counter {
-	rl.domainMux.Lock()
-	defer rl.domainMux.Unlock()
-
-	// TODO: add metrics
-	currentCounter, ok := rl.perDomain[domain]
-	if !ok {
-		newCounter := &counter{
-			lastSeen: rl.now(),
-			// the first argument is the number of requests per second that will be allowed,
-			limiter: rate.NewLimiter(rate.Every(rl.perDomainFrequency), rl.perDomainBurstSize),
-		}
-
-		rl.perDomain[domain] = newCounter
-		return newCounter
+func (rl *RateLimiter) getDomainCounter(domain string) (*rate.Limiter, error) {
+	limiterI, err := rl.domainsCache.findOrFetch(domain, domain, func() (interface{}, error) {
+		return rate.NewLimiter(rate.Every(rl.perDomainFrequency), rl.perDomainBurstSize), nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	currentCounter.lastSeen = rl.now()
-	return currentCounter
+	return limiterI.(*rate.Limiter), nil
 }
 
 // DomainAllowed checks that the requested domain can be accessed within
 // the maxCountPerDomain in the given domainWindow.
 func (rl *RateLimiter) DomainAllowed(domain string) (res bool) {
-	counter := rl.getDomainCounter(domain)
+	limiter, err := rl.getDomainCounter(domain)
+	if err != nil {
+		// TODO: return and handle error appropriately
+		log.WithError(err).Warnf("failed to get rate limiter for domain: %s", domain)
+		return true
+	}
 
 	// TODO: we could use Wait(ctx) if we want to moderate the request rate rather than denying requests
-	return counter.limiter.AllowN(rl.now(), 1)
-}
-
-func (rl *RateLimiter) cleanup() {
-	select {
-	case t := <-rl.cleanupTimer.C:
-		log.WithField("cleanup", t).Debug("cleaning perDomain rate")
-
-		rl.domainMux.Lock()
-		for domain, counter := range rl.perDomain {
-			if time.Since(counter.lastSeen) > rl.domainMaxTTL {
-				delete(rl.perDomain, domain)
-			}
-		}
-		rl.domainMux.Unlock()
-	default:
-	}
+	return limiter.AllowN(rl.now(), 1)
 }
