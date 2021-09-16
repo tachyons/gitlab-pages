@@ -1,8 +1,6 @@
 package disk
 
 import (
-	"os"
-
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
@@ -22,10 +20,8 @@ func (s *Disk) ServeFileHTTP(h serving.Handler) bool {
 		return true
 	}
 
-	if os.Getenv("FF_ENABLE_REDIRECTS") != "false" {
-		if s.reader.tryRedirects(h) {
-			return true
-		}
+	if s.reader.tryRedirects(h) {
+		return true
 	}
 
 	return false

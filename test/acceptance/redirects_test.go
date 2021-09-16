@@ -11,27 +11,6 @@ import (
 	redirects "gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
 )
 
-func TestDisabledRedirects(t *testing.T) {
-	RunPagesProcess(t,
-		withListeners([]ListenSpec{httpListener}),
-		withEnv([]string{"FF_ENABLE_REDIRECTS=false", redirects.FFEnablePlaceholders + "=true"}),
-	)
-
-	// Test that redirects status page is forbidden
-	rsp, err := GetPageFromListener(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/_redirects")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-
-	require.Equal(t, http.StatusForbidden, rsp.StatusCode)
-
-	// Test that redirects are disabled
-	rsp, err = GetRedirectPage(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/redirect-portal.html")
-	require.NoError(t, err)
-	defer rsp.Body.Close()
-
-	require.Equal(t, http.StatusNotFound, rsp.StatusCode)
-}
-
 func TestRedirectStatusPage(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
