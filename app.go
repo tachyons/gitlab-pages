@@ -21,19 +21,21 @@ import (
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/acl"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/customheaders"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/middleware"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/routing"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
@@ -92,13 +94,6 @@ func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusC
 	http.Redirect(w, r, u.String(), statusCode)
 }
 
-func (a *theApp) getHostAndDomain(r *http.Request) (string, *domain.Domain, error) {
-	host := request.GetHostWithoutPort(r)
-	domain, err := a.domain(r.Context(), host)
-
-	return host, domain, err
-}
-
 func (a *theApp) domain(ctx context.Context, host string) (*domain.Domain, error) {
 	return a.source.GetDomain(ctx, host)
 }
@@ -154,27 +149,6 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 	return false
 }
 
-// routingMiddleware will determine the host and domain for the request, for
-// downstream middlewares to use
-func (a *theApp) routingMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// if we could not retrieve a domain from domains source we break the
-		// middleware chain and simply respond with 502 after logging this
-		host, d, err := a.getHostAndDomain(r)
-		if err != nil && !errors.Is(err, domain.ErrDomainDoesNotExist) {
-			metrics.DomainsSourceFailures.Inc()
-			logging.LogRequest(r).WithError(err).Error("could not fetch domain information from a source")
-
-			httperrors.Serve502(w)
-			return
-		}
-
-		r = request.WithHostAndDomain(r, host, d)
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
 // healthCheckMiddleware is serving the application status check
 func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, error) {
 	healthCheck := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -196,39 +170,6 @@ func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, erro
 	}), nil
 }
 
-// customHeadersMiddleware will inject custom headers into the response
-func (a *theApp) customHeadersMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		middleware.AddCustomHeaders(w, a.CustomHeaders)
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
-// acmeMiddleware will handle ACME challenges
-func (a *theApp) acmeMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		domain := request.GetDomain(r)
-
-		if a.AcmeMiddleware.ServeAcmeChallenges(w, r, domain) {
-			return
-		}
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
-// authMiddleware handles authentication requests
-func (a *theApp) authMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if a.Auth.TryAuthenticate(w, r, a.source) {
-			return
-		}
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
 // auxiliaryMiddleware will handle status updates, not-ready requests and other
 // not static-content responses
 func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
@@ -239,23 +180,6 @@ func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
 
 		if a.tryAuxiliaryHandlers(w, r, https, host, domain) {
 			return
-		}
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
-// accessControlMiddleware will handle authorization
-func (a *theApp) accessControlMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		domain := request.GetDomain(r)
-
-		// Only for projects that have access control enabled
-		if domain.IsAccessControlEnabled(r) {
-			// accessControlMiddleware
-			if a.Auth.CheckAuthentication(w, r, domain) {
-				return
-			}
 		}
 
 		handler.ServeHTTP(w, r)
@@ -324,10 +248,10 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	if !a.config.General.DisableCrossOriginRequests {
 		handler = corsHandler.Handler(handler)
 	}
-	handler = a.accessControlMiddleware(handler)
+	handler = acl.NewMiddleware(handler, a.Auth)
 	handler = a.auxiliaryMiddleware(handler)
-	handler = a.authMiddleware(handler)
-	handler = a.acmeMiddleware(handler)
+	handler = auth.NewMiddleware(handler, a.Auth, a.source)
+	handler = acme.NewMiddleware(handler, a.AcmeMiddleware)
 	handler, err := logging.AccessLogger(handler, a.config.Log.Format)
 	if err != nil {
 		return nil, err
@@ -337,7 +261,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
 	handler = metricsMiddleware(handler)
 
-	handler = a.routingMiddleware(handler)
+	handler = routing.NewMiddleware(handler, a.source)
 
 	// Health Check
 	handler, err = a.healthCheckMiddleware(handler)
@@ -346,7 +270,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	}
 
 	// Custom response headers
-	handler = a.customHeadersMiddleware(handler)
+	handler = customheaders.NewMiddleware(handler, a.CustomHeaders)
 
 	// Correlation ID injection middleware
 	var correlationOpts []correlation.InboundHandlerOption
@@ -521,7 +445,7 @@ func runApp(config *cfg.Config) {
 	}
 
 	if len(config.General.CustomHeaders) != 0 {
-		customHeaders, err := middleware.ParseHeaderString(config.General.CustomHeaders)
+		customHeaders, err := customheaders.ParseHeaderString(config.General.CustomHeaders)
 		if err != nil {
 			log.WithError(err).Fatal("Unable to parse header string")
 		}
