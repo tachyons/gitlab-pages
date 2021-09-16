@@ -1,3 +1,9 @@
+## 1.44.0 (2021-09-16)
+
+### Fixed (1 change)
+
+- [fix: unaligned 64-bit atomic operation](gitlab-org/gitlab-pages@3db4ac6aa075a157851006d4e23f1d7088a982f6) by @ax10336 ([merge request](gitlab-org/gitlab-pages!571))
+
 ## 1.43.0 (2021-08-26)
 
 ### Added (1 change)
