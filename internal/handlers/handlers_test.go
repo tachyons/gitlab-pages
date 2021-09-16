@@ -85,6 +85,52 @@ func TestNotFoundWithTokenIsNotHandled(t *testing.T) {
 	require.False(t, handled)
 }
 
+func TestForbiddenWithTokenIsNotHandled(t *testing.T) {
+	cases := map[string]struct {
+		StatusCode int
+		Token      string
+		Handled    bool
+	}{
+		"403 Forbidden with token": {
+			http.StatusForbidden,
+			"token",
+			false,
+		},
+		"403 Forbidden with no token": {
+			http.StatusForbidden,
+			"",
+			true,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockAuth := mocks.NewMockAuth(mockCtrl)
+			if tc.Token == "" {
+				mockAuth.EXPECT().IsAuthSupported().Return(true)
+				mockAuth.EXPECT().RequireAuth(gomock.Any(), gomock.Any()).Return(true)
+			} else {
+				mockAuth.EXPECT().CheckResponseForInvalidToken(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(false)
+			}
+
+			handlers := New(mockAuth, nil)
+
+			w := httptest.NewRecorder()
+			reqURL, _ := url.Parse("/")
+			r := &http.Request{URL: reqURL}
+			response := &http.Response{StatusCode: tc.StatusCode}
+			// nolint:bodyclose // TODO investigate https://gitlab.com/gitlab-org/gitlab-pages/-/issues/606
+			handled := handlers.checkIfLoginRequiredOrInvalidToken(w, r, tc.Token)(response)
+
+			require.Equal(t, tc.Handled, handled)
+		})
+	}
+}
+
 func TestNotFoundWithoutTokenIsNotHandledWhenNotAuthSupport(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
