@@ -58,9 +58,7 @@ func TestHandleArtifactRequestedReturnsTrue(t *testing.T) {
 	handlers := New(mockAuth, mockArtifact)
 
 	result := httptest.NewRecorder()
-	reqURL, err := url.Parse("/something")
-	require.NoError(t, err)
-	r := &http.Request{URL: reqURL}
+	r := httptest.NewRequest(http.MethodGet, "/something", nil)
 
 	require.Equal(t, true, handlers.HandleArtifactRequest("host", result, r))
 }
@@ -120,8 +118,7 @@ func TestForbiddenWithTokenIsNotHandled(t *testing.T) {
 			handlers := New(mockAuth, nil)
 
 			w := httptest.NewRecorder()
-			reqURL, _ := url.Parse("/")
-			r := &http.Request{URL: reqURL}
+			r := httptest.NewRequest(http.MethodGet, "/", nil)
 			response := &http.Response{StatusCode: tc.StatusCode}
 			// nolint:bodyclose // TODO investigate https://gitlab.com/gitlab-org/gitlab-pages/-/issues/606
 			handled := handlers.checkIfLoginRequiredOrInvalidToken(w, r, tc.Token)(response)
@@ -141,8 +138,7 @@ func TestNotFoundWithoutTokenIsNotHandledWhenNotAuthSupport(t *testing.T) {
 	handlers := New(mockAuth, nil)
 
 	w := httptest.NewRecorder()
-	reqURL, _ := url.Parse("/")
-	r := &http.Request{URL: reqURL}
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	response := &http.Response{StatusCode: http.StatusNotFound}
 	// nolint:bodyclose // TODO investigate https://gitlab.com/gitlab-org/gitlab-pages/-/issues/606
 	handled := handlers.checkIfLoginRequiredOrInvalidToken(w, r, "")(response)
@@ -160,8 +156,7 @@ func TestNotFoundWithoutTokenIsHandled(t *testing.T) {
 	handlers := New(mockAuth, nil)
 
 	w := httptest.NewRecorder()
-	reqURL, _ := url.Parse("/")
-	r := &http.Request{URL: reqURL}
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	response := &http.Response{StatusCode: http.StatusNotFound}
 	// nolint:bodyclose // TODO investigate https://gitlab.com/gitlab-org/gitlab-pages/-/issues/606
 	handled := handlers.checkIfLoginRequiredOrInvalidToken(w, r, "")(response)
@@ -179,8 +174,7 @@ func TestInvalidTokenResponseIsHandled(t *testing.T) {
 	handlers := New(mockAuth, nil)
 
 	w := httptest.NewRecorder()
-	reqURL, _ := url.Parse("/")
-	r := &http.Request{URL: reqURL}
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	response := &http.Response{StatusCode: http.StatusUnauthorized}
 	// nolint:bodyclose // TODO investigate https://gitlab.com/gitlab-org/gitlab-pages/-/issues/606
 	handled := handlers.checkIfLoginRequiredOrInvalidToken(w, r, "token")(response)
@@ -203,9 +197,7 @@ func TestHandleArtifactRequestButGetTokenFails(t *testing.T) {
 	handlers := New(mockAuth, mockArtifact)
 
 	result := httptest.NewRecorder()
-	reqURL, err := url.Parse("/something")
-	require.NoError(t, err)
-	r := &http.Request{URL: reqURL}
+	r := httptest.NewRequest(http.MethodGet, "/something", nil)
 
 	require.Equal(t, true, handlers.HandleArtifactRequest("host", result, r))
 }
