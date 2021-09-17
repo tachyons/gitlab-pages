@@ -1,5 +1,16 @@
 #!/bin/bash
-declare -a nightly_builds=( gitlab-rails-ee gitlab-rails-ce gitlab-webservice-ce gitlab-webservice-ee gitaly gitlab-shell gitlab-sidekiq-ee gitlab-sidekiq-ce gitlab-workhorse-ce gitlab-workhorse-ee )
+# Images that are built nightly on default branch
+declare -a nightly_builds=(
+  gitlab-rails-ee gitlab-rails-ce
+  gitlab-webservice-ce gitlab-webservice-ee
+  gitlab-sidekiq-ee gitlab-sidekiq-ce
+  gitlab-workhorse-ce gitlab-workhorse-ee
+  gitaly gitlab-shell
+)
+
+# List of all images that are "final" production images
+# Loaded fron CHECKOUT/ci_files/final_images.yml
+declare -a final_images=( $(ruby -ryaml -e "puts YAML.safe_load(File.read('ci_files/final_images.yml'))['.final_images'].map {|k| k['job']}.join(' ')") )
 
 function _containsElement () {
   local e match="$1"
@@ -168,6 +179,10 @@ function trim_tag(){
   echo $(trim_edition $1) | sed -e "s/^v//"
 }
 
+function is_final_image(){
+  [[ ${final_images[*]} =~ ${CI_JOB_NAME#build:*} ]]
+}
+
 function push_tags(){
   if [ ! -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
     echo "Skipping $(get_trimmed_job_name): Dockerfile${DOCKERFILE_EXT} does not exist."
@@ -203,6 +218,11 @@ function push_tags(){
     # if no version was specified at all,
     # we use the slug.
     tag_and_push ${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT} ${mirror_image_name}
+
+    # if this is a final image, record it.
+    if is_final_image; then
+      echo "${CI_JOB_NAME#build:*}:${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT}" > "artifacts/final/${CI_JOB_NAME#build:*}.txt"
+    fi
   fi
 }
 

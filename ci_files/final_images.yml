@@ -1,0 +1,28 @@
+.final_images: &final_images
+  - job: alpine-certificates
+  - job: cfssl-self-sign
+  - job: gitaly
+  - job: gitlab-container-registry
+  - job: gitlab-exporter
+  - job: gitlab-geo-logcursor
+  - job: gitlab-mailroom
+  - job: gitlab-pages
+  - job: gitlab-shell
+  - job: gitlab-shell-libproxyproto
+    optional: true
+  - job: gitlab-rails-ee
+  - job: gitlab-rails-ce
+    optional: true
+  - job: gitlab-sidekiq-ee
+  - job: gitlab-sidekiq-ce
+    optional: true
+  - job: gitlab-toolbox-ee
+  - job: gitlab-toolbox-ce
+    optional: true
+  - job: gitlab-webservice-ee
+  - job: gitlab-webservice-ce
+    optional: true
+  - job: gitlab-workhorse-ee
+  - job: gitlab-workhorse-ce
+    optional: true
+  - job: kubectl
