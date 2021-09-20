@@ -24,21 +24,22 @@ func New(auth internal.Auth, artifact internal.Artifact) *Handlers {
 
 func (a *Handlers) checkIfLoginRequiredOrInvalidToken(w http.ResponseWriter, r *http.Request, token string) func(*http.Response) bool {
 	return func(resp *http.Response) bool {
-		if resp.StatusCode == http.StatusNotFound {
+		// API will return 403 if the project does not have public pipelines (public_builds flag)
+		if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 			if token == "" {
 				if !a.Auth.IsAuthSupported() {
 					// Auth is not supported, probably means no access or does not exist but we cannot try with auth
 					return false
 				}
 
-				logging.LogRequest(r).Debug("Artifact API response was 404 without token, try with authentication")
+				logging.LogRequest(r).Debugf("Artifact API response was %d without token, try with authentication", resp.StatusCode)
 
 				// Authenticate user
 				if a.Auth.RequireAuth(w, r) {
 					return true
 				}
 			} else {
-				logging.LogRequest(r).Debug("Artifact API response was 404 with authentication")
+				logging.LogRequest(r).Debugf("Artifact API response was %d with authentication", resp.StatusCode)
 			}
 		}
 
