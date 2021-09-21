@@ -1,3 +1,9 @@
+## 1.45.0 (2021-09-21)
+
+### Fixed (1 change)
+
+- [fix: handle 403 errors when artifacts loaded from GitLab artifacts browser](gitlab-org/gitlab-pages@159460852e41a77b7bb5d201e127f593681c370c) ([merge request](gitlab-org/gitlab-pages!584))
+
 ## 1.44.0 (2021-09-16)
 
 ### Fixed (1 change)
