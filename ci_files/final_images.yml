@@ -5,6 +5,7 @@
   - job: gitlab-container-registry
   - job: gitlab-exporter
   - job: gitlab-geo-logcursor
+    optional: true
   - job: gitlab-mailroom
   - job: gitlab-pages
   - job: gitlab-shell
