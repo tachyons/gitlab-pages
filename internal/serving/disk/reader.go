@@ -109,7 +109,7 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 		return true
 	}
 
-	return reader.serveFile(ctx, h.Writer, h.Request, root, fullPath, h.LookupPath.HasAccessControl)
+	return reader.serveFile(ctx, h.Writer, h.Request, root, fullPath, h.LookupPath.SHA256, h.LookupPath.HasAccessControl)
 }
 
 func redirectPath(request *http.Request) string {
@@ -194,7 +194,7 @@ func (reader *Reader) resolvePath(ctx context.Context, root vfs.Root, subPath ..
 	return fullPath, nil
 }
 
-func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, origPath string, accessControl bool) bool {
+func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, origPath, sha string, accessControl bool) bool {
 	fullPath := reader.handleContentEncoding(ctx, w, r, root, origPath)
 
 	file, err := root.Open(ctx, fullPath)
@@ -210,6 +210,9 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 		httperrors.Serve500WithRequest(w, r, "root.Lstat", err)
 		return true
 	}
+
+	ce := w.Header().Get("Content-Encoding")
+	w.Header().Set("ETag", fmt.Sprintf("%q", etag(ce, sha)))
 
 	if !accessControl {
 		// Set caching headers
@@ -240,6 +243,13 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	return true
+}
+
+func etag(contentEncoding, sha string) string {
+	if contentEncoding == "" {
+		return sha
+	}
+	return fmt.Sprintf("%s-%s", sha, contentEncoding)
 }
 
 func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter, r *http.Request, code int, root vfs.Root, origPath string) error {

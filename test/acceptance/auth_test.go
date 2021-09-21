@@ -539,7 +539,10 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 			defer rsp3.Body.Close()
 
 			require.Equal(t, tt.status, rsp3.StatusCode)
-			require.Equal(t, "", rsp3.Header.Get("Cache-Control"))
+
+			// Make sure there are no cache headers
+			require.Empty(t, rsp3.Header.Values("Cache-Control"))
+			require.Empty(t, rsp3.Header.Values("Expires"))
 
 			if tt.redirectBack {
 				loc3, err := url.Parse(rsp3.Header.Get("Location"))

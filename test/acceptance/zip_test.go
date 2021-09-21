@@ -1,6 +1,7 @@
 package acceptance_test
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -9,9 +10,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestZipServing(t *testing.T) {
+	testhelpers.StubFeatureFlagValue(t, feature.HandleCacheHeaders.EnvVariable, true)
+
 	runObjectStorage(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 
 	RunPagesProcess(t,
@@ -88,6 +94,11 @@ func TestZipServing(t *testing.T) {
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
 
+			if tt.expectedStatusCode == http.StatusOK {
+				require.NotEmpty(t, response.Header.Get("ETag"))
+				require.NotEmpty(t, response.Header.Get("Last-Modified"))
+			}
+
 			body, err := io.ReadAll(response.Body)
 			require.NoError(t, err)
 
@@ -108,47 +119,132 @@ func TestZipServingCache(t *testing.T) {
 		urlSuffix          string
 		expectedStatusCode int
 		expectedContent    string
-		extraHeaders       http.Header
+		extraHeaders       func(string) http.Header
 	}{
+		"base_domain_if_none_match": {
+			host:               "zip.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusNotModified,
+			extraHeaders: func(etag string) http.Header {
+				return http.Header{
+					"If-None-Match": {etag},
+				}
+			},
+		},
+		"base_domain_if_none_match_fail": {
+			host:               "zip.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "zip.gitlab.io/project/index.html\n",
+			extraHeaders: func(etag string) http.Header {
+				return http.Header{
+					"If-None-Match": {fmt.Sprintf("%q", "badetag")},
+				}
+			},
+		},
+		"base_domain_if_match": {
+			host:               "zip.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "zip.gitlab.io/project/index.html\n",
+			extraHeaders: func(etag string) http.Header {
+				return http.Header{
+					"If-Match": {etag},
+				}
+			},
+		},
+		"base_domain_if_match_fail": {
+			host:               "zip.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusPreconditionFailed,
+			extraHeaders: func(etag string) http.Header {
+				return http.Header{
+					"If-Match": {fmt.Sprintf("%q", "wrongetag")},
+				}
+			},
+		},
+		"base_domain_if_match_fail2": {
+			host:               "zip.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusPreconditionFailed,
+			extraHeaders: func(etag string) http.Header {
+				return http.Header{
+					"If-Match": {","},
+				}
+			},
+		},
 		"base_domain_if_modified": {
 			host:               "zip.gitlab.io",
 			urlSuffix:          "/",
 			expectedStatusCode: http.StatusNotModified,
-			extraHeaders: http.Header{
-				"If-Modified-Since": {time.Now().Format(http.TimeFormat)},
+			extraHeaders: func(string) http.Header {
+				return http.Header{
+					"If-Modified-Since": {time.Now().Format(http.TimeFormat)},
+				}
+			},
+		},
+		"base_domain_if_modified_fails": {
+			host:               "zip.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "zip.gitlab.io/project/index.html\n",
+			extraHeaders: func(string) http.Header {
+				return http.Header{
+					"If-Modified-Since": {time.Now().AddDate(-10, 0, 0).Format(http.TimeFormat)},
+				}
 			},
 		},
 		"base_domain_if_unmodified": {
 			host:               "zip.gitlab.io",
 			urlSuffix:          "/",
 			expectedStatusCode: http.StatusPreconditionFailed,
-			extraHeaders: http.Header{
-				"If-Unmodified-Since": {time.Now().AddDate(-10, 0, 0).Format(http.TimeFormat)},
+			extraHeaders: func(string) http.Header {
+				return http.Header{
+					"If-Unmodified-Since": {time.Now().AddDate(-10, 0, 0).Format(http.TimeFormat)},
+				}
+			},
+		},
+		"base_domain_if_unmodified_fails": {
+			host:               "zip.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusOK,
+			expectedContent:    "zip.gitlab.io/project/index.html\n",
+			extraHeaders: func(string) http.Header {
+				return http.Header{
+					"If-Unmodified-Since": {time.Now().Format(http.TimeFormat)},
+				}
 			},
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			response, err := GetPageFromListenerWithHeaders(t, httpListener, tt.host, tt.urlSuffix, tt.extraHeaders)
+			// send a request to get the ETag
+			response, err := GetPageFromListener(t, httpListener, tt.host, tt.urlSuffix)
 			require.NoError(t, err)
 			defer response.Body.Close()
+			require.Equal(t, http.StatusOK, response.StatusCode)
 
-			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
+			etag := response.Header.Get("ETag")
+			require.NotEmpty(t, etag)
 
-			if tt.expectedStatusCode == http.StatusOK {
-				require.NotEmpty(t, response.Header.Get("Last-Modified"))
-			}
+			// actual test
+			rsp, err := GetPageFromListenerWithHeaders(t, httpListener, tt.host, tt.urlSuffix, tt.extraHeaders(etag))
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedStatusCode, rsp.StatusCode)
 
-			body, err := io.ReadAll(response.Body)
+			body, err := io.ReadAll(rsp.Body)
 			require.NoError(t, err)
 
-			require.Contains(t, string(body), tt.expectedContent, "content mismatch")
+			defer rsp.Body.Close()
+			require.Equal(t, tt.expectedContent, string(body), "content mismatch")
 		})
 	}
 }
 
 func TestZipServingFromDisk(t *testing.T) {
+	testhelpers.StubFeatureFlagValue(t, feature.HandleCacheHeaders.EnvVariable, true)
+
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 	)
@@ -222,6 +318,11 @@ func TestZipServingFromDisk(t *testing.T) {
 			defer response.Body.Close()
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
+
+			if tt.expectedStatusCode == http.StatusOK {
+				require.NotEmpty(t, response.Header.Get("ETag"))
+				require.NotEmpty(t, response.Header.Get("Last-Modified"))
+			}
 
 			body, err := io.ReadAll(response.Body)
 			require.NoError(t, err)

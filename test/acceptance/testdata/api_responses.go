@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -165,7 +166,7 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 
 			sourcePath := fmt.Sprintf("file://%s", wd+"/"+dir+project)
 			sum := sha256.Sum256([]byte(sourcePath))
-			sha := string(sum[:])
+			sha := hex.EncodeToString(sum[:])
 
 			lookupPath := api.LookupPath{
 				ProjectID:     cfg.projectID,
@@ -204,7 +205,7 @@ func customDomain(config projectConfig) responseFn {
 
 		sourcePath := fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk)
 		sum := sha256.Sum256([]byte(sourcePath))
-		sha := string(sum[:])
+		sha := hex.EncodeToString(sum[:])
 
 		return api.VirtualDomain{
 			Certificate: "",
