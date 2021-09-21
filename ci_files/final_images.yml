@@ -11,18 +11,23 @@
   - job: gitlab-shell-libproxyproto
     optional: true
   - job: gitlab-rails-ee
+    optional: true
   - job: gitlab-rails-ce
     optional: true
   - job: gitlab-sidekiq-ee
+    optional: true
   - job: gitlab-sidekiq-ce
     optional: true
   - job: gitlab-toolbox-ee
+    optional: true
   - job: gitlab-toolbox-ce
     optional: true
   - job: gitlab-webservice-ee
+    optional: true
   - job: gitlab-webservice-ce
     optional: true
   - job: gitlab-workhorse-ee
+    optional: true
   - job: gitlab-workhorse-ce
     optional: true
   - job: kubectl
