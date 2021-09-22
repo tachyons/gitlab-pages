@@ -1,6 +1,7 @@
 package ratelimiter
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -23,32 +24,27 @@ func TestDomainAllowed(t *testing.T) {
 		now                     string
 		domainRate              time.Duration
 		perDomainBurstPerSecond int
-		domain                  string
 		reqNum                  int
 	}{
-		"one_request_per_second": {
-			domainRate:              1, // 1 per second
+		"one_request_per_nanosecond": {
+			domainRate:              time.Nanosecond, // 1 per nanosecond
 			perDomainBurstPerSecond: 1,
 			reqNum:                  2,
-			domain:                  "rate.gitlab.io",
 		},
-		"one_request_per_second_but_big_bucket": {
-			domainRate:              1, // 1 per second
+		"one_request_per_nanosecond_but_big_bucket": {
+			domainRate:              time.Nanosecond,
 			perDomainBurstPerSecond: 10,
 			reqNum:                  11,
-			domain:                  "rate.gitlab.io",
 		},
 		"three_req_per_second_bucket_size_one": {
 			domainRate:              3, // 3 per second
 			perDomainBurstPerSecond: 1, // max burst 1 means 1 at a time
 			reqNum:                  3,
-			domain:                  "rate.gitlab.io",
 		},
 		"10_requests_per_second": {
 			domainRate:              10,
 			perDomainBurstPerSecond: 10,
 			reqNum:                  11,
-			domain:                  "rate.gitlab.io",
 		},
 	}
 
@@ -61,48 +57,51 @@ func TestDomainAllowed(t *testing.T) {
 			)
 
 			for i := 0; i < tc.reqNum; i++ {
-				got := rl.DomainAllowed(tc.domain)
+				got := rl.DomainAllowed("rate.gitlab.io")
 				if i < tc.perDomainBurstPerSecond {
-					require.Truef(t, got, "expected true for request no. %d", i+1)
+					require.Truef(t, got, "expected true for request no. %d", i)
 				} else {
-					require.False(t, got, "expected false for request no. %d", i+1)
+					// requests should fail after reaching tc.perDomainBurstPerSecond because mockNow
+					// always returns the same time
+					require.False(t, got, "expected false for request no. %d", i)
 				}
 			}
 		})
 	}
 }
 
-func TestDomainAllowedWitSleeps(t *testing.T) {
+func TestSingleRateLimiterWithMultipleDomains(t *testing.T) {
 	rate := 10 * time.Millisecond
 	rl := New(
 		WithPerDomainFrequency(rate),
 		WithPerDomainBurstSize(1),
 	)
 
-	domain := "test.gitlab.io"
+	wg := sync.WaitGroup{}
+	wg.Add(3)
 
-	t.Run("one request every 10ms with burst 1", func(t *testing.T) {
-		// prove cache entries per domain
-		t.Parallel()
+	testFn := func(domain string) func(t *testing.T) {
+		return func(t *testing.T) {
+			go func() {
+				defer wg.Done()
 
-		for i := 0; i < 10; i++ {
-			got := rl.DomainAllowed(domain)
-			require.Truef(t, got, "expected true for request no. %d", i+1)
-			time.Sleep(rate)
+				for i := 0; i < 5; i++ {
+					got := rl.DomainAllowed(domain)
+					require.Truef(t, got, "expected true for request no. %d", i)
+					time.Sleep(rate)
+				}
+			}()
 		}
-	})
+	}
 
-	t.Run("requests start failing after reaching burst", func(t *testing.T) {
-		// prove cache entries per domain
-		t.Parallel()
+	first := "first.gitlab.io"
+	t.Run(first, testFn(first))
 
-		for i := 0; i < 5; i++ {
-			got := rl.DomainAllowed(domain + ".diff")
-			if i < 1 {
-				require.Truef(t, got, "expected true for request no. %d", i)
-			} else {
-				require.False(t, got, "expected false for request no. %d", i)
-			}
-		}
-	})
+	second := "second.gitlab.io"
+	t.Run(second, testFn(second))
+
+	third := "third.gitlab.io"
+	t.Run(third, testFn(third))
+
+	wg.Wait()
 }
