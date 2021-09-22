@@ -17,38 +17,38 @@ func mockNow() time.Time {
 	return validTime
 }
 
+var sharedTestCases = map[string]struct {
+	now               string
+	sourceIPLimit     float64
+	sourceIPBurstSize int
+	reqNum            int
+}{
+	"one_request_per_second": {
+		sourceIPLimit:     1,
+		sourceIPBurstSize: 1,
+		reqNum:            2,
+	},
+	"one_request_per_second_but_big_bucket": {
+		sourceIPLimit:     1,
+		sourceIPBurstSize: 10,
+		reqNum:            11,
+	},
+	"three_req_per_second_bucket_size_one": {
+		sourceIPLimit:     3,
+		sourceIPBurstSize: 1, // max burst 1 means 1 at a time
+		reqNum:            3,
+	},
+	"10_requests_per_second": {
+		sourceIPLimit:     10,
+		sourceIPBurstSize: 10,
+		reqNum:            11,
+	},
+}
+
 func TestSourceIPAllowed(t *testing.T) {
 	t.Parallel()
 
-	tcs := map[string]struct {
-		now               string
-		sourceIPLimit     float64
-		sourceIPBurstSize int
-		reqNum            int
-	}{
-		"one_request_per_second": {
-			sourceIPLimit:     1,
-			sourceIPBurstSize: 1,
-			reqNum:            2,
-		},
-		"one_request_per_second_but_big_bucket": {
-			sourceIPLimit:     1,
-			sourceIPBurstSize: 10,
-			reqNum:            11,
-		},
-		"three_req_per_second_bucket_size_one": {
-			sourceIPLimit:     3,
-			sourceIPBurstSize: 1, // max burst 1 means 1 at a time
-			reqNum:            3,
-		},
-		"10_requests_per_second": {
-			sourceIPLimit:     10,
-			sourceIPBurstSize: 10,
-			reqNum:            11,
-		},
-	}
-
-	for tn, tc := range tcs {
+	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
 				WithNow(mockNow),
