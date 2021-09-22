@@ -184,6 +184,34 @@ var (
 			Help: "The number of backlogged connections waiting on concurrency limit.",
 		},
 	)
+
+	// RateLimitSourceIPCacheRequests is the number of cache hits/misses
+	RateLimitSourceIPCacheRequests = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "gitlab_pages_rate_limit_source_ip_cache_requests",
+			Help: "The number of source_ip cache hits/misses in the rate limiter",
+		},
+		[]string{"op", "cache"},
+	)
+
+	// RateLimitSourceIPCachedEntries is the number of entries in the cache
+	RateLimitSourceIPCachedEntries = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_rate_limit_source_ip_cached_entries",
+			Help: "The number of entries in the cache",
+		},
+		[]string{"op"},
+	)
+
+	// RateLimitSourceIPBlockedCount is the number of source IPs that have been blocked by the
+	// source IP rate limiter
+	RateLimitSourceIPBlockedCount = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_rate_limit_source_ip_blocked_count",
+			Help: "The number of source IP addresses that have been blocked by the rate limiter",
+		},
+		[]string{"enforced"},
+	)
 )
 
 // MustRegister collectors with the Prometheus client
@@ -211,5 +239,8 @@ func MustRegister() {
 		LimitListenerMaxConns,
 		LimitListenerConcurrentConns,
 		LimitListenerWaitingConns,
+		RateLimitSourceIPCacheRequests,
+		RateLimitSourceIPCachedEntries,
+		RateLimitSourceIPBlockedCount,
 	)
 }

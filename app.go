@@ -32,6 +32,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/routing"
@@ -261,6 +262,16 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = metricsMiddleware(handler)
 
 	handler = routing.NewMiddleware(handler, a.source)
+
+	if a.config.RateLimit.SourceIPLimitPerSecond > 0 {
+		rl := ratelimiter.New(
+			ratelimiter.WithSourceIPLimitPerSecond(a.config.RateLimit.SourceIPLimitPerSecond),
+			ratelimiter.WithSourceIPBurstSize(a.config.RateLimit.SourceIPBurst),
+			ratelimiter.WithProxied(len(a.config.Listeners.Proxy) > 0),
+		)
+
+		handler = rl.SourceIPLimiter(handler)
+	}
 
 	// Health Check
 	handler, err = a.healthCheckMiddleware(handler)

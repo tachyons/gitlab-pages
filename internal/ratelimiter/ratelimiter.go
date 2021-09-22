@@ -7,6 +7,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/lru"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
@@ -34,8 +35,10 @@ type Option func(*RateLimiter)
 // It also holds a now function that can be mocked in unit tests.
 type RateLimiter struct {
 	now                    func() time.Time
+	proxied                bool
 	sourceIPLimitPerSecond float64
 	sourceIPBurstSize      int
+	sourceIPBlockedCount   *prometheus.GaugeVec
 	sourceIPCache          *lru.Cache
 	// TODO: add domainCache https://gitlab.com/gitlab-org/gitlab-pages/-/issues/630
 }
@@ -46,13 +49,13 @@ func New(opts ...Option) *RateLimiter {
 		now:                    time.Now,
 		sourceIPLimitPerSecond: DefaultSourceIPLimitPerSecond,
 		sourceIPBurstSize:      DefaultSourceIPBurstSize,
+		sourceIPBlockedCount:   metrics.RateLimitSourceIPBlockedCount,
 		sourceIPCache: lru.New(
 			"source_ip",
 			defaultSourceIPItems,
 			defaultSourceIPExpirationInterval,
-			// TODO: @jaime to add proper metrics in subsequent MR
-			prometheus.NewGaugeVec(prometheus.GaugeOpts{}, []string{"op"}),
-			prometheus.NewCounterVec(prometheus.CounterOpts{}, []string{"op", "cache"}),
+			metrics.RateLimitSourceIPCachedEntries,
+			metrics.RateLimitSourceIPCacheRequests,
 		),
 	}
 
@@ -84,6 +87,12 @@ func WithSourceIPBurstSize(burst int) Option {
 	}
 }
 
+// WithProxied sets the proxy flag to true. Used by the SourceIPLimiter middleware.
+func WithProxied(proxied bool) Option {
+	return func(rl *RateLimiter) {
+		rl.proxied = proxied
+	}
+}
 func (rl *RateLimiter) getSourceIPLimiter(sourceIP string) *rate.Limiter {
 	limiterI, _ := rl.sourceIPCache.FindOrFetch(sourceIP, sourceIP, func() (interface{}, error) {
 		return rate.NewLimiter(rate.Limit(rl.sourceIPLimitPerSecond), rl.sourceIPBurstSize), nil
