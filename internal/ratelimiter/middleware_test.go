@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,6 +14,8 @@ func TestDomainRateLimiter(t *testing.T) {
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
+
+	enableRateLimiter(t)
 
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
@@ -45,4 +48,17 @@ func TestDomainRateLimiter(t *testing.T) {
 			}
 		})
 	}
+}
+
+func enableRateLimiter(t *testing.T) {
+	t.Helper()
+
+	orig := os.Getenv("FF_ENABLE_RATE_LIMITER")
+
+	err := os.Setenv("FF_ENABLE_RATE_LIMITER", "true")
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		os.Setenv("FF_ENABLE_RATE_LIMITER", orig)
+	})
 }
