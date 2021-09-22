@@ -17,38 +17,38 @@ func mockNow() time.Time {
 	return validTime
 }
 
+var sharedTestCases = map[string]struct {
+	now                     string
+	domainRate              time.Duration
+	perDomainBurstPerSecond int
+	reqNum                  int
+}{
+	"one_request_per_nanosecond": {
+		domainRate:              time.Nanosecond, // 1 per nanosecond
+		perDomainBurstPerSecond: 1,
+		reqNum:                  2,
+	},
+	"one_request_per_nanosecond_but_big_bucket": {
+		domainRate:              time.Nanosecond,
+		perDomainBurstPerSecond: 10,
+		reqNum:                  11,
+	},
+	"three_req_per_second_bucket_size_one": {
+		domainRate:              3, // 3 per second
+		perDomainBurstPerSecond: 1, // max burst 1 means 1 at a time
+		reqNum:                  3,
+	},
+	"10_requests_per_second": {
+		domainRate:              10,
+		perDomainBurstPerSecond: 10,
+		reqNum:                  11,
+	},
+}
+
 func TestDomainAllowed(t *testing.T) {
 	t.Parallel()
 
-	tcs := map[string]struct {
-		now                     string
-		domainRate              time.Duration
-		perDomainBurstPerSecond int
-		reqNum                  int
-	}{
-		"one_request_per_nanosecond": {
-			domainRate:              time.Nanosecond, // 1 per nanosecond
-			perDomainBurstPerSecond: 1,
-			reqNum:                  2,
-		},
-		"one_request_per_nanosecond_but_big_bucket": {
-			domainRate:              time.Nanosecond,
-			perDomainBurstPerSecond: 10,
-			reqNum:                  11,
-		},
-		"three_req_per_second_bucket_size_one": {
-			domainRate:              3, // 3 per second
-			perDomainBurstPerSecond: 1, // max burst 1 means 1 at a time
-			reqNum:                  3,
-		},
-		"10_requests_per_second": {
-			domainRate:              10,
-			perDomainBurstPerSecond: 10,
-			reqNum:                  11,
-		},
-	}
-
-	for tn, tc := range tcs {
+	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
 				WithNow(mockNow),
