@@ -2,7 +2,8 @@
 
 If you want to develop GitLab Pages with the GDK, follow [these instructions](https://gitlab.com/gitlab-org/gitlab-development-kit/-/blob/main/doc/howto/pages.md).
 
-You can also run and develop GitLab Pages outside of the GDK. Here is a few commands and host file changes to get you running with the examples built into the repo.
+You can also run and develop GitLab Pages outside of the GDK. Here are a few commands and host file
+changes to get you running with the examples built into the repository.
 
 Create `gitlab-pages.conf` in the root of this project:
 
