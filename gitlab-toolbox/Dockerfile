@@ -11,7 +11,7 @@ FROM ${GITALY_IMAGE} AS gitaly
 FROM ${FROM_IMAGE}:${TAG}
 
 ARG AWSCLI_VERSION="1.20.44"
-ARG S3CMD_VERSION="2.1.0"
+ARG S3CMD_VERSION="2.2.0"
 ARG GSUTIL_VERSION="4.43"
 
 COPY --from=python /usr/local/bin /usr/local/bin/
