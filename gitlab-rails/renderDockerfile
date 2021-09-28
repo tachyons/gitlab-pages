@@ -11,6 +11,10 @@ def ee?
   ENV['RAILS_EE'].eql?('true')
 end
 
+def gitlab_bundle_gemfile
+  ENV['GITLAB_BUNDLE_GEMFILE']
+end
+
 puts "Rendering Dockerfile"
 
 template = ERB.new(File.read('Dockerfile.erb'))
