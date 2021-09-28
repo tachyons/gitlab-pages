@@ -112,6 +112,12 @@ RUN cd /srv/gitlab && \
 
 # Install gems
 COPY --chown=git vendor/bundle/ /srv/gitlab/vendor/bundle
+
+<% if compile_assets and gitlab_bundle_gemfile %>
+RUN cd /srv/gitlab && \
+    sudo -u git -H bundle config set --local gemfile <%= gitlab_bundle_gemfile %>
+<% end %>
+
 RUN cd /srv/gitlab && \
     sudo -u git -H bundle install --clean --deployment --without development test mysql aws kerberos --jobs 4 --retry 5
 

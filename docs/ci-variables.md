@@ -22,6 +22,7 @@ Check the table below for more information about the various CI variables used i
 | EE_PIPELINE                                   | Setting any value indicates this will be an EE only pipeline. |
 | CUSTOM_PIPELINE                               | Setting any value indicates this will be a custom pipeline (Do not run CE or EE specific jobs.) |
 | DEPENDENCY_PROXY                              | Sets the dockerhub registry location. See [details](build.md#dependency-proxy). |
+|GITLAB_BUNDLE_GEMFILE                          | Setting Gemfile path required by `gitlab-rails` bundle. If bundle uses the default Gemfile, just keep it unset. |
 
 ## Test variables
 
