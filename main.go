@@ -67,7 +67,7 @@ func appMain() {
 	log.WithFields(log.Fields{
 		"version":  VERSION,
 		"revision": REVISION,
-	}).Info("GitLab Pages Daemon")
+	}).Info("GitLab Pages")
 	log.Info("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
 	if err := os.Chdir(config.General.RootDir); err != nil {

@@ -300,7 +300,7 @@ func LogConfig(config *Config) {
 		"zip-cache-cleanup":             config.Zip.CleanupInterval,
 		"zip-cache-refresh":             config.Zip.RefreshInterval,
 		"zip-open-timeout":              config.Zip.OpenTimeout,
-	}).Debug("Start daemon with configuration")
+	}).Debug("Start Pages with configuration")
 }
 
 // LoadConfig parses configuration settings passed as command line arguments or
