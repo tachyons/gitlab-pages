@@ -351,7 +351,6 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 		args = append(args, "-metrics-address", promPort)
 	}
 
-	args = append(args, getPagesDaemonArgs(t)...)
 	args = append(args, extraArgs...)
 
 	return
@@ -364,24 +363,6 @@ func contains(slice []string, s string) bool {
 		}
 	}
 	return false
-}
-
-func getPagesDaemonArgs(t *testing.T) []string {
-	if !(*daemonize) {
-		return nil
-	}
-
-	if os.Geteuid() != 0 {
-		t.Log("Privilege-dropping requested but not running as root!")
-		t.FailNow()
-		return nil
-	}
-
-	out := []string{}
-
-	t.Log("Running pages as a daemon")
-
-	return out
 }
 
 // Does a HTTP(S) GET against the listener specified, setting a fake
