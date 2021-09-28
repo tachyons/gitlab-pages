@@ -318,6 +318,7 @@ function restore(){
   fi
 
   gitlab-rake cache:clear
+  cleanup
 }
 
 while [[ $# -gt 0 ]]
