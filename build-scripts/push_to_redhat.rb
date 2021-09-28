@@ -8,6 +8,7 @@
 
 require 'json'
 require 'digest'
+require 'requests'
 
 $GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] || ENV['CI_REGISTRY_IMAGE'] || 'registry.gitlab.com/gitlab-org/build/cng'
 $REDHAT_REGISTRY = ENV['REDHAT_REGISTRY_HOSTNAME'] || 'scan.connect.redhat.com'
@@ -22,34 +23,7 @@ $IMAGE_VERSION_VAR = { 'alpine-certificates' => 'ALPINE_VERSION',
                        'gitlab-webservice-ee' => 'GITLAB_VERSION',
                        'gitlab-workhorse-ee' => 'GITLAB_VERSION',
                        'kubectl' => 'KUBECTL_VERSION' }
-$AUTO_DEPLOY_TAG_REGEX = /^\d+\.\d+\.\d+\+\S{7,}$/
-$AUTO_DEPLOY_BRANCH_REGEX = /^\d+-\d+-auto-deploy-\d+$/
 
-def retag_image(name, version, proj_id)
-  gitlab_tag = "#{version}"
-  redhat_tag = version.gsub(/^v(\d+\.\d+\.\d+)/, '\1')
-  new_container_name = "#{$REDHAT_REGISTRY}/#{proj_id}/#{name}:#{redhat_tag}"
-
-  puts "Retagging #{$GITLAB_REGISTRY}/#{name}:#{gitlab_tag} to #{new_container_name}"
-  %x(docker tag #{$GITLAB_REGISTRY}/#{name}:#{gitlab_tag} #{new_container_name})
-  new_container_name
-end
-
-def set_credentials(secret)
-  puts "Setting credentials"
-  puts "checksum = #{Digest::SHA1.hexdigest secret}"
-  %x(echo '#{secret}' | docker login -u unused --password-stdin #{$REDHAT_REGISTRY})
-end
-
-def pull_image(image)
-  puts "Pulling #{image}"
-  %x(docker pull #{image})
-end
-
-def push_image(image)
-  puts "Pushing #{image}"
-  %x(docker push #{image})
-end
 
 def is_regular_tag
   (ENV['CI_COMMIT_TAG'] || ENV['GITLAB_TAG']) && \
@@ -91,28 +65,8 @@ $IMAGE_VERSION_VAR.keys.each do |name|
   end
 
   if secrets.has_key? name
-    # pull the image from the GitLab registry
-    response = pull_image("#{$GITLAB_REGISTRY}/#{name}:#{version}")
-    if response.empty?
-      puts "Skipping #{$GITLAB_REGISTRY}/#{name}:#{version} (Not Found)"
-      errors << "#{name}: image not found with #{version} tag"
-      next
-    end
+    pass
 
-    # retag the image with the Red Hat registry information
-    container_name = retag_image(name, version, secrets[name]['id'])
-
-    # each image has separate creds, so need to re auth
-    result = set_credentials(secrets[name]['secret']).chomp
-    if result != 'Login Succeeded'
-      puts "***** Failed to authenticate to registry for #{name} *****"
-      puts "#{result}\n"
-      errors << "#{name}: Unable to authentcate to registry (bad secret?)"
-      next
-    end
-
-    # push image to Red Hat and display the response received
-    puts push_image(container_name)
   else
     # let someone know that there was not a secret for a specific image
     puts "No entry for #{name} in secrets file"
