@@ -248,10 +248,10 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	if !a.config.General.DisableCrossOriginRequests {
 		handler = corsHandler.Handler(handler)
 	}
-	handler = acl.NewMiddleware(handler, a.Auth)
+	handler = a.Auth.AuthorizationMiddleware(handler)
 	handler = a.auxiliaryMiddleware(handler)
-	handler = auth.NewMiddleware(handler, a.Auth, a.source)
-	handler = acme.NewMiddleware(handler, a.AcmeMiddleware)
+	handler = a.Auth.AuthenticationMiddleware(handler, a.source)
+	handler = a.AcmeMiddleware.AcmeMiddleware(handler)
 	handler, err := logging.AccessLogger(handler, a.config.Log.Format)
 	if err != nil {
 		return nil, err

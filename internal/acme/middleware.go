@@ -7,7 +7,7 @@ import (
 )
 
 // NewMiddleware returns middleware which handle ACME challenges
-func NewMiddleware(handler http.Handler, m *Middleware) http.Handler {
+func (m *Middleware) AcmeMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		domain := request.GetDomain(r)
 
