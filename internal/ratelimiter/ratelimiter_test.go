@@ -21,30 +21,30 @@ func TestDomainAllowed(t *testing.T) {
 	t.Parallel()
 
 	tcs := map[string]struct {
-		now                     string
-		domainRate              time.Duration
-		perDomainBurstPerSecond int
-		reqNum                  int
+		now               string
+		sourceIPLimit     float64
+		sourceIPBurstSize int
+		reqNum            int
 	}{
-		"one_request_per_nanosecond": {
-			domainRate:              time.Nanosecond, // 1 per nanosecond
-			perDomainBurstPerSecond: 1,
-			reqNum:                  2,
+		"one_request_per_second": {
+			sourceIPLimit:     1,
+			sourceIPBurstSize: 1,
+			reqNum:            2,
 		},
-		"one_request_per_nanosecond_but_big_bucket": {
-			domainRate:              time.Nanosecond,
-			perDomainBurstPerSecond: 10,
-			reqNum:                  11,
+		"one_request_per_second_but_big_bucket": {
+			sourceIPLimit:     1,
+			sourceIPBurstSize: 10,
+			reqNum:            11,
 		},
 		"three_req_per_second_bucket_size_one": {
-			domainRate:              3, // 3 per second
-			perDomainBurstPerSecond: 1, // max burst 1 means 1 at a time
-			reqNum:                  3,
+			sourceIPLimit:     3,
+			sourceIPBurstSize: 1, // max burst 1 means 1 at a time
+			reqNum:            3,
 		},
 		"10_requests_per_second": {
-			domainRate:              10,
-			perDomainBurstPerSecond: 10,
-			reqNum:                  11,
+			sourceIPLimit:     10,
+			sourceIPBurstSize: 10,
+			reqNum:            11,
 		},
 	}
 
@@ -52,16 +52,16 @@ func TestDomainAllowed(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
 				WithNow(mockNow),
-				WithPerDomainFrequency(tc.domainRate),
-				WithPerDomainBurstSize(tc.perDomainBurstPerSecond),
+				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
+				WithSourceIPBurstSize(tc.sourceIPBurstSize),
 			)
 
 			for i := 0; i < tc.reqNum; i++ {
-				got := rl.DomainAllowed("rate.gitlab.io")
-				if i < tc.perDomainBurstPerSecond {
+				got := rl.SourceIPAllowed("172.16.123.1")
+				if i < tc.sourceIPBurstSize {
 					require.Truef(t, got, "expected true for request no. %d", i)
 				} else {
-					// requests should fail after reaching tc.perDomainBurstPerSecond because mockNow
+					// requests should fail after reaching tc.sourceIPBurstSize because mockNow
 					// always returns the same time
 					require.False(t, got, "expected false for request no. %d", i)
 				}
@@ -73,20 +73,20 @@ func TestDomainAllowed(t *testing.T) {
 func TestSingleRateLimiterWithMultipleDomains(t *testing.T) {
 	rate := 10 * time.Millisecond
 	rl := New(
-		WithPerDomainFrequency(rate),
-		WithPerDomainBurstSize(1),
+		WithSourceIPLimitPerSecond(float64(1/rate)),
+		WithSourceIPBurstSize(1),
 	)
 
 	wg := sync.WaitGroup{}
-	wg.Add(3)
 
 	testFn := func(domain string) func(t *testing.T) {
 		return func(t *testing.T) {
+			wg.Add(1)
 			go func() {
 				defer wg.Done()
 
 				for i := 0; i < 5; i++ {
-					got := rl.DomainAllowed(domain)
+					got := rl.SourceIPAllowed(domain)
 					require.Truef(t, got, "expected true for request no. %d", i)
 					time.Sleep(rate)
 				}
@@ -94,13 +94,13 @@ func TestSingleRateLimiterWithMultipleDomains(t *testing.T) {
 		}
 	}
 
-	first := "first.gitlab.io"
+	first := "172.16.123.10"
 	t.Run(first, testFn(first))
 
-	second := "second.gitlab.io"
+	second := "172.16.123.20"
 	t.Run(second, testFn(second))
 
-	third := "third.gitlab.io"
+	third := "172.16.123.30"
 	t.Run(third, testFn(third))
 
 	wg.Wait()
