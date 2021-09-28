@@ -120,7 +120,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 				LookupPath: &serving.LookupPath{
 					Prefix: "/zip/",
 					Path:   test.vfsPath,
-					Sha256: test.sha256,
+					SHA256: test.sha256,
 				},
 				SubPath: test.path,
 			}
