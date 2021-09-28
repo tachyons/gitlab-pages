@@ -20,12 +20,6 @@
     - echo "Running just the acceptance tests...."
     - make acceptance
 
-.tests-acceptance-daemonize:
-  extends: .tests-common
-  script:
-    - echo "Running just the acceptance tests as daemon...."
-    - make acceptance ARGS='-daemonize'
-
 test:1.16:
   extends: .tests-unit
   image: golang:1.16
@@ -34,20 +28,12 @@ test-acceptance:1.16:
   extends: .tests-acceptance
   image: golang:1.16
 
-test-acceptance-daemonize:1.16:
-  extends: .tests-acceptance-daemonize
-  image: golang:1.16
-
 test:1.17:
   extends: .tests-unit
   image: golang:1.17
 
 test-acceptance:1.17:
   extends: .tests-acceptance
-  image: golang:1.17
-
-test-acceptance-daemonize:1.17:
-  extends: .tests-acceptance-daemonize
   image: golang:1.17
 
 race:
