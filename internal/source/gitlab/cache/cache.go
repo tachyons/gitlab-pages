@@ -83,12 +83,14 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 		return entry.Lookup()
 	}
 
-	metrics.DomainsSourceCacheMiss.Inc()
 	if entry.NeedsRefresh() {
 		c.Refresh(entry)
+
+		metrics.DomainsSourceCacheHit.Inc()
 		return entry.Lookup()
 	}
 
+	metrics.DomainsSourceCacheMiss.Inc()
 	return c.retrieve(ctx, entry)
 }
 
