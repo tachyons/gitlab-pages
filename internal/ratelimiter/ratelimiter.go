@@ -7,6 +7,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/lru"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
@@ -36,6 +37,7 @@ type RateLimiter struct {
 	now                    func() time.Time
 	sourceIPLimitPerSecond float64
 	sourceIPBurstSize      int
+	sourceIPBlockedCount   *prometheus.GaugeVec
 	sourceIPCache          *lru.Cache
 	// TODO: add domainCache https://gitlab.com/gitlab-org/gitlab-pages/-/issues/630
 }
@@ -46,13 +48,13 @@ func New(opts ...Option) *RateLimiter {
 		now:                    time.Now,
 		sourceIPLimitPerSecond: DefaultSourceIPLimitPerSecond,
 		sourceIPBurstSize:      DefaultSourceIPBurstSize,
+		sourceIPBlockedCount:   metrics.RateLimitSourceIPBlockedCount,
 		sourceIPCache: lru.New(
 			"source_ip",
 			defaultSourceIPItems,
 			defaultSourceIPExpirationInterval,
-			// TODO: @jaime to add proper metrics in subsequent MR
-			prometheus.NewGaugeVec(prometheus.GaugeOpts{}, []string{"op"}),
-			prometheus.NewCounterVec(prometheus.CounterOpts{}, []string{"op", "cache"}),
+			metrics.RateLimitSourceIPCachedEntries,
+			metrics.RateLimitSourceIPCacheRequests,
 		),
 	}
 

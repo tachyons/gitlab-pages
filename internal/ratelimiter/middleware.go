@@ -32,9 +32,12 @@ func (rl *RateLimiter) SourceIPLimiter(handler http.Handler) http.Handler {
 
 			// Only drop requests once FF_ENABLE_RATE_LIMITER is enabled
 			if rateLimiterEnabled() {
+				rl.sourceIPBlockedCount.WithLabelValues("enforced", "true").Inc()
 				httperrors.Serve429(w)
 				return
 			}
+
+			rl.sourceIPBlockedCount.WithLabelValues("enforced", "false").Inc()
 		}
 
 		handler.ServeHTTP(w, r)

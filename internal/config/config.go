@@ -16,6 +16,7 @@ import (
 // Config stores all the config options relevant to GitLab Pages.
 type Config struct {
 	General         General
+	RateLimit       RateLimit
 	ArtifactsServer ArtifactsServer
 	Authentication  Auth
 	Daemon          Daemon
@@ -61,6 +62,12 @@ type General struct {
 	ShowVersion bool
 
 	CustomHeaders []string
+}
+
+// RateLimit config struct
+type RateLimit struct {
+	SourceIPLimitPerSecond float64
+	SourceIPBurst          int
 }
 
 // ArtifactsServer groups settings related to configuring Artifacts
@@ -190,6 +197,10 @@ func loadConfig() (*Config, error) {
 			PropagateCorrelationID:     *propagateCorrelationID,
 			CustomHeaders:              header.Split(),
 			ShowVersion:                *showVersion,
+		},
+		RateLimit: RateLimit{
+			SourceIPLimitPerSecond: *rateLimitSourceIP,
+			SourceIPBurst:          *rateLimitSourceIPBurst,
 		},
 		GitLab: GitLab{
 			ClientHTTPTimeout:  *gitlabClientHTTPTimeout,
