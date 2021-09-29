@@ -19,9 +19,16 @@ if [ ! -f "db/structure.sql" ]; then
 fi
 
 if [ "${DB_SCHEMA_TARGET,,}" == "geo" ]; then
-  SCHEMA_FILE=ee/db/geo/schema.rb
-  SCHEMA_FORMAT=ruby
+  SCHEMA_FILE=ee/db/geo/structure.sql
+  SCHEMA_VERSION_DIR=ee/db/geo/schema_migrations
+  SCHEMA_FORMAT=sql
   DATABASE_FILE=database_geo.yml
+
+  # Retain support for older schema if needed
+  if [ ! -f "ee/db/geo/structure.sql" ]; then
+    SCHEMA_FILE=ee/db/geo/schema.rb
+    SCHEMA_FORMAT=ruby
+  fi
 fi
 
 # fetch the schema desired version directly from the source code
