@@ -25,7 +25,7 @@ current requests.
   the generated configuration for virtual hosts. If present, it uses the TLS
   key and certificate in `config.json`, otherwise it falls back to the global
   configuration.
-2. When client connects to an HTTP port, GitLab-Pages looks in the
+2. When a client connects to an HTTP port, GitLab-Pages looks in the
    generated configuration for a matching virtual host.
 3. The URL.Path is split into `/<project>/<subpath>` and Pages tries to
    load: `pages-root/group/project/public/subpath`.
