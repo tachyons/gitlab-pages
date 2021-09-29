@@ -76,8 +76,12 @@ $IMAGE_VERSION_VAR.keys.each do |name|
                 'tag'       => version }
     req.body = payload.to_json
 
-    resp = http.request(req)
-
+    begin
+      resp = http.request(req)
+    rescue Exception => e
+      puts "Unhandled exception for #{name}: #{e}"
+      errors << "#{name}: Unhandled exception: #{e}"
+    end
   else
     # let someone know that there was not a secret for a specific image
     puts "No entry for #{name} in secrets file"
