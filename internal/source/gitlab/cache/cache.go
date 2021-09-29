@@ -94,7 +94,7 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 
 func (c *Cache) retrieve(ctx context.Context, entry *Entry) *api.Lookup {
 	// We run the code within an additional func() to run both `e.setResponse`
-	// and `e.retrieve.Retrieve` asynchronously.
+	// and `c.retriever.Retrieve` asynchronously.
 	entry.retrieve.Do(func() { go func() { entry.setResponse(c.retriever.Retrieve(ctx, entry.domain)) }() })
 
 	var lookup *api.Lookup
