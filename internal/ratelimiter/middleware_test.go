@@ -4,10 +4,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 var next = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -15,7 +16,7 @@ var next = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 })
 
 func TestSourceIPLimiter(t *testing.T) {
-	enableRateLimiter(t)
+	testhelpers.EnableRateLimiter(t)
 
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
@@ -99,7 +100,7 @@ func TestSourceIPRateLimit(t *testing.T) {
 				rr.RemoteAddr = tc.ip
 
 				if tc.enabled {
-					enableRateLimiter(t)
+					testhelpers.EnableRateLimiter(t)
 				}
 
 				handler := rl.SourceIPLimiter(next)
@@ -116,17 +117,4 @@ func TestSourceIPRateLimit(t *testing.T) {
 			}
 		})
 	}
-}
-
-func enableRateLimiter(t *testing.T) {
-	t.Helper()
-
-	orig := os.Getenv("FF_ENABLE_RATE_LIMITER")
-
-	err := os.Setenv("FF_ENABLE_RATE_LIMITER", "true")
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		os.Setenv("FF_ENABLE_RATE_LIMITER", orig)
-	})
 }

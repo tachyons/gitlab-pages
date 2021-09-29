@@ -77,3 +77,17 @@ func Getwd(t *testing.T) string {
 
 	return wd
 }
+
+// EnableRateLimiter environment variable
+func EnableRateLimiter(t *testing.T) {
+	t.Helper()
+
+	orig := os.Getenv("FF_ENABLE_RATE_LIMITER")
+
+	err := os.Setenv("FF_ENABLE_RATE_LIMITER", "true")
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		os.Setenv("FF_ENABLE_RATE_LIMITER", orig)
+	})
+}

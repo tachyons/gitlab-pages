@@ -7,9 +7,10 @@ import (
 
 	"github.com/sebest/xff"
 	"github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/correlation"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 )
 
 // SourceIPLimiter middleware ensures that the originating
@@ -17,18 +18,23 @@ import (
 func (rl *RateLimiter) SourceIPLimiter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host, ip, https := getReqDetails(r)
+		l := log.WithFields(logrus.Fields{
+			"correlation_id":                correlation.ExtractFromContext(r.Context()),
+			"host":                          r.Host,
+			"path":                          r.URL.Path,
+			"handler":                       "source_ip_rate_limiter",
+			"pages_domain":                  host,
+			"pages_https":                   https,
+			"source_ip":                     ip,
+			"rate_limiter_enabled":          rateLimiterEnabled(),
+			"rate_limiter_limit_per_second": rl.sourceIPLimitPerSecond,
+			"rate_limiter_burst_size":       rl.sourceIPBurstSize,
+		})
+		l.Debug("what is going on")
 
 		// http requests do not contain real IP information yet
 		if !rl.SourceIPAllowed(ip) && https {
-			logging.LogRequest(r).WithFields(logrus.Fields{
-				"handler":                       "source_ip_rate_limiter",
-				"pages_domain":                  host,
-				"pages_https":                   https,
-				"source_ip":                     ip,
-				"rate_limiter_enabled":          rateLimiterEnabled(),
-				"rate_limiter_limit_per_second": rl.sourceIPLimitPerSecond,
-				"rate_limiter_burst_size":       rl.sourceIPBurstSize,
-			}).Info("source IP hit rate limit")
+			l.Info("source IP hit rate limit")
 
 			// Only drop requests once FF_ENABLE_RATE_LIMITER is enabled
 			if rateLimiterEnabled() {
