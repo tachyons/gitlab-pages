@@ -7,7 +7,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
-// NewMiddleware returns middleware which handles authentication requests
+// AuthenticationMiddleware handles authentication requests
 func (a *Auth) AuthenticationMiddleware(handler http.Handler, s source.Source) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if a.TryAuthenticate(w, r, s) {
@@ -18,7 +18,7 @@ func (a *Auth) AuthenticationMiddleware(handler http.Handler, s source.Source) h
 	})
 }
 
-// NewMiddleware returns middleware which handle authorization
+// AuthorizationMiddleware handles authorization
 func (a *Auth) AuthorizationMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		domain := request.GetDomain(r)
