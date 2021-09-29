@@ -8,21 +8,22 @@
 
 require 'json'
 require 'digest'
-require 'requests'
+require 'uri'
+require 'net/http'
 
 $GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] || ENV['CI_REGISTRY_IMAGE'] || 'registry.gitlab.com/gitlab-org/build/cng'
 $REDHAT_REGISTRY = ENV['REDHAT_REGISTRY_HOSTNAME'] || 'scan.connect.redhat.com'
-$IMAGE_VERSION_VAR = { 'alpine-certificates' => 'ALPINE_VERSION',
-                       'gitaly' => 'GITALY_SERVER_VERSION',
+$IMAGE_VERSION_VAR = { 'alpine-certificates'       => 'ALPINE_VERSION',
+                       'gitaly'                    => 'GITALY_SERVER_VERSION',
                        'gitlab-container-registry' => 'GITLAB_CONTAINER_REGISTRY_VERSION',
-                       'gitlab-exporter' => 'GITLAB_EXPORTER_VERSION',
-                       'gitlab-mailroom' => 'MAILROOM_VERSION',
-                       'gitlab-shell' => 'GITLAB_SHELL_VERSION',
-                       'gitlab-sidekiq-ee' => 'GITLAB_VERSION',
-                       'gitlab-toolbox-ee' => 'GITLAB_VERSION',
-                       'gitlab-webservice-ee' => 'GITLAB_VERSION',
-                       'gitlab-workhorse-ee' => 'GITLAB_VERSION',
-                       'kubectl' => 'KUBECTL_VERSION' }
+                       'gitlab-exporter'           => 'GITLAB_EXPORTER_VERSION',
+                       'gitlab-mailroom'           => 'MAILROOM_VERSION',
+                       'gitlab-shell'              => 'GITLAB_SHELL_VERSION',
+                       'gitlab-sidekiq-ee'         => 'GITLAB_VERSION',
+                       'gitlab-toolbox-ee'         => 'GITLAB_VERSION',
+                       'gitlab-webservice-ee'      => 'GITLAB_VERSION',
+                       'gitlab-workhorse-ee'       => 'GITLAB_VERSION',
+                       'kubectl'                   => 'KUBECTL_VERSION' }
 
 
 def is_regular_tag
@@ -65,7 +66,17 @@ $IMAGE_VERSION_VAR.keys.each do |name|
   end
 
   if secrets.has_key? name
-    pass
+    endpoint = "https://catalog.redhat.com/api/containers/v1/projects/certification/id/#{secrets[name]['id']}/requests/scans"
+    uri = URL.parse(endpoint)
+    req = Net::HTTP::POST.new(uri.path, uri.port)
+    req.use_ssl = true
+    req.add_field('Content-Type', 'application/json')
+    req.add_field('X-API-KEY', ENV['REDHAT_API_TOKEN'])
+    payload = { 'pull_spec' => 'registry.gitlab.com/.....',
+                'tag'       => version }
+    req.body = payload.to_json
+
+    resp = http.request(req)
 
   else
     # let someone know that there was not a secret for a specific image
