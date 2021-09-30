@@ -15,7 +15,6 @@ var next = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 })
 
 func TestSourceIPLimiter(t *testing.T) {
-
 	enableRateLimiter(t)
 
 	for tn, tc := range sharedTestCases {
@@ -94,7 +93,6 @@ func TestSourceIPRateLimit(t *testing.T) {
 
 	for tn, tc := range tcs {
 		t.Run(tn, func(t *testing.T) {
-
 			for i := 0; i < 5; i++ {
 				ww := httptest.NewRecorder()
 				rr := httptest.NewRequest(http.MethodGet, tc.host, nil)
