@@ -1,10 +1,12 @@
-package middleware
+package customheaders_test
 
 import (
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/customheaders"
 )
 
 func TestParseHeaderString(t *testing.T) {
@@ -80,7 +82,7 @@ func TestParseHeaderString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParseHeaderString(tt.headerStrings)
+			got, err := customheaders.ParseHeaderString(tt.headerStrings)
 			if tt.valid {
 				require.NoError(t, err)
 				require.Len(t, got, tt.expectedLen)
@@ -131,12 +133,13 @@ func TestAddCustomHeaders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			headers, err := ParseHeaderString(tt.headerStrings)
+			headers, err := customheaders.ParseHeaderString(tt.headerStrings)
 			require.NoError(t, err)
 			w := httptest.NewRecorder()
-			AddCustomHeaders(w, headers)
+			customheaders.AddCustomHeaders(w, headers)
+			rsp := w.Result()
 			for k, v := range tt.wantHeaders {
-				require.Equal(t, v, w.HeaderMap.Get(k), "Expected header %+v, got %+v", v, w.HeaderMap.Get(k))
+				require.Equal(t, v, rsp.Header.Get(k), "Expected header %+v, got %+v", v, rsp.Header.Get(k))
 			}
 		})
 	}
