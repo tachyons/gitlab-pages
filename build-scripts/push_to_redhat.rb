@@ -83,6 +83,8 @@ $IMAGE_VERSION_VAR.keys.each do |name|
       puts "Unhandled exception for #{name}: #{e}"
       errors << "#{name}: Unhandled exception: #{e}"
     end
+
+    puts "API call for #{name} returned #{resp.code}"
   else
     # let someone know that there was not a secret for a specific image
     puts "No entry for #{name} in secrets file"
