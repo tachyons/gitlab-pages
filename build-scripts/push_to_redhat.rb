@@ -68,8 +68,9 @@ $IMAGE_VERSION_VAR.keys.each do |name|
   if secrets.has_key? name
     endpoint = "https://catalog.redhat.com/api/containers/v1/projects/certification/id/#{secrets[name]['id']}/requests/scans"
     uri = URI.parse(endpoint)
-    req = Net::HTTP::Post.new(uri.path, uri.port)
-    req.use_ssl = true
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    req = Net::HTTP::Post.new(uri.request_uri)
     req.add_field('Content-Type', 'application/json')
     req.add_field('X-API-KEY', ENV['REDHAT_API_TOKEN'])
     payload = { 'pull_spec' => 'registry.gitlab.com/.....',
