@@ -15,8 +15,8 @@ const (
 	// The default value is 20 requests per second.
 	DefaultSourceIPLimitPerSecond = 20.0
 	// DefaultSourceIPBurstSize is the maximum burst allowed per rate limiter.
-	// E.g. The first 20 requests within 1s will succeed, but the 21st will fail.
-	DefaultSourceIPBurstSize = 20
+	// E.g. The first 100 requests within 1s will succeed, but the 101st will fail.
+	DefaultSourceIPBurstSize = 100
 
 	// based on an avg ~4,000 unique IPs per minute
 	// https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b

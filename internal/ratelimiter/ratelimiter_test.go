@@ -17,7 +17,7 @@ func mockNow() time.Time {
 	return validTime
 }
 
-func TestDomainAllowed(t *testing.T) {
+func TestSourceIPAllowed(t *testing.T) {
 	t.Parallel()
 
 	tcs := map[string]struct {
@@ -70,7 +70,7 @@ func TestDomainAllowed(t *testing.T) {
 	}
 }
 
-func TestSingleRateLimiterWithMultipleDomains(t *testing.T) {
+func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	rate := 10 * time.Millisecond
 	rl := New(
 		WithSourceIPLimitPerSecond(float64(1/rate)),
