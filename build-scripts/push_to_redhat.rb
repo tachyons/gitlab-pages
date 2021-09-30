@@ -85,6 +85,9 @@ $IMAGE_VERSION_VAR.keys.each do |name|
     end
 
     puts "API call for #{name} returned #{resp.code}"
+    if resp.code != 200
+      errors << "API call for #{name} returned #{resp.code}"
+    end
   else
     # let someone know that there was not a secret for a specific image
     puts "No entry for #{name} in secrets file"
