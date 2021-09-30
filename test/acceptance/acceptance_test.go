@@ -1,8 +1,10 @@
 package acceptance_test
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"testing"
@@ -58,7 +60,7 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 
-	if _, err := os.Stat(*pagesBinary); os.IsNotExist(err) {
+	if _, err := os.Stat(*pagesBinary); errors.Is(err, fs.ErrNotExist) {
 		log.Fatalf("Couldn't find gitlab-pages binary at %s\n", *pagesBinary)
 	}
 

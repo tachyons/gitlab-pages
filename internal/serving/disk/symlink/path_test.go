@@ -6,6 +6,8 @@ package symlink_test
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,7 +22,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs/local"
 )
 
-var fs = vfs.Instrumented(&local.VFS{})
+var localFs = vfs.Instrumented(&local.VFS{})
 
 type EvalSymlinksTest struct {
 	// If dest is empty, the path is created; otherwise the dest is symlinked to the path.
@@ -70,7 +72,7 @@ func simpleJoin(path ...string) string {
 }
 
 func testEvalSymlinks(t *testing.T, wd, path, want string) {
-	root, err := fs.Root(context.Background(), wd)
+	root, err := localFs.Root(context.Background(), wd)
 	require.NoError(t, err)
 
 	have, err := symlink.EvalSymlinks(context.Background(), root, path)
@@ -125,7 +127,7 @@ func TestEvalSymlinksIsNotExist(t *testing.T) {
 	root, _ := testhelpers.TmpDir(t, "symlink_tests")
 
 	_, err := symlink.EvalSymlinks(context.Background(), root, "notexist")
-	if !os.IsNotExist(err) {
+	if !errors.Is(err, fs.ErrNotExist) {
 		t.Errorf("expected the file is not found, got %v\n", err)
 	}
 
@@ -136,7 +138,7 @@ func TestEvalSymlinksIsNotExist(t *testing.T) {
 	defer os.Remove("link")
 
 	_, err = symlink.EvalSymlinks(context.Background(), root, "link")
-	if !os.IsNotExist(err) {
+	if !errors.Is(err, fs.ErrNotExist) {
 		t.Errorf("expected the file is not found, got %v\n", err)
 	}
 }

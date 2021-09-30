@@ -2,7 +2,9 @@ package local
 
 import (
 	"context"
+	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -95,7 +97,7 @@ func TestReadlink(t *testing.T) {
 			target, err := root.Readlink(ctx, test.path)
 
 			if test.expectedIsNotExist {
-				require.Equal(t, test.expectedIsNotExist, os.IsNotExist(err), "IsNotExist")
+				require.Equal(t, test.expectedIsNotExist, errors.Is(err, fs.ErrNotExist), "IsNotExist")
 				return
 			}
 
@@ -211,7 +213,7 @@ func TestLstat(t *testing.T) {
 			fi, err := root.Lstat(ctx, test.path)
 
 			if test.expectedIsNotExist {
-				require.Equal(t, test.expectedIsNotExist, os.IsNotExist(err), "IsNotExist")
+				require.Equal(t, test.expectedIsNotExist, errors.Is(err, fs.ErrNotExist), "IsNotExist")
 				return
 			}
 
@@ -271,7 +273,7 @@ func TestOpen(t *testing.T) {
 			}
 
 			if test.expectedIsNotExist {
-				require.Equal(t, test.expectedIsNotExist, os.IsNotExist(err), "IsNotExist")
+				require.Equal(t, test.expectedIsNotExist, errors.Is(err, fs.ErrNotExist), "IsNotExist")
 				return
 			}
 

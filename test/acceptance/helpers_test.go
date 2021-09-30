@@ -6,8 +6,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -554,7 +556,7 @@ func (o *stubOpts) getAPICalled() bool {
 
 func lookupFromFile(t *testing.T, domain string, w http.ResponseWriter) {
 	fixture, err := os.Open("../../shared/lookups/" + domain + ".json")
-	if os.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		w.WriteHeader(http.StatusNoContent)
 
 		t.Logf("GitLab domain %s source stub served 204", domain)
