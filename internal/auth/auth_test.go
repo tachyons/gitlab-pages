@@ -87,7 +87,7 @@ func TestTryAuthenticate(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
-	require.Equal(t, false, auth.TryAuthenticate(result, r, mockSource))
+	require.False(t, auth.TryAuthenticate(result, r, mockSource))
 }
 
 func TestTryAuthenticateWithError(t *testing.T) {
@@ -104,7 +104,7 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
-	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
+	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusUnauthorized, result.Code)
 }
 
@@ -127,7 +127,7 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
-	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
+	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusUnauthorized, result.Code)
 }
 
@@ -153,7 +153,7 @@ func TestTryAuthenticateRemoveTokenFromRedirect(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
-	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
+	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusFound, result.Code)
 
 	redirect, err := url.Parse(result.Header().Get("Location"))
@@ -173,7 +173,7 @@ func TestTryAuthenticateWithDomainAndState(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
-	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
+	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusFound, result.Code)
 	redirect, err := url.Parse(result.Header().Get("Location"))
 	require.NoError(t, err)
@@ -234,7 +234,7 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
-	require.Equal(t, true, auth.TryAuthenticate(result, r, mockSource))
+	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 
 	res := result.Result()
 	defer res.Body.Close()
@@ -500,7 +500,7 @@ func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
 	resp := &http.Response{StatusCode: http.StatusUnauthorized, Body: io.NopCloser(bytes.NewReader([]byte("{\"error\":\"invalid_token\"}")))}
 	defer resp.Body.Close()
 
-	require.Equal(t, true, auth.CheckResponseForInvalidToken(result, r, resp))
+	require.True(t, auth.CheckResponseForInvalidToken(result, r, resp))
 	res := result.Result()
 	defer res.Body.Close()
 	require.Equal(t, http.StatusFound, res.StatusCode)
@@ -517,5 +517,5 @@ func TestCheckResponseForInvalidTokenWhenNotInvalidToken(t *testing.T) {
 
 	resp := &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader([]byte("ok")))}
 
-	require.Equal(t, false, auth.CheckResponseForInvalidToken(result, r, resp))
+	require.False(t, auth.CheckResponseForInvalidToken(result, r, resp))
 }
