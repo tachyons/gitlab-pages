@@ -9,44 +9,43 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-
 	domain "gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 )
 
-// MockSource is a mock of Source interface
+// MockSource is a mock of Source interface.
 type MockSource struct {
 	ctrl     *gomock.Controller
 	recorder *MockSourceMockRecorder
 }
 
-// MockSourceMockRecorder is the mock recorder for MockSource
+// MockSourceMockRecorder is the mock recorder for MockSource.
 type MockSourceMockRecorder struct {
 	mock *MockSource
 }
 
-// NewMockSource creates a new mock instance
+// NewMockSource creates a new mock instance.
 func NewMockSource(ctrl *gomock.Controller) *MockSource {
 	mock := &MockSource{ctrl: ctrl}
 	mock.recorder = &MockSourceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSource) EXPECT() *MockSourceMockRecorder {
 	return m.recorder
 }
 
-// GetDomain mocks base method
+// GetDomain mocks base method.
 func (m *MockSource) GetDomain(arg0 context.Context, arg1 string) (*domain.Domain, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromRequest", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetDomain", arg0, arg1)
 	ret0, _ := ret[0].(*domain.Domain)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDomain indicates an expected call of GetDomain
+// GetDomain indicates an expected call of GetDomain.
 func (mr *MockSourceMockRecorder) GetDomain(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromRequest", reflect.TypeOf((*MockSource)(nil).GetDomain), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDomain", reflect.TypeOf((*MockSource)(nil).GetDomain), arg0, arg1)
 }
