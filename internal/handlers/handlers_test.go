@@ -15,7 +15,6 @@ import (
 
 func TestNotHandleArtifactRequestReturnsFalse(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockArtifact := mocks.NewMockArtifact(mockCtrl)
 	mockArtifact.EXPECT().
@@ -41,7 +40,6 @@ func TestNotHandleArtifactRequestReturnsFalse(t *testing.T) {
 
 func TestHandleArtifactRequestedReturnsTrue(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockArtifact := mocks.NewMockArtifact(mockCtrl)
 	mockArtifact.EXPECT().
@@ -65,7 +63,6 @@ func TestHandleArtifactRequestedReturnsTrue(t *testing.T) {
 
 func TestNotFoundWithTokenIsNotHandled(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockAuth := mocks.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().CheckResponseForInvalidToken(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -104,7 +101,6 @@ func TestForbiddenWithTokenIsNotHandled(t *testing.T) {
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
 
 			mockAuth := mocks.NewMockAuth(mockCtrl)
 			if tc.Token == "" {
@@ -130,7 +126,6 @@ func TestForbiddenWithTokenIsNotHandled(t *testing.T) {
 
 func TestNotFoundWithoutTokenIsNotHandledWhenNotAuthSupport(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockAuth := mocks.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().IsAuthSupported().Return(false)
@@ -147,7 +142,6 @@ func TestNotFoundWithoutTokenIsNotHandledWhenNotAuthSupport(t *testing.T) {
 }
 func TestNotFoundWithoutTokenIsHandled(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockAuth := mocks.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().IsAuthSupported().Return(true)
@@ -165,7 +159,6 @@ func TestNotFoundWithoutTokenIsHandled(t *testing.T) {
 }
 func TestInvalidTokenResponseIsHandled(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockAuth := mocks.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().CheckResponseForInvalidToken(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -184,7 +177,6 @@ func TestInvalidTokenResponseIsHandled(t *testing.T) {
 
 func TestHandleArtifactRequestButGetTokenFails(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockArtifact := mocks.NewMockArtifact(mockCtrl)
 	mockArtifact.EXPECT().

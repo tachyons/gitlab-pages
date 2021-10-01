@@ -84,7 +84,6 @@ func TestTryAuthenticate(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
 	require.False(t, auth.TryAuthenticate(result, r, mockSource))
@@ -101,7 +100,6 @@ func TestTryAuthenticateWithError(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
@@ -124,7 +122,6 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 	session.Save(r, result)
 
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
@@ -150,7 +147,6 @@ func TestTryAuthenticateRemoveTokenFromRedirect(t *testing.T) {
 	session.Save(r, result)
 
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
@@ -170,7 +166,6 @@ func TestTryAuthenticateWithDomainAndState(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
@@ -231,7 +226,6 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	result := httptest.NewRecorder()
 
 	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	mockSource := mocks.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
