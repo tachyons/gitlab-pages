@@ -19,7 +19,6 @@ func TestFSOpen(t *testing.T) {
 
 	tests := map[string]struct {
 		allowedPaths    []string
-		chrootPath      string
 		fileName        string
 		expectedContent string
 		expectedErrMsg  string
@@ -59,23 +58,11 @@ func TestFSOpen(t *testing.T) {
 			fileName:       wd + "/../httpfs/testdata/file1.txt",
 			expectedErrMsg: os.ErrPermission.Error(),
 		},
-		"chroot_path_not_found_when_not_in_real_chroot": {
-			allowedPaths:   []string{wd + "/testdata"},
-			fileName:       wd + "/testdata/file1.txt",
-			expectedErrMsg: "no such file or directory",
-			chrootPath:     wd + "/testdata",
-		},
-		"chroot_path_empty_finds_file": {
-			allowedPaths:    []string{wd + "/testdata"},
-			fileName:        wd + "/testdata/file1.txt",
-			expectedContent: "file1.txt\n",
-			chrootPath:      "",
-		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p, err := NewFileSystemPath(test.allowedPaths, test.chrootPath)
+			p, err := NewFileSystemPath(test.allowedPaths)
 			require.NoError(t, err)
 
 			got, err := p.Open(test.fileName)
@@ -101,7 +88,6 @@ func TestFileSystemPathCanServeHTTP(t *testing.T) {
 
 	tests := map[string]struct {
 		path               string
-		chrootPath         string
 		fileName           string
 		escapeURL          bool
 		expectedStatusCode int
@@ -150,26 +136,12 @@ func TestFileSystemPathCanServeHTTP(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 			expectedContent:    "403 Forbidden\n",
 		},
-		"chroot_path_fails_in_unit_test_not_found_when_not_in_real_chroot": {
-			path:               wd + "/testdata",
-			fileName:           "file1.txt",
-			chrootPath:         wd + "/testdata",
-			expectedStatusCode: http.StatusNotFound,
-			expectedContent:    "404 page not found\n",
-		},
-		"chroot_path_empty_in_unit_test_file_found": {
-			path:               wd + "/testdata",
-			fileName:           "file1.txt",
-			chrootPath:         "",
-			expectedStatusCode: http.StatusOK,
-			expectedContent:    "file1.txt\n",
-		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			transport := httptransport.NewTransport()
-			fs, err := NewFileSystemPath([]string{test.path}, test.chrootPath)
+			fs, err := NewFileSystemPath([]string{test.path})
 			require.NoError(t, err)
 
 			transport.RegisterProtocol("file", http.NewFileTransport(fs))
