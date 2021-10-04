@@ -1296,6 +1296,22 @@ gitlab-workhorse-ce:
     - gitlab-ruby
     - gitlab-rails-ce
 
+trigger-chart-test:
+  stage: final-list
+  trigger:
+    project: 'gitlab-org/charts/gitlab'
+    branch: master-trigger-branch
+  inherit:
+    variables: false
+  variables:
+    GITLAB_VERSION: "${CI_COMMIT_REF_SLUG}"
+    REVIEW_REF_PREFIX: "${CI_PIPELINE_ID}-"
+  rules:
+    # Run only on main .com repo branches
+    - if: '$CI_COMMIT_BRANCH && $CI_PROJECT_PATH == "gitlab-org/build/CNG"'
+      when: manual
+    - when: never
+
 final-images-listing:
   <<: *job-base
   stage: final-list
