@@ -223,7 +223,7 @@ workflow:
     - gitlab-ubi-builder
 
 dependency_update:
-  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1
+  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.6.0
   stage: prepare
   variables:
     INSTALL_SHA256: "c95a33432192688a08d935fd5f563fce4110610a51281f887ae88db208b720ba"
