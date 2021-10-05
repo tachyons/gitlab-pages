@@ -26,7 +26,8 @@ RUN apt-get update \
   curl \
   gnupg2 \
   && rm -rf /var/lib/apt/lists/* \
-  && mkdir -p ${BUILD_DIR}
+  && mkdir -p ${BUILD_DIR} \
+  && ln -s /etc/ssl/certs/ca-certificates.crt /usr/lib/ssl/cert.pem
 
 # skip installing gem documentation
 RUN mkdir -p /usr/etc && \
