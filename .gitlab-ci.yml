@@ -1411,5 +1411,5 @@ ubi-release-for-certification:
     - curl -o golang-github-containers-image.deb http://ftp.br.debian.org/debian/pool/main/g/golang-github-containers-image/golang-github-containers-image_5.15.2-2_all.deb
     - dpkg -i golang-github-containers-image.deb && dpkg -i golang-github-containers-image.deb && dpkg -i skopeo.deb
   script:
-    - ruby build-scripts/push_to_redhat.rb "${CI_COMMIT_REF_NAME}"
+    - ruby build-scripts/redhat_certfication.rb "${CI_COMMIT_REF_NAME}"
 
