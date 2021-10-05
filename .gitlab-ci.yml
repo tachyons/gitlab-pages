@@ -1392,7 +1392,7 @@ ubi-assets-release:
     - rm -rf artifacts/*
 
 ubi-release-for-certification:
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder:ruby_docker-0.0.7"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:2.2.0"
   services:
     - docker:${DOCKER_VERSION}-dind
   rules:
@@ -1403,6 +1403,13 @@ ubi-release-for-certification:
   allow_failure: true
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    # Install skopeo
+    - cd /tmp
+    - apt-get -y update && apt-get -y install libgpgme11 jq
+    - curl -o skopeo.deb http://ftp.br.debian.org/debian/pool/main/s/skopeo/skopeo_1.4.1+ds1-1_amd64.deb
+    - curl -o golang-github-containers-common.deb http://ftp.br.debian.org/debian/pool/main/g/golang-github-containers-common/golang-github-containers-common_0.42.1+ds1-2_all.deb
+    - curl -o golang-github-containers-image.deb http://ftp.br.debian.org/debian/pool/main/g/golang-github-containers-image/golang-github-containers-image_5.15.2-2_all.deb
+    - dpkg -i golang-github-containers-image.deb && dpkg -i golang-github-containers-image.deb && dpkg -i skopeo.deb
   script:
     - ruby build-scripts/push_to_redhat.rb "${CI_COMMIT_REF_NAME}"
 
