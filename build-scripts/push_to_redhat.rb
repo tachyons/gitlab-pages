@@ -31,6 +31,15 @@ def is_regular_tag
   !($AUTO_DEPLOY_BRANCH_REGEX.match(ENV['CI_COMMIT_BRANCH']) || $AUTO_DEPLOY_TAG_REGEX.match(ENV['CI_COMMIT_TAG']))
 end
 
+# return either the sha256 of the image or the symbol :no_skopeo
+def image_sha256(registry_spec)
+  begin
+    return %x(skopeo inspect docker://#{registry_spec} | jq -r .Digest)
+  rescue Errno::ENOENT
+    return :no_skopeo
+  end
+end
+
 if ARGV.length < 1
   puts "Need to specify a version (i.e. v13.5.4)"
   exit 1
@@ -66,14 +75,23 @@ $IMAGE_VERSION_VAR.keys.each do |name|
   end
 
   if secrets.has_key? name
-    endpoint = "https://catalog.redhat.com/api/containers/v1/projects/certification/id/#{secrets[name]['id']}/requests/scans"
+    sha256_tag = image_sha256("#{$GITLAB_REGISTRY}/#{name}:#{version}")
+    if sha256_tag == :no_skopeo
+      errors << "skopeo command is not installed"
+      next
+    end
+
+    puts "#{name}:#{version} = #{sha256_tag}"
+    endpoint = "https://catalog.redhat.com/api/containers/v1/projects/certification/id/#{secrets[name]['pid']}/requests/scans"
+
     uri = URI.parse(endpoint)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
+
     req = Net::HTTP::Post.new(uri.request_uri)
     req.add_field('Content-Type', 'application/json')
     req.add_field('X-API-KEY', ENV['REDHAT_API_TOKEN'])
-    payload = { 'pull_spec' => 'registry.gitlab.com/.....',
+    payload = { 'pull_spec' => "#{$GITLAB_REGISTRY}/#{name}@#{sha256_tag}",
                 'tag'       => version }
     req.body = payload.to_json
 
@@ -84,9 +102,9 @@ $IMAGE_VERSION_VAR.keys.each do |name|
       errors << "#{name}: Unhandled exception: #{e}"
     end
 
-    puts "API call for #{name} returned #{resp.code}"
+    puts "API call for #{name} returned #{resp.code}: #{resp.message}"
     if resp.code != 200
-      errors << "API call for #{name} returned #{resp.code}"
+      errors << "API call for #{name} returned #{resp.code}: #{resp.message}"
     end
   else
     # let someone know that there was not a secret for a specific image
