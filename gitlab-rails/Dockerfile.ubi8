@@ -31,6 +31,7 @@ ADD gitlab-rails-ee.tar.gz /
 COPY scripts/ /scripts
 
 RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts /srv/gitlab \
+    && chmod o-w /scripts/lib /scripts/lib/checks \
     && mv /srv/gitlab/log /var/log/gitlab \
     && ln -s /var/log/gitlab /srv/gitlab/log \
     && cd /srv/gitlab \
