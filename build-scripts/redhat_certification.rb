@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
-# The push_to_redhat.rb script will retag a number of container images
-# and push them to Red Hat for certification tests. Each image has a
-# unique ID and a pull secret used to access the Red Hat registry. These
-# values are found in the REDHAT_SECRETS_JSON variable with is an encoded
+# The redhat_certification.rb script will invoke the Red Hat API to request
+# an image to be scanned for certification. Each image has an associated
+# project ID used to identify the Red Hat certification project. These
+# values are found in the REDHAT_PROJECT_JSON variable which is an encoded
 # JSON string.
 
 require 'json'
@@ -13,7 +13,6 @@ require 'net/http'
 require 'optparse'
 
 $GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] || ENV['CI_REGISTRY_IMAGE'] || 'registry.gitlab.com/gitlab-org/build/cng'
-$REDHAT_REGISTRY = ENV['REDHAT_REGISTRY_HOSTNAME'] || 'scan.connect.redhat.com'
 $IMAGE_VERSION_VAR = { 'alpine-certificates'       => 'ALPINE_VERSION',
                        'gitaly'                    => 'GITALY_SERVER_VERSION',
                        'gitlab-container-registry' => 'GITLAB_CONTAINER_REGISTRY_VERSION',
@@ -34,7 +33,7 @@ end
 
 def read_project_data
   begin
-    JSON.parse(ENV['REDHAT_SECRETS_JSON'])
+    JSON.parse(ENV['REDHAT_PROJECT_JSON'])
   rescue => e
     puts "Unable to parse JSON: #{e.message}"
     puts e.backtrace
@@ -177,8 +176,8 @@ $IMAGE_VERSION_VAR.keys.each do |name|
     end
   else
     # let someone know that there was not a secret for a specific image
-    puts "No entry for #{name} in secrets file"
-    errors << "#{name}: No secret listed in $REDHAT_SECRETS_JSON"
+    puts "No entry for #{name} in CI variable REDHAT_PROJECT_JSON"
+    errors << "#{name}: No project info listed in $REDHAT_PROJECT_JSON"
   end
 end
 
