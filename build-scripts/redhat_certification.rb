@@ -10,6 +10,7 @@ require 'json'
 require 'digest'
 require 'uri'
 require 'net/http'
+require 'optparse'
 
 $GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] || ENV['CI_REGISTRY_IMAGE'] || 'registry.gitlab.com/gitlab-org/build/cng'
 $REDHAT_REGISTRY = ENV['REDHAT_REGISTRY_HOSTNAME'] || 'scan.connect.redhat.com'
@@ -31,6 +32,16 @@ def is_regular_tag
   !($AUTO_DEPLOY_BRANCH_REGEX.match(ENV['CI_COMMIT_BRANCH']) || $AUTO_DEPLOY_TAG_REGEX.match(ENV['CI_COMMIT_TAG']))
 end
 
+def read_project_data
+  begin
+    JSON.parse(ENV['REDHAT_SECRETS_JSON'])
+  rescue => e
+    puts "Unable to parse JSON: #{e.message}"
+    puts e.backtrace
+    raise
+  end
+end
+
 # return either the sha256 of the image or the symbol :no_skopeo
 def image_sha256(registry_spec)
   begin
@@ -38,6 +49,79 @@ def image_sha256(registry_spec)
   rescue Errno::ENOENT
     return :no_skopeo
   end
+end
+
+#
+def redhat_api(method, endpoint, token=nil, payload=nil)
+  uri = URI.parse(endpoint)
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+
+  case method
+  when :post
+    req = Net::HTTP::Post.new(uri.request_uri)
+  when :get
+    req = Net::HTTP::Get.new(uri.request_uri)
+  else
+    raise ArgumentError, "Unknown method (#{method}) for redhat_api function"
+  end
+
+  req.add_field('Content-Type', 'application/json')
+  req.add_field('X-API-KEY', token)
+  req.body = payload.to_json if method == :post
+
+  begin
+    resp = http.request(req)
+  rescue Exception => e
+    puts "Unhandled exception for #{name}: #{e}"
+    errors << "#{name}: Unhandled exception: #{e}"
+  end
+
+  return resp
+end
+
+
+def display_scan_status(token)
+  results = redhat_api(:get,
+              'https://catalog.redhat.com/api/containers/v1/projects/certifications/requests/scans',
+              token=token)
+
+  # invert the GitLab container name to Red Hat proj ID hash
+  rh_pid = {}
+  read_project_data.each_pair { |name,ids| rh_pid[ids['pid']] = name }
+
+  stats = {:pending => 0, :running => 0}
+  JSON.parse(results.body)['data'].each do |scan_req|
+    puts "#{scan_req['status']}\t\t#{rh_pid[scan_req['cert_project']]}:#{scan_req['tag']}"
+    case scan_req['status']
+    when 'pending'
+      stats[:pending] += 1
+    when 'running'
+      stats[:running] += 1
+    end
+  end
+  puts ""
+  puts "Total pending: #{stats[:pending]}\t\tTotal running: #{stats[:running]}"
+end
+
+
+token = ENV.keys.include?('REDHAT_API_TOKEN') ? ENV['REDHAT_API_TOKEN'] : nil
+options = {:status => false }
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename $0} [options] "
+
+  opts.on('-s', '--status', 'Get current image scan request status') do
+    options[:status] = true
+  end
+
+  opts.on('-t', '--token TOKEN', 'Red Hat API token') do |val|
+    token = val
+  end
+end.parse!
+
+if options[:status]
+  display_scan_status(token)
+  exit(0)
 end
 
 if ARGV.length < 1
@@ -52,18 +136,11 @@ if not version.end_with? '-ubi8'
   version += '-ubi8'
 end
 
-# pull in the secrets used to auth with Red Hat registries (CI var)
-begin
-  secrets = JSON.parse(ENV['REDHAT_SECRETS_JSON'])
-rescue => e
-  puts "Unable to parse JSON: #{e.message}"
-  puts e.backtrace
-  raise
-end
 
 puts "Using #{version} as the docker tag to pull"
 
 errors = []
+project_data = read_project_data()
 $IMAGE_VERSION_VAR.keys.each do |name|
   # if job is on a tagged pipeline (but not a auto-deploy tag) or
   # is a master branch pipeline, then use the image tags as
@@ -74,33 +151,18 @@ $IMAGE_VERSION_VAR.keys.each do |name|
     version = ENV[$IMAGE_VERSION_VAR[name]].sub(/-(ce|ee)$/, '') + '-ubi8'
   end
 
-  if secrets.has_key? name
+  if project_data.has_key? name
     sha256_tag = image_sha256("#{$GITLAB_REGISTRY}/#{name}:#{version}")
     if sha256_tag == :no_skopeo
       errors << "skopeo command is not installed"
       next
     end
 
-    puts "#{name}:#{version} = #{sha256_tag}"
-    endpoint = "https://catalog.redhat.com/api/containers/v1/projects/certification/id/#{secrets[name]['pid']}/requests/scans"
-
-    uri = URI.parse(endpoint)
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-
-    req = Net::HTTP::Post.new(uri.request_uri)
-    req.add_field('Content-Type', 'application/json')
-    req.add_field('X-API-KEY', ENV['REDHAT_API_TOKEN'])
+    endpoint = "https://catalog.redhat.com/api/containers/v1/projects/certification/id/#{project_data[name]['pid']}/requests/scans"
     payload = { 'pull_spec' => "#{$GITLAB_REGISTRY}/#{name}@#{sha256_tag}",
                 'tag'       => version }
-    req.body = payload.to_json
+    resp = redhat_api(:post, endpoint, token=token, payload=payload)
 
-    begin
-      resp = http.request(req)
-    rescue Exception => e
-      puts "Unhandled exception for #{name}: #{e}"
-      errors << "#{name}: Unhandled exception: #{e}"
-    end
 
     puts "API call for #{name} returned #{resp.code}: #{resp.message}"
     if resp.code != 200
