@@ -26,7 +26,7 @@ if command -v gomplate &> /dev/null; then
   for template in ${TEMPLATE_DIRECTORY}/*.tpl; do
     output_file="${CONFIG_DIRECTORY}/$(basename $template '.tpl')"
     echo "Writing $output_file"
-    gomplate --file "$template" --out "$output_file"
+    gomplate --left-delim "{%" --right-delim "%}" --file "$template" --out "$output_file"
   done
 fi
 
