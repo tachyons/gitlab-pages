@@ -52,8 +52,12 @@ Support for configuration is intended to be as follows:
 
 1. Mounting templates for the config files already supported by our different software (gitlab.yml, database.yml, resque.yml, etc)
 2. Additionally support the environement variables supported by the software, like https://docs.gitlab.com/ce/administration/environment_variables.html (support them by not doing anything that would drop them from being passed to the running process)
-3. Add ENV variables for configuring the custom code we use in the containers, like the the ERB rendering in the templates, and any wrapper/helper commands
+3. Add ENV variables for configuring the custom code we use in the containers, like the rendering in or of templates, and any wrapper/helper commands
 
+Templating languages supported:
+
+1. [ERB](https://docs.ruby-lang.org/en/2.7.0/ERB.html), following traditional standards (`<% %>`) will be available in all Ruby-based application containers.
+2. [gomplate](https://docs.gomplate.ca/), using `{% %}` non-standard delimeters (ensuring compatibility with Helm's internal use of `{{ }}`) will be available in all GitLab originated containers.
 
 > For Kubernetes specifically we are mostly relying on the mounting the config
 files from ConfigMap objects. With the occasional ENV variable to control the
