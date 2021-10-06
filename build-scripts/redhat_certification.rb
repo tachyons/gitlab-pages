@@ -45,9 +45,12 @@ end
 # return either the sha256 of the image or the symbol :no_skopeo
 def image_sha256(registry_spec)
   begin
-    return %x(skopeo inspect docker://#{registry_spec} | jq -r .Digest)
+    skopeo_out = %x(skopeo inspect docker://#{registry_spec} 2>/dev/null)
+    JSON.parse(skopeo_out)['Digest']
   rescue Errno::ENOENT
     return :no_skopeo
+  rescue JSON::ParserError
+    return :no_image
   end
 end
 
@@ -106,7 +109,7 @@ end
 
 
 token = ENV.keys.include?('REDHAT_API_TOKEN') ? ENV['REDHAT_API_TOKEN'] : nil
-options = {:status => false }
+options = {:status => false, :token => token }
 optparse = OptionParser.new do |opts|
   opts.banner = "Usage: #{File.basename $0} [options] "
 
@@ -115,12 +118,12 @@ optparse = OptionParser.new do |opts|
   end
 
   opts.on('-t', '--token TOKEN', 'Red Hat API token') do |val|
-    token = val
+    options[:token] = val
   end
 end.parse!
 
 if options[:status]
-  display_scan_status(token)
+  display_scan_status(options[:token])
   exit(0)
 end
 
@@ -153,8 +156,12 @@ $IMAGE_VERSION_VAR.keys.each do |name|
 
   if project_data.has_key? name
     sha256_tag = image_sha256("#{$GITLAB_REGISTRY}/#{name}:#{version}")
-    if sha256_tag == :no_skopeo
+    case sha256_tag
+    when :no_skopeo
       errors << "skopeo command is not installed"
+      next
+    when :no_image
+      errors << "Image with #{version} tag not found for #{name}"
       next
     end
 
@@ -165,7 +172,7 @@ $IMAGE_VERSION_VAR.keys.each do |name|
 
 
     puts "API call for #{name} returned #{resp.code}: #{resp.message}"
-    if resp.code != 200
+    if resp.code.to_i < 200 or resp.code.to_i > 299
       errors << "API call for #{name} returned #{resp.code}: #{resp.message}"
     end
   else
