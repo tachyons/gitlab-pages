@@ -1310,6 +1310,7 @@ trigger-chart-test:
     # Run only on main .com repo branches
     - if: '$CI_COMMIT_BRANCH && $CI_PROJECT_PATH == "gitlab-org/build/CNG"'
       when: manual
+      allow_failure: true
     - when: never
 
 final-images-listing:
