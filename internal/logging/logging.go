@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
-
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/log"
 

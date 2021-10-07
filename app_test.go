@@ -125,3 +125,21 @@ func TestHealthCheckMiddleware(t *testing.T) {
 		})
 	}
 }
+
+func TestHandlePanicMiddleware(t *testing.T) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("on purpose")
+	})
+
+	ww := httptest.NewRecorder()
+	rr := httptest.NewRequest(http.MethodGet, "https://gitlab.io", nil)
+
+	handler := handlePanicMiddleware(next)
+
+	handler.ServeHTTP(ww, rr)
+
+	res := ww.Result()
+	res.Body.Close()
+
+	require.Equal(t, http.StatusInternalServerError, res.StatusCode)
+}

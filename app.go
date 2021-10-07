@@ -289,6 +289,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	if a.config.General.PropagateCorrelationID {
 		correlationOpts = append(correlationOpts, correlation.WithPropagation())
 	}
+	handler = handlePanicMiddleware(handler)
 	handler = correlation.InjectCorrelationID(handler, correlationOpts...)
 
 	// This MUST be the last handler!
@@ -498,4 +499,22 @@ func fatal(err error, message string) {
 func (a *theApp) TLSConfig() (*cryptotls.Config, error) {
 	return tls.Create(a.config.General.RootCertificate, a.config.General.RootKey, a.ServeTLS,
 		a.config.General.InsecureCiphers, a.config.TLS.MinVersion, a.config.TLS.MaxVersion)
+}
+
+// handlePanicMiddleware logs and captures the recover() information from any panic
+func handlePanicMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			i := recover()
+			if i != nil {
+				err := fmt.Errorf("panic trace: %v", i)
+				metrics.PanicRecoveredCount.Inc()
+				logging.LogRequest(r).WithError(err).Error("recovered from panic")
+				errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithContext(r.Context()))
+				httperrors.Serve500(w)
+			}
+		}()
+
+		handler.ServeHTTP(w, r)
+	})
 }
