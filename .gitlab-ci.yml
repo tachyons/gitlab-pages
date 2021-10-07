@@ -1405,7 +1405,7 @@ ubi-release-for-certification:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     # Install skopeo
     - cd /tmp
-    - apt-get -y update && apt-get -y install libgpgme11 jq
+    - apt-get -y update && apt-get -y install libgpgme11
     - curl -o skopeo.deb http://ftp.br.debian.org/debian/pool/main/s/skopeo/skopeo_1.4.1+ds1-1_amd64.deb
     - curl -o golang-github-containers-common.deb http://ftp.br.debian.org/debian/pool/main/g/golang-github-containers-common/golang-github-containers-common_0.42.1+ds1-2_all.deb
     - curl -o golang-github-containers-image.deb http://ftp.br.debian.org/debian/pool/main/g/golang-github-containers-image/golang-github-containers-image_5.15.2-2_all.deb
