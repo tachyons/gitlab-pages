@@ -1,4 +1,4 @@
-## GitLab Pages Daemon
+## GitLab Pages
 
 [![build status](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/pipeline.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
 [![coverage report](https://gitlab.com/gitlab-org/gitlab-pages/badges/master/coverage.svg)](https://gitlab.com/gitlab-org/gitlab-pages/commits/master)
@@ -21,16 +21,16 @@ current requests.
 
 ### How it serves content
 
-1. When client initiates the TLS connection, the GitLab-Pages daemon looks in
+1. When a client initiates the TLS connection, GitLab Pages looks in
   the generated configuration for virtual hosts. If present, it uses the TLS
   key and certificate in `config.json`, otherwise it falls back to the global
   configuration.
-2. When client connects to an HTTP port, the GitLab-Pages daemon looks in the
+1. When a client connects to an HTTP port, GitLab Pages looks in the
    generated configuration for a matching virtual host.
-3. The URL.Path is split into `/<project>/<subpath>` and the daemon tries to
+1. The URL.Path is split into `/<project>/<subpath>` and Pages tries to
    load: `pages-root/group/project/public/subpath`.
-4. If the file is not found, it will try to load `pages-root/group/<host>/public/<URL.Path>`.
-5. If requested path is a directory, the `index.html` will be served.
+1. If the file is not found, it will try to load `pages-root/group/<host>/public/<URL.Path>`.
+1. If requested path is a directory, the `index.html` file is served.
 6. If `.../path.gz` exists, it will be served instead of the main file, with
    a `Content-Encoding: gzip` header. This allows compressed versions of the
    files to be precalculated, saving CPU time and network bandwidth.
@@ -79,89 +79,6 @@ $ ./gitlab-pages -listen-https ":9090" -root-cert=path/to/example.com.crt -root-
 ### Getting started with development
 
 See [doc/development.md](doc/development.md)
-
-
-### Run daemon **in secure mode**
-
-**Update**:
-
-Starting from GitLab 14.1 the 
-[jailing/chroot mechanism is disabled by default](https://docs.gitlab.com/ee/administration/pages/#jailing-mechanism-disabled-by-default-for-api-based-configuration).
-
-When compiled with `CGO_ENABLED=0` (which is the default), `gitlab-pages` is a
-static binary and so can be run in chroot with dropped privileges.
-
-To enter this mode, run `gitlab-pages` as the root user and pass it the
-`-daemon-uid` and `-daemon-gid` arguments to specify the user you want it to run
-as.
-
-The daemon starts listening on ports and reads certificates as root, then
-re-executes itself as the specified user. When re-executing it creates a chroot jail
-containing a copy of its own binary, `/etc/hosts`, `/etc/nsswitch.conf`, `/etc/resolv.conf`, and a bind mount of `pages-root`.
-
-When `-artifacts-server` points to an HTTPS URL we also need a list of certificates for
-the trusted Certification Authorities to copy inside the jail.
-A file containing such list can be specified using `SSL_CERT_FILE` environment variable.
-(`SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` on Debian)
-
-This makes it possible to listen on privileged ports and makes it harder for the
-process to read files outside of `pages-root`.
-
-Example:
-```
-$ make
-$ sudo ./gitlab-pages -listen-http ":80" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -daemon-uid 1000 -daemon-gid 1000
-```
-
-#### Caveats
-
-The `/etc/hosts`, `/etc/resolv.conf` and `/etc/nsswitch.conf` files, and any file pointed to by the `SSL_CERT_FILE`
-environment variable, will be copied into the jail. As a result, changes to
-these files will not be reflected in Pages until it's restarted.
-
-Bind mounts are unavailable on a range of non-Linux systems. Some of these
-systems (e.g., BSD) offer native "jail" functionality. It is recommended to set
-up an externally-managed jail and run the Pages daemon within it as an ordinary
-user if available.
-
-A less-functional (but just as secure) operation mode is provided via the
-`-daemon-inplace-chroot` command-line option. If passed, Pages will daemonize
-as usual, but chroot directly to the `-pages-root` directory instead of building
-a complete jail in the system temporary directory. There are some known issues
-with this mode, such as:
-
-* Pages service will not be able to resolve the domain name of the auth server and the artifacts server due to missing `/etc/resolv.conf` at the chroot directory. As a workaround, you can manually copy the file to the pages root directory, however, it might cause a conflict with an existing pages data. As a result of DNS not working:
-    * [GitLab access control](#gitlab-access-control) might not work
-    * [Online view of HTML artifacts](https://about.gitlab.com/2017/10/22/gitlab-10-1-released/#online-view-of-html-artifacts) may not work. You can disable it and fall back to downloading artifacts by setting `artifacts_server` to `false` in `gitlab.yml` for your GitLab instance:
-      ```yml
-      ## GitLab Pages
-      pages:
-        enabled: true
-        artifacts_server: false
-      ```
-* TLS operation (on some systems) will not work
-
-The default secure mode will also fail for certain Linux-based configurations.
-Known cases include:
-
-* The Pages daemon is running inside an unprivileged container
-    * Bind mount functionality requires the `CAP_SYS_ADMIN` privilege
-    * This is only available to containers run in privileged mode
-* The system temporary directory is mounted `noexec` or `nodev`
-    * The jail is created in `$TMPDIR`.
-    * Character device files are created within the jail
-    * A copy of the gitlab-pages executable is run from within the bind mount
-* AppArmor/SELinux is enabled
-    * These systems disallow bind-mounting in certain configurations
-
-In these cases, workarounds are similar to those documented for non-Linux
-systems - use an external jailing technology, or fall back to the pre-v0.8.0
-behaviour using `-daemon-inplace-chroot`.
-
-On Linux, Docker and other containerization systems can be used to build a jail
-within which the Pages daemon can safely run with secure mode disabled. However,
-this configuration **is not secure** if simply using the default
-`gitlab/gitlab-ce` and `gitlab-gitlab-ee` Docker containers!
 
 ### Listen on multiple ports
 
@@ -224,8 +141,6 @@ $ make
 $ ./gitlab-pages -listen-http "10.0.0.1:8080" -listen-https "[fd00::1]:8080" -pages-root path/to/gitlab/shared/pages -pages-domain example.com -auth-client-id <id> -auth-client-secret <secret> -auth-redirect-uri https://projects.example.com/auth -auth-secret something-very-secret -auth-server https://gitlab.com
 ```
 
-> NOTE: GitLab access control might not work with `-daemon-inplace-chroot` option. Please take a look at [the caveat section](#caveats) above.
-
 #### How it works
 
 1. GitLab pages looks for `access_control` and `id` fields in `config.json` files
@@ -260,8 +175,7 @@ with tools such as [ELK](https://www.elastic.co/elk-stack).
 ### Cross-origin requests
 
 GitLab Pages defaults to allowing cross-origin requests for any resource it
-serves. This can be disabled globally by passing `-disable-cross-origin-requests`
-when starting the daemon.
+serves. This can be disabled globally by passing `-disable-cross-origin-requests`.
 
 Having cross-origin requests enabled allows third-party websites to make use of
 files stored on the Pages server, which allows various third-party integrations
@@ -289,7 +203,7 @@ Example:
 
 ### Configuration
 
-The daemon can be configured with any combination of these methods:
+Gitlab Pages can be configured with any combination of these methods:
 1. Command-line options
 1. Environment variables
 1. Configuration file

@@ -171,7 +171,7 @@ This is an example of developing GitLab Pages inside the [GitLab Development Kit
    # Inside $GDK_ROOT/gitlab-pages
    $ gdk stop gitlab-pages
    $ make # calls go build in this project and creates a `gitlab-pages` binary under bin/
-   # start daemon manually with a config
+   # start Pages manually with a config
    $ ./bin/gitlab-pages -config gitlab-pages.conf
    ```
 
