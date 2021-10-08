@@ -13,6 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
+const ffEnableRateLimiter = "FF_ENABLE_RATE_LIMITER"
+
 // AssertHTTP404 asserts handler returns 404 with provided str body
 func AssertHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, str interface{}) {
 	w := httptest.NewRecorder()
@@ -82,12 +85,26 @@ func Getwd(t *testing.T) string {
 func EnableRateLimiter(t *testing.T) {
 	t.Helper()
 
-	orig := os.Getenv("FF_ENABLE_RATE_LIMITER")
+	orig := os.Getenv(ffEnableRateLimiter)
 
-	err := os.Setenv("FF_ENABLE_RATE_LIMITER", "true")
+	err := os.Setenv(ffEnableRateLimiter, "true")
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		os.Setenv("FF_ENABLE_RATE_LIMITER", orig)
+		os.Setenv(ffEnableRateLimiter, orig)
+	})
+}
+
+// DisableRateLimiter environment variable
+func DisableRateLimiter(t *testing.T) {
+	t.Helper()
+
+	orig := os.Getenv(ffEnableRateLimiter)
+
+	err := os.Setenv(ffEnableRateLimiter, "false")
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		os.Setenv(ffEnableRateLimiter, orig)
 	})
 }

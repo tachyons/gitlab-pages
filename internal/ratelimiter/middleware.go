@@ -19,8 +19,7 @@ const (
 	headerXForwardedProto = "X-Forwarded-Proto"
 )
 
-// SourceIPLimiter middleware ensures that the originating
-// rate limit. See -rate-limiter
+// SourceIPLimiter returns middleware for rate-limiting clients based on their IP
 func (rl *RateLimiter) SourceIPLimiter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host, sourceIP := rl.getReqDetails(r)
@@ -48,6 +47,7 @@ func (rl *RateLimiter) getReqDetails(r *http.Request) (string, string) {
 		host = r.Host
 	}
 
+	// TODO: consider using X-Real-IP https://gitlab.com/gitlab-org/gitlab-pages/-/issues/644
 	// choose between r.RemoteAddr and X-Forwarded-For. Only uses XFF when proxied
 	remoteAddr := xff.GetRemoteAddrIfAllowed(r, func(sip string) bool {
 		// We enable github.com/gorilla/handlers.ProxyHeaders which sets r.RemoteAddr
@@ -84,6 +84,7 @@ func (rl *RateLimiter) logSourceIP(r *http.Request, host, sourceIP string) {
 		Info("source IP hit rate limit")
 }
 
+// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
 func rateLimiterEnabled() bool {
 	return os.Getenv("FF_ENABLE_RATE_LIMITER") == "true"
 }

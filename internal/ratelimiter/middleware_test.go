@@ -137,6 +137,8 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 				rr := httptest.NewRequest(http.MethodGet, tc.host, nil)
 				if tc.enabled {
 					testhelpers.EnableRateLimiter(t)
+				} else {
+					testhelpers.DisableRateLimiter(t)
 				}
 
 				rr.Header.Set(headerXForwardedFor, xForwardedFor)
