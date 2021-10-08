@@ -31,7 +31,7 @@ func generateRedirectsFile(dirPath string, count int) error {
 func benchmarkRedirectsRewrite(b *testing.B, redirectsCount int) {
 	ctx := context.Background()
 
-	root, tmpDir := testhelpers.TmpDir(b, "ParseRedirects_benchmarks")
+	root, tmpDir := testhelpers.TmpDir(b)
 
 	err := generateRedirectsFile(tmpDir, redirectsCount)
 	require.NoError(b, err)
@@ -65,7 +65,7 @@ func BenchmarkRedirectsRewrite_PlaceholdersEnabled(b *testing.B) {
 func benchmarkRedirectsParseRedirects(b *testing.B, redirectsCount int) {
 	ctx := context.Background()
 
-	root, tmpDir := testhelpers.TmpDir(b, "ParseRedirects_benchmarks")
+	root, tmpDir := testhelpers.TmpDir(b)
 
 	err := generateRedirectsFile(tmpDir, redirectsCount)
 	require.NoError(b, err)

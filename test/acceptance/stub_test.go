@@ -110,12 +110,14 @@ func apiHandler(t *testing.T) http.HandlerFunc {
 func CreateHTTPSFixtureFiles(t *testing.T) (key string, cert string) {
 	t.Helper()
 
-	keyfile, err := os.CreateTemp("", "https-fixture")
+	tmpDir := t.TempDir()
+
+	keyfile, err := os.CreateTemp(tmpDir, "https-fixture")
 	require.NoError(t, err)
 	key = keyfile.Name()
 	keyfile.Close()
 
-	certfile, err := os.CreateTemp("", "https-fixture")
+	certfile, err := os.CreateTemp(tmpDir, "https-fixture")
 	require.NoError(t, err)
 	cert = certfile.Name()
 	certfile.Close()
