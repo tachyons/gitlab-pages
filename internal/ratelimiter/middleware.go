@@ -8,6 +8,7 @@ import (
 	"github.com/sebest/xff"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/correlation"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 )
@@ -20,12 +21,11 @@ const (
 
 // SourceIPLimiter middleware ensures that the originating
 // rate limit. See -rate-limiter
-func (rl *RateLimiter) SourceIPLimiter(logger logrus.FieldLogger, handler http.Handler) http.Handler {
+func (rl *RateLimiter) SourceIPLimiter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host, sourceIP := rl.getReqDetails(r)
-
 		if !rl.SourceIPAllowed(sourceIP) {
-			rl.logSourceIP(logger, r, host, sourceIP)
+			rl.logSourceIP(r, host, sourceIP)
 
 			// Only drop requests once FF_ENABLE_RATE_LIMITER is enabled
 			// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
@@ -63,8 +63,8 @@ func (rl *RateLimiter) getReqDetails(r *http.Request) (string, string) {
 	return host, ip
 }
 
-func (rl *RateLimiter) logSourceIP(logger logrus.FieldLogger, r *http.Request, host, sourceIP string) {
-	logger.WithFields(logrus.Fields{
+func (rl *RateLimiter) logSourceIP(r *http.Request, host, sourceIP string) {
+	log.WithFields(logrus.Fields{
 		"handler":                       "source_ip_rate_limiter",
 		"correlation_id":                correlation.ExtractFromContext(r.Context()),
 		"req_scheme":                    r.URL.Scheme,

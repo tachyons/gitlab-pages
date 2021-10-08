@@ -23,7 +23,7 @@ var next = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 })
 
 func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
-	log, hook := testlog.NewNullLogger()
+	hook := testlog.NewGlobal()
 	testhelpers.EnableRateLimiter(t)
 
 	for tn, tc := range sharedTestCases {
@@ -41,7 +41,7 @@ func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 				rr.Header.Set(headerXForwardedFor, xForwardedFor)
 				rr.RemoteAddr = remoteAddr
 
-				handler := rl.SourceIPLimiter(log, next)
+				handler := rl.SourceIPLimiter(next)
 				if tc.proxied {
 					handler = ghandlers.ProxyHeaders(handler)
 				}
@@ -69,7 +69,7 @@ func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 }
 
 func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
-	log, hook := testlog.NewNullLogger()
+	hook := testlog.NewGlobal()
 
 	tcs := map[string]struct {
 		enabled        bool
@@ -143,7 +143,7 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 				rr.RemoteAddr = remoteAddr
 
 				// middleware is evaluated in reverse order
-				handler := rl.SourceIPLimiter(log, next)
+				handler := rl.SourceIPLimiter(next)
 				if tc.proxied {
 					handler = ghandlers.ProxyHeaders(handler)
 				}
