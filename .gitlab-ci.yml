@@ -553,9 +553,13 @@ gitlab-rails-ee:
     - gitlab-elasticsearch-indexer
     - job: build:gitlab-rails-ee
       optional: true
+    - gitlab-gomplate
+    - job: build:gitlab-gomplate
+      optional: true
   variables:
     RAILS_EE: "true"
   script:
+    - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
@@ -572,6 +576,7 @@ gitlab-rails-ee:
     - gei_image="${CI_REGISTRY_IMAGE}/gitlab-elasticsearch-indexer:${gei_version}${IMAGE_TAG_EXT}"
     - gm_version=$(cat artifacts/container_versions/gitlab-graphicsmagick_tag.txt)
     - gm_image="${CI_REGISTRY_IMAGE}/gitlab-graphicsmagick:${gm_version}"
+    - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
     - fetch_assets
@@ -587,6 +592,7 @@ gitlab-rails-ee:
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GM_IMAGE=${gm_image}"
+                      --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
@@ -610,7 +616,11 @@ gitlab-rails-ce:
     - gitlab-ruby
     - postgresql
     - gitlab-graphicsmagick
+    - gitlab-gomplate
+    - job: build:gitlab-gomplate
+      optional: true
   script:
+    - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - ruby_version=$(get_version gitlab-ruby)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
@@ -619,6 +629,7 @@ gitlab-rails-ce:
     - pg_image="${CI_REGISTRY_IMAGE}/postgresql:${pg_version}"
     - gm_version=$(cat artifacts/container_versions/gitlab-graphicsmagick_tag.txt)
     - gm_image="${CI_REGISTRY_IMAGE}/gitlab-graphicsmagick:${gm_version}"
+    - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${CE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ce:${GITLAB_ASSETS_TAG}"
     - fetch_assets
@@ -632,6 +643,7 @@ gitlab-rails-ce:
                       --build-arg "PG_IMAGE=$pg_image"
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
                       --build-arg "GM_IMAGE=${gm_image}"
+                      --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
@@ -1247,12 +1259,14 @@ gitlab-workhorse-ee:
   <<: *only-ee
   stage: phase-six
   script:
+    - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - rails_version=$(get_version gitlab-rails)
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ee_tag.txt)
+    - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
@@ -1264,6 +1278,7 @@ gitlab-workhorse-ee:
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
+                      --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   needs:
     - git-base
@@ -1271,18 +1286,23 @@ gitlab-workhorse-ee:
     - gitlab-ruby
     - job: build:gitlab-workhorse-ee
       optional: true
+    - gitlab-gomplate
+    - job: build:gitlab-gomplate
+      optional: true
 
 gitlab-workhorse-ce:
   <<: *job-base
   <<: *except-ee
   stage: phase-six
   script:
+    - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - rails_version=$(get_version gitlab-rails)
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ce_tag.txt)
+    - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
     - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
@@ -1291,11 +1311,15 @@ gitlab-workhorse-ce:
                       --build-arg "RAILS_VERSION=${rails_container}"
                       --build-arg "RUBY_VERSION=$ruby_version"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ce"
+                      --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
   needs:
     - git-base
     - gitlab-ruby
     - gitlab-rails-ce
+    - gitlab-gomplate
+    - job: build:gitlab-gomplate
+      optional: true
 
 trigger-chart-test:
   stage: final-list

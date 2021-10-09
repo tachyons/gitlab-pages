@@ -7,12 +7,15 @@ ARG GM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-graphicsmagick:${GM_VERSION}"
 ARG GEI_IMAGE="$CI_REGISTRY_IMAGE/gitlab-elasticsearch-indexer:1.0.0"
 ARG GITLAB_VERSION=v10.7.0-ee
 ARG ASSETS_IMAGE="registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee:${GITLAB_VERSION}"
+ARG GOMPLATE_TAG=
+ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
 
 <% if !compile_assets %>
 FROM ${ASSETS_IMAGE} as assets
 <% end %>
 FROM ${PG_IMAGE} as pg_image
 FROM ${GM_IMAGE} as graphicsmagick_image
+FROM ${GOMPLATE_IMAGE} as gomplate
 <% if ee? %>
 FROM ${GEI_IMAGE} as gei_image
 <% end %>
@@ -187,6 +190,8 @@ COPY --from=pg_image /usr/local/psql/lib/libpq.so* /usr/lib/
 
 # Include GraphicsMagick (binary and license)
 COPY --from=graphicsmagick_image /usr/local /usr/local
+
+COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 
 RUN buildDeps=' \
     libicu-dev \
