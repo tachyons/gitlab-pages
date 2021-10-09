@@ -27,6 +27,7 @@ RUN dnf clean all \
     && chmod -R ug-s ${GITLAB_DATA}/repo
 
 ADD gitlab-rails-ee.tar.gz /
+ADD gitlab-gomplate.tar.gz /
 
 COPY scripts/ /scripts
 
