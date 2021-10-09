@@ -57,7 +57,8 @@ Support for configuration is intended to be as follows:
 Templating languages supported:
 
 1. [ERB](https://docs.ruby-lang.org/en/2.7.0/ERB.html), following traditional standards (`<% %>`) will be available in all Ruby-based application containers.
-2. [gomplate](https://docs.gomplate.ca/), using `{% %}` non-standard delimeters (ensuring compatibility with Helm's internal use of `{{ }}`) will be available in all GitLab originated containers.
+2. [gomplate](https://docs.gomplate.ca/), using `{% %}` non-standard delimiters (ensuring compatibility with Helm's internal use of `{{ }}`) will be available in all GitLab originated containers.
+    - NOTE: [datasource](https://docs.gomplate.ca/datasources/) usage via `-d` is not supported. For more advanced usage see the gomplate [functions](https://docs.gomplate.ca/syntax/#functions).
 
 > For Kubernetes specifically we are mostly relying on the mounting the config
 files from ConfigMap objects. With the occasional ENV variable to control the
