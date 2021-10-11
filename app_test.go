@@ -9,11 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 func Test_setRequestScheme(t *testing.T) {
@@ -142,4 +144,6 @@ func TestHandlePanicMiddleware(t *testing.T) {
 	res.Body.Close()
 
 	require.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	counterCount := testutil.ToFloat64(metrics.PanicRecoveredCount)
+	require.Equal(t, float64(1), counterCount, "metric not updated")
 }
