@@ -68,6 +68,8 @@ RUN /gitlab-fetch \
     && bundle install --jobs $(nproc) --retry 5 \
     && yarn install --production --pure-lockfile \
     && rm -rf node_modules/ tmp/ spec/ ee/spec/ \
+    && rm -rf qa/ rubocop/ tooling/ .gitlab/ .github/ docker/ \
+    && rm -rf changelogs/ danger/ Dangerfile \
     && /build-scripts/cleanup-gems /srv/gitlab/vendor/bundle/ruby \
     && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt
 
