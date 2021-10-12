@@ -143,6 +143,8 @@ COPY shared/build-scripts/ /build-scripts
 # Clean up
 RUN cd /srv/gitlab && \
     rm -rf node_modules/ tmp/ spec/ ee/spec/ && \
+    rm -rf qa/ rubocop/ tooling/ .gitlab/ .github/ docker/ && \
+    rm -rf changelogs/ danger/ Dangerfile && \
     /build-scripts/cleanup-gems
 
 # Set the path that bootsnap will use for cache
