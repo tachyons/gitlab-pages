@@ -3,12 +3,14 @@
 
 # Get this scripts own path, so we can require
 lib_path = File.dirname(File.expand_path($PROGRAM_NAME))
+app_path = '/srv/gitlab'
 
 # change to the application directory
-Dir.chdir('/srv/gitlab/')
+Dir.chdir(app_path)
 
 # Setup the use of Bundler installed gems
-require 'bundler/setup'
+require "#{app_path}/config/bundler_setup"
+
 # pull in our libraries
 require "#{lib_path}/lib/checks/postgresql"
 require "#{lib_path}/lib/checks/redis"
