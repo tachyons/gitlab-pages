@@ -73,8 +73,8 @@ workflow:
 .if_ubi_branch: &if_ubi_branch
   if: '$CI_COMMIT_REF_NAME =~ /-ubi8$/'
 
-.if_push_to_redhat: &if_push_to_redhat
-  if: '$PUSH_TO_REDHAT == "true" '
+.if_redhat_certification: &if_redhat_certification
+  if: '$REDHAT_CERTIFICATION == "true" '
 
 .if_deps_pipeline: &if_deps_pipeline
   if: '$DEPS_PIPELINE'
@@ -1397,7 +1397,7 @@ ubi-release-for-certification:
     - docker:${DOCKER_VERSION}-dind
   rules:
     - <<: *if_ubi_tag
-    - <<: *if_push_to_redhat
+    - <<: *if_redhat_certification
   stage: release
   retry: 1
   allow_failure: true
