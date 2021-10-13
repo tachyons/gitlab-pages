@@ -18,6 +18,7 @@ var (
 	artifactsServer         = flag.String("artifacts-server", "", "API URL to proxy artifact requests to, e.g.: 'https://gitlab.com/api/v4'")
 	artifactsServerTimeout  = flag.Int("artifacts-server-timeout", 10, "Timeout (in seconds) for a proxied request to the artifacts server")
 	pagesStatus             = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")
+	statusAddress           = flag.String("status-address", "", "The address to listen for status requests")
 	metricsAddress          = flag.String("metrics-address", "", "The address to listen on for metrics requests")
 	sentryDSN               = flag.String("sentry-dsn", "", "The address for sending sentry crash reporting to")
 	sentryEnvironment       = flag.String("sentry-environment", "", "The environment for sentry crash reporting")

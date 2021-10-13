@@ -76,7 +76,7 @@ func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate
 	return nil, nil
 }
 
-func (a *theApp) healthCheck(w http.ResponseWriter, r *http.Request, https bool) {
+func (a *theApp) healthCheck(w http.ResponseWriter, r *http.Request) {
 	if a.isReady() {
 		w.Write([]byte("success\n"))
 	} else {
@@ -150,9 +150,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 
 // healthCheckMiddleware is serving the application status check
 func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, error) {
-	healthCheck := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a.healthCheck(w, r, request.IsHTTPS(r))
-	})
+	healthCheck := http.HandlerFunc(a.healthCheck)
 
 	loggedHealthCheck, err := logging.BasicAccessLogger(healthCheck, a.config.Log.Format, nil)
 	if err != nil {
@@ -336,6 +334,10 @@ func (a *theApp) Run() {
 		a.listenMetricsFD(&wg, a.config.ListenMetrics)
 	}
 
+	if a.config.ListenStatus != 0 {
+		a.listenStatusFD(&wg, a.config.ListenStatus, limiter)
+	}
+
 	wg.Wait()
 }
 
@@ -411,6 +413,33 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 		err = monitoring.Start(monitoringOpts...)
 		if err != nil {
 			capturingFatal(err, errortracking.WithField("listener", "metrics"))
+		}
+	}()
+}
+
+func (a *theApp) listenStatusFD(wg *sync.WaitGroup, fd uintptr, limiter *netutil.Limiter) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		healthCheck := http.HandlerFunc(a.healthCheck)
+
+		loggedHealthCheck, err := logging.BasicAccessLogger(healthCheck, a.config.Log.Format, nil)
+		if err != nil {
+			capturingFatal(err, errortracking.WithField("listener", "status"))
+		}
+
+		httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.RequestURI == a.config.General.StatusPath {
+				loggedHealthCheck.ServeHTTP(w, r)
+				return
+			}
+
+			httperrors.Serve404(w)
+		})
+
+		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter, tlsConfig: nil, isProxyV2: false}); err != nil {
+			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
 		}
 	}()
 }

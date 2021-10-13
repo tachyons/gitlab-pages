@@ -80,6 +80,7 @@ func appMain() {
 	for _, cs := range [][]io.Closer{
 		createAppListeners(config),
 		createMetricsListener(config),
+		createStatusListener(config),
 	} {
 		defer closeAll(cs)
 	}
@@ -172,6 +173,25 @@ func createMetricsListener(config *cfg.Config) []io.Closer {
 	log.WithFields(log.Fields{
 		"listener": addr,
 	}).Debug("Set up metrics listener")
+
+	return []io.Closer{l, f}
+}
+
+// createStatusListener returns net.Listener and *os.File instances. The
+// caller must ensure they don't get closed or garbage-collected (which
+// implies closing) too soon.
+func createStatusListener(config *cfg.Config) []io.Closer {
+	addr := config.General.StatusAddress
+	if addr == "" {
+		return nil
+	}
+
+	l, f := createSocket(addr)
+	config.ListenStatus = f.Fd()
+
+	log.WithFields(log.Fields{
+		"listener": addr,
+	}).Debug("Set up status listener")
 
 	return []io.Closer{l, f}
 }

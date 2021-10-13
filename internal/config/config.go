@@ -30,6 +30,7 @@ type Config struct {
 	// ListenMetrics points to a file descriptor of a socket, whose address is
 	// specified by `Config.General.MetricsAddress`.
 	ListenMetrics uintptr
+	ListenStatus  uintptr
 
 	// These fields contain the raw strings passed for listen-http,
 	// listen-https, listen-proxy and listen-https-proxyv2 settings. It is used
@@ -52,6 +53,7 @@ type General struct {
 	RootDir         string
 	RootKey         []byte
 	StatusPath      string
+	StatusAddress   string
 
 	DisableCrossOriginRequests bool
 	InsecureCiphers            bool
@@ -178,6 +180,7 @@ func loadConfig() (*Config, error) {
 			RedirectHTTP:               *redirectHTTP,
 			RootDir:                    *pagesRoot,
 			StatusPath:                 *pagesStatus,
+			StatusAddress:              *statusAddress,
 			DisableCrossOriginRequests: *disableCrossOriginRequests,
 			InsecureCiphers:            *insecureCiphers,
 			PropagateCorrelationID:     *propagateCorrelationID,
@@ -288,6 +291,7 @@ func LogConfig(config *Config) {
 		"root-cert":                     *pagesRootKey,
 		"root-key":                      *pagesRootCert,
 		"status_path":                   config.General.StatusPath,
+		"status_address":                config.General.StatusAddress,
 		"tls-min-version":               *tlsMinVersion,
 		"tls-max-version":               *tlsMaxVersion,
 		"gitlab-server":                 config.GitLab.PublicServer,
