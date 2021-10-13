@@ -85,7 +85,6 @@ func BasicAccessLogger(handler http.Handler, format string, extraFields log.Extr
 	return log.AccessLogger(handler,
 		log.WithExtraFields(enrichExtraFields(extraFields)),
 		log.WithAccessLogger(accessLogger),
-		// TODO: log IP for HTTP requests https://gitlab.com/gitlab-org/gitlab-pages/-/issues/640
 		log.WithXFFAllowed(func(sip string) bool { return false }),
 	), nil
 }

@@ -13,8 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// FFEnableRateLimiter enforces ratelimiter package to drop requests
 // TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
-const ffEnableRateLimiter = "FF_ENABLE_RATE_LIMITER"
+const FFEnableRateLimiter = "FF_ENABLE_RATE_LIMITER"
 
 // AssertHTTP404 asserts handler returns 404 with provided str body
 func AssertHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, str interface{}) {
@@ -81,30 +82,16 @@ func Getwd(t *testing.T) string {
 	return wd
 }
 
-// EnableRateLimiter environment variable
-func EnableRateLimiter(t *testing.T) {
+// SetEnvironmentVariable for testing, restoring the original value on t.Cleanup
+func SetEnvironmentVariable(t *testing.T, key, value string) {
 	t.Helper()
 
-	orig := os.Getenv(ffEnableRateLimiter)
+	orig := os.Getenv(key)
 
-	err := os.Setenv(ffEnableRateLimiter, "true")
+	err := os.Setenv(key, value)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		os.Setenv(ffEnableRateLimiter, orig)
-	})
-}
-
-// DisableRateLimiter environment variable
-func DisableRateLimiter(t *testing.T) {
-	t.Helper()
-
-	orig := os.Getenv(ffEnableRateLimiter)
-
-	err := os.Setenv(ffEnableRateLimiter, "false")
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		os.Setenv(ffEnableRateLimiter, orig)
+		os.Setenv(FFEnableRateLimiter, orig)
 	})
 }

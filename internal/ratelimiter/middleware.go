@@ -1,16 +1,15 @@
 package ratelimiter
 
 import (
-	"net"
 	"net/http"
 	"os"
 
-	"github.com/sebest/xff"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
 const (
@@ -22,7 +21,7 @@ const (
 // SourceIPLimiter returns middleware for rate-limiting clients based on their IP
 func (rl *RateLimiter) SourceIPLimiter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host, sourceIP := rl.getReqDetails(r)
+		host, sourceIP := request.GetHostWithoutPort(r), request.GetRemoteAddrWithoutPort(r)
 		if !rl.SourceIPAllowed(sourceIP) {
 			rl.logSourceIP(r, host, sourceIP)
 
@@ -41,28 +40,6 @@ func (rl *RateLimiter) SourceIPLimiter(handler http.Handler) http.Handler {
 	})
 }
 
-func (rl *RateLimiter) getReqDetails(r *http.Request) (string, string) {
-	host, _, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		host = r.Host
-	}
-
-	// TODO: consider using X-Real-IP https://gitlab.com/gitlab-org/gitlab-pages/-/issues/644
-	// choose between r.RemoteAddr and X-Forwarded-For. Only uses XFF when proxied
-	remoteAddr := xff.GetRemoteAddrIfAllowed(r, func(sip string) bool {
-		// We enable github.com/gorilla/handlers.ProxyHeaders which sets r.RemoteAddr
-		// with the value of X-Forwarded-For when --listen-proxy is set
-		return rl.proxied
-	})
-
-	ip, _, err := net.SplitHostPort(remoteAddr)
-	if err != nil {
-		ip = remoteAddr
-	}
-
-	return host, ip
-}
-
 func (rl *RateLimiter) logSourceIP(r *http.Request, host, sourceIP string) {
 	log.WithFields(logrus.Fields{
 		"handler":                       "source_ip_rate_limiter",
@@ -73,7 +50,6 @@ func (rl *RateLimiter) logSourceIP(r *http.Request, host, sourceIP string) {
 		"pages_domain":                  host,
 		"remote_addr":                   r.RemoteAddr,
 		"source_ip":                     sourceIP,
-		"proxied":                       rl.proxied,
 		"x_forwarded_proto":             r.Header.Get(headerXForwardedProto),
 		"x_forwarded_for":               r.Header.Get(headerXForwardedFor),
 		"gitlab_real_ip":                r.Header.Get(headerGitLabRealIP),

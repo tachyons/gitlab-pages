@@ -21,7 +21,6 @@ var sharedTestCases = map[string]struct {
 	sourceIPLimit     float64
 	sourceIPBurstSize int
 	reqNum            int
-	proxied           bool
 }{
 	"one_request_per_second": {
 		sourceIPLimit:     1,
@@ -39,30 +38,6 @@ var sharedTestCases = map[string]struct {
 		reqNum:            3,
 	},
 	"10_requests_per_second": {
-		sourceIPLimit:     10,
-		sourceIPBurstSize: 10,
-		reqNum:            11,
-	},
-	"one_request_per_second_proxied": {
-		proxied:           true,
-		sourceIPLimit:     1,
-		sourceIPBurstSize: 1,
-		reqNum:            2,
-	},
-	"one_request_per_second_but_big_bucket_proxied": {
-		proxied:           true,
-		sourceIPLimit:     1,
-		sourceIPBurstSize: 10,
-		reqNum:            11,
-	},
-	"three_req_per_second_bucket_size_one_proxied": {
-		proxied:           true,
-		sourceIPLimit:     3,
-		sourceIPBurstSize: 1, // max burst 1 means 1 at a time
-		reqNum:            3,
-	},
-	"10_requests_per_second_proxied": {
-		proxied:           true,
 		sourceIPLimit:     10,
 		sourceIPBurstSize: 10,
 		reqNum:            11,

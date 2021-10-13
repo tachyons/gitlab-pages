@@ -267,7 +267,6 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		rl := ratelimiter.New(
 			ratelimiter.WithSourceIPLimitPerSecond(a.config.RateLimit.SourceIPLimitPerSecond),
 			ratelimiter.WithSourceIPBurstSize(a.config.RateLimit.SourceIPBurst),
-			ratelimiter.WithProxied(len(a.config.Listeners.Proxy) > 0),
 		)
 
 		handler = rl.SourceIPLimiter(handler)
