@@ -1,3 +1,14 @@
+## 1.46.0 (2021-10-14)
+
+### Added (2 changes)
+
+- [feat: add source IP ratelimiter middleware](gitlab-org/gitlab-pages@ccfdff303646b86daed2bd9ae7e2f2a5eb4a2c5c) ([merge request](gitlab-org/gitlab-pages!594))
+- [feat: add ratelimiter package](gitlab-org/gitlab-pages@49f2c8908c0d831e6a2880c8ad659116ad70d74d) ([merge request](gitlab-org/gitlab-pages!587))
+
+### Removed (1 change)
+
+- [refactor: stop running gitlab-pages as root](gitlab-org/gitlab-pages@dc7d694f00eadd078a05991bff7c78cb29efeff4) by @feistel ([merge request](gitlab-org/gitlab-pages!542))
+
 ## 1.45.0 (2021-09-21)
 
 ### Fixed (1 change)
