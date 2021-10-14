@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,40 +18,41 @@ func mockNow() time.Time {
 	return validTime
 }
 
+var sharedTestCases = map[string]struct {
+	sourceIPLimit     float64
+	sourceIPBurstSize int
+	reqNum            int
+}{
+	"one_request_per_second": {
+		sourceIPLimit:     1,
+		sourceIPBurstSize: 1,
+		reqNum:            2,
+	},
+	"one_request_per_second_but_big_bucket": {
+		sourceIPLimit:     1,
+		sourceIPBurstSize: 10,
+		reqNum:            11,
+	},
+	"three_req_per_second_bucket_size_one": {
+		sourceIPLimit:     3,
+		sourceIPBurstSize: 1, // max burst 1 means 1 at a time
+		reqNum:            3,
+	},
+	"10_requests_per_second": {
+		sourceIPLimit:     10,
+		sourceIPBurstSize: 10,
+		reqNum:            11,
+	},
+}
+
 func TestSourceIPAllowed(t *testing.T) {
 	t.Parallel()
 
-	tcs := map[string]struct {
-		now               string
-		sourceIPLimit     float64
-		sourceIPBurstSize int
-		reqNum            int
-	}{
-		"one_request_per_second": {
-			sourceIPLimit:     1,
-			sourceIPBurstSize: 1,
-			reqNum:            2,
-		},
-		"one_request_per_second_but_big_bucket": {
-			sourceIPLimit:     1,
-			sourceIPBurstSize: 10,
-			reqNum:            11,
-		},
-		"three_req_per_second_bucket_size_one": {
-			sourceIPLimit:     3,
-			sourceIPBurstSize: 1, // max burst 1 means 1 at a time
-			reqNum:            3,
-		},
-		"10_requests_per_second": {
-			sourceIPLimit:     10,
-			sourceIPBurstSize: 10,
-			reqNum:            11,
-		},
-	}
+	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
 
-	for tn, tc := range tcs {
+	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
-			rl := New(
+			rl := New(blocked, cachedEntries, cacheReqs,
 				WithNow(mockNow),
 				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
 				WithSourceIPBurstSize(tc.sourceIPBurstSize),
@@ -72,7 +74,9 @@ func TestSourceIPAllowed(t *testing.T) {
 
 func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	rate := 10 * time.Millisecond
-	rl := New(
+	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
+
+	rl := New(blocked, cachedEntries, cacheReqs,
 		WithSourceIPLimitPerSecond(float64(1/rate)),
 		WithSourceIPBurstSize(1),
 	)
@@ -104,4 +108,25 @@ func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	t.Run(third, testFn(third))
 
 	wg.Wait()
+}
+
+func newTestMetrics(t *testing.T) (*prometheus.GaugeVec, *prometheus.GaugeVec, *prometheus.CounterVec) {
+	t.Helper()
+
+	blockedGauge := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: t.Name(),
+		},
+		[]string{"enforced"},
+	)
+
+	cachedEntries := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: t.Name(),
+	}, []string{"op"})
+
+	cacheReqs := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: t.Name(),
+	}, []string{"op", "cache"})
+
+	return blockedGauge, cachedEntries, cacheReqs
 }

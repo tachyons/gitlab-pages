@@ -399,6 +399,21 @@ func GetCompressedPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffi
 	return DoPagesRequest(t, spec, req)
 }
 
+func GetPageFromListenerWithHeaders(t *testing.T, spec ListenSpec, host, urlSuffix string, header http.Header) (*http.Response, error) {
+	t.Helper()
+
+	url := spec.URL(urlSuffix)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Host = host
+	req.Header = header
+
+	return DoPagesRequest(t, spec, req)
+}
+
 func GetProxiedPageFromListener(t *testing.T, spec ListenSpec, host, xForwardedHost, urlsuffix string) (*http.Response, error) {
 	url := spec.URL(urlsuffix)
 	req, err := http.NewRequest("GET", url, nil)

@@ -36,23 +36,24 @@ type RateLimiter struct {
 	now                    func() time.Time
 	sourceIPLimitPerSecond float64
 	sourceIPBurstSize      int
+	sourceIPBlockedCount   *prometheus.GaugeVec
 	sourceIPCache          *lru.Cache
 	// TODO: add domainCache https://gitlab.com/gitlab-org/gitlab-pages/-/issues/630
 }
 
 // New creates a new RateLimiter with default values that can be configured via Option functions
-func New(opts ...Option) *RateLimiter {
+func New(blockCountMetric, cachedEntriesMetric *prometheus.GaugeVec, cacheRequestsMetric *prometheus.CounterVec, opts ...Option) *RateLimiter {
 	rl := &RateLimiter{
 		now:                    time.Now,
 		sourceIPLimitPerSecond: DefaultSourceIPLimitPerSecond,
 		sourceIPBurstSize:      DefaultSourceIPBurstSize,
+		sourceIPBlockedCount:   blockCountMetric,
 		sourceIPCache: lru.New(
 			"source_ip",
 			defaultSourceIPItems,
 			defaultSourceIPExpirationInterval,
-			// TODO: @jaime to add proper metrics in subsequent MR
-			prometheus.NewGaugeVec(prometheus.GaugeOpts{}, []string{"op"}),
-			prometheus.NewCounterVec(prometheus.CounterOpts{}, []string{"op", "cache"}),
+			cachedEntriesMetric,
+			cacheRequestsMetric,
 		),
 	}
 

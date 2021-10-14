@@ -55,3 +55,13 @@ func GetHostWithoutPort(r *http.Request) string {
 
 	return host
 }
+
+// GetRemoteAddrWithoutPort strips the port from the r.RemoteAddr
+func GetRemoteAddrWithoutPort(r *http.Request) string {
+	remoteAddr, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+
+	return remoteAddr
+}
