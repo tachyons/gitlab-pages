@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	testlog "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 
@@ -23,10 +24,11 @@ var next = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 	hook := testlog.NewGlobal()
 	testhelpers.SetEnvironmentVariable(t, testhelpers.FFEnableRateLimiter, "true")
+	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
 
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
-			rl := New(
+			rl := New(blocked, cachedEntries, cacheReqs,
 				WithNow(mockNow),
 				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
 				WithSourceIPBurstSize(tc.sourceIPBurstSize),
@@ -63,6 +65,7 @@ func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 
 func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 	hook := testlog.NewGlobal()
+	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
 
 	tcs := map[string]struct {
 		enabled        bool
@@ -72,15 +75,7 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 			enabled:        false,
 			expectedStatus: http.StatusNoContent,
 		},
-		"disabled_rate_limit_https": {
-			enabled:        false,
-			expectedStatus: http.StatusNoContent,
-		},
 		"enabled_rate_limit_http_blocks": {
-			enabled:        true,
-			expectedStatus: http.StatusTooManyRequests,
-		},
-		"enabled_rate_limit_https_blocks": {
 			enabled:        true,
 			expectedStatus: http.StatusTooManyRequests,
 		},
@@ -88,7 +83,7 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 
 	for tn, tc := range tcs {
 		t.Run(tn, func(t *testing.T) {
-			rl := New(
+			rl := New(blocked, cachedEntries, cacheReqs,
 				WithNow(mockNow),
 				WithSourceIPLimitPerSecond(1),
 				WithSourceIPBurstSize(1),
@@ -120,6 +115,24 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 				require.Equal(t, tc.expectedStatus, res.StatusCode)
 				assertSourceIPLog(t, remoteAddr, hook)
 			}
+
+			blockedCount := testutil.ToFloat64(blocked.WithLabelValues("true"))
+			if tc.enabled {
+				require.Equal(t, float64(4), blockedCount, "blocked count")
+			} else {
+				require.Equal(t, float64(0), blockedCount, "blocked count")
+			}
+			blocked.Reset()
+
+			cachedCount := testutil.ToFloat64(cachedEntries.WithLabelValues("source_ip"))
+			require.Equal(t, float64(1), cachedCount, "cached count")
+			cachedEntries.Reset()
+
+			cacheReqMiss := testutil.ToFloat64(cacheReqs.WithLabelValues("source_ip", "miss"))
+			require.Equal(t, float64(1), cacheReqMiss, "miss count")
+			cacheReqHit := testutil.ToFloat64(cacheReqs.WithLabelValues("source_ip", "hit"))
+			require.Equal(t, float64(4), cacheReqHit, "hit count")
+			cacheReqs.Reset()
 		})
 	}
 }

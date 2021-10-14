@@ -7,7 +7,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/lru"
-	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 const (
@@ -43,18 +42,18 @@ type RateLimiter struct {
 }
 
 // New creates a new RateLimiter with default values that can be configured via Option functions
-func New(opts ...Option) *RateLimiter {
+func New(blockCountMetric, cachedEntriesMetric *prometheus.GaugeVec, cacheRequestsMetric *prometheus.CounterVec, opts ...Option) *RateLimiter {
 	rl := &RateLimiter{
 		now:                    time.Now,
 		sourceIPLimitPerSecond: DefaultSourceIPLimitPerSecond,
 		sourceIPBurstSize:      DefaultSourceIPBurstSize,
-		sourceIPBlockedCount:   metrics.RateLimitSourceIPBlockedCount,
+		sourceIPBlockedCount:   blockCountMetric,
 		sourceIPCache: lru.New(
 			"source_ip",
 			defaultSourceIPItems,
 			defaultSourceIPExpirationInterval,
-			metrics.RateLimitSourceIPCachedEntries,
-			metrics.RateLimitSourceIPCacheRequests,
+			cachedEntriesMetric,
+			cacheRequestsMetric,
 		),
 	}
 

@@ -265,6 +265,9 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	if a.config.RateLimit.SourceIPLimitPerSecond > 0 {
 		rl := ratelimiter.New(
+			metrics.RateLimitSourceIPBlockedCount,
+			metrics.RateLimitSourceIPCachedEntries,
+			metrics.RateLimitSourceIPCacheRequests,
 			ratelimiter.WithSourceIPLimitPerSecond(a.config.RateLimit.SourceIPLimitPerSecond),
 			ratelimiter.WithSourceIPBurstSize(a.config.RateLimit.SourceIPBurst),
 		)

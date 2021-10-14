@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,9 +48,11 @@ var sharedTestCases = map[string]struct {
 func TestSourceIPAllowed(t *testing.T) {
 	t.Parallel()
 
+	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
+
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
-			rl := New(
+			rl := New(blocked, cachedEntries, cacheReqs,
 				WithNow(mockNow),
 				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
 				WithSourceIPBurstSize(tc.sourceIPBurstSize),
@@ -71,7 +74,9 @@ func TestSourceIPAllowed(t *testing.T) {
 
 func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	rate := 10 * time.Millisecond
-	rl := New(
+	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
+
+	rl := New(blocked, cachedEntries, cacheReqs,
 		WithSourceIPLimitPerSecond(float64(1/rate)),
 		WithSourceIPBurstSize(1),
 	)
@@ -103,4 +108,25 @@ func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	t.Run(third, testFn(third))
 
 	wg.Wait()
+}
+
+func newTestMetrics(t *testing.T) (*prometheus.GaugeVec, *prometheus.GaugeVec, *prometheus.CounterVec) {
+	t.Helper()
+
+	blockedGauge := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: t.Name(),
+		},
+		[]string{"enforced"},
+	)
+
+	cachedEntries := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: t.Name(),
+	}, []string{"op"})
+
+	cacheReqs := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: t.Name(),
+	}, []string{"op", "cache"})
+
+	return blockedGauge, cachedEntries, cacheReqs
 }
