@@ -185,6 +185,14 @@ var (
 		},
 	)
 
+	// PanicRecoveredCount measures the number of times GitLab Pages has recovered from a panic
+	PanicRecoveredCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "gitlab_pages_panic_recovered_count",
+			Help: "The number of panics the service has recovered from.",
+		},
+	)
+
 	// RateLimitSourceIPCacheRequests is the number of cache hits/misses
 	RateLimitSourceIPCacheRequests = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -239,6 +247,7 @@ func MustRegister() {
 		LimitListenerMaxConns,
 		LimitListenerConcurrentConns,
 		LimitListenerWaitingConns,
+		PanicRecoveredCount,
 		RateLimitSourceIPCacheRequests,
 		RateLimitSourceIPCachedEntries,
 		RateLimitSourceIPBlockedCount,
