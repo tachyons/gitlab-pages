@@ -13,19 +13,9 @@ require 'uri'
 require 'net/http'
 require 'optparse'
 
-$GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] || ENV['CI_REGISTRY_IMAGE'] || 'registry.gitlab.com/gitlab-org/build/cng'
-$IMAGE_VERSION_VAR = { 'alpine-certificates'       => 'ALPINE_VERSION',
-                       'gitaly'                    => 'GITALY_SERVER_VERSION',
-                       'gitlab-container-registry' => 'GITLAB_CONTAINER_REGISTRY_VERSION',
-                       'gitlab-exporter'           => 'GITLAB_EXPORTER_VERSION',
-                       'gitlab-mailroom'           => 'MAILROOM_VERSION',
-                       'gitlab-shell'              => 'GITLAB_SHELL_VERSION',
-                       'gitlab-sidekiq-ee'         => 'GITLAB_VERSION',
-                       'gitlab-toolbox-ee'         => 'GITLAB_VERSION',
-                       'gitlab-webservice-ee'      => 'GITLAB_VERSION',
-                       'gitlab-workhorse-ee'       => 'GITLAB_VERSION',
-                       'kubectl'                   => 'KUBECTL_VERSION' }
-
+$GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] ||
+                   ENV['CI_REGISTRY_IMAGE'] ||
+                   'registry.gitlab.com/gitlab-org/build/cng'
 
 def is_regular_tag
   (ENV['CI_COMMIT_TAG'] || ENV['GITLAB_TAG']) && \
@@ -139,14 +129,14 @@ puts "Using #{version} as the docker tag to pull"
 
 errors = []
 project_data = read_project_data()
-$IMAGE_VERSION_VAR.keys.each do |name|
+project_data.keys.each do |name|
   # if job is on a tagged pipeline (but not a auto-deploy tag) or
   # is a master branch pipeline, then use the image tags as
   # defined in variables defined in the CI environment. Otherwise
   # it is assumed that the "version" (commit ref) from CLI param
   # is correct.
   if (ENV['CI_COMMIT_REF_NAME'] == 'master' || is_regular_tag)
-    version = ENV[$IMAGE_VERSION_VAR[name]].sub(/-(ce|ee)$/, '') + '-ubi8'
+    version = ENV[project_data[name]['version_variable']].sub(/-(ce|ee)$/, '') + '-ubi8'
   end
 
   if project_data.has_key? name
