@@ -92,9 +92,12 @@ def display_scan_status(token)
   rh_pid = {}
   read_project_data.each_pair { |name,ids| rh_pid[ids['pid']] = name }
 
+  puts " Status     Red Hat Project ID          Request ID                  GitLab Project:Tag"
+  puts "=======    ========================    ========================    ==================================="
+
   stats = {:pending => 0, :running => 0}
   JSON.parse(results.body)['data'].each do |scan_req|
-    puts "#{scan_req['status']}\t\t#{rh_pid[scan_req['cert_project']]}:#{scan_req['tag']}"
+    puts "#{scan_req['status']}    #{scan_req['cert_project']}    #{scan_req['_id']}    #{rh_pid[scan_req['cert_project']]}:#{scan_req['tag']}"
     case scan_req['status']
     when 'pending'
       stats[:pending] += 1
