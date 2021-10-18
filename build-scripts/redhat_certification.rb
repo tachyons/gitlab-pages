@@ -135,7 +135,6 @@ unless version.end_with? '-ubi8'
   version += '-ubi8'
 end
 
-
 puts "Using #{version} as the docker tag to pull"
 
 errors = []
