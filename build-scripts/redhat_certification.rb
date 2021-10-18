@@ -161,8 +161,8 @@ project_data.keys.each do |name|
     end
   else
     # let someone know that there was not a secret for a specific image
-    puts "No entry for #{name} in CI variable REDHAT_PROJECT_JSON"
-    errors << "#{name}: No project info listed in $REDHAT_PROJECT_JSON"
+    puts "No entry for #{name} in redhat-projects.yaml"
+    errors << "#{name}: No project info listed in redhat-projects.yaml"
   end
 end
 
