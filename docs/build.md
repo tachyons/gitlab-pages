@@ -85,12 +85,9 @@ The final job will submit the images to Red Hat for certification for the
 OpenShift environments.
 
 This certification job executes `build-scripts/redhat_certification.rb` and
-requires the variables `REDHAT_PROJECT_JSON` and `REDHAT_API_TOKEN` to be
-declared. The contents of the `REDHAT_PROJECT_JSON` can be found in the
-1Password Build vault under the "Red Hat Certification Project List" entry.
-The `REDHAT_API_TOKEN` variable is set to the personal token generated
-on the [Connect portal](https://connect.redhat.com/key-manager). There is
-also the token used by GitLab CI in the 1Password Build vault under the
+requires the variable `REDHAT_API_TOKEN` to be declared. This variable is set
+to the personal token generated on the [Connect portal](https://connect.redhat.com/key-manager).
+The token used by GitLab CI is stored in the 1Password Build vault under the
 "Red Hat Certification Token" entry.
 
 The script allows the variable `GITLAB_REGISTRY_BASE_URL` (base URL where the
@@ -105,9 +102,8 @@ In addition, it is possible to run the `build-scripts/redhat_certification.rb`
 script to query the Red Hat API for the status of scan requests that have
 been submitted. Executing `build-scripts/redhat_certification.rb -s` will display
 a list of images and their current status in the Red Hat certification
-pipeline. One in this case would need to create the `REDHAT_PROJECT_JSON`
-and `REDHAT_API_TOKEN` variables in the local environment to execute the
-script.
+pipeline. One would need to define `REDHAT_API_TOKEN`in the local environment
+or use the `--token` command line switch to specify their personal token.
 
 ### Offline builds
 

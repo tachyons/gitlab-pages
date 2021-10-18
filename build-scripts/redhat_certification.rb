@@ -7,6 +7,7 @@
 # JSON string.
 
 require 'json'
+require 'yaml'
 require 'digest'
 require 'uri'
 require 'net/http'
@@ -32,10 +33,10 @@ def is_regular_tag
 end
 
 def read_project_data
-  JSON.parse(ENV['REDHAT_PROJECT_JSON'])
+  git_root = %x(git rev-parse --show-toplevel).strip()
+  YAML.load_file("#{git_root}/redhat-projects.yaml")
 rescue => e
-  puts "Unable to parse JSON: #{e.message}"
-  puts e.backtrace
+  puts "Unable to parse #{git_root}/redhat-projects.yaml: #{e.message}"
   raise
 end
 
