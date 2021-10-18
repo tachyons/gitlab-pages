@@ -1,8 +1,6 @@
 .tests-common:
   extends: .go-mod-cache
   stage: test
-  tags:
-    - gitlab-org-docker
   needs: ['download deps']
   artifacts:
     reports:
