@@ -26,7 +26,7 @@ func (m *Middleware) ServeAcmeChallenges(w http.ResponseWriter, r *http.Request,
 		return false
 	}
 
-	if !isAcmeChallenge(r.URL.Path) {
+	if !IsAcmeChallenge(r.URL.Path) {
 		return false
 	}
 
@@ -37,7 +37,7 @@ func (m *Middleware) ServeAcmeChallenges(w http.ResponseWriter, r *http.Request,
 	return m.redirectToGitlab(w, r)
 }
 
-func isAcmeChallenge(path string) bool {
+func IsAcmeChallenge(path string) bool {
 	return strings.HasPrefix(filepath.Clean(path), "/.well-known/acme-challenge/")
 }
 
