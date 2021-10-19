@@ -1,0 +1,12 @@
+MESSAGE = <<~MSG.freeze
+This merge request is updating the GO_VERSION.
+
+Please make sure this merge request follows all standards established
+within the [Go upgrade guide](https://docs.gitlab.com/ee/development/go_guide/go_upgrade.html).
+MSG
+
+diff = git.diff_for_file("ci_files/variables.yml")
+
+if diff && diff.patch =~ /[+-]+.*GO_VERSION/
+    warn format(MESSAGE)
+end
