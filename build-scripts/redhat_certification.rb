@@ -153,7 +153,7 @@ project_data.keys.each do |name|
     endpoint = "https://catalog.redhat.com/api/containers/v1/projects/certification/id/#{project_data[name]['pid']}/requests/scans"
     payload = { 'pull_spec' => "#{$GITLAB_REGISTRY}/#{name}@#{sha256_tag}",
                 'tag'       => version }
-    resp = redhat_api(:post, endpoint, token, payload)
+    resp = redhat_api(:post, endpoint, options[:token], payload)
 
     puts "API call for #{name} returned #{resp.code}: #{resp.message}"
     if resp.code.to_i < 200 || resp.code.to_i > 299
