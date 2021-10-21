@@ -37,7 +37,6 @@ func TestGetExtraLogFields(t *testing.T) {
 		name                  string
 		scheme                string
 		host                  string
-		domain                *domain.Domain
 		expectedHTTPS         interface{}
 		expectedHost          interface{}
 		expectedProjectID     interface{}
@@ -49,7 +48,6 @@ func TestGetExtraLogFields(t *testing.T) {
 			name:                  "https",
 			scheme:                request.SchemeHTTPS,
 			host:                  "githost.io",
-			domain:                domainWithResolver,
 			expectedHTTPS:         true,
 			expectedHost:          "githost.io",
 			expectedProjectID:     uint64(100),
@@ -60,33 +58,11 @@ func TestGetExtraLogFields(t *testing.T) {
 			name:                  "http",
 			scheme:                request.SchemeHTTP,
 			host:                  "githost.io",
-			domain:                domainWithResolver,
 			expectedHTTPS:         false,
 			expectedHost:          "githost.io",
 			expectedProjectID:     uint64(100),
 			expectedProjectPrefix: "/prefix",
 			expectedServingType:   "file",
-		},
-		{
-			name:                "domain_not_configured",
-			scheme:              request.SchemeHTTP,
-			host:                "githost.io",
-			domain:              nil,
-			expectedHTTPS:       false,
-			expectedHost:        "githost.io",
-			expectedProjectID:   nil,
-			expectedServingType: nil,
-		},
-		{
-			name:                "no_domain",
-			scheme:              request.SchemeHTTP,
-			host:                "githost.io",
-			domain:              domain.New("githost.io", "", "", &resolver{err: domain.ErrDomainDoesNotExist}),
-			expectedHTTPS:       false,
-			expectedHost:        "githost.io",
-			expectedProjectID:   nil,
-			expectedServingType: nil,
-			expectedErrMsg:      domain.ErrDomainDoesNotExist.Error(),
 		},
 	}
 
@@ -96,7 +72,7 @@ func TestGetExtraLogFields(t *testing.T) {
 			require.NoError(t, err)
 
 			req.URL.Scheme = tt.scheme
-			req = request.WithHostAndDomain(req, tt.host, tt.domain)
+			req = request.WithHostAndDomain(req, tt.host, domainWithResolver)
 
 			got := getExtraLogFields(req)
 			require.Equal(t, tt.expectedHTTPS, got["pages_https"])
