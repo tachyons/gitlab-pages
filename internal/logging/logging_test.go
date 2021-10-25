@@ -72,9 +72,9 @@ func TestGetExtraLogFields(t *testing.T) {
 			require.NoError(t, err)
 
 			req.URL.Scheme = tt.scheme
-			req = request.WithHostAndDomain(req, tt.host, domainWithResolver)
+			req = domain.ReqWithHostAndDomain(req, tt.host, domainWithResolver)
 
-			got := getExtraLogFields(req)
+			got := domain.LogFields(req)
 			require.Equal(t, tt.expectedHTTPS, got["pages_https"])
 			require.Equal(t, tt.expectedHost, got["pages_host"])
 			require.Equal(t, tt.expectedProjectID, got["pages_project_id"])
