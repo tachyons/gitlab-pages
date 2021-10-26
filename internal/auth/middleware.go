@@ -3,7 +3,7 @@ package auth
 import (
 	"net/http"
 
-	d "gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	domainCfg "gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
@@ -21,7 +21,7 @@ func (a *Auth) AuthenticationMiddleware(handler http.Handler, s source.Source) h
 // AuthorizationMiddleware handles authorization
 func (a *Auth) AuthorizationMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		domain := d.FromRequest(r)
+		domain := domainCfg.FromRequest(r)
 
 		// Only for projects that have access control enabled
 		if domain.IsAccessControlEnabled(r) {
