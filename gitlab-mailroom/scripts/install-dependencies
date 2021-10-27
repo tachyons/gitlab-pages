@@ -11,7 +11,7 @@ rm -rf /var/lib/apt/lists/*
 
 gem install gitlab-mail_room:${MAILROOM_VERSION} \
         charlock_holmes:0.7.6 \
-        redis:4.4.0 \
+        redis:4.5.1 \
         redis-namespace:1.6.0 \
         webrick:1.7.0
 
