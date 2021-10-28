@@ -10,7 +10,7 @@ FROM ${GOMPLATE_IMAGE} as gomplate
 FROM ${FROM_IMAGE}:${GIT_TAG} as builder
 
 ARG DOCKER_BUILDTAGS="include_oss include_gcs continuous_profiler_stackdriver"
-ARG REGISTRY_VERSION=v3.13.0-gitlab
+ARG REGISTRY_VERSION=v3.14.0-gitlab
 ARG REGISTRY_NAMESPACE=gitlab-org
 ARG REGISTRY_PROJECT=container-registry
 ARG GOPATH=/go
