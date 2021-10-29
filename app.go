@@ -174,8 +174,8 @@ func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, erro
 // not static-content responses
 func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host := request.GetHost(r)
-		domain := request.GetDomain(r)
+		host := domain.GetHost(r)
+		domain := domain.FromRequest(r)
 		https := request.IsHTTPS(r)
 
 		if a.tryAuxiliaryHandlers(w, r, https, host, domain) {
@@ -193,7 +193,7 @@ func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 		start := time.Now()
 		defer metrics.ServingTime.Observe(time.Since(start).Seconds())
 
-		domain := request.GetDomain(r)
+		domain := domain.FromRequest(r)
 		fileServed := domain.ServeFileHTTP(w, r)
 
 		if !fileServed {
@@ -252,7 +252,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = a.auxiliaryMiddleware(handler)
 	handler = a.Auth.AuthenticationMiddleware(handler, a.source)
 	handler = a.AcmeMiddleware.AcmeMiddleware(handler)
-	handler, err := logging.AccessLogger(handler, a.config.Log.Format)
+	handler, err := logging.BasicAccessLogger(handler, a.config.Log.Format, domain.LogFields)
 	if err != nil {
 		return nil, err
 	}

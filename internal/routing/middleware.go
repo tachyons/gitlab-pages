@@ -27,7 +27,7 @@ func NewMiddleware(handler http.Handler, s source.Source) http.Handler {
 			return
 		}
 
-		r = request.WithHostAndDomain(r, host, d)
+		r = domain.ReqWithHostAndDomain(r, host, d)
 
 		handler.ServeHTTP(w, r)
 	})
