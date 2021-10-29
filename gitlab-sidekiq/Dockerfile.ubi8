@@ -16,7 +16,7 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-sidek
       description="Sidekiq daemon."
 
 ENV SIDEKIQ_CONCURRENCY=25
-ENV SIDEKIQ_TIMEOUT=4
+ENV SIDEKIQ_TIMEOUT=25
 
 ADD gitlab-sidekiq-ee.tar.gz /
 ADD gitlab-python.tar.gz /
