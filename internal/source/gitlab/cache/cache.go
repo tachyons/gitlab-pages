@@ -11,7 +11,6 @@ import (
 
 // Cache is a short and long caching mechanism for GitLab source
 type Cache struct {
-	client    api.Client
 	store     Store
 	retriever *Retriever
 }
@@ -20,7 +19,6 @@ type Cache struct {
 func NewCache(client api.Client, cc *config.Cache) *Cache {
 	r := NewRetriever(client, cc.RetrievalTimeout, cc.MaxRetrievalInterval, cc.MaxRetrievalRetries)
 	return &Cache{
-		client:    client,
 		store:     newMemStore(client, cc),
 		retriever: r,
 	}
