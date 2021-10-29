@@ -342,7 +342,11 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 		withListeners([]ListenSpec{proxyListener}),
 	)
 
-	rsp, err := GetProxiedPageFromListener(t, proxyListener, "127.0.0.1", "group.gitlab-example.com", "project/")
+	header := http.Header{
+		"X-Forwarded-Host": []string{"group.gitlab-example.com"},
+	}
+
+	rsp, err := GetPageFromListenerWithHeaders(t, proxyListener, "127.0.0.1", "project/", header)
 
 	require.NoError(t, err)
 	rsp.Body.Close()

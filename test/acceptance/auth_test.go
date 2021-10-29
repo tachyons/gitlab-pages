@@ -94,9 +94,13 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	url, err := url.Parse(rsp.Header.Get("Location"))
 	require.NoError(t, err)
 
+	header := http.Header{
+		"Cookie": []string{cookie},
+	}
+
 	// Go to auth page with correct state will cause fetching the token
-	authrsp, err := GetPageFromListenerWithCookie(t, httpsListener, "projects.gitlab-example.com", "/auth?code=1&state="+
-		url.Query().Get("state"), cookie)
+	authrsp, err := GetPageFromListenerWithHeaders(t, httpsListener, "projects.gitlab-example.com", "/auth?code=1&state="+
+		url.Query().Get("state"), header)
 
 	require.NoError(t, err)
 	defer authrsp.Body.Close()

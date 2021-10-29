@@ -369,34 +369,7 @@ func contains(slice []string, s string) bool {
 // Does a HTTP(S) GET against the listener specified, setting a fake
 // Host: and constructing the URL from the listener and the URL suffix.
 func GetPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
-	return GetPageFromListenerWithCookie(t, spec, host, urlsuffix, "")
-}
-
-func GetPageFromListenerWithCookie(t *testing.T, spec ListenSpec, host, urlsuffix string, cookie string) (*http.Response, error) {
-	url := spec.URL(urlsuffix)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	if cookie != "" {
-		req.Header.Set("Cookie", cookie)
-	}
-
-	req.Host = host
-
-	return DoPagesRequest(t, spec, req)
-}
-
-func GetCompressedPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string, encoding string) (*http.Response, error) {
-	url := spec.URL(urlsuffix)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Host = host
-	req.Header.Set("Accept-Encoding", encoding)
-
-	return DoPagesRequest(t, spec, req)
+	return GetPageFromListenerWithHeaders(t, spec, host, urlsuffix, http.Header{})
 }
 
 func GetPageFromListenerWithHeaders(t *testing.T, spec ListenSpec, host, urlSuffix string, header http.Header) (*http.Response, error) {
@@ -410,19 +383,6 @@ func GetPageFromListenerWithHeaders(t *testing.T, spec ListenSpec, host, urlSuff
 
 	req.Host = host
 	req.Header = header
-
-	return DoPagesRequest(t, spec, req)
-}
-
-func GetProxiedPageFromListener(t *testing.T, spec ListenSpec, host, xForwardedHost, urlsuffix string) (*http.Response, error) {
-	url := spec.URL(urlsuffix)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Host = host
-	req.Header.Set("X-Forwarded-Host", xForwardedHost)
 
 	return DoPagesRequest(t, spec, req)
 }
