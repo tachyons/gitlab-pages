@@ -30,6 +30,8 @@ RUN dnf clean all \
     && mkdir -p /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories /srv/gitlab-shell \
     && touch /var/log/gitaly/gitaly.log \
     && touch /var/log/gitaly/gitlab-shell.log \
+    && cd /srv/gitaly-ruby \
+    && bundle binstubs --all \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} \
       /scripts \
       /etc/gitaly \
@@ -40,6 +42,7 @@ RUN dnf clean all \
 
 USER ${GITLAB_USER}:${GITLAB_USER}
 
+ENV PATH "$PATH:/srv/gitaly-ruby/bin"
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitaly
 
 CMD "/scripts/process-wrapper"
