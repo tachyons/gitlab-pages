@@ -19,7 +19,7 @@ type Cache struct {
 func NewCache(client api.Client, cc *config.Cache) *Cache {
 	r := NewRetriever(client, cc.RetrievalTimeout, cc.MaxRetrievalInterval, cc.MaxRetrievalRetries)
 	return &Cache{
-		store:     newMemStore(client, cc),
+		store:     newMemStore(cc),
 		retriever: r,
 	}
 }

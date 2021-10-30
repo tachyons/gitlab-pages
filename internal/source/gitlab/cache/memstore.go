@@ -7,7 +7,6 @@ import (
 	"github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
 type memstore struct {
@@ -17,7 +16,7 @@ type memstore struct {
 	entryExpirationTimeout time.Duration
 }
 
-func newMemStore(client api.Client, cc *config.Cache) Store {
+func newMemStore(cc *config.Cache) Store {
 	return &memstore{
 		store:                  cache.New(cc.CacheExpiry, cc.CacheCleanupInterval),
 		mux:                    &sync.RWMutex{},
