@@ -17,11 +17,6 @@ const (
 	// DefaultSourceIPBurstSize is the maximum burst allowed per rate limiter.
 	// E.g. The first 100 requests within 1s will succeed, but the 101st will fail.
 	DefaultSourceIPBurstSize = 100
-
-	// based on an avg ~4,000 unique IPs per minute
-	// https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b
-	defaultSourceIPItems              = 5000
-	defaultSourceIPExpirationInterval = time.Minute
 )
 
 // Option function to configure a RateLimiter
@@ -42,19 +37,12 @@ type RateLimiter struct {
 }
 
 // New creates a new RateLimiter with default values that can be configured via Option functions
-func New(blockCountMetric, cachedEntriesMetric *prometheus.GaugeVec, cacheRequestsMetric *prometheus.CounterVec, opts ...Option) *RateLimiter {
+func New(c *lru.Cache, opts ...Option) *RateLimiter {
 	rl := &RateLimiter{
 		now:                    time.Now,
 		sourceIPLimitPerSecond: DefaultSourceIPLimitPerSecond,
 		sourceIPBurstSize:      DefaultSourceIPBurstSize,
-		sourceIPBlockedCount:   blockCountMetric,
-		sourceIPCache: lru.New(
-			"source_ip",
-			defaultSourceIPItems,
-			defaultSourceIPExpirationInterval,
-			cachedEntriesMetric,
-			cacheRequestsMetric,
-		),
+		sourceIPCache:          c,
 	}
 
 	for _, opt := range opts {
@@ -82,6 +70,12 @@ func WithSourceIPLimitPerSecond(limit float64) Option {
 func WithSourceIPBurstSize(burst int) Option {
 	return func(rl *RateLimiter) {
 		rl.sourceIPBurstSize = burst
+	}
+}
+
+func WithBlockedCountMetric(m *prometheus.GaugeVec) Option {
+	return func(rl *RateLimiter) {
+		rl.sourceIPBlockedCount = m
 	}
 }
 

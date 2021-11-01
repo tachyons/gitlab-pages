@@ -31,6 +31,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/lru"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
@@ -265,9 +266,13 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	if a.config.RateLimit.SourceIPLimitPerSecond > 0 {
 		rl := ratelimiter.New(
-			metrics.RateLimitSourceIPBlockedCount,
-			metrics.RateLimitSourceIPCachedEntries,
-			metrics.RateLimitSourceIPCacheRequests,
+			lru.New("source_ip",
+				lru.DefaultSourceIPItems,
+				lru.DefaultSourceIPExpirationInterval,
+				lru.WithCachedEntriesMetric(metrics.RateLimitSourceIPCachedEntries),
+				lru.WithCachedRequestsMetric(metrics.RateLimitSourceIPCacheRequests),
+			),
+			ratelimiter.WithBlockedCountMetric(metrics.RateLimitSourceIPBlockedCount),
 			ratelimiter.WithSourceIPLimitPerSecond(a.config.RateLimit.SourceIPLimitPerSecond),
 			ratelimiter.WithSourceIPBurstSize(a.config.RateLimit.SourceIPBurst),
 		)

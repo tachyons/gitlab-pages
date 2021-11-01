@@ -7,6 +7,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/lru"
 )
 
 var (
@@ -48,11 +50,13 @@ var sharedTestCases = map[string]struct {
 func TestSourceIPAllowed(t *testing.T) {
 	t.Parallel()
 
-	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
-
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
-			rl := New(blocked, cachedEntries, cacheReqs,
+			rl := New(
+				lru.New("source_ip",
+					lru.DefaultSourceIPItems,
+					lru.DefaultSourceIPExpirationInterval,
+				),
 				WithNow(mockNow),
 				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
 				WithSourceIPBurstSize(tc.sourceIPBurstSize),
@@ -74,9 +78,12 @@ func TestSourceIPAllowed(t *testing.T) {
 
 func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	rate := 10 * time.Millisecond
-	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
 
-	rl := New(blocked, cachedEntries, cacheReqs,
+	rl := New(
+		lru.New("source_ip",
+			lru.DefaultSourceIPItems,
+			lru.DefaultSourceIPExpirationInterval,
+		),
 		WithSourceIPLimitPerSecond(float64(1/rate)),
 		WithSourceIPBurstSize(1),
 	)

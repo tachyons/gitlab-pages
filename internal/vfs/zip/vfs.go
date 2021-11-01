@@ -88,15 +88,15 @@ func New(cfg *config.ZipServing) vfs.VFS {
 		"data-offset",
 		defaultDataOffsetItems,
 		defaultDataOffsetExpirationInterval,
-		metrics.ZipCachedEntries,
-		metrics.ZipCacheRequests,
+		lru.WithCachedEntriesMetric(metrics.ZipCachedEntries),
+		lru.WithCachedRequestsMetric(metrics.ZipCacheRequests),
 	)
 	zipVFS.readlinkCache = lru.New(
 		"readlink",
 		defaultReadlinkItems,
 		defaultReadlinkExpirationInterval,
-		metrics.ZipCachedEntries,
-		metrics.ZipCacheRequests,
+		lru.WithCachedEntriesMetric(metrics.ZipCachedEntries),
+		lru.WithCachedRequestsMetric(metrics.ZipCacheRequests),
 	)
 
 	return zipVFS
