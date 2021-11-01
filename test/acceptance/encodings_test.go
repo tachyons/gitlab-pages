@@ -64,7 +64,10 @@ func TestCompressedEncoding(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rsp, err := GetCompressedPageFromListener(t, httpListener, "group.gitlab-example.com", "index.html", tt.encoding)
+			header := http.Header{
+				"Accept-Encoding": []string{tt.encoding},
+			}
+			rsp, err := GetPageFromListenerWithHeaders(t, httpListener, "group.gitlab-example.com", "index.html", header)
 			require.NoError(t, err)
 			defer rsp.Body.Close()
 
