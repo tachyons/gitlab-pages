@@ -32,6 +32,7 @@ default:
 download deps:
   extends: .common
   before_script:
+    # overwrites the before_script in .common since we don't need to run make cisetup for this job
     - echo skipping
   script:
     - make deps-download

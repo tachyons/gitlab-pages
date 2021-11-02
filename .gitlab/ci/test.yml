@@ -59,6 +59,7 @@ code_quality:
 check deps:
   extends: .tests-common
   before_script:
+    # overwrites the before_script in .common since we don't need to run make cisetup for this job
     - echo skipping
   script:
     - make deps-check
