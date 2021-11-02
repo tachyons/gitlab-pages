@@ -203,21 +203,6 @@ func (l ListenSpec) JoinHostPort() string {
 	return net.JoinHostPort(l.Host, l.Port)
 }
 
-// RunPagesProcessWithoutGitLabStub will start a gitlab-pages process with the specified listeners
-// and return a function you can call to shut it down again. Use
-// GetPageFromProcess to do a HTTP GET against a listener.
-//
-// If run as root via sudo, the gitlab-pages process will drop privileges
-func RunPagesProcessWithoutGitLabStub(t *testing.T, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (teardown func()) {
-	_, cleanup := runPagesProcess(t, true, pagesBinary, listeners, promPort, nil, extraArgs...)
-	return cleanup
-}
-
-func RunPagesProcessWithEnvs(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, envs []string, extraArgs ...string) (teardown func()) {
-	_, cleanup := runPagesProcess(t, wait, pagesBinary, listeners, promPort, envs, extraArgs...)
-	return cleanup
-}
-
 func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 	chdir := false
 	chdirCleanup := testhelpers.ChdirInPath(t, "../../shared/pages", &chdir)
@@ -257,7 +242,13 @@ func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 }
 
 func RunPagesProcessWithSSLCertFile(t *testing.T, listeners []ListenSpec, sslCertFile string) {
-	runPagesWithAuthAndEnv(t, listeners, []string{"SSL_CERT_FILE=" + sslCertFile})
+	RunPagesProcess(t,
+		withListeners(listeners),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+		withEnv([]string{"SSL_CERT_FILE=" + sslCertFile}),
+	)
 }
 
 func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCertFile string) {
@@ -269,7 +260,13 @@ func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCert
 	err = copyFile(sslCertDir+"/"+path.Base(sslCertFile), sslCertFile)
 	require.NoError(t, err)
 
-	runPagesWithAuthAndEnv(t, listeners, []string{"SSL_CERT_DIR=" + sslCertDir})
+	RunPagesProcess(t,
+		withListeners(listeners),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+		withEnv([]string{"SSL_CERT_DIR=" + sslCertDir}),
+	)
 
 	t.Cleanup(func() {
 		os.RemoveAll(sslCertDir)

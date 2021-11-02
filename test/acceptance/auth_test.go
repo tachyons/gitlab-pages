@@ -24,7 +24,12 @@ func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
 }
 
 func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{httpsListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpsListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -55,7 +60,12 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 }
 
 func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{httpsListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpsListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	rsp, err := GetPageFromListener(t, httpsListener, "projects.gitlab-example.com", "/auth?error=access_denied")
 
@@ -65,7 +75,12 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
 }
 func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{httpsListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpsListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -82,7 +97,12 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 }
 
 func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{httpsListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpsListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
@@ -110,7 +130,12 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 }
 
 func TestAccessControlUnderCustomDomain(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{httpListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	tests := map[string]struct {
 		domain string
@@ -186,7 +211,12 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 }
 
 func TestCustomErrorPageWithAuth(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{httpListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	tests := []struct {
 		name              string
@@ -290,7 +320,12 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 }
 
 func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{proxyListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{proxyListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	rsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/", "", true)
 	require.NoError(t, err)
@@ -352,7 +387,12 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 }
 
 func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{httpListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
 	require.NoError(t, err)
@@ -366,7 +406,12 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 }
 
 func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{httpListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/project/nonexistent/")
 	require.NoError(t, err)
@@ -520,7 +565,12 @@ func TestAccessControlWithSSLCertDir(t *testing.T) {
 // Read the issue description if any changes to internal/auth/ break this test.
 // Related to https://tools.ietf.org/html/rfc6749#section-10.6.
 func TestHijackedCode(t *testing.T) {
-	runPagesWithAuth(t, []ListenSpec{proxyListener})
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{proxyListener}),
+		withArguments([]string{
+			"-config=" + defaultAuthConfigWith(t),
+		}),
+	)
 
 	/****ATTACKER******/
 	// get valid cookie for a different private project
@@ -593,25 +643,15 @@ func getValidCookieAndState(t *testing.T, domain string) (string, string) {
 	return cookie, state
 }
 
-func runPagesWithAuth(t *testing.T, listeners []ListenSpec) {
+func defaultAuthConfigWith(t *testing.T, configs ...string) string {
 	t.Helper()
 
-	runPagesWithAuthAndEnv(t, listeners, nil)
-}
-
-func runPagesWithAuthAndEnv(t *testing.T, listeners []ListenSpec, env []string) {
-	t.Helper()
-
-	configFile := defaultConfigFileWith(t,
+	configs = append(configs,
 		"gitlab-server=https://public-gitlab-auth.com",
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth",
 	)
 
-	RunPagesProcess(t,
-		withListeners(listeners),
-		withArguments([]string{
-			"-config=" + configFile,
-		}),
-		withEnv(env),
-	)
+	configFile := defaultConfigFileWith(t, configs...)
+
+	return configFile
 }
