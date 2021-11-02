@@ -21,7 +21,7 @@ RUN ldconfig \
 # END python install
 
 ENV SIDEKIQ_CONCURRENCY=25
-ENV SIDEKIQ_TIMEOUT=4
+ENV SIDEKIQ_TIMEOUT=25
 
 # Install runtime deps. openssh-client is required so that SSH client binaries
 # are present for repository mirroring.
