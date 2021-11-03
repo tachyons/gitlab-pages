@@ -1,3 +1,7 @@
+stages:
+  - prepare
+  - test
+
 workflow:
   rules:
     # For merge requests, create a pipeline.

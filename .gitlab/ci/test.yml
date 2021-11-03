@@ -1,5 +1,6 @@
 .tests-common:
   extends: .common
+  stage: test
   needs: ['download deps']
   artifacts:
     reports:

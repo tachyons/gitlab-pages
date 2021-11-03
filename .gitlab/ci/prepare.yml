@@ -11,6 +11,8 @@ variables:
 # TODO: remove when https://gitlab.com/gitlab-org/gitlab/-/issues/218444 is done
 
 .rules-for-scanners: &rules-for-scanners
+  stage: prepare
+  needs: []
   rules:
     # For merge requests, create a pipeline.
     - if: '$CI_MERGE_REQUEST_IID'
@@ -32,12 +34,14 @@ gosec-sast:
   <<: *rules-for-scanners
 
 gemnasium-tools-dependency_scanning:
+  stage: prepare
   image:
     name: "$SECURE_ANALYZERS_PREFIX/gemnasium:$DS_MAJOR_VERSION"
   script:
     - /analyzer run --target-dir ./tools
 
 gemnasium-tools-license_scanning:
+  stage: prepare
   image:
     name: "$SECURE_ANALYZERS_PREFIX/license-finder:$LICENSE_MANAGEMENT_VERSION"
     entrypoint: [""]
@@ -45,6 +49,7 @@ gemnasium-tools-license_scanning:
     - CI_PROJECT_DIR=$(pwd)/tools /run.sh analyze .
 
 secret_detection:
+  stage: prepare
   rules:
     # For merge requests, create a pipeline.
     - if: '$CI_MERGE_REQUEST_IID'
