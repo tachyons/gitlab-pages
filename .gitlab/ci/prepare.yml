@@ -1,15 +1,18 @@
-# TODO: use versioned templates https://gitlab.com/gitlab-org/gitlab-pages/-/issues/456
 include:
   - template: Security/License-Scanning.gitlab-ci.yml
   - template: Security/SAST.gitlab-ci.yml
   - template: Security/Dependency-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
 
+variables:
+  SAST_EXCLUDED_ANALYZERS: "eslint"
+
 # workflow rules are not extended by scanner jobs, need to override them manually
 # TODO: remove when https://gitlab.com/gitlab-org/gitlab/-/issues/218444 is done
 
 .rules-for-scanners: &rules-for-scanners
   stage: prepare
+  needs: []
   rules:
     # For merge requests, create a pipeline.
     - if: '$CI_MERGE_REQUEST_IID'
@@ -25,6 +28,9 @@ license_scanning:
   <<: *rules-for-scanners
 
 gemnasium-dependency_scanning:
+  <<: *rules-for-scanners
+
+gosec-sast:
   <<: *rules-for-scanners
 
 gemnasium-tools-dependency_scanning:
@@ -48,20 +54,3 @@ secret_detection:
     # For merge requests, create a pipeline.
     - if: '$CI_MERGE_REQUEST_IID'
 
-gosec-sast:
-  <<: *rules-for-scanners
-
-# disable eslint-sast since html files are fixtures for testing
-eslint-sast:
-  rules:
-    - when: never
-
-download deps:
-  extends: .go-mod-cache
-  stage: prepare
-  script:
-    - make deps-download
-  artifacts:
-    paths:
-      - go.mod
-      - go.sum

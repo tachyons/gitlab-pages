@@ -23,11 +23,24 @@ default:
   tags:
     - gitlab-org
 
-.go-mod-cache:
+.common:
+  before_script:
+    - make cisetup
   variables:
     GOPATH: $CI_PROJECT_DIR/.GOPATH
-  before_script:
-    - make setup
   cache:
     paths:
       - .GOPATH/pkg/mod/
+    policy: pull
+
+download deps:
+  extends: .common
+  before_script:
+    # overwrites the before_script in .common since we don't need to run make cisetup for this job
+    - echo skipping
+  script:
+    - make deps-download
+  cache:
+    paths:
+      - .GOPATH/pkg/mod/
+    policy: push
