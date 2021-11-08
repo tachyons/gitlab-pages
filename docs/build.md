@@ -160,41 +160,195 @@ script from any location.
 
 We use a layered build process to speed up build time, and reduce the size of our images. This does result in a complicated set of relationships between the images we build during build time.
 
-### Intermediate images
+**Diagram Key**
+
+| Meaning | Markup |
+| :-- | :-- |
+| Base (final `FROM`) | heavy `==>` |
+| Used as `FROM` in mutli-stage | thin `-->` |
+| `COPY`s from | dotted `-.->`
+| External Image | Light Orange (#fca326)
+| Intermediate image | Orange (#fc6d26)
+| Final image | Red (#e24329)
+
+### Final image bases
+
+This diagram shows the images each final image is based upon.
 
 ```mermaid
-graph TD;
-  git-base-->gitlab-go;
-  gitlab-elasticsearch-indexer-->git-base;
-  gitlab-go-->gitlab-ruby;
-  gitlab-python-->debian:buster-slim;
-  gitlab-rails-->gitlab-elasticsearch-indexer;
-  gitlab-rails-->postgresql;
-  gitlab-ruby-->debian:buster-slim;
-  kubectl-->debian:buster-slim;
-  postgresql-->debian:buster-slim;
-  gitlab-rails-->gitlab-ruby;
-  gitlab-rails-->registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee
+graph LR;
+  subgraph Final
+    gitlab-toolbox:::final
+    gitlab-webservice:::final
+    gitlab-workhorse:::final
+    gitlab-sidekiq:::final
+    gitlab-geo-logcursor:::final
+    gitlab-exporter:::final
+    gitlab-mailroom:::final
+    gitlab-shell:::final
+    gitlab-shell-libproxyproto
+    gitlab-pages:::final
+    gitaly:::final
+    kubectl:::final
+    gitlab-container-registry:::final
+    alpine-certificates:::final
+    cfssl-self-sign:::final
+  end
+
+  subgraph Base
+    gitlab-ruby
+    gitlab-rails
+    git-base
+    alpine[alpine:3.10]:::external;
+    debian[debian:buster-slim]:::external;
+  end
+
+  kubectl==>debian;
+  cfssl-self-sign==>alpine;
+  alpine-certificates==>alpine;
+
+  gitlab-toolbox==>gitlab-rails;
+  gitlab-geo-logcursor==>gitlab-rails;
+  gitlab-webservice==>gitlab-rails;
+  gitlab-sidekiq==>gitlab-rails;
+
+  gitlab-exporter==>gitlab-ruby;
+  gitlab-mailroom===>gitlab-ruby;
+  gitlab-pages===>gitlab-ruby
+  gitlab-rails==>gitlab-ruby;
+  gitlab-workhorse===>gitlab-ruby
+
+  gitlab-shell===>git-base;
+
+  gitlab-shell-libproxyproto==>gitlab-shell;
+
+  gitaly===>git-base;
+  gitlab-container-registry==>debian
+
+  classDef default fill:#fc6d26;
+  classDef external fill:#fca326;
+  classDef final fill:#e24329;
 ```
 
-### Final images
+### Complete dependency tree
+
+This diagram represents the entire dependency tree.
 
 ```mermaid
-graph TD;
-  alpine-certificates-->alpine;
-  cfssl-self-sign-->alpine;
-  gitaly-->gitlab-shell;
-  gitlab-container-registry-->debian:buster-slim;
-  gitlab-container-registry-->git-base;
-  gitlab-exporter-->gitlab-ruby;
-  gitlab-mailroom-->gitlab-ruby;
-  gitlab-shell-->git-base;
-  gitlab-sidekiq-->gitlab-python;
-  gitlab-sidekiq-->gitlab-rails;
-  gitlab-toolbox-->gitlab-rails;
-  gitlab-toolbox-->gitlab-python;
-  gitlab-webservice-->gitlab-python;
-  gitlab-webservice-->gitlab-rails;
-  gitlab-workhorse-->gitlab-rails;
-  gitlab-workhorse-->git-base;
+graph LR;
+  subgraph Final
+    gitlab-toolbox:::final
+    gitlab-webservice:::final
+    gitlab-workhorse:::final
+    gitlab-sidekiq:::final
+    gitlab-geo-logcursor:::final
+    gitlab-exporter:::final
+    gitlab-mailroom:::final
+    gitlab-shell:::final
+    gitlab-shell-libproxyproto
+    gitlab-pages:::final
+    gitaly:::final
+    kubectl:::final
+    gitlab-container-registry:::final
+    alpine-certificates:::final
+    cfssl-self-sign:::final
+  end
+
+  subgraph components
+    gitlab-elasticsearch-indexer
+    gitlab-logger
+    gitlab-gomplate
+    gitlab-graphicsmagick
+  end
+
+  subgraph intermediate
+    gitlab-python
+    gitlab-ruby
+    gitlab-rails
+    gitlab-go
+    git-base
+    postgresql
+  end
+
+  subgraph External;
+    gitlab-assets[registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee]:::external;
+    alpine[alpine:3.10]:::external;
+    scratch[scratch]:::external;
+    debian[debian:buster-slim]:::external;
+  end
+
+  gitlab-go==>gitlab-ruby;
+  gitlab-ruby==>debian;
+
+  postgresql==>debian;
+  kubectl==>debian;
+  cfssl-self-sign==>alpine;
+  alpine-certificates==>alpine;
+
+  gitlab-logger-->gitlab-go;
+  gitlab-logger==>scratch;
+
+  gitlab-pages==>gitlab-ruby
+  gitlab-pages-.->gitlab-gomplate
+  gitlab-pages-->gitlab-go
+
+  gitlab-graphicsmagick-->debian
+  gitlab-graphicsmagick==>scratch
+
+  gitlab-gomplate-->gitlab-go
+  gitlab-gomplate==>scratch
+
+  gitlab-python==>debian;
+
+  gitlab-rails==>gitlab-ruby;
+  gitlab-rails-.->git-base;
+  gitlab-rails-.->postgresql;
+  gitlab-rails-.->gitlab-graphicsmagick;
+  gitlab-rails-.->gitlab-elasticsearch-indexer;
+  gitlab-rails-.->gitlab-gomplate;
+  gitlab-rails-.->gitlab-assets;
+
+  gitlab-toolbox==>gitlab-rails;
+  gitlab-toolbox-.->gitlab-python;
+  gitlab-toolbox-.->gitaly;
+
+  gitlab-geo-logcursor==>gitlab-rails;
+
+  gitlab-webservice==>gitlab-rails;
+  gitlab-webservice-.->gitlab-python;
+  gitlab-webservice-.->gitlab-logger;
+
+  gitlab-sidekiq==>gitlab-rails;
+  gitlab-sidekiq-.->gitlab-python;
+  gitlab-sidekiq-.->gitlab-logger;
+
+  gitlab-exporter==>gitlab-ruby;
+
+  gitlab-mailroom==>gitlab-ruby;
+
+  gitlab-shell==>git-base;
+  gitlab-shell-.->gitlab-logger;
+  gitlab-shell-.->gitlab-gomplate;
+
+  gitlab-shell-libproxyproto==>gitlab-shell;
+
+  git-base==>gitlab-go;
+
+  gitlab-elasticsearch-indexer==>git-base;
+
+  gitaly==>git-base;
+  gitaly-.->gitlab-logger;
+
+  gitlab-container-registry==>debian
+  gitlab-container-registry-->git-base
+  gitlab-container-registry-.->gitlab-gomplate
+
+  gitlab-workhorse==>gitlab-ruby
+  gitlab-workhorse-->git-base
+  gitlab-workhorse-.->gitlab-rails
+  gitlab-workhorse-.->gitlab-gomplate
+
+  classDef default fill:#fc6d26;
+  classDef external fill:#fca326;
+  classDef final fill:#e24329;
 ```
