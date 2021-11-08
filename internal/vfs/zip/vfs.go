@@ -257,7 +257,7 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArch
 }
 
 // findOrOpenArchive gets archive from cache and tries to open it
-func (fs *zipVFS) findOrOpenArchive(ctx context.Context, key string, path string) (*zipArchive, error) {
+func (fs *zipVFS) findOrOpenArchive(ctx context.Context, key, path string) (*zipArchive, error) {
 	zipArchive, err := fs.findOrCreateArchive(ctx, key)
 	if err != nil {
 		return nil, err
