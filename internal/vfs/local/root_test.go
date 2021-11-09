@@ -15,7 +15,7 @@ import (
 
 func TestValidatePath(t *testing.T) {
 	ctx := context.Background()
-	rootVFS, err := localVFS.Root(ctx, ".")
+	rootVFS, err := localVFS.Root(ctx, ".", "")
 	require.NoError(t, err)
 
 	root := rootVFS.(*Root)
@@ -64,7 +64,7 @@ func TestValidatePath(t *testing.T) {
 
 func TestReadlink(t *testing.T) {
 	ctx := context.Background()
-	root, err := localVFS.Root(ctx, ".")
+	root, err := localVFS.Root(ctx, ".", "")
 	require.NoError(t, err)
 
 	tests := map[string]struct {
@@ -140,7 +140,7 @@ func TestReadlinkAbsolutePath(t *testing.T) {
 	err = os.Symlink(dirFilePath, symlinkPath)
 	require.NoError(t, err)
 
-	root, err := localVFS.Root(context.Background(), dirPath)
+	root, err := localVFS.Root(context.Background(), dirPath, "")
 	require.NoError(t, err)
 
 	tests := map[string]struct {
@@ -169,7 +169,7 @@ func TestReadlinkAbsolutePath(t *testing.T) {
 
 func TestLstat(t *testing.T) {
 	ctx := context.Background()
-	root, err := localVFS.Root(ctx, ".")
+	root, err := localVFS.Root(ctx, ".", "")
 	require.NoError(t, err)
 
 	tests := map[string]struct {
@@ -233,7 +233,7 @@ func TestLstat(t *testing.T) {
 
 func TestOpen(t *testing.T) {
 	ctx := context.Background()
-	root, err := localVFS.Root(ctx, ".")
+	root, err := localVFS.Root(ctx, ".", "")
 	require.NoError(t, err)
 
 	tests := map[string]struct {

@@ -97,6 +97,7 @@ func TestOpenCached(t *testing.T) {
 	tests := []struct {
 		name                  string
 		vfsPath               string
+		sha256                string
 		filePath              string
 		expectedArchiveStatus archiveStatus
 		expectedOpenErr       error
@@ -106,6 +107,7 @@ func TestOpenCached(t *testing.T) {
 		{
 			name:     "open file first time",
 			vfsPath:  testServerURL + "/public.zip",
+			sha256:   "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			filePath: "index.html",
 			// we expect five requests to:
 			// read resource and zip metadata
@@ -116,6 +118,7 @@ func TestOpenCached(t *testing.T) {
 		{
 			name:     "open file second time",
 			vfsPath:  testServerURL + "/public.zip",
+			sha256:   "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			filePath: "index.html",
 			// we expect one request to read file with cached data offset
 			expectedRequests:      1,
@@ -124,6 +127,7 @@ func TestOpenCached(t *testing.T) {
 		{
 			name:                  "when the URL changes",
 			vfsPath:               testServerURL + "/public.zip?new-secret",
+			sha256:                "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			filePath:              "index.html",
 			expectedRequests:      1,
 			expectedArchiveStatus: archiveOpened,
@@ -131,6 +135,7 @@ func TestOpenCached(t *testing.T) {
 		{
 			name:             "when opening cached file and content changes",
 			vfsPath:          testServerURL + "/public.zip?changed-content=1",
+			sha256:           "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			filePath:         "index.html",
 			expectedRequests: 1,
 			// we receive an error on `read` as `open` offset is already cached
@@ -140,6 +145,7 @@ func TestOpenCached(t *testing.T) {
 		{
 			name:                  "after content change archive is reloaded",
 			vfsPath:               testServerURL + "/public.zip?new-secret",
+			sha256:                "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			filePath:              "index.html",
 			expectedRequests:      5,
 			expectedArchiveStatus: archiveOpened,
@@ -147,6 +153,7 @@ func TestOpenCached(t *testing.T) {
 		{
 			name:             "when opening non-cached file and content changes",
 			vfsPath:          testServerURL + "/public.zip?changed-content=1",
+			sha256:           "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 			filePath:         "subdir/hello.html",
 			expectedRequests: 1,
 			// we receive an error on `read` as `open` offset is already cached
@@ -158,7 +165,7 @@ func TestOpenCached(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			start := atomic.LoadInt64(&requests)
-			zip, err := fs.Root(context.Background(), test.vfsPath)
+			zip, err := fs.Root(context.Background(), test.vfsPath, test.sha256)
 			require.NoError(t, err)
 
 			f, err := zip.Open(context.Background(), test.filePath)

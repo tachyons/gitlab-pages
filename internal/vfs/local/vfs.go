@@ -15,7 +15,7 @@ var errNotDirectory = errors.New("path needs to be a directory")
 
 type VFS struct{}
 
-func (localFs VFS) Root(ctx context.Context, path string) (vfs.Root, error) {
+func (localFs VFS) Root(ctx context.Context, path string, cacheKey string) (vfs.Root, error) {
 	rootPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err

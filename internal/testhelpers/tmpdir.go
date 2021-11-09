@@ -24,7 +24,7 @@ func TmpDir(tb testing.TB, pattern string) (vfs.Root, string) {
 	tmpDir, err = filepath.EvalSymlinks(tmpDir)
 	require.NoError(tb, err)
 
-	root, err := fs.Root(context.Background(), tmpDir)
+	root, err := fs.Root(context.Background(), tmpDir, "")
 	require.NoError(tb, err)
 
 	tb.Cleanup(func() {

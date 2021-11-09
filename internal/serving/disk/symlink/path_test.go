@@ -72,7 +72,7 @@ func simpleJoin(path ...string) string {
 }
 
 func testEvalSymlinks(t *testing.T, wd, path, want string) {
-	root, err := localFs.Root(context.Background(), wd)
+	root, err := localFs.Root(context.Background(), wd, "")
 	require.NoError(t, err)
 
 	have, err := symlink.EvalSymlinks(context.Background(), root, path)
