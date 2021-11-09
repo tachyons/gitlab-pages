@@ -121,6 +121,16 @@ var (
 		[]string{"state"},
 	)
 
+	// ZipReadArchiveHeaderDuration is the time it takes to read an archive's header information into memory
+	ZipReadArchiveHeaderDuration = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name: "gitlab_pages_zip_read_archive_header_duration",
+			Help: "The time it takes to read an archive's header information into memory",
+			Buckets: []float64{0.001, 0.005, 0.01, 0.02, 0.05, 0.100, 0.250,
+				0.500, 1, 2, 5, 10, 20, 50},
+		},
+	)
+
 	// ZipCacheRequests is the number of cache hits/misses
 	ZipCacheRequests = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -155,6 +165,18 @@ var (
 			Name: "gitlab_pages_zip_opened_entries_count",
 			Help: "The number of files per zip archive total count over time",
 		},
+	)
+
+	// ZipOpenFileDuration is the time it takes to get a file from Object Storage by
+	// operation Open, Lstat or Readlink
+	ZipOpenFileDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "gitlab_pages_zip_open_file_duration",
+			Help: "The time it takes to open a file from Object Storage before is served",
+			Buckets: []float64{0.001, 0.005, 0.01, 0.02, 0.05, 0.100, 0.250,
+				0.500, 1, 2, 5, 10, 20, 50},
+		},
+		[]string{"status", "op"},
 	)
 
 	RejectedRequestsCount = prometheus.NewCounter(
@@ -239,10 +261,12 @@ func MustRegister() {
 		HTTPRangeTraceDuration,
 		HTTPRangeOpenRequests,
 		ZipOpened,
+		ZipReadArchiveHeaderDuration,
 		ZipOpenedEntriesCount,
 		ZipCacheRequests,
 		ZipArchiveEntriesCached,
 		ZipCachedEntries,
+		ZipOpenFileDuration,
 		RejectedRequestsCount,
 		LimitListenerMaxConns,
 		LimitListenerConcurrentConns,

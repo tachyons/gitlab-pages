@@ -48,10 +48,12 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.Contains(t, string(body), "gitlab_pages_httprange_open_requests")
 	// zip archives
 	require.Contains(t, string(body), "gitlab_pages_zip_opened")
+	require.Contains(t, string(body), "gitlab_pages_zip_read_archive_header_duration")
 	require.Contains(t, string(body), "gitlab_pages_zip_cache_requests")
 	require.Contains(t, string(body), "gitlab_pages_zip_cached_entries")
 	require.Contains(t, string(body), "gitlab_pages_zip_archive_entries_cached")
 	require.Contains(t, string(body), "gitlab_pages_zip_opened_entries_count")
+	require.Contains(t, string(body), "gitlab_pages_zip_open_file_duration")
 	// limit_listener
 	require.Contains(t, string(body), "gitlab_pages_limit_listener_max_conns")
 	require.Contains(t, string(body), "gitlab_pages_limit_listener_concurrent_conns")

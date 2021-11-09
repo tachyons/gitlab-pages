@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
@@ -90,7 +91,7 @@ func (a *zipArchive) openArchive(parentCtx context.Context, url string) (err err
 	a.once.Do(func() {
 		// read archive once in its own routine with its own timeout
 		// if parentCtx is canceled, readArchive will continue regardless and will be cached in memory
-		go a.readArchive(url)
+		go a.readArchive(parentCtx, url)
 	})
 
 	// wait for readArchive to be done or return if the parent context is canceled
@@ -112,8 +113,20 @@ func (a *zipArchive) openArchive(parentCtx context.Context, url string) (err err
 
 // readArchive creates an httprange.Resource that can read the archive's contents and stores a slice of *zip.Files
 // that can be accessed later when calling any of th vfs.VFS operations
-func (a *zipArchive) readArchive(url string) {
-	defer close(a.done)
+func (a *zipArchive) readArchive(parentCtx context.Context, url string) {
+	start := time.Now()
+	defer func(start time.Time) {
+		close(a.done)
+
+		if time.Since(start) > time.Second {
+			log.ContextLogger(parentCtx).
+				WithFields(logrus.Fields{
+					"read_archive_duration": time.Since(start),
+					"url":                   url,
+					// TODO: adding more fields field would require some extra refactoring
+				}).Warn("reading archive took longer than 1s")
+		}
+	}(start)
 
 	// readArchive with a timeout separate from openArchive's
 	ctx, cancel := context.WithTimeout(context.Background(), a.openTimeout)
@@ -158,6 +171,7 @@ func (a *zipArchive) readArchive(url string) {
 	metrics.ZipOpened.WithLabelValues("ok").Inc()
 	metrics.ZipOpenedEntriesCount.Add(fileCount)
 	metrics.ZipArchiveEntriesCached.Add(fileCount)
+	metrics.ZipReadArchiveHeaderDuration.Observe(time.Since(start).Seconds())
 }
 
 // addPathDirectory adds a directory for a given path
@@ -190,7 +204,12 @@ func (a *zipArchive) findDirectory(name string) *zip.FileHeader {
 }
 
 // Open finds the file by name inside the zipArchive and returns a reader that can be served by the VFS
-func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
+func (a *zipArchive) Open(ctx context.Context, name string) (f vfs.File, err error) {
+	start := time.Now()
+	defer func(start time.Time, err error) {
+		reportOpenFileDuration(start, "Open", err)
+	}(start, err)
+
 	file := a.findFile(name)
 	if file == nil {
 		if a.findDirectory(name) != nil {
@@ -224,7 +243,12 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 }
 
 // Lstat finds the file by name inside the zipArchive and returns its FileInfo
-func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error) {
+func (a *zipArchive) Lstat(ctx context.Context, name string) (fi os.FileInfo, err error) {
+	start := time.Now()
+	defer func(start time.Time, err error) {
+		reportOpenFileDuration(start, "Lstat", err)
+	}(start, err)
+
 	file := a.findFile(name)
 	if file != nil {
 		return file.FileInfo(), nil
@@ -238,8 +262,13 @@ func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error
 	return nil, os.ErrNotExist
 }
 
-// ReadLink finds the file by name inside the zipArchive and returns the contents of the symlink
-func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) {
+// Readlink finds the file by name inside the zipArchive and returns the contents of the symlink
+func (a *zipArchive) Readlink(ctx context.Context, name string) (f string, err error) {
+	start := time.Now()
+	defer func(start time.Time, err error) {
+		reportOpenFileDuration(start, "Readlink", err)
+	}(start, err)
+
 	file := a.findFile(name)
 	if file == nil {
 		if a.findDirectory(name) != nil {
@@ -305,4 +334,13 @@ func (a *zipArchive) openStatus() (archiveStatus, error) {
 	default:
 		return archiveOpening, nil
 	}
+}
+
+func reportOpenFileDuration(start time.Time, op string, err error) {
+	status := "ok"
+	if err != nil {
+		status = "error"
+	}
+
+	metrics.ZipOpenFileDuration.WithLabelValues(status, op).Observe(time.Since(start).Seconds())
 }
