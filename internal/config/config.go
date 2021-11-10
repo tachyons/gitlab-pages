@@ -47,6 +47,7 @@ type Config struct {
 type General struct {
 	Domain          string
 	MaxConns        int
+	MaxURILength    int
 	MetricsAddress  string
 	RedirectHTTP    bool
 	RootCertificate []byte
@@ -181,6 +182,7 @@ func loadConfig() (*Config, error) {
 		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
 			MaxConns:                   *maxConns,
+			MaxURILength:               *maxURILength,
 			MetricsAddress:             *metricsAddress,
 			RedirectHTTP:               *redirectHTTP,
 			RootDir:                    *pagesRoot,
@@ -307,6 +309,8 @@ func LogConfig(config *Config) {
 		"enable-disk":                   config.GitLab.EnableDisk,
 		"auth-redirect-uri":             config.Authentication.RedirectURI,
 		"auth-scope":                    config.Authentication.Scope,
+		"max-conns":                     config.General.MaxConns,
+		"max-uri-length":                config.General.MaxURILength,
 		"zip-cache-expiration":          config.Zip.ExpirationInterval,
 		"zip-cache-cleanup":             config.Zip.CleanupInterval,
 		"zip-cache-refresh":             config.Zip.RefreshInterval,

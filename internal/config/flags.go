@@ -51,6 +51,7 @@ var (
 	redirectURI        = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
 	authScope          = flag.String("auth-scope", "api", "Scope to be used for authentication (must match GitLab Pages OAuth application settings)")
 	maxConns           = flag.Int("max-conns", 0, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners, 0 for no limit")
+	maxURILength       = flag.Int("max-uri-length", 1024, "Limit the length of URI, 0 for unlimited.")
 	insecureCiphers    = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
 	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tls.FlagUsage("min"))
 	tlsMaxVersion      = flag.String("tls-max-version", "", tls.FlagUsage("max"))

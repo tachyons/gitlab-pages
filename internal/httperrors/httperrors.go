@@ -34,6 +34,14 @@ var (
      <p>Make sure the address is correct and that the page hasn't moved.</p>
      <p>Please contact your GitLab administrator if you think this is a mistake.</p>`,
 	}
+	content414 = content{
+		status:       http.StatusRequestURITooLong,
+		title:        "Request URI Too Long (414)",
+		statusString: "414",
+		header:       "Request URI Too Long.",
+		subHeader: `<p>The URI provided was too long for the server to process.</p>
+			<p>Try to make the request URI shorter.</p>`,
+	}
 
 	content429 = content{
 		http.StatusTooManyRequests,
@@ -182,6 +190,11 @@ func Serve401(w http.ResponseWriter) {
 // Serve404 returns a 404 error response / HTML page to the http.ResponseWriter
 func Serve404(w http.ResponseWriter) {
 	serveErrorPage(w, content404)
+}
+
+// Serve414 returns a 414 error response / HTML page to the http.ResponseWriter
+func Serve414(w http.ResponseWriter) {
+	serveErrorPage(w, content414)
 }
 
 // Serve429 returns a 429 error response / HTML page to the http.ResponseWriter
