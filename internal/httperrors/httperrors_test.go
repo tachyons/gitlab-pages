@@ -92,6 +92,18 @@ func TestServe404(t *testing.T) {
 	require.Contains(t, w.Content(), content404.subHeader)
 }
 
+func TestServe414(t *testing.T) {
+	w := newTestResponseWriter(httptest.NewRecorder())
+	Serve414(w)
+	require.Equal(t, w.Header().Get("Content-Type"), "text/html; charset=utf-8")
+	require.Equal(t, w.Header().Get("X-Content-Type-Options"), "nosniff")
+	require.Equal(t, w.Status(), content414.status)
+	require.Contains(t, w.Content(), content414.title)
+	require.Contains(t, w.Content(), content414.statusString)
+	require.Contains(t, w.Content(), content414.header)
+	require.Contains(t, w.Content(), content414.subHeader)
+}
+
 func TestServe500(t *testing.T) {
 	w := newTestResponseWriter(httptest.NewRecorder())
 	Serve500(w)

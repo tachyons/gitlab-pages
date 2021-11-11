@@ -39,6 +39,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/urilimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -292,10 +293,10 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = handlePanicMiddleware(handler)
 	handler = correlation.InjectCorrelationID(handler, correlationOpts...)
 
-	// This MUST be the last handler!
-	// This handler blocks unknown HTTP methods,
-	// being the last means it will be evaluated first
+	// These middlewares MUST be added in the end.
+	// Being last means they will be evaluated first
 	// preventing any operation on bogus requests.
+	handler = urilimiter.NewMiddleware(handler, a.config.General.MaxURILength)
 	handler = rejectmethods.NewMiddleware(handler)
 
 	return handler, nil
