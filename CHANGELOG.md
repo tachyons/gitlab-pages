@@ -1,3 +1,13 @@
+## 1.47.0 (2021-11-11)
+
+### Fixed (1 change)
+
+- [fix: reject requests with very long URIs](gitlab-org/gitlab-pages@bf9c79a5477b61f375be659e2e16f377067d9c00) ([merge request](gitlab-org/gitlab-pages!612))
+
+### change (1 change)
+
+- [refactor: read and use file_sha256 as cache key for zip VFS](gitlab-org/gitlab-pages@77a733b8af393f81c1143ca27324384b1801a090) by @feistel ([merge request](gitlab-org/gitlab-pages!527))
+
 ## 1.46.0 (2021-10-14)
 
 ### Added (2 changes)
