@@ -5,9 +5,8 @@ ARG GITLAB_LOGGER_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-logger"
 ARG GITLAB_LOGGER_TAG="${GITLAB_LOGGER_TAG}"
 
 FROM ${GITLAB_LOGGER_IMAGE}:${GITLAB_LOGGER_TAG} as logger
-FROM ${FROM_IMAGE}:${TAG}
+FROM ${FROM_IMAGE}:${TAG} as builder
 
-ARG GITLAB_USER=git
 ARG GITALY_SERVER_VERSION=v1.83.0
 ARG BUILD_DIR=/tmp/build
 ARG GITLAB_NAMESPACE="gitlab-org"
@@ -19,14 +18,6 @@ ARG BUNDLE_OPTIONS="--jobs 4 --without development test"
 # are present for repository mirroring.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libicu63 net-tools openssh-client xtail
-
-# create gitlab user
-# openssh daemon does not allow locked user to login, change ! to *
-RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
-      sed -i "s/${GITLAB_USER}:!/${GITLAB_USER}:*/" /etc/shadow
-
-# create default repository directory
-RUN sudo -u ${GITLAB_USER} -H mkdir -p /home/${GITLAB_USER}/repositories
 
 COPY shared/build-scripts/ /build-scripts
 
@@ -42,26 +33,60 @@ RUN cd ${BUILD_DIR} && \
     bundle exec gem uninstall --force google-protobuf grpc && \
     BUNDLE_FORCE_RUBY_PLATFORM=true bundle install ${BUNDLE_OPTIONS} && \
     cd .. && \
-    cp -r ${BUILD_DIR}/ruby /srv/gitaly-ruby && \
-    chown ${GITLAB_USER}:${GITLAB_USER} /srv/gitaly-ruby && \
     touch .ruby-bundle && \
     make install && \
-    mkdir -p /etc/gitaly && \
-    rm -rf ${BUILD_DIR} /srv/gitaly-ruby/spec  /srv/gitaly-ruby/features && \
-    /build-scripts/cleanup-gems /usr/lib/ruby/gems
+    rm -rf ${BUILD_DIR}/ruby/spec ${BUILD_DIR}/ruby/features && \
+    mv ${BUILD_DIR}/ruby /srv/gitaly-ruby && \
+    /build-scripts/cleanup-gems /usr/lib/ruby/gems && \
+    mkdir /target && \
+    cp -R --parents \
+      /usr/local/bin/gitaly* \
+      /usr/local/bin/praefect \
+      /usr/lib/ruby/gems/ \
+      /srv/gitaly-ruby \
+      /target
 
-RUN mkdir -p /srv/gitlab-shell /var/log/gitaly && \
-    touch /var/log/gitaly/gitaly.log && \
-    touch /var/log/gitaly/gitlab-shell.log && chown -R ${GITLAB_USER} /var/log/gitaly
+# Final image
+FROM ${FROM_IMAGE}:${TAG}
+
+ARG GITLAB_USER=git
+
+# install runtime deps. openssh-client is required so that SSH client binaries
+# are present for repository mirroring.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libicu63 net-tools openssh-client xtail \
+    && rm -rf /var/lib/apt/lists/*
+
+# create gitlab user
+# openssh daemon does not allow locked user to login, change ! to *
+RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
+      sed -i "s/${GITLAB_USER}:!/${GITLAB_USER}:*/" /etc/shadow
+
+# configure runtime environment, with permissions
+RUN install -d -o ${GITLAB_USER} -g ${GITLAB_USER} -m 755 /home/${GITLAB_USER}/repositories && \
+    install -d -o ${GITLAB_USER} -m 755 /etc/gitaly && \
+    install -o ${GITLAB_USER} -g ${GITLAB_USER} -m 0640 /dev/null /etc/gitaly/config.toml && \
+    install -d -o ${GITLAB_USER} -m 755 /srv/gitlab-shell && \
+    install -d -o ${GITLAB_USER} -m 755 /var/log/gitaly && \
+    install -o ${GITLAB_USER} -g ${GITLAB_USER} -m 0644 /dev/null /var/log/gitaly/gitaly.log && \
+    install -o ${GITLAB_USER} -g ${GITLAB_USER} -m 0644 /dev/null /var/log/gitaly/gitlab-shell.log
+
+# add gitlab-logger
+COPY --from=logger /gitlab-logger /usr/local/bin
+
+# pull contents from builder
+COPY --from=builder /target/ /
+RUN cd /srv/gitaly-ruby && bundle binstubs --all
 
 # Add scripts
 COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
 COPY gitconfig /usr/local/etc/gitconfig
 
-COPY --from=logger /gitlab-logger /usr/local/bin
+# ensure explicit permissions on scripts
+RUN chmod -R =rx /scripts/
 
-RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /etc/gitaly /scripts
+# set runtime user
 USER ${GITLAB_USER}:${GITLAB_USER}
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitaly
