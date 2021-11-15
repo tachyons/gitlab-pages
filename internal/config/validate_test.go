@@ -7,102 +7,117 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidConfig(t *testing.T) {
-	cfg := validConfig()
-	err := Validate(&cfg)
+func TestConfigValidate(t *testing.T) {
+	tests := []struct {
+		name        string
+		cfg         func(*Config)
+		expectedErr error
+	}{
+		{
+			name:        "no_listeners",
+			cfg:         NoListeners,
+			expectedErr: ErrNoListener,
+		},
+		{
+			name: "no_auth",
+			cfg:  NoAuth,
+		},
+		{
+			name:        "auth_no_secret",
+			cfg:         AuthNoSecret,
+			expectedErr: ErrAuthNoSecret,
+		},
+		{
+			name:        "auth_no_client_id",
+			cfg:         AuthNoClientID,
+			expectedErr: ErrAuthNoClientID,
+		},
+		{
+			name:        "auth_no_client_secret",
+			cfg:         AuthNoClientSecret,
+			expectedErr: ErrAuthNoClientSecret,
+		},
+		{
+			name:        "auth_no_gitlab_Server",
+			cfg:         AuthNoPublicServer,
+			expectedErr: ErrAuthNoGitlabServer,
+		},
+		{
+			name:        "auth_no_redirect",
+			cfg:         AuthNoRedirect,
+			expectedErr: ErrAuthNoRedirect,
+		},
+		{
+			name: "artifact_no_url",
+			cfg:  ArtifactsNoURL,
+		},
+		{
+			name:        "artifact_malformed_scheme",
+			cfg:         ArtifactsMalformedScheme,
+			expectedErr: ErrArtifactsServerUnsupportedScheme,
+		},
+		{
+			name:        "artifact_invalid_timeout",
+			cfg:         ArtifactsInvalidTimeout,
+			expectedErr: ErrArtifactsServerInvalidTimeout,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig()
+			tt.cfg(&cfg)
 
-	require.NoError(t, err)
+			err := Validate(&cfg)
+			if tt.expectedErr != nil {
+				require.True(t, errors.Is(err, tt.expectedErr))
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
-func TestNoListeners(t *testing.T) {
-	cfg := validConfig()
+func NoListeners(cfg *Config) {
 	cfg.ListenHTTPStrings = MultiStringFlag{separator: ","}
 	cfg.ListenHTTPSStrings = MultiStringFlag{separator: ","}
 	cfg.ListenProxyStrings = MultiStringFlag{separator: ","}
 	cfg.ListenHTTPSProxyv2Strings = MultiStringFlag{separator: ","}
-	err := Validate(&cfg)
-
-	require.Equal(t, err, ErrNoListener)
 }
 
-func TestNoAuth(t *testing.T) {
-	cfg := validConfig()
+func NoAuth(cfg *Config) {
 	cfg.Authentication = Auth{}
-	err := Validate(&cfg)
-
-	require.NoError(t, err)
 }
 
-func TestAuthNoSecret(t *testing.T) {
-	cfg := validConfig()
+func AuthNoSecret(cfg *Config) {
 	cfg.Authentication.Secret = ""
-	err := Validate(&cfg)
-
-	require.True(t, errors.Is(err, ErrAuthNoSecret))
 }
 
-func TestAuthNoClientID(t *testing.T) {
-	cfg := validConfig()
+func AuthNoClientID(cfg *Config) {
 	cfg.Authentication.ClientID = ""
-	err := Validate(&cfg)
-
-	require.True(t, errors.Is(err, ErrAuthNoClientID))
 }
 
-func TestAuthNoClientSecret(t *testing.T) {
-	cfg := validConfig()
+func AuthNoClientSecret(cfg *Config) {
 	cfg.Authentication.ClientSecret = ""
-	err := Validate(&cfg)
-
-	require.True(t, errors.Is(err, ErrAuthNoClientSecret))
 }
 
-func TestAuthNoPublicServer(t *testing.T) {
-	cfg := validConfig()
+func AuthNoPublicServer(cfg *Config) {
 	cfg.GitLab.PublicServer = ""
-	err := Validate(&cfg)
-
-	require.True(t, errors.Is(err, ErrAuthNoGitlabServer))
 }
 
-func TestAuthNoRedirect(t *testing.T) {
-	cfg := validConfig()
+func AuthNoRedirect(cfg *Config) {
 	cfg.Authentication.RedirectURI = ""
-	err := Validate(&cfg)
-
-	require.True(t, errors.Is(err, ErrAuthNoRedirect))
 }
 
-func TestArtifactsNoURL(t *testing.T) {
-	cfg := validConfig()
+func ArtifactsNoURL(cfg *Config) {
 	cfg.ArtifactsServer.URL = ""
-	err := Validate(&cfg)
-
-	require.NoError(t, err)
 }
 
-func TestArtifactsMalformedURL(t *testing.T) {
-	cfg := validConfig()
-	cfg.ArtifactsServer.URL = ":foo"
-	err := Validate(&cfg)
-
-	require.Error(t, err)
-}
-
-func TestArtifactsMalformedScheme(t *testing.T) {
-	cfg := validConfig()
+func ArtifactsMalformedScheme(cfg *Config) {
 	cfg.ArtifactsServer.URL = "foo://example.com"
-	err := Validate(&cfg)
-
-	require.Equal(t, err, ErrArtifactsServerUnsupportedScheme)
 }
 
-func TestArtifactsInvalidTimeout(t *testing.T) {
-	cfg := validConfig()
+func ArtifactsInvalidTimeout(cfg *Config) {
 	cfg.ArtifactsServer.TimeoutSeconds = -1
-	err := Validate(&cfg)
-
-	require.Equal(t, err, ErrArtifactsServerInvalidTimeout)
 }
 
 func validConfig() Config {
