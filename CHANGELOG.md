@@ -1,3 +1,7 @@
+## 1.48.0 (2021-11-15)
+
+- [chore: Update golang to 1.16.10](gitlab-org/gitlab-pages@d016cf6a8ac3c1569ee4e41317dbd76a2ef5a1ef) ([merge request](gitlab-org/gitlab-pages!615))
+
 ## 1.47.0 (2021-11-11)
 
 ### Fixed (1 change)
