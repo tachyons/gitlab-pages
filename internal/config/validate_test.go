@@ -15,50 +15,50 @@ func TestConfigValidate(t *testing.T) {
 	}{
 		{
 			name:        "no_listeners",
-			cfg:         NoListeners,
+			cfg:         noListeners,
 			expectedErr: ErrNoListener,
 		},
 		{
 			name: "no_auth",
-			cfg:  NoAuth,
+			cfg:  noAuth,
 		},
 		{
 			name:        "auth_no_secret",
-			cfg:         AuthNoSecret,
+			cfg:         authNoSecret,
 			expectedErr: ErrAuthNoSecret,
 		},
 		{
 			name:        "auth_no_client_id",
-			cfg:         AuthNoClientID,
+			cfg:         authNoClientID,
 			expectedErr: ErrAuthNoClientID,
 		},
 		{
 			name:        "auth_no_client_secret",
-			cfg:         AuthNoClientSecret,
+			cfg:         authNoClientSecret,
 			expectedErr: ErrAuthNoClientSecret,
 		},
 		{
 			name:        "auth_no_gitlab_Server",
-			cfg:         AuthNoPublicServer,
+			cfg:         authNoPublicServer,
 			expectedErr: ErrAuthNoGitlabServer,
 		},
 		{
 			name:        "auth_no_redirect",
-			cfg:         AuthNoRedirect,
+			cfg:         authNoRedirect,
 			expectedErr: ErrAuthNoRedirect,
 		},
 		{
 			name: "artifact_no_url",
-			cfg:  ArtifactsNoURL,
+			cfg:  artifactsNoURL,
 		},
 		{
 			name:        "artifact_malformed_scheme",
-			cfg:         ArtifactsMalformedScheme,
+			cfg:         artifactsMalformedScheme,
 			expectedErr: ErrArtifactsServerUnsupportedScheme,
 		},
 		{
 			name:        "artifact_invalid_timeout",
-			cfg:         ArtifactsInvalidTimeout,
+			cfg:         artifactsInvalidTimeout,
 			expectedErr: ErrArtifactsServerInvalidTimeout,
 		},
 	}
@@ -77,46 +77,46 @@ func TestConfigValidate(t *testing.T) {
 	}
 }
 
-func NoListeners(cfg *Config) {
+func noListeners(cfg *Config) {
 	cfg.ListenHTTPStrings = MultiStringFlag{separator: ","}
 	cfg.ListenHTTPSStrings = MultiStringFlag{separator: ","}
 	cfg.ListenProxyStrings = MultiStringFlag{separator: ","}
 	cfg.ListenHTTPSProxyv2Strings = MultiStringFlag{separator: ","}
 }
 
-func NoAuth(cfg *Config) {
+func noAuth(cfg *Config) {
 	cfg.Authentication = Auth{}
 }
 
-func AuthNoSecret(cfg *Config) {
+func authNoSecret(cfg *Config) {
 	cfg.Authentication.Secret = ""
 }
 
-func AuthNoClientID(cfg *Config) {
+func authNoClientID(cfg *Config) {
 	cfg.Authentication.ClientID = ""
 }
 
-func AuthNoClientSecret(cfg *Config) {
+func authNoClientSecret(cfg *Config) {
 	cfg.Authentication.ClientSecret = ""
 }
 
-func AuthNoPublicServer(cfg *Config) {
+func authNoPublicServer(cfg *Config) {
 	cfg.GitLab.PublicServer = ""
 }
 
-func AuthNoRedirect(cfg *Config) {
+func authNoRedirect(cfg *Config) {
 	cfg.Authentication.RedirectURI = ""
 }
 
-func ArtifactsNoURL(cfg *Config) {
+func artifactsNoURL(cfg *Config) {
 	cfg.ArtifactsServer.URL = ""
 }
 
-func ArtifactsMalformedScheme(cfg *Config) {
+func artifactsMalformedScheme(cfg *Config) {
 	cfg.ArtifactsServer.URL = "foo://example.com"
 }
 
-func ArtifactsInvalidTimeout(cfg *Config) {
+func artifactsInvalidTimeout(cfg *Config) {
 	cfg.ArtifactsServer.TimeoutSeconds = -1
 }
 
