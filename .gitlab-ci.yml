@@ -34,6 +34,7 @@ default:
     policy: pull
 
 download deps:
+  needs: []
   extends: .common
   before_script:
     # overwrites the before_script in .common since we don't need to run make cisetup for this job
