@@ -3,7 +3,7 @@ package local
 import (
 	"context"
 	"errors"
-	"io/fs"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -22,16 +22,12 @@ func (localFs VFS) Root(ctx context.Context, path string, cacheKey string) (vfs.
 	}
 
 	rootPath, err = filepath.EvalSymlinks(rootPath)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, &vfs.ErrNotExist{Inner: err}
-	} else if err != nil {
-		return nil, err
+	if err != nil {
+		return nil, fmt.Errorf("could not evaluate symlinks: %w", err)
 	}
 
 	fi, err := os.Lstat(rootPath)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, &vfs.ErrNotExist{Inner: err}
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 

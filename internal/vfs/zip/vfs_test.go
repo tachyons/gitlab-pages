@@ -3,6 +3,7 @@ package zip
 import (
 	"context"
 	"io"
+	"io/fs"
 	"testing"
 	"time"
 
@@ -12,8 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -33,7 +32,7 @@ func TestVFSRoot(t *testing.T) {
 		"zip_file_does_not_exist": {
 			path:           "/unknown",
 			sha256:         "filedoesnotexist",
-			expectedErrMsg: vfs.ErrNotExist{Inner: httprange.ErrNotFound}.Error(),
+			expectedErrMsg: fs.ErrNotExist.Error(),
 		},
 		"invalid_url": {
 			path:           "/%",

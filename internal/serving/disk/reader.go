@@ -2,8 +2,10 @@ package disk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"strconv"
@@ -39,7 +41,7 @@ func (reader *Reader) serveRedirectsStatus(h serving.Handler, redirects *redirec
 func (reader *Reader) tryRedirects(h serving.Handler) bool {
 	ctx := h.Request.Context()
 	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.SHA256)
-	if vfs.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return false
 	} else if err != nil {
 		httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
@@ -72,7 +74,7 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
 	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.SHA256)
-	if vfs.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return false
 	} else if err != nil {
 		httperrors.Serve500WithRequest(h.Writer, h.Request,
@@ -135,7 +137,7 @@ func (reader *Reader) tryNotFound(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
 	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.SHA256)
-	if vfs.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return false
 	} else if err != nil {
 		httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)

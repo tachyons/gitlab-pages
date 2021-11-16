@@ -3,6 +3,7 @@ package zip
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"sync"
@@ -104,46 +105,46 @@ func New(cfg *config.ZipServing) vfs.VFS {
 
 // Reconfigure will update the zipVFS configuration values and will reset the
 // cache
-func (fs *zipVFS) Reconfigure(cfg *config.Config) error {
-	fs.cacheLock.Lock()
-	defer fs.cacheLock.Unlock()
+func (zfs *zipVFS) Reconfigure(cfg *config.Config) error {
+	zfs.cacheLock.Lock()
+	defer zfs.cacheLock.Unlock()
 
-	fs.openTimeout = cfg.Zip.OpenTimeout
-	fs.cacheExpirationInterval = cfg.Zip.ExpirationInterval
-	fs.cacheRefreshInterval = cfg.Zip.RefreshInterval
-	fs.cacheCleanupInterval = cfg.Zip.CleanupInterval
+	zfs.openTimeout = cfg.Zip.OpenTimeout
+	zfs.cacheExpirationInterval = cfg.Zip.ExpirationInterval
+	zfs.cacheRefreshInterval = cfg.Zip.RefreshInterval
+	zfs.cacheCleanupInterval = cfg.Zip.CleanupInterval
 
-	if err := fs.reconfigureTransport(cfg); err != nil {
+	if err := zfs.reconfigureTransport(cfg); err != nil {
 		return err
 	}
 
-	fs.resetCache()
+	zfs.resetCache()
 
 	return nil
 }
 
-func (fs *zipVFS) reconfigureTransport(cfg *config.Config) error {
+func (zfs *zipVFS) reconfigureTransport(cfg *config.Config) error {
 	fsTransport, err := httpfs.NewFileSystemPath(cfg.Zip.AllowedPaths)
 	if err != nil {
 		return err
 	}
 
-	fs.httpClient.Transport.(httptransport.Transport).
+	zfs.httpClient.Transport.(httptransport.Transport).
 		RegisterProtocol("file", http.NewFileTransport(fsTransport))
 
 	return nil
 }
 
-func (fs *zipVFS) resetCache() {
-	fs.cache = cache.New(fs.cacheExpirationInterval, fs.cacheCleanupInterval)
-	fs.cache.OnEvicted(func(s string, i interface{}) {
+func (zfs *zipVFS) resetCache() {
+	zfs.cache = cache.New(zfs.cacheExpirationInterval, zfs.cacheCleanupInterval)
+	zfs.cache.OnEvicted(func(s string, i interface{}) {
 		metrics.ZipCachedEntries.WithLabelValues("archive").Dec()
 
 		i.(*zipArchive).onEvicted()
 	})
 }
 
-func (fs *zipVFS) keyFromPath(path string) (string, error) {
+func (zfs *zipVFS) keyFromPath(path string) (string, error) {
 	// We assume that our URL is https://.../artifacts.zip?content-sign=aaa
 	// our caching key is `https://.../artifacts.zip`
 	// TODO: replace caching key with file_sha256
@@ -164,10 +165,10 @@ func (fs *zipVFS) keyFromPath(path string) (string, error) {
 // If findOrOpenArchive returns errAlreadyCached, the for loop will continue
 // to try and find the cached archive or return if there's an error, for example
 // if the context is canceled.
-func (fs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.Root, error) {
+func (zfs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.Root, error) {
 	// TODO: update acceptance tests mocked response to return a cacheKey
 	if cacheKey == "" {
-		k, err := fs.keyFromPath(path)
+		k, err := zfs.keyFromPath(path)
 		if err != nil {
 			return nil, err
 		}
@@ -177,21 +178,21 @@ func (fs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.R
 
 	// we do it in loop to not use any additional locks
 	for {
-		root, err := fs.findOrOpenArchive(ctx, cacheKey, path)
-		if err == errAlreadyCached {
+		root, err := zfs.findOrOpenArchive(ctx, cacheKey, path)
+		if errors.Is(err, errAlreadyCached) {
 			continue
 		}
 
 		// If archive is not found, return a known `vfs` error
-		if err == httprange.ErrNotFound {
-			err = &vfs.ErrNotExist{Inner: err}
+		if errors.Is(err, httprange.ErrNotFound) {
+			return nil, fs.ErrNotExist
 		}
 
 		return root, err
 	}
 }
 
-func (fs *zipVFS) Name() string {
+func (zfs *zipVFS) Name() string {
 	return "zip"
 }
 
@@ -199,14 +200,14 @@ func (fs *zipVFS) Name() string {
 // otherwise creates the archive entry in a cache and try to save it,
 // if saving fails it's because the archive has already been cached
 // (e.g. by another concurrent request)
-func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArchive, error) {
+func (zfs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArchive, error) {
 	// This needs to happen in lock to ensure that
 	// concurrent access will not remove it
 	// it is needed due to the bug https://github.com/patrickmn/go-cache/issues/48
-	fs.cacheLock.Lock()
-	defer fs.cacheLock.Unlock()
+	zfs.cacheLock.Lock()
+	defer zfs.cacheLock.Unlock()
 
-	archive, expiry, found := fs.cache.GetWithExpiration(key)
+	archive, expiry, found := zfs.cache.GetWithExpiration(key)
 	if found {
 		status, _ := archive.(*zipArchive).openStatus()
 		switch status {
@@ -219,8 +220,8 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArch
 			metrics.ZipCacheRequests.WithLabelValues("archive", "hit-open-error").Inc()
 
 		case archiveOpened:
-			if time.Until(expiry) < fs.cacheRefreshInterval {
-				fs.cache.SetDefault(key, archive)
+			if time.Until(expiry) < zfs.cacheRefreshInterval {
+				zfs.cache.SetDefault(key, archive)
 				metrics.ZipCacheRequests.WithLabelValues("archive", "hit-refresh").Inc()
 			} else {
 				metrics.ZipCacheRequests.WithLabelValues("archive", "hit").Inc()
@@ -235,16 +236,16 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArch
 	}
 
 	if archive == nil {
-		archive = newArchive(fs, fs.openTimeout)
+		archive = newArchive(zfs, zfs.openTimeout)
 
 		// We call delete to ensure that expired item
 		// is properly evicted as there's a bug in a cache library:
 		// https://github.com/patrickmn/go-cache/issues/48
-		fs.cache.Delete(key)
+		zfs.cache.Delete(key)
 
 		// if adding the archive to the cache fails it means it's already been added before
 		// this is done to find concurrent additions.
-		if fs.cache.Add(key, archive, fs.cacheExpirationInterval) != nil {
+		if zfs.cache.Add(key, archive, zfs.cacheExpirationInterval) != nil {
 			metrics.ZipCacheRequests.WithLabelValues("archive", "already-cached").Inc()
 			return nil, errAlreadyCached
 		}
@@ -257,8 +258,8 @@ func (fs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArch
 }
 
 // findOrOpenArchive gets archive from cache and tries to open it
-func (fs *zipVFS) findOrOpenArchive(ctx context.Context, key, path string) (*zipArchive, error) {
-	zipArchive, err := fs.findOrCreateArchive(ctx, key)
+func (zfs *zipVFS) findOrOpenArchive(ctx context.Context, key, path string) (*zipArchive, error) {
+	zipArchive, err := zfs.findOrCreateArchive(ctx, key)
 	if err != nil {
 		return nil, err
 	}
