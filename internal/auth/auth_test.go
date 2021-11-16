@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -512,4 +513,53 @@ func TestCheckResponseForInvalidTokenWhenNotInvalidToken(t *testing.T) {
 	resp := &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader([]byte("ok")))}
 
 	require.False(t, auth.CheckResponseForInvalidToken(result, r, resp))
+}
+
+func TestDomainAllowed(t *testing.T) {
+	auth := createTestAuth(t, "", "")
+	mockCtrl := gomock.NewController(t)
+	mockSource := mocks.NewMockSource(mockCtrl)
+
+	testCases := []struct {
+		name     string
+		expected bool
+	}{
+		{
+			name:     "pages.unrelated-site.com",
+			expected: false,
+		},
+		{
+			name:     "prepended-pages.gitlab-example.com",
+			expected: false,
+		},
+		{
+			name:     "pages.gitlab-example.com.unrelated-site.com",
+			expected: false,
+		},
+		{
+			name:     "pages.gitlab-example.com",
+			expected: true,
+		},
+		{
+			name:     "subdomain.pages.gitlab-example.com",
+			expected: true,
+		},
+		{
+			name:     "multi.sub.domain.pages.gitlab-example.com",
+			expected: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+
+			if !tc.expected {
+				mockSource.EXPECT().GetDomain(ctx, tc.name).Return(nil, nil)
+			}
+
+			actual := auth.domainAllowed(ctx, tc.name, mockSource)
+			require.Equal(t, tc.expected, actual)
+		})
+	}
 }
