@@ -1,5 +1,9 @@
 module gitlab.com/gitlab-org/gitlab-pages
 
+// before bumping this:
+// - update the minimum version used in ci
+// - make sure the internal/vfs/serving package is synced
+//   with upstream
 go 1.16
 
 require (

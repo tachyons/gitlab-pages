@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -87,6 +88,59 @@ func TestZipServing(t *testing.T) {
 			defer response.Body.Close()
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
+
+			body, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+
+			require.Contains(t, string(body), tt.expectedContent, "content mismatch")
+		})
+	}
+}
+
+func TestZipServingCache(t *testing.T) {
+	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
+	t.Cleanup(cleanup)
+
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+	)
+
+	tests := map[string]struct {
+		host               string
+		urlSuffix          string
+		expectedStatusCode int
+		expectedContent    string
+		extraHeaders       http.Header
+	}{
+		"base_domain_if_modified": {
+			host:               "zip.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusNotModified,
+			extraHeaders: http.Header{
+				"If-Modified-Since": {time.Now().Format(http.TimeFormat)},
+			},
+		},
+		"base_domain_if_unmodified": {
+			host:               "zip.gitlab.io",
+			urlSuffix:          "/",
+			expectedStatusCode: http.StatusPreconditionFailed,
+			extraHeaders: http.Header{
+				"If-Unmodified-Since": {time.Now().AddDate(-10, 0, 0).Format(http.TimeFormat)},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			response, err := GetPageFromListenerWithHeaders(t, httpListener, tt.host, tt.urlSuffix, tt.extraHeaders)
+			require.NoError(t, err)
+			defer response.Body.Close()
+
+			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
+
+			if tt.expectedStatusCode == http.StatusOK {
+				require.NotEmpty(t, response.Header.Get("Last-Modified"))
+			}
 
 			body, err := io.ReadAll(response.Body)
 			require.NoError(t, err)

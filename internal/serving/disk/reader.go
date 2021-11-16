@@ -18,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
+	vfsServing "gitlab.com/gitlab-org/gitlab-pages/internal/vfs/serving"
 )
 
 // Reader is a disk access driver
@@ -235,10 +236,8 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 	if rs, ok := file.(vfs.SeekableFile); ok {
 		http.ServeContent(w, r, origPath, fi.ModTime(), rs)
 	} else {
-		// compressed files will be served by io.Copy
-		// TODO: Add extra headers https://gitlab.com/gitlab-org/gitlab-pages/-/issues/466
 		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
-		io.Copy(w, file)
+		vfsServing.ServeCompressedFile(w, r, fi.ModTime(), file)
 	}
 
 	return true
