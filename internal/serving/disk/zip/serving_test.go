@@ -31,6 +31,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 		path           string
 		expectedStatus int
 		expectedBody   string
+		extraHeaders   http.Header
 	}{
 		"accessing /index.html": {
 			vfsPath:        httpURL,
@@ -52,6 +53,22 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			path:           "/",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
+		},
+		"accessing / If-Modified-Since": {
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusNotModified,
+			extraHeaders: http.Header{
+				"If-Modified-Since": {time.Now().Format(http.TimeFormat)},
+			},
+		},
+		"accessing / If-Unmodified-Since": {
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusPreconditionFailed,
+			extraHeaders: http.Header{
+				"If-Unmodified-Since": {time.Now().AddDate(-10, 0, 0).Format(http.TimeFormat)},
+			},
 		},
 		"accessing / from disk": {
 			vfsPath:        fileURL,
@@ -114,6 +131,8 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			w.Code = 0 // ensure that code is not set, and it is being set by handler
 			r := httptest.NewRequest("GET", "http://zip.gitlab.io/zip"+test.path, nil)
 
+			r.Header = test.extraHeaders
+
 			handler := serving.Handler{
 				Writer:  w,
 				Request: r,
@@ -139,6 +158,10 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			require.Equal(t, test.expectedStatus, resp.StatusCode)
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
+
+			if test.expectedStatus == http.StatusOK {
+				require.NotEmpty(t, resp.Header.Get("Last-Modified"))
+			}
 
 			require.Contains(t, string(body), test.expectedBody)
 		})
