@@ -13,9 +13,10 @@ require 'uri'
 require 'net/http'
 require 'optparse'
 
-$GITLAB_REGISTRY = ENV['GITLAB_REGISTRY_BASE_URL'] ||
-                   ENV['CI_REGISTRY_IMAGE'] ||
-                   'registry.gitlab.com/gitlab-org/build/cng'
+def gitlab_registry
+  ENV['GITLAB_REGISTRY_BASE_URL'] || ENV['CI_REGISTRY_IMAGE'] ||
+      'registry.gitlab.com/gitlab-org/build/cng'
+end
 
 def is_regular_tag
   (ENV['CI_COMMIT_TAG'] || ENV['GITLAB_TAG']) && \
@@ -140,7 +141,7 @@ project_data.keys.each do |name|
   end
 
   if project_data.has_key? name
-    sha256_tag = image_sha256("#{$GITLAB_REGISTRY}/#{name}:#{version}")
+    sha256_tag = image_sha256("#{gitlab_registry}/#{name}:#{version}")
     case sha256_tag
     when :no_skopeo
       errors << "skopeo command is not installed"
@@ -151,7 +152,7 @@ project_data.keys.each do |name|
     end
 
     endpoint = "https://catalog.redhat.com/api/containers/v1/projects/certification/id/#{project_data[name]['pid']}/requests/scans"
-    payload = { 'pull_spec' => "#{$GITLAB_REGISTRY}/#{name}@#{sha256_tag}",
+    payload = { 'pull_spec' => "#{gitlab_registry}/#{name}@#{sha256_tag}",
                 'tag'       => version }
     resp = redhat_api(:post, endpoint, options[:token], payload)
 
