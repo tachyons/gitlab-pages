@@ -201,9 +201,9 @@ func (gc *Client) request(ctx context.Context, method string, endpoint *url.URL)
 }
 
 func (gc *Client) token() (string, error) {
-	claims := jwt.StandardClaims{
+	claims := jwt.RegisteredClaims{
 		Issuer:    "gitlab-pages",
-		ExpiresAt: time.Now().UTC().Add(gc.jwtTokenExpiry).Unix(),
+		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(gc.jwtTokenExpiry)),
 	}
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(gc.secretKey)

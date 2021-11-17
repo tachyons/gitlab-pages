@@ -7,7 +7,7 @@ module gitlab.com/gitlab-org/gitlab-pages
 go 1.16
 
 require (
-	github.com/golang-jwt/jwt/v4 v4.0.0
+	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/golang/mock v1.3.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.8.0
