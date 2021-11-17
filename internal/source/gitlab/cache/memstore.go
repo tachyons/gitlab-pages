@@ -7,24 +7,19 @@ import (
 	"github.com/patrickmn/go-cache"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
 type memstore struct {
 	store                  *cache.Cache
 	mux                    *sync.RWMutex
-	retriever              *Retriever
 	entryRefreshTimeout    time.Duration
 	entryExpirationTimeout time.Duration
 }
 
-func newMemStore(client api.Client, cc *config.Cache) Store {
-	retriever := NewRetriever(client, cc.RetrievalTimeout, cc.MaxRetrievalInterval, cc.MaxRetrievalRetries)
-
+func newMemStore(cc *config.Cache) Store {
 	return &memstore{
 		store:                  cache.New(cc.CacheExpiry, cc.CacheCleanupInterval),
 		mux:                    &sync.RWMutex{},
-		retriever:              retriever,
 		entryRefreshTimeout:    cc.EntryRefreshTimeout,
 		entryExpirationTimeout: cc.CacheExpiry,
 	}
@@ -48,7 +43,7 @@ func (m *memstore) LoadOrCreate(domain string) *Entry {
 		return entry.(*Entry)
 	}
 
-	newEntry := newCacheEntry(domain, m.entryRefreshTimeout, m.entryExpirationTimeout, m.retriever)
+	newEntry := newCacheEntry(domain, m.entryRefreshTimeout, m.entryExpirationTimeout)
 	m.store.SetDefault(domain, newEntry)
 
 	return newEntry

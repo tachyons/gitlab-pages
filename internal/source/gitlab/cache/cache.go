@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
@@ -10,15 +11,16 @@ import (
 
 // Cache is a short and long caching mechanism for GitLab source
 type Cache struct {
-	client api.Client
-	store  Store
+	store     Store
+	retriever *Retriever
 }
 
 // NewCache creates a new instance of Cache.
 func NewCache(client api.Client, cc *config.Cache) *Cache {
+	r := NewRetriever(client, cc.RetrievalTimeout, cc.MaxRetrievalInterval, cc.MaxRetrievalRetries)
 	return &Cache{
-		client: client,
-		store:  newMemStore(client, cc),
+		store:     newMemStore(cc),
+		retriever: r,
 	}
 }
 
@@ -80,12 +82,54 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 	}
 
 	if entry.NeedsRefresh() {
-		entry.Refresh(c.store)
+		c.Refresh(entry)
 
 		metrics.DomainsSourceCacheHit.Inc()
 		return entry.Lookup()
 	}
 
 	metrics.DomainsSourceCacheMiss.Inc()
-	return entry.Retrieve(ctx)
+	return c.retrieve(ctx, entry)
+}
+
+func (c *Cache) retrieve(ctx context.Context, entry *Entry) *api.Lookup {
+	// We run the code within an additional func() to run both `e.setResponse`
+	// and `c.retriever.Retrieve` asynchronously.
+	entry.retrieve.Do(func() { go func() { entry.setResponse(c.retriever.Retrieve(ctx, entry.domain)) }() })
+
+	var lookup *api.Lookup
+	select {
+	case <-ctx.Done():
+		lookup = &api.Lookup{Name: entry.domain, Error: errors.New("context done")}
+	case <-entry.retrieved:
+		lookup = entry.Lookup()
+	}
+
+	return lookup
+}
+
+// Refresh will update the entry in the store only when it gets resolved successfully.
+// If an existing successful entry exists, it will only be replaced if the new resolved
+// entry is successful too.
+// Errored refreshed Entry responses will not replace the previously successful entry.response
+// for a maximum time of e.expirationTimeout.
+func (c *Cache) Refresh(entry *Entry) {
+	entry.refresh.Do(func() {
+		go c.refreshFunc(entry)
+	})
+}
+
+func (c *Cache) refreshFunc(e *Entry) {
+	entry := newCacheEntry(e.domain, e.refreshTimeout, e.expirationTimeout)
+
+	c.retrieve(context.Background(), entry)
+
+	// do not replace existing Entry `e.response` when `entry.response` has an error
+	// and `e` has not expired. See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/281.
+	if !e.isExpired() && entry.hasTemporaryError() {
+		entry.response = e.response
+		entry.refreshedOriginalTimestamp = e.created
+	}
+
+	c.store.ReplaceOrCreate(e.domain, entry)
 }
