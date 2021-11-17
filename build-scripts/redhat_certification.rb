@@ -19,8 +19,7 @@ def gitlab_registry
 end
 
 def is_regular_tag
-  (ENV['CI_COMMIT_TAG'] || ENV['GITLAB_TAG']) && \
-  !($AUTO_DEPLOY_BRANCH_REGEX.match(ENV['CI_COMMIT_BRANCH']) || $AUTO_DEPLOY_TAG_REGEX.match(ENV['CI_COMMIT_TAG']))
+  (ENV['CI_COMMIT_TAG'] || ENV['GITLAB_TAG'])
 end
 
 def read_project_data
