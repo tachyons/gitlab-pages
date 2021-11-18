@@ -36,7 +36,6 @@ const (
 	apiURLProjectTemplate  = "%s/api/v4/projects/%d/pages_access"
 	authorizeURLTemplate   = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s&scope=%s"
 	tokenURLTemplate       = "%s/oauth/token"
-	tokenContentTemplate   = "client_id=%s&client_secret=%s&code=%s&grant_type=authorization_code&redirect_uri=%s"
 	callbackPath           = "/auth"
 	authorizeProxyTemplate = "%s?domain=%s&state=%s"
 	authSessionMaxAge      = 60 * 10 // 10 minutes
@@ -378,10 +377,19 @@ func (a *Auth) fetchAccessToken(ctx context.Context, code string) (tokenResponse
 	token := tokenResponse{}
 
 	// Prepare request
-	url := fmt.Sprintf(tokenURLTemplate, a.internalGitlabServer)
-	content := fmt.Sprintf(tokenContentTemplate, a.clientID, a.clientSecret, code, a.redirectURI)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(content))
+	fetchURL, err := url.Parse(fmt.Sprintf(tokenURLTemplate, a.internalGitlabServer))
+	if err != nil {
+		return token, err
+	}
 
+	content := url.Values{}
+	content.Set("client_id", a.clientID)
+	content.Set("client_secret", a.clientSecret)
+	content.Set("code", code)
+	content.Set("grant_type", "authorization_code")
+	content.Set("redirect_uri", a.redirectURI)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", fetchURL.String(), strings.NewReader(content.Encode()))
 	if err != nil {
 		return token, err
 	}
