@@ -57,7 +57,7 @@ Pages access control is disabled by default. To enable it:
    `gdk reconfigure` overwrites the value of `access_control` in `config/gitlab.yml`.
 
 1. In your local GitLab instance, navigate to `/admin/applications`.
-1. Create an [OAuth application](https://docs.gitlab.com/ee/integration/oauth_provider.html#add-an-application-through-the-profile).
+1. Create an [Instance-wide OAuth application](https://docs.gitlab.com/ee/integration/oauth_provider.html#instance-wide-applications).
 1. Set the value of your `redirect-uri` to the `pages-domain` authorization endpoint (for example
    `http://192.168.1.135.nip.io:8090/auth`).
 1. Add these lines to your `gitlab-pages.conf` file:
@@ -83,7 +83,7 @@ Pages access control is disabled by default. To enable it:
 
 This is an example of developing GitLab Pages inside the [GitLab Development Kit (GDK)](https://gitlab.com/gitlab-org/gitlab-development-kit):
 
-1. [Prepare your GDK environment](https://gitlab.com/gitlab-org/gitlab-development-kit#how-to-install-gdk).
+1. [Prepare your GDK environment](https://gitlab.com/gitlab-org/gitlab-development-kit#installation).
    In the steps that follow, `$GDK_ROOT` is the directory where you cloned the GDK.
 1. Add the following lines to your `gdk.yml` file:
 
@@ -150,7 +150,7 @@ This is an example of developing GitLab Pages inside the [GitLab Development Kit
    auth-redirect-uri=http://pages.127.0.0.1.nip.io:3010/auth
    ```
 
-   You can define any flags available in [`main.go`](https://gitlab.com/gitlab-org/gitlab-pages/-/blob/ec16301b72b5d8370ccdcd86088440cca409cd8b/main.go#L40).
+   You can define any flags available in [`internal/config/flags.go`](https://gitlab.com/gitlab-org/gitlab-pages/-/blob/8ed7729dcaacdc085824c6bb9d965fec6716f4dd/internal/config/flags.go).
 
 1. Start developing!
 1. To test your changes manually you can run:
@@ -177,7 +177,7 @@ This is an example of developing GitLab Pages inside the [GitLab Development Kit
 
 1. Create a project in your GDK and deploy a Pages project. For instructions, see
    [Create a GitLab Pages website from scratch](https://docs.gitlab.com/ee/user/project/pages/getting_started/pages_from_scratch.html).
-1. To deploy your Pages site, you must [configure GitLab Runner in your GDK](https://gitlab.com/gitlab-org/gitlab-development-kit/-/blob/master/doc/howto/runner.md).
+1. To deploy your Pages site, you must [configure GitLab Runner in your GDK](https://gitlab.com/gitlab-org/gitlab-development-kit/-/blob/main/doc/howto/runner.md).
 1. Visit your project URL. You can see the URL under **Settings > Pages** for your project, or
    [`http://127.0.0.1.nip.io:3000/user/project-name/pages`](http://127.0.0.1.nip.io:3000/user/project-name/pages).
 
@@ -186,7 +186,7 @@ This is an example of developing GitLab Pages inside the [GitLab Development Kit
 ```sh
 # Get everything installed and setup (you only need to run this once)
 # If you run into problems running the linting process,
-# you may have to run `sudo rm -rf .GOPATH` and try this step again
+# you may have to run `make clean` and try this step again
 make setup
 
 # Run the linter locally
