@@ -24,6 +24,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tj/assert v0.0.3 // indirect
 	github.com/tj/go-redirects v0.0.0-20180508180010-5c02ead0bbc5
+	gitlab.com/feistel/go-contentencoding v0.0.0-20211129152627-d8d6a3107e17
 	gitlab.com/gitlab-org/go-mimedb v1.45.0
 	gitlab.com/gitlab-org/golang-archive-zip v0.1.1
 	gitlab.com/gitlab-org/labkit v1.12.0
