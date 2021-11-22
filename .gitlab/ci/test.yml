@@ -43,7 +43,7 @@ cover:
 
 code_quality:
   extends: .tests-common
-  image: golangci/golangci-lint:v1.41.1
+  image: golangci/golangci-lint:v1.43.0
   variables:
     REPORT_FILE: gl-code-quality-report.json
     LINT_FLAGS: "--color never --deadline 15m"
