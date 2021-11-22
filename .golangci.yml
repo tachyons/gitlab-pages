@@ -48,6 +48,7 @@ linters:
     - unused
     - varcheck
     - whitespace
+    - nolintlint
   fast: false
 
 issues:
