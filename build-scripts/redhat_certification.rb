@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # The redhat_certification.rb script will invoke the Red Hat API to request
 # an image to be scanned for certification. Each image has an associated
@@ -15,33 +16,37 @@ require 'optparse'
 
 def gitlab_registry
   ENV['GITLAB_REGISTRY_BASE_URL'] || ENV['CI_REGISTRY_IMAGE'] ||
-      'registry.gitlab.com/gitlab-org/build/cng'
+    'registry.gitlab.com/gitlab-org/build/cng'
 end
 
-def is_regular_tag
+def regular_tag?
   (ENV['CI_COMMIT_TAG'] || ENV['GITLAB_TAG'])
 end
 
+def redhat_api_endpoint
+  'https://catalog.redhat.com/api/containers/v1/projects/certifications/requests/scans'
+end
+
 def read_project_data
-  git_root = %x(git rev-parse --show-toplevel).strip()
+  git_root = `git rev-parse --show-toplevel`.strip
   YAML.load_file("#{git_root}/redhat-projects.yaml")
-rescue => e
+rescue StandardError => e
   puts "Unable to parse #{git_root}/redhat-projects.yaml: #{e.message}"
   raise
 end
 
 # return either the sha256 of the image or the symbol :no_skopeo
 def image_sha256(registry_spec)
-  skopeo_out = %x(skopeo inspect docker://#{registry_spec} 2>/dev/null)
+  skopeo_out = `skopeo inspect docker://#{registry_spec} 2>/dev/null`
   JSON.parse(skopeo_out)['Digest']
 rescue Errno::ENOENT
-  return :no_skopeo
+  :no_skopeo
 rescue JSON::ParserError
-  return :no_image
+  :no_image
 end
 
 # handle a call the Red Hat API and return the response object
-def redhat_api(method, endpoint, token=nil, payload=nil)
+def redhat_api(method, endpoint, token = nil, payload = nil)
   uri = URI.parse(endpoint)
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true
@@ -66,22 +71,22 @@ def redhat_api(method, endpoint, token=nil, payload=nil)
     errors << "#{name}: Unhandled exception: #{e}"
   end
 
-  return resp
+  resp
 end
 
 def display_scan_status(token)
   results = redhat_api(:get,
-              'https://catalog.redhat.com/api/containers/v1/projects/certifications/requests/scans',
-              token)
+                       redhat_api_url,
+                       token)
 
   # invert the GitLab container name to Red Hat proj ID hash
   rh_pid = {}
-  read_project_data.each_pair { |name,ids| rh_pid[ids['pid']] = name }
+  read_project_data.each_pair { |name, ids| rh_pid[ids['pid']] = name }
 
-  puts " Status     Red Hat Project ID          Request ID                  GitLab Project:Tag"
-  puts "=======    ========================    ========================    ==================================="
+  puts ' Status     Red Hat Project ID          Request ID                  GitLab Project:Tag'
+  puts '=======    ========================    ========================    ==================================='
 
-  stats = {pending: 0, running: 0}
+  stats = { pending: 0, running: 0 }
   JSON.parse(results.body)['data'].each do |scan_req|
     puts "#{scan_req['status']}    #{scan_req['cert_project']}    #{scan_req['_id']}    #{rh_pid[scan_req['cert_project']]}:#{scan_req['tag']}"
     case scan_req['status']
@@ -95,9 +100,9 @@ def display_scan_status(token)
   puts "\nTotal pending: #{stats[:pending]}\t\tTotal running: #{stats[:running]}"
 end
 
-options = {status: false, token: ENV['REDHAT_API_TOKEN'] }
-optparse = OptionParser.new do |opts|
-  opts.banner = "Usage: #{File.basename $0} [options] "
+options = { status: false, token: ENV['REDHAT_API_TOKEN'] }
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename $PROGRAM_NAME} [options] "
 
   opts.on('-s', '--status', 'Get current image scan request status') do
     options[:status] = true
@@ -113,8 +118,8 @@ if options[:status]
   exit(0)
 end
 
-if ARGV.length < 1
-  puts "Need to specify a version (i.e. v13.5.4)"
+if ARGV.empty?
+  puts 'Need to specify a version (i.e. v13.5.4)'
   exit 1
 end
 
@@ -128,22 +133,22 @@ end
 puts "Using #{version} as the docker tag to pull"
 
 errors = []
-project_data = read_project_data()
-project_data.keys.each do |name|
+project_data = read_project_data
+project_data.each_key do |name|
   # if job is on a tagged pipeline (but not a auto-deploy tag) or
   # is a master branch pipeline, then use the image tags as
   # defined in variables defined in the CI environment. Otherwise
   # it is assumed that the "version" (commit ref) from CLI param
   # is correct.
-  if (ENV['CI_COMMIT_REF_NAME'] == 'master' || is_regular_tag)
-    version = ENV[project_data[name]['version_variable']].sub(/-(ce|ee)$/, '') + '-ubi8'
+  if ENV['CI_COMMIT_REF_NAME'] == 'master' || regular_tag?
+    version = "%{ENV[project_data[name]['version_variable']].sub(/-(ce|ee)$/, '')}-ubi8"
   end
 
-  if project_data.has_key? name
+  if project_data.key? name
     sha256_tag = image_sha256("#{gitlab_registry}/#{name}:#{version}")
     case sha256_tag
     when :no_skopeo
-      errors << "skopeo command is not installed"
+      errors << 'skopeo command is not installed'
       next
     when :no_image
       errors << "Image with #{version} tag not found for #{name}"
@@ -151,8 +156,10 @@ project_data.keys.each do |name|
     end
 
     endpoint = "https://catalog.redhat.com/api/containers/v1/projects/certification/id/#{project_data[name]['pid']}/requests/scans"
-    payload = { 'pull_spec' => "#{gitlab_registry}/#{name}@#{sha256_tag}",
-                'tag'       => version }
+    payload = {
+      'pull_spec' => "#{gitlab_registry}/#{name}@#{sha256_tag}",
+      'tag'       => version
+    }
     resp = redhat_api(:post, endpoint, options[:token], payload)
 
     puts "API call for #{name} returned #{resp.code}: #{resp.message}"
