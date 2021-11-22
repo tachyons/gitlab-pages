@@ -76,7 +76,7 @@ end
 
 def display_scan_status(token)
   results = redhat_api(:get,
-                       redhat_api_url,
+                       redhat_api_endpoint,
                        token)
 
   # invert the GitLab container name to Red Hat proj ID hash
@@ -88,7 +88,8 @@ def display_scan_status(token)
 
   stats = { pending: 0, running: 0 }
   JSON.parse(results.body)['data'].each do |scan_req|
-    puts "#{scan_req['status']}    #{scan_req['cert_project']}    #{scan_req['_id']}    #{rh_pid[scan_req['cert_project']]}:#{scan_req['tag']}"
+    puts "#{scan_req['status']}    #{scan_req['cert_project']}    " \
+         "#{scan_req['_id']}    #{rh_pid[scan_req['cert_project']]}:#{scan_req['tag']}"
     case scan_req['status']
     when 'pending'
       stats[:pending] += 1
