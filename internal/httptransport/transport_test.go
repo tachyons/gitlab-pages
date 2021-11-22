@@ -58,7 +58,6 @@ func Test_withRoundTripper(t *testing.T) {
 			mtr := &meteredRoundTripper{next: next, durations: histVec, counter: counterVec, ttfbTimeout: DefaultTTFBTimeout}
 			r := httptest.NewRequest("GET", "/", nil)
 
-			// nolint:bodyclose // res.Body is nil
 			res, err := mtr.RoundTrip(r)
 			if tt.err != nil {
 				counterCount := testutil.ToFloat64(counterVec.WithLabelValues("error"))
@@ -91,7 +90,6 @@ func TestRoundTripTTFBTimeout(t *testing.T) {
 	req, err := http.NewRequest("GET", "https://gitlab.com", nil)
 	require.NoError(t, err)
 
-	// nolint:bodyclose // res is nil
 	res, err := mtr.RoundTrip(req)
 	require.Nil(t, res)
 	require.True(t, errors.Is(err, context.Canceled), "context must have been canceled after ttfb timeout")

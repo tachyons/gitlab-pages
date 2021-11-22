@@ -31,8 +31,6 @@ func initErrorReporting(sentryDSN, sentryEnvironment string) error {
 		errortracking.WithSentryEnvironment(sentryEnvironment))
 }
 
-// nolint: gocyclo
-// TODO: reduce cyclomatic complexity https://gitlab.com/gitlab-org/gitlab-pages/-/issues/557
 func appMain() {
 	if err := validateargs.NotAllowed(os.Args[1:]); err != nil {
 		log.WithError(err).Fatal("Using invalid arguments, use -config=gitlab-pages-config file instead")

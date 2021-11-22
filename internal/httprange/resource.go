@@ -78,7 +78,6 @@ func NewResource(ctx context.Context, url string, httpClient *http.Client) (*Res
 	// we fetch a single byte and ensure that range requests is additionally supported
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", 0, 0))
 
-	// nolint: bodyclose
 	// body will be closed by discardAndClose
 	res, err := httpClient.Do(req)
 	if err != nil {
