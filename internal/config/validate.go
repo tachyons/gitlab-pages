@@ -22,19 +22,16 @@ var (
 
 // Validate values populated in Config
 func Validate(config *Config) error {
-	if err := validateListeners(config); err != nil {
-		return err
-	}
+	var result *multierror.Error
 
-	if err := validateAuthConfig(config); err != nil {
-		return err
-	}
+	result = multierror.Append(result,
+		validateListeners(config),
+		validateAuthConfig(config),
+		validateArtifactsServerConfig(config),
+		tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion),
+	)
 
-	if err := validateArtifactsServerConfig(config); err != nil {
-		return err
-	}
-
-	return tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion)
+	return result.ErrorOrNil()
 }
 
 func validateListeners(config *Config) error {
@@ -82,14 +79,17 @@ func validateArtifactsServerConfig(config *Config) error {
 	if err != nil {
 		return err
 	}
+
+	var result *multierror.Error
+
 	// url.Parse ensures that the Scheme attribute is always lower case.
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return ErrArtifactsServerUnsupportedScheme
+		result = multierror.Append(result, ErrArtifactsServerUnsupportedScheme)
 	}
 
 	if config.ArtifactsServer.TimeoutSeconds < 1 {
-		return ErrArtifactsServerInvalidTimeout
+		result = multierror.Append(result, ErrArtifactsServerInvalidTimeout)
 	}
 
-	return nil
+	return result.ErrorOrNil()
 }
