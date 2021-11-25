@@ -86,15 +86,15 @@ func New(cfg *config.ZipServing) vfs.VFS {
 	// TODO: To be removed with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/480
 	zipVFS.dataOffsetCache = lru.New(
 		"data-offset",
-		defaultDataOffsetItems,
-		defaultDataOffsetExpirationInterval,
+		lru.WithSourceIPItems(defaultDataOffsetItems),
+		lru.WithSourceIPExpirationInterval(defaultDataOffsetExpirationInterval),
 		lru.WithCachedEntriesMetric(metrics.ZipCachedEntries),
 		lru.WithCachedRequestsMetric(metrics.ZipCacheRequests),
 	)
 	zipVFS.readlinkCache = lru.New(
 		"readlink",
-		defaultReadlinkItems,
-		defaultReadlinkExpirationInterval,
+		lru.WithSourceIPItems(defaultReadlinkItems),
+		lru.WithSourceIPExpirationInterval(defaultReadlinkExpirationInterval),
 		lru.WithCachedEntriesMetric(metrics.ZipCachedEntries),
 		lru.WithCachedRequestsMetric(metrics.ZipCacheRequests),
 	)

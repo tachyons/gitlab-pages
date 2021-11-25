@@ -29,10 +29,7 @@ func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
-				lru.New("source_ip",
-					lru.DefaultSourceIPItems,
-					lru.DefaultSourceIPExpirationInterval,
-				),
+				lru.New("source_ip"),
 				WithNow(mockNow),
 				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
 				WithSourceIPBurstSize(tc.sourceIPBurstSize),
@@ -89,8 +86,6 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
 				lru.New("source_ip",
-					lru.DefaultSourceIPItems,
-					lru.DefaultSourceIPExpirationInterval,
 					lru.WithCachedEntriesMetric(cachedEntries),
 					lru.WithCachedRequestsMetric(cacheReqs),
 				),

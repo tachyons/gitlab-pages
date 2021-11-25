@@ -53,10 +53,7 @@ func TestSourceIPAllowed(t *testing.T) {
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
-				lru.New("source_ip",
-					lru.DefaultSourceIPItems,
-					lru.DefaultSourceIPExpirationInterval,
-				),
+				lru.New("source_ip"),
 				WithNow(mockNow),
 				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
 				WithSourceIPBurstSize(tc.sourceIPBurstSize),
@@ -80,10 +77,7 @@ func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	rate := 10 * time.Millisecond
 
 	rl := New(
-		lru.New("source_ip",
-			lru.DefaultSourceIPItems,
-			lru.DefaultSourceIPExpirationInterval,
-		),
+		lru.New("source_ip"),
 		WithSourceIPLimitPerSecond(float64(1/rate)),
 		WithSourceIPBurstSize(1),
 	)

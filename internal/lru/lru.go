@@ -19,8 +19,8 @@ const itemsToPruneDiv = 16
 
 // based on an avg ~4,000 unique IPs per minute
 // https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b
-const DefaultSourceIPItems = 5000
-const DefaultSourceIPExpirationInterval = time.Minute
+const defaultSourceIPItems = 5000
+const defaultSourceIPExpirationInterval = time.Minute
 
 // Option function to configure a Cache
 type Option func(*Cache)
@@ -29,21 +29,27 @@ type Option func(*Cache)
 type Cache struct {
 	op                  string
 	duration            time.Duration
+	maxSize             int64
 	cache               *ccache.Cache
 	metricCachedEntries *prometheus.GaugeVec
 	metricCacheRequests *prometheus.CounterVec
 }
 
 // New creates an LRU cache
-func New(op string, maxEntries int64, duration time.Duration, opts ...Option) *Cache {
+func New(op string, opts ...Option) *Cache {
 	c := &Cache{
 		op:       op,
-		duration: duration,
+		duration: defaultSourceIPExpirationInterval,
+		maxSize:  defaultSourceIPItems,
+	}
+
+	for _, opt := range opts {
+		opt(c)
 	}
 
 	configuration := ccache.Configure()
-	configuration.MaxSize(maxEntries)
-	configuration.ItemsToPrune(uint32(maxEntries) / itemsToPruneDiv)
+	configuration.MaxSize(c.maxSize)
+	configuration.ItemsToPrune(uint32(c.maxSize) / itemsToPruneDiv)
 	configuration.GetsPerPromote(getsPerPromote) // if item gets requested frequently promote it
 	configuration.OnDelete(func(*ccache.Item) {
 		if c.metricCachedEntries != nil {
@@ -52,10 +58,6 @@ func New(op string, maxEntries int64, duration time.Duration, opts ...Option) *C
 	})
 
 	c.cache = ccache.New(configuration)
-
-	for _, opt := range opts {
-		opt(c)
-	}
 
 	return c
 }
@@ -101,5 +103,17 @@ func WithCachedEntriesMetric(m *prometheus.GaugeVec) Option {
 func WithCachedRequestsMetric(m *prometheus.CounterVec) Option {
 	return func(c *Cache) {
 		c.metricCacheRequests = m
+	}
+}
+
+func WithSourceIPExpirationInterval(t time.Duration) Option {
+	return func(c *Cache) {
+		c.duration = t
+	}
+}
+
+func WithSourceIPItems(i int64) Option {
+	return func(c *Cache) {
+		c.maxSize = i
 	}
 }
