@@ -26,6 +26,8 @@ const defaultCacheExpirationInterval = time.Minute
 type Option func(*Cache)
 
 // Cache wraps a ccache and allows setting custom metrics for hits/misses.
+// duration and maxSize are initialized to their default values but should
+// be configured using WithExpirationInterval and WithMaxSize options.
 type Cache struct {
 	op                  string
 	duration            time.Duration
