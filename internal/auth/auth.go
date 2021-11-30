@@ -219,7 +219,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 }
 
 func (a *Auth) domainAllowed(ctx context.Context, name string, domains source.Source) bool {
-	isConfigured := (name == a.pagesDomain) || strings.HasSuffix("."+name, a.pagesDomain)
+	isConfigured := (name == a.pagesDomain) || strings.HasSuffix(name, "."+a.pagesDomain)
 
 	if isConfigured {
 		return true
