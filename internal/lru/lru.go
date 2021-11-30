@@ -19,8 +19,8 @@ const itemsToPruneDiv = 16
 
 // based on an avg ~4,000 unique IPs per minute
 // https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b
-const defaultSourceIPItems = 5000
-const defaultSourceIPExpirationInterval = time.Minute
+const defaultCacheMaxSize = 1000
+const defaultCacheExpirationInterval = time.Minute
 
 // Option function to configure a Cache
 type Option func(*Cache)
@@ -106,13 +106,13 @@ func WithCachedRequestsMetric(m *prometheus.CounterVec) Option {
 	}
 }
 
-func WithSourceIPExpirationInterval(t time.Duration) Option {
+func WithExpirationInterval(t time.Duration) Option {
 	return func(c *Cache) {
 		c.duration = t
 	}
 }
 
-func WithSourceIPItems(i int64) Option {
+func WithMaxSize(i int64) Option {
 	return func(c *Cache) {
 		c.maxSize = i
 	}
