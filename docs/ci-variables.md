@@ -17,7 +17,7 @@ Check the table below for more information about the various CI variables used i
 | COMPILE_ASSETS                                | Setting `true` generates fresh rails assets instead of copying them from the assets image.
 | FORCE_IMAGE_BUILDS                            | Setting `true` builds fresh images even when existing containers match the specified version. |
 | DISABLE_DOCKER_BUILD_CACHE                    | Setting any value ensures that builds run without docker build cache. |
-| UBI_PIPELINE                                  | Setting to any value indicates this will be a UBI only pipeline. |
+| UBI_PIPELINE                                  | Setting to "true" indicates this will be a UBI only pipeline. |
 | CE_PIPELINE                                   | Setting any value indicates this will be a CE only pipeline. |
 | EE_PIPELINE                                   | Setting any value indicates this will be an EE only pipeline. |
 | CUSTOM_PIPELINE                               | Setting any value indicates this will be a custom pipeline (Do not run CE or EE specific jobs.) |
@@ -49,7 +49,9 @@ Check the table below for more information about the various CI variables used i
 | COM_REGISTRY                                  | Docker location of the public registry. |
 | COM_CNG_PROJECT                               | Project name for the public CNG project. |
 | COM_REGISTRY_PASSWORD                         | Access token for syncing to the public registry. |
-| REDHAT_SECRETS_JSON                           | JSON hash of OSPID and push secrets for the RedHat images. See [build details](build.md#context). |
+| REDHAT_PROJECT_JSON                           | JSON hash of OSPID and project ID. See [build details](build.md#context). |
+| REDHAT_API_TOKEN                              | Red Hat token used for certification scans. |
+| REDHAT_CERTIFICATION                          | Trigger Red Hat UBI certification when set to "true" |
 | SCANNING_TRIGGER_PIPELINE                     | GitLab pipeline location to trigger security scanning. |
 | SCANNING_TRIGGER_TOKEN                        | Trigger Token for the security scanning project. |
 

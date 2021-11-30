@@ -79,23 +79,31 @@ The presence of these files will trigger the UBI image build, given one of the f
 - The pipeline is running for a branch name ending in `-ubi8`, or
 - The pipeline is running with an environment variable matching `UBI_PIPELINE='true'`
 
-If one of these conditions is met, additional pipeline jobs and stages will appear and the UBI
-images will be built and pushed. The UBI images are pushed to Red Hat for
-certification for the OpenShift environments when the tags ends in `-ubi8` or
-when the CI variable `PUSH_TO_REDHAT` is set to `true`. This adds a final job in
-the `release` stage which executes the `build-scripts/push_to_redhat.rb` script.
-This script will gather the appropriate UBI images and push them to a Red Hat
-registry for the certification process to be initiated. Once images have been
-pushed to the Red Hat registry and further execution of the certification job
-will fail until the images are removed from the Red Hat registry.
+If one of these conditions is met, additional pipeline jobs and stages will
+appear and the UBI images will be built and pushed into the GitLab registry.
+The final job will submit the images to Red Hat for certification for the
+OpenShift environments.
 
-The `build-scripts/push_to_redhat.rb` script requires the variable
-`REDHAT_SECRETS_JSON` to be declared when it runs. The value is a JSON
-document that indexed by image name and has an `id` and `secret` attribute
-for each image which corresponds to the OSPID and push secret assigned to
-each image by Red Hat. In addition, the variables `GITLAB_REGISTRY_BASE_URL`
-(base URL where the CNG images reside) and `REDHAT_REGISTRY_HOSTNAME`
-(host name of Red Hat registry) can be defined to override their default locations.
+This certification job executes `build-scripts/redhat_certification.rb` and
+requires the variable `REDHAT_API_TOKEN` to be declared. This variable is set
+to the personal token generated on the [Connect portal](https://connect.redhat.com/key-manager).
+The token used by GitLab CI is stored in the 1Password Build vault under the
+"Red Hat Certification Token" entry.
+
+The script allows the variable `GITLAB_REGISTRY_BASE_URL` (base URL where the
+CNG images reside) can be defined to override the default location of where
+the CNG image can be pulled from when submitting the scan requests.
+
+The certification job can be manually triggered by setting
+`REDHAT_CERTIFICATION` to "true" in a pipeline. Note: One may need to also
+set `UBI_PIPELINE` to "true" to generate the UBI images.
+
+In addition, it is possible to run the `build-scripts/redhat_certification.rb`
+script to query the Red Hat API for the status of scan requests that have
+been submitted. Executing `build-scripts/redhat_certification.rb -s` will display
+a list of images and their current status in the Red Hat certification
+pipeline. One would need to define `REDHAT_API_TOKEN`in the local environment
+or use the `--token` command line switch to specify their personal token.
 
 ### Offline builds
 
