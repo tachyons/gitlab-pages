@@ -17,8 +17,6 @@ const getsPerPromote = 64
 // needs to be pruned on OOM, this prunes 1/16 of items
 const itemsToPruneDiv = 16
 
-// based on an avg ~4,000 unique IPs per minute
-// https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b
 const defaultCacheMaxSize = 1000
 const defaultCacheExpirationInterval = time.Minute
 
@@ -41,8 +39,8 @@ type Cache struct {
 func New(op string, opts ...Option) *Cache {
 	c := &Cache{
 		op:       op,
-		duration: defaultSourceIPExpirationInterval,
-		maxSize:  defaultSourceIPItems,
+		duration: defaultCacheExpirationInterval,
+		maxSize:  defaultCacheMaxSize,
 	}
 
 	for _, opt := range opts {

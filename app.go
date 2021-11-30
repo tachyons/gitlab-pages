@@ -267,6 +267,9 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	if a.config.RateLimit.SourceIPLimitPerSecond > 0 {
 		rl := ratelimiter.New(
 			lru.New("source_ip",
+				// based on an avg ~4,000 unique IPs per minute
+				// https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b
+				lru.WithMaxSize(5000),
 				lru.WithCachedEntriesMetric(metrics.RateLimitSourceIPCachedEntries),
 				lru.WithCachedRequestsMetric(metrics.RateLimitSourceIPCacheRequests),
 			),
