@@ -28,12 +28,16 @@ func (rl *RateLimiter) SourceIPLimiter(handler http.Handler) http.Handler {
 			// Only drop requests once FF_ENABLE_RATE_LIMITER is enabled
 			// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
 			if rateLimiterEnabled() {
-				rl.sourceIPBlockedCount.WithLabelValues("true").Inc()
+				if rl.sourceIPBlockedCount != nil {
+					rl.sourceIPBlockedCount.WithLabelValues("true").Inc()
+				}
 				httperrors.Serve429(w)
 				return
 			}
 
-			rl.sourceIPBlockedCount.WithLabelValues("false").Inc()
+			if rl.sourceIPBlockedCount != nil {
+				rl.sourceIPBlockedCount.WithLabelValues("false").Inc()
+			}
 		}
 
 		handler.ServeHTTP(w, r)

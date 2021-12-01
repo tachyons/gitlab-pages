@@ -17,32 +17,49 @@ const getsPerPromote = 64
 // needs to be pruned on OOM, this prunes 1/16 of items
 const itemsToPruneDiv = 16
 
+const defaultCacheMaxSize = 1000
+const defaultCacheExpirationInterval = time.Minute
+
+// Option function to configure a Cache
+type Option func(*Cache)
+
 // Cache wraps a ccache and allows setting custom metrics for hits/misses.
+// duration and maxSize are initialized to their default values but should
+// be configured using WithExpirationInterval and WithMaxSize options.
 type Cache struct {
 	op                  string
 	duration            time.Duration
+	maxSize             int64
 	cache               *ccache.Cache
 	metricCachedEntries *prometheus.GaugeVec
 	metricCacheRequests *prometheus.CounterVec
 }
 
 // New creates an LRU cache
-func New(op string, maxEntries int64, duration time.Duration, cachedEntriesMetric *prometheus.GaugeVec, cacheRequestsMetric *prometheus.CounterVec) *Cache {
+func New(op string, opts ...Option) *Cache {
+	c := &Cache{
+		op:       op,
+		duration: defaultCacheExpirationInterval,
+		maxSize:  defaultCacheMaxSize,
+	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
 	configuration := ccache.Configure()
-	configuration.MaxSize(maxEntries)
-	configuration.ItemsToPrune(uint32(maxEntries) / itemsToPruneDiv)
+	configuration.MaxSize(c.maxSize)
+	configuration.ItemsToPrune(uint32(c.maxSize) / itemsToPruneDiv)
 	configuration.GetsPerPromote(getsPerPromote) // if item gets requested frequently promote it
 	configuration.OnDelete(func(*ccache.Item) {
-		cachedEntriesMetric.WithLabelValues(op).Dec()
+		if c.metricCachedEntries != nil {
+			c.metricCachedEntries.WithLabelValues(op).Dec()
+		}
 	})
 
-	return &Cache{
-		op:                  op,
-		cache:               ccache.New(configuration),
-		duration:            duration,
-		metricCachedEntries: cachedEntriesMetric,
-		metricCacheRequests: cacheRequestsMetric,
-	}
+	c.cache = ccache.New(configuration)
+
+	return c
 }
 
 // FindOrFetch will try to get the item from the cache if exists and is not expired.
@@ -51,20 +68,52 @@ func (c *Cache) FindOrFetch(cacheNamespace, key string, fetchFn func() (interfac
 	item := c.cache.Get(cacheNamespace + key)
 
 	if item != nil && !item.Expired() {
-		c.metricCacheRequests.WithLabelValues(c.op, "hit").Inc()
+		if c.metricCacheRequests != nil {
+			c.metricCacheRequests.WithLabelValues(c.op, "hit").Inc()
+		}
 		return item.Value(), nil
 	}
 
 	value, err := fetchFn()
 	if err != nil {
-		c.metricCacheRequests.WithLabelValues(c.op, "error").Inc()
+		if c.metricCacheRequests != nil {
+			c.metricCacheRequests.WithLabelValues(c.op, "error").Inc()
+		}
 		return nil, err
 	}
 
-	c.metricCacheRequests.WithLabelValues(c.op, "miss").Inc()
-	c.metricCachedEntries.WithLabelValues(c.op).Inc()
+	if c.metricCacheRequests != nil {
+		c.metricCacheRequests.WithLabelValues(c.op, "miss").Inc()
+	}
+	if c.metricCachedEntries != nil {
+		c.metricCachedEntries.WithLabelValues(c.op).Inc()
+	}
 
 	c.cache.Set(cacheNamespace+key, value, c.duration)
 
 	return value, nil
+}
+
+func WithCachedEntriesMetric(m *prometheus.GaugeVec) Option {
+	return func(c *Cache) {
+		c.metricCachedEntries = m
+	}
+}
+
+func WithCachedRequestsMetric(m *prometheus.CounterVec) Option {
+	return func(c *Cache) {
+		c.metricCacheRequests = m
+	}
+}
+
+func WithExpirationInterval(t time.Duration) Option {
+	return func(c *Cache) {
+		c.duration = t
+	}
+}
+
+func WithMaxSize(i int64) Option {
+	return func(c *Cache) {
+		c.maxSize = i
+	}
 }
