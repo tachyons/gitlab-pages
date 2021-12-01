@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	dirPrefix      = "public/"
 	maxSymlinkSize = 256
 )
 
@@ -60,6 +59,8 @@ type zipArchive struct {
 
 	files       map[string]*zip.File
 	directories map[string]*zip.FileHeader
+
+	publicDirectoryName string
 }
 
 func newArchive(fs *zipVFS, openTimeout time.Duration) *zipArchive {
@@ -136,9 +137,11 @@ func (a *zipArchive) readArchive(url string) {
 		return
 	}
 
+	a.publicDirectoryName = a.guessPublicDirectoryName()
+
 	// TODO: Improve preprocessing of zip archives https://gitlab.com/gitlab-org/gitlab-pages/-/issues/432
 	for _, file := range a.archive.File {
-		if !strings.HasPrefix(file.Name, dirPrefix) {
+		if !strings.HasPrefix(file.Name, a.publicDirectoryName) {
 			continue
 		}
 
@@ -177,14 +180,52 @@ func (a *zipArchive) addPathDirectory(pathname string) {
 	}
 }
 
+func sliceContains(slice []string, value string) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *zipArchive) getAllRootDirectories() []string {
+	rootDirectories := make([]string, 0)
+	for _, file := range a.archive.File {
+		fullPath := strings.SplitN(file.Name, "/", 2)
+		if len(fullPath) < 1 {
+			break
+		}
+		rootDir := fullPath[0]
+		if !sliceContains(rootDirectories, rootDir) {
+			rootDirectories = append(rootDirectories, rootDir)
+		}
+	}
+	return rootDirectories
+}
+
+func (a *zipArchive) guessPublicDirectoryName() string {
+	commonPrefixes := []string{"public", "dist", ".next"}
+	rootDirectories := a.getAllRootDirectories()
+	if len(rootDirectories) == 1 {
+		return rootDirectories[0]
+	}
+	for _, pref := range commonPrefixes {
+		if sliceContains(rootDirectories, pref) {
+			return pref
+		}
+	}
+	return ""
+}
+
 func (a *zipArchive) findFile(name string) *zip.File {
-	name = path.Clean(dirPrefix + name)
+	name = path.Clean(a.publicDirectoryName + "/" + name)
 
 	return a.files[name]
 }
 
 func (a *zipArchive) findDirectory(name string) *zip.FileHeader {
-	name = path.Clean(dirPrefix + name)
+	name = path.Clean(a.publicDirectoryName + "/" + name)
 
 	return a.directories[name+"/"]
 }
