@@ -205,7 +205,15 @@ func (a *zipArchive) getAllRootDirectories() []string {
 }
 
 func (a *zipArchive) guessPublicDirectoryName() string {
-	commonPrefixes := []string{"public", "dist", ".next"}
+	commonPrefixes := []string{
+		// A slice of folder names used by popular SSG Frameworks
+		"public", // previous GitLab behaviour, Hugo, Gatsby, Svelte
+		// Non-default folder names, ordered by popularity
+		"build", // React
+		"dist",  // Vue, Nuxt.js, Angular, Astro, Vite
+		"out",   // Next.js
+		"_site", // Eleventy
+	}
 	rootDirectories := a.getAllRootDirectories()
 	if len(rootDirectories) == 1 {
 		return rootDirectories[0]
