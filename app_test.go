@@ -68,8 +68,6 @@ func newGetRequestWithScheme(t *testing.T, scheme string, withTLS bool) *http.Re
 }
 
 func TestHealthCheckMiddleware(t *testing.T) {
-	os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "")
-
 	tests := []struct {
 		name   string
 		path   string
@@ -104,6 +102,10 @@ func TestHealthCheckMiddleware(t *testing.T) {
 		General: config.General{
 			StatusPath: "/-/healthcheck",
 		},
+		Log: config.Log{
+			Format:  "json",
+			Verbose: true,
+		},
 	}
 
 	app := theApp{
@@ -118,6 +120,8 @@ func TestHealthCheckMiddleware(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "true")
+
 			r := httptest.NewRequest("GET", tc.path, nil)
 			rr := httptest.NewRecorder()
 
@@ -127,7 +131,6 @@ func TestHealthCheckMiddleware(t *testing.T) {
 
 			require.Equal(t, tc.status, rr.Code)
 			require.Equal(t, tc.body, rr.Body.String())
-			t.Log("Ffark")
 		})
 	}
 }

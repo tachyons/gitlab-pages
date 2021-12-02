@@ -1,8 +1,8 @@
 package logging
 
 import (
+	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -15,6 +15,7 @@ import (
 func ConfigureLogging(format string, verbose bool) error {
 	var levelOption log.LoggerOption
 
+	fmt.Println("ConfigureLogging foramt ", format)
 	if format == "" {
 		format = "json"
 	}
@@ -36,6 +37,7 @@ func ConfigureLogging(format string, verbose bool) error {
 // the log format is text, in which case a combined HTTP access
 // logger will be configured. This behaviour matches Workhorse
 func getAccessLogger(format string) (*logrus.Logger, error) {
+	fmt.Println("getAccessLogger format", format)
 	if format != "text" && format != "" {
 		return logrus.StandardLogger(), nil
 	}
@@ -54,7 +56,6 @@ func getAccessLogger(format string) (*logrus.Logger, error) {
 
 // BasicAccessLogger configures the GitLab pages basic HTTP access logger middleware
 func BasicAccessLogger(handler http.Handler, format string, extraFields log.ExtraFieldsGeneratorFunc) (http.Handler, error) {
-	os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "")
 	accessLogger, err := getAccessLogger(format)
 	if err != nil {
 		return nil, err
@@ -87,7 +88,6 @@ func enrichExtraFields(extraFields log.ExtraFieldsGeneratorFunc) log.ExtraFields
 
 // LogRequest will inject request host and path to the logged messages
 func LogRequest(r *http.Request) *logrus.Entry {
-	os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "")
 	return log.WithFields(log.Fields{
 		"correlation_id": correlation.ExtractFromContext(r.Context()),
 		"host":           r.Host,

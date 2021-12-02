@@ -1,8 +1,8 @@
 package logging
 
 import (
-	"io"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -23,18 +23,6 @@ func (r *resolver) Resolve(req *http.Request) (*serving.Request, error) {
 	}
 
 	return nil, r.err
-}
-
-func TestBasicAccessLogger(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "Hello from inner handler")
-	})
-
-	h, err := BasicAccessLogger(handler, "json")
-	require.NoError(t, err)
-
-	h.ServeHTTP()
 }
 
 func TestGetExtraLogFields(t *testing.T) {
@@ -81,6 +69,7 @@ func TestGetExtraLogFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "true")
 			req, err := http.NewRequest("GET", "/", nil)
 			require.NoError(t, err)
 

@@ -156,6 +156,7 @@ func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, erro
 		a.healthCheck(w, r, request.IsHTTPS(r))
 	})
 
+	fmt.Println("App::healthCheckMiddleware::FORMAT ", a.config.Log.Format)
 	loggedHealthCheck, err := logging.BasicAccessLogger(healthCheck, a.config.Log.Format, nil)
 	if err != nil {
 		return nil, err
@@ -244,7 +245,6 @@ func setRequestScheme(r *http.Request) *http.Request {
 }
 
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
-	os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "")
 	// Handlers should be applied in a reverse order
 	handler := a.serveFileOrNotFoundHandler()
 	if !a.config.General.DisableCrossOriginRequests {

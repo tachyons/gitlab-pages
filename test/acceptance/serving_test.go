@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -526,6 +527,7 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 }
 
 func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
+	os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "true")
 	logBuf := RunPagesProcess(t,
 		withExtraArgument("enable-disk", "false"),
 	)
@@ -543,6 +545,8 @@ func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
 
 			require.Equal(t, http.StatusInternalServerError, rsp.StatusCode)
 		})
+
+		t.Log("ERR", logBuf.String())
 
 		// give the process enough time to write the log message
 		require.Eventually(t, func() bool {
