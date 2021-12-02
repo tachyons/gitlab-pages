@@ -1,0 +1,16 @@
+# the port where you want Pages to listen to, must match the port in `gdk.yml`
+listen-http=pages.gdk.test:3010
+artifacts-server=http://gdk.test:3001/api/v4
+# absolute path inside $GDK_ROOT
+pages-root=/Users/gotenks/glab/gdk/gitlab/shared/pages
+pages-domain=pages.gdk.test
+internal-gitlab-server=http://gdk.test:3001
+gitlab-server=http://gdk.test:3001
+# additional
+api-secret-key=/Users/gotenks/glab/gdk/gitlab-pages-secret
+log-verbose=false
+# auth config
+auth-client-id=c6aeeaeac90967691e1fdec3d88b065d79f6311ff6d5a0a401755c936f6a8d9d
+auth-client-secret=4dc161ac76ee7f32ade7f49cc6cffed6c10f4e438d6f3060dd342857ab8fe87c
+auth-secret=9fejV3ubSivjUMEZmXzPECjJV0vTpgZz
+auth-redirect-uri=http://pages.gdk.test:3010/auth

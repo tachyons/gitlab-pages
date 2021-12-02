@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"io"
 	"net/http"
 	"testing"
 
@@ -22,6 +23,18 @@ func (r *resolver) Resolve(req *http.Request) (*serving.Request, error) {
 	}
 
 	return nil, r.err
+}
+
+func TestBasicAccessLogger(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "Hello from inner handler")
+	})
+
+	h, err := BasicAccessLogger(handler, "json")
+	require.NoError(t, err)
+
+	h.ServeHTTP()
 }
 
 func TestGetExtraLogFields(t *testing.T) {
@@ -81,6 +94,7 @@ func TestGetExtraLogFields(t *testing.T) {
 			require.Equal(t, tt.expectedProjectPrefix, got["pages_project_prefix"])
 			require.Equal(t, tt.expectedServingType, got["pages_project_serving_type"])
 			require.Equal(t, tt.expectedErrMsg, got["error"])
+			t.Logf("got %v\n", got)
 		})
 	}
 }

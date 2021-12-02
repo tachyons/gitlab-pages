@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -67,6 +68,8 @@ func newGetRequestWithScheme(t *testing.T, scheme string, withTLS bool) *http.Re
 }
 
 func TestHealthCheckMiddleware(t *testing.T) {
+	os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "")
+
 	tests := []struct {
 		name   string
 		path   string
@@ -124,6 +127,7 @@ func TestHealthCheckMiddleware(t *testing.T) {
 
 			require.Equal(t, tc.status, rr.Code)
 			require.Equal(t, tc.body, rr.Body.String())
+			t.Log("Ffark")
 		})
 	}
 }

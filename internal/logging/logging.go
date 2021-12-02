@@ -2,6 +2,7 @@ package logging
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -53,6 +54,7 @@ func getAccessLogger(format string) (*logrus.Logger, error) {
 
 // BasicAccessLogger configures the GitLab pages basic HTTP access logger middleware
 func BasicAccessLogger(handler http.Handler, format string, extraFields log.ExtraFieldsGeneratorFunc) (http.Handler, error) {
+	os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "")
 	accessLogger, err := getAccessLogger(format)
 	if err != nil {
 		return nil, err
@@ -85,6 +87,7 @@ func enrichExtraFields(extraFields log.ExtraFieldsGeneratorFunc) log.ExtraFields
 
 // LogRequest will inject request host and path to the logged messages
 func LogRequest(r *http.Request) *logrus.Entry {
+	os.Setenv("GITLAB_ISO8601_LOG_TIMESTAMP", "")
 	return log.WithFields(log.Fields{
 		"correlation_id": correlation.ExtractFromContext(r.Context()),
 		"host":           r.Host,
