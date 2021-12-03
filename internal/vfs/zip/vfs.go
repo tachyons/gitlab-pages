@@ -179,13 +179,16 @@ func (zfs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.
 	// we do it in loop to not use any additional locks
 	for {
 		root, err := zfs.findOrOpenArchive(ctx, cacheKey, path)
-		if errors.Is(err, errAlreadyCached) {
-			continue
-		}
-
-		// If archive is not found, return a known `vfs` error
-		if errors.Is(err, httprange.ErrNotFound) {
+		switch err {
+		case context.Canceled:
+			// treat user-initiated cancellations as not found and
+			// do not report a 500 https://gitlab.com/gitlab-org/gitlab-pages/-/issues/669
+			fallthrough
+		case httprange.ErrNotFound:
+			// If archive is not found, return a known `vfs` error
 			return nil, fs.ErrNotExist
+		case errAlreadyCached:
+			continue
 		}
 
 		return root, err

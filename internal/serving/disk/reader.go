@@ -251,6 +251,11 @@ func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter
 	// Open and serve content of file
 	file, err := root.Open(ctx, fullPath)
 	if err != nil {
+		// Handle context.Canceled error as not exist https://gitlab.com/gitlab-org/gitlab-pages/-/issues/669
+		if errors.Is(err, context.Canceled) {
+			return fs.ErrNotExist
+		}
+
 		return err
 	}
 	defer file.Close()
