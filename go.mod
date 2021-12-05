@@ -18,16 +18,16 @@ require (
 	github.com/namsral/flag v1.7.4-pre
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pires/go-proxyproto v0.2.0
-	github.com/prometheus/client_golang v1.6.0
+	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/cors v1.7.0
-	github.com/sirupsen/logrus v1.7.0
-	github.com/stretchr/testify v1.6.1
+	github.com/sirupsen/logrus v1.8.1
+	github.com/stretchr/testify v1.7.0
 	github.com/tj/assert v0.0.3 // indirect
 	github.com/tj/go-redirects v0.0.0-20180508180010-5c02ead0bbc5
 	gitlab.com/gitlab-org/go-mimedb v1.45.0
-	gitlab.com/gitlab-org/labkit v1.3.0
+	gitlab.com/gitlab-org/labkit v1.10.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
-	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
+	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420
+	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 )
