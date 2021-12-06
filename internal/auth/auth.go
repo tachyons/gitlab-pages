@@ -283,7 +283,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 
 	// If auth request callback should be proxied to custom domain
 	// redirect to originating domain set in the cookie as proxy_auth_domain
-	if shouldProxyCallbackToCustomDomain(r, session) {
+	if shouldProxyCallbackToCustomDomain(session) {
 		// Get domain started auth process
 		proxyDomain := session.Values["proxy_auth_domain"].(string)
 
@@ -348,7 +348,7 @@ func shouldProxyAuthToGitlab(r *http.Request) bool {
 	return r.URL.Query().Get("domain") != "" && r.URL.Query().Get("state") != ""
 }
 
-func shouldProxyCallbackToCustomDomain(r *http.Request, session *sessions.Session) bool {
+func shouldProxyCallbackToCustomDomain(session *sessions.Session) bool {
 	return session.Values["proxy_auth_domain"] != nil
 }
 

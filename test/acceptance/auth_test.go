@@ -27,7 +27,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -63,7 +63,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -78,7 +78,7 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -100,7 +100,7 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -133,7 +133,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -214,7 +214,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -323,7 +323,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{proxyListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -390,7 +390,7 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -409,7 +409,7 @@ func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -568,7 +568,7 @@ func TestHijackedCode(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{proxyListener}),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 	)
 
@@ -643,13 +643,13 @@ func getValidCookieAndState(t *testing.T, domain string) (string, string) {
 	return cookie, state
 }
 
-func defaultAuthConfigWith(t *testing.T, configs ...string) string {
+func defaultAuthConfig(t *testing.T) string {
 	t.Helper()
 
-	configs = append(configs,
+	configs := []string{
 		"gitlab-server=https://public-gitlab-auth.com",
 		"auth-redirect-uri=https://projects.gitlab-example.com/auth",
-	)
+	}
 
 	configFile := defaultConfigFileWith(t, configs...)
 

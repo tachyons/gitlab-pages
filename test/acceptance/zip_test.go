@@ -12,8 +12,7 @@ import (
 )
 
 func TestZipServing(t *testing.T) {
-	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
-	defer cleanup()
+	runObjectStorage(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
@@ -98,8 +97,7 @@ func TestZipServing(t *testing.T) {
 }
 
 func TestZipServingCache(t *testing.T) {
-	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
-	t.Cleanup(cleanup)
+	runObjectStorage(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
@@ -246,7 +244,7 @@ func TestZipServingConfigShortTimeout(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, response.StatusCode, "should fail to serve")
 }
 
-func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
+func runObjectStorage(t *testing.T, zipFilePath string) {
 	t.Helper()
 
 	m := http.NewServeMux()
@@ -271,8 +269,8 @@ func newZipFileServerURL(t *testing.T, zipFilePath string) (string, func()) {
 	// Start the server.
 	testServer.Start()
 
-	return testServer.URL, func() {
+	t.Cleanup(func() {
 		// Cleanup.
 		testServer.Close()
-	}
+	})
 }

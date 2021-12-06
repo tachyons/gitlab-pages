@@ -79,14 +79,6 @@ func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate
 	return nil, nil
 }
 
-func (a *theApp) healthCheck(w http.ResponseWriter, r *http.Request, https bool) {
-	if a.isReady() {
-		w.Write([]byte("success\n"))
-	} else {
-		http.Error(w, "not yet ready", http.StatusServiceUnavailable)
-	}
-}
-
 func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
 	u := *r.URL
 	u.Scheme = request.SchemeHTTPS
@@ -103,15 +95,14 @@ func (a *theApp) domain(ctx context.Context, host string) (*domain.Domain, error
 // checkAuthAndServeNotFound performs the auth process if domain can't be found
 // the main purpose of this process is to avoid leaking the project existence/not-existence
 // by behaving the same if user has no access to the project or if project simply does not exists
-func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.ResponseWriter, r *http.Request) bool {
+func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.ResponseWriter, r *http.Request) {
 	// To avoid user knowing if pages exist, we will force user to login and authorize pages
 	if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
-		return true
+		return
 	}
 
 	// auth succeeded try to serve the correct 404 page
 	domain.ServeNotFoundAuthFailed(w, r)
-	return true
 }
 
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
@@ -138,9 +129,8 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		}
 
 		// redirect to auth and serve not found
-		if a.checkAuthAndServeNotFound(domain, w, r) {
-			return true
-		}
+		a.checkAuthAndServeNotFound(domain, w, r)
+		return true
 	}
 
 	if !https && domain.IsHTTPSOnly(r) {
@@ -153,8 +143,12 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 
 // healthCheckMiddleware is serving the application status check
 func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, error) {
-	healthCheck := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a.healthCheck(w, r, request.IsHTTPS(r))
+	healthCheck := http.HandlerFunc(func(w http.ResponseWriter, _r *http.Request) {
+		if a.isReady() {
+			w.Write([]byte("success\n"))
+		} else {
+			http.Error(w, "not yet ready", http.StatusServiceUnavailable)
+		}
 	})
 
 	loggedHealthCheck, err := logging.BasicAccessLogger(healthCheck, a.config.Log.Format, nil)
