@@ -119,7 +119,8 @@ COPY --chown=git vendor/bundle/ /srv/gitlab/vendor/bundle
 
 <% if compile_assets and gitlab_bundle_gemfile %>
 RUN cd /srv/gitlab && \
-    sudo -u git -H bundle config set --local gemfile <%= gitlab_bundle_gemfile %>
+    sudo -u git -H bundle config set --local gemfile <%= gitlab_bundle_gemfile %> && \
+    sudo -u git -H bundle config set --local path /srv/gitlab/vendor/bundle/
 <% end %>
 
 RUN cd /srv/gitlab && \
