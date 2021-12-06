@@ -144,7 +144,7 @@ func (zfs *zipVFS) resetCache() {
 	})
 }
 
-func (zfs *zipVFS) keyFromPath(path string) (string, error) {
+func keyFromPath(path string) (string, error) {
 	// We assume that our URL is https://.../artifacts.zip?content-sign=aaa
 	// our caching key is `https://.../artifacts.zip`
 	// TODO: replace caching key with file_sha256
@@ -168,7 +168,7 @@ func (zfs *zipVFS) keyFromPath(path string) (string, error) {
 func (zfs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.Root, error) {
 	// TODO: update acceptance tests mocked response to return a cacheKey
 	if cacheKey == "" {
-		k, err := zfs.keyFromPath(path)
+		k, err := keyFromPath(path)
 		if err != nil {
 			return nil, err
 		}
