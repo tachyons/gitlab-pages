@@ -2,11 +2,13 @@ package logging
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/log"
 
+	internalCtx "gitlab.com/gitlab-org/gitlab-pages/internal/ctx"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
@@ -69,6 +71,7 @@ func enrichExtraFields(extraFields log.ExtraFieldsGeneratorFunc) log.ExtraFields
 	return func(r *http.Request) log.Fields {
 		enrichedFields := log.Fields{
 			"correlation_id": correlation.ExtractFromContext(r.Context()),
+			"duration_ms":    time.Since(internalCtx.GetStartTime(r.Context())).Milliseconds(),
 			"pages_https":    request.IsHTTPS(r),
 			"pages_host":     r.Host,
 		}
@@ -87,6 +90,7 @@ func enrichExtraFields(extraFields log.ExtraFieldsGeneratorFunc) log.ExtraFields
 func LogRequest(r *http.Request) *logrus.Entry {
 	return log.WithFields(log.Fields{
 		"correlation_id": correlation.ExtractFromContext(r.Context()),
+		"duration_ms":    time.Since(internalCtx.GetStartTime(r.Context())).Milliseconds(),
 		"host":           r.Host,
 		"path":           r.URL.Path,
 	})

@@ -26,6 +26,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
+	internalCtx "gitlab.com/gitlab-org/gitlab-pages/internal/ctx"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/customheaders"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
@@ -132,7 +133,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 
 	if _, err := domain.GetLookupPath(r); err != nil {
 		if errors.Is(err, gitlab.ErrDiskDisabled) {
-			errortracking.Capture(err)
+			errortracking.Capture(err, errortracking.WithRequest(r))
 			httperrors.Serve500(w)
 			return true
 		}
@@ -193,7 +194,18 @@ func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
 func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		defer metrics.ServingTime.Observe(time.Since(start).Seconds())
+		r = r.WithContext(internalCtx.SetStartTime(r.Context(), start))
+
+		defer func(start time.Time) {
+			metrics.ServingTime.Observe(time.Since(start).Seconds())
+
+			if time.Since(start) > a.config.General.SlowServingThreshold {
+				metrics.ServingSlowCount.Inc()
+				logging.LogRequest(r).
+					WithField("slow_serving_threshold", a.config.General.SlowServingThreshold).
+					Warn("slow request")
+			}
+		}(start)
 
 		domain := domain.FromRequest(r)
 		fileServed := domain.ServeFileHTTP(w, r)

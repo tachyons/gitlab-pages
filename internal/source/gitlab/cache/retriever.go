@@ -36,6 +36,7 @@ func NewRetriever(client api.Client, retrievalTimeout, maxRetrievalInterval time
 // backoff. It has its own context with timeout.
 func (r *Retriever) Retrieve(originalCtx context.Context, domain string) (lookup api.Lookup) {
 	logMsg := ""
+	start := time.Now()
 
 	// forward correlation_id from originalCtx to the new independent context
 	correlationID := correlation.ExtractFromContext(originalCtx)
@@ -52,13 +53,20 @@ func (r *Retriever) Retrieve(originalCtx context.Context, domain string) (lookup
 		logMsg = "retrieval response sent"
 	}
 
-	log.WithFields(log.Fields{
+	l := log.WithFields(log.Fields{
 		"correlation_id":   correlationID,
 		"requested_domain": domain,
 		"lookup_name":      lookup.Name,
 		"lookup_paths":     lookup.Domain,
 		"lookup_error":     lookup.Error,
-	}).WithError(ctx.Err()).Debug(logMsg)
+		"duration_ms":      time.Since(start).Milliseconds(),
+	})
+
+	if lookup.Error != nil {
+		l.WithError(ctx.Err()).Error(logMsg)
+	} else {
+		l.WithError(ctx.Err()).Debug(logMsg)
+	}
 
 	return lookup
 }

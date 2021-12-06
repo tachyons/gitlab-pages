@@ -30,6 +30,7 @@ var (
 	propagateCorrelationID  = flag.Bool("propagate-correlation-id", false, "Reuse existing Correlation-ID from the incoming request header `X-Request-ID` if present")
 	logFormat               = flag.String("log-format", "json", "The log output format: 'text' or 'json'")
 	logVerbose              = flag.Bool("log-verbose", false, "Verbose logging")
+	slowServingThreshold    = flag.Duration("slow-serving-threshold", time.Second, "Set duration to log serving information when request takes longer than this threshold")
 	secret                  = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long")
 	publicGitLabServer      = flag.String("gitlab-server", "", "Public GitLab server, for example https://www.gitlab.com")
 	internalGitLabServer    = flag.String("internal-gitlab-server", "", "Internal GitLab server used for API requests, useful if you want to send that traffic over an internal load balancer, example value https://gitlab.example.internal (defaults to value of gitlab-server)")

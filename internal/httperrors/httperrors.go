@@ -3,10 +3,13 @@ package httperrors
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"gitlab.com/gitlab-org/labkit/log"
+
+	internalCtx "gitlab.com/gitlab-org/gitlab-pages/internal/ctx"
 )
 
 type content struct {
@@ -211,9 +214,11 @@ func Serve500(w http.ResponseWriter) {
 func Serve500WithRequest(w http.ResponseWriter, r *http.Request, reason string, err error) {
 	log.WithFields(log.Fields{
 		"correlation_id": correlation.ExtractFromContext(r.Context()),
+		"duration_ms":    time.Since(internalCtx.GetStartTime(r.Context())).Milliseconds(),
 		"host":           r.Host,
 		"path":           r.URL.Path,
 	}).WithError(err).Error(reason)
+
 	errortracking.Capture(err, errortracking.WithRequest(r))
 	serveErrorPage(w, content500)
 }

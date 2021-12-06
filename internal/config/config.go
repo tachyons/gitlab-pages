@@ -45,15 +45,16 @@ type Config struct {
 // General groups settings that are general to GitLab Pages and can not
 // be categorized under other head.
 type General struct {
-	Domain          string
-	MaxConns        int
-	MaxURILength    int
-	MetricsAddress  string
-	RedirectHTTP    bool
-	RootCertificate []byte
-	RootDir         string
-	RootKey         []byte
-	StatusPath      string
+	Domain               string
+	MaxConns             int
+	MaxURILength         int
+	SlowServingThreshold time.Duration
+	MetricsAddress       string
+	RedirectHTTP         bool
+	RootCertificate      []byte
+	RootDir              string
+	RootKey              []byte
+	StatusPath           string
 
 	DisableCrossOriginRequests bool
 	InsecureCiphers            bool
@@ -183,6 +184,7 @@ func loadConfig() (*Config, error) {
 			Domain:                     strings.ToLower(*pagesDomain),
 			MaxConns:                   *maxConns,
 			MaxURILength:               *maxURILength,
+			SlowServingThreshold:       *slowServingThreshold,
 			MetricsAddress:             *metricsAddress,
 			RedirectHTTP:               *redirectHTTP,
 			RootDir:                    *pagesRoot,
@@ -292,6 +294,7 @@ func LogConfig(config *Config) {
 		"listen-proxy":                  listenProxy,
 		"listen-https-proxyv2":          listenHTTPSProxyv2,
 		"log-format":                    *logFormat,
+		"slow-serving-threshold":        config.General.SlowServingThreshold,
 		"metrics-address":               *metricsAddress,
 		"pages-domain":                  *pagesDomain,
 		"pages-root":                    *pagesRoot,

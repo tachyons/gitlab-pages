@@ -63,6 +63,14 @@ var (
 		Buckets: []float64{0.1, 0.5, 1, 2.5, 5, 10, 60, 180},
 	})
 
+	// ServingSlowCount metric for requests taking longer than the slow-serving-threshold
+	// configuration flag.
+	ServingSlowCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "gitlab_pages_serving_slow_count",
+		Help: "The number of requests taking longer than the slow-serving-threshold",
+	},
+	)
+
 	// VFSOperations metric for VFS operations (lstat, readlink, open)
 	VFSOperations = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "gitlab_pages_vfs_operations_total",
@@ -233,6 +241,7 @@ func MustRegister() {
 		DomainsSourceFailures,
 		DiskServingFileSize,
 		ServingTime,
+		ServingSlowCount,
 		VFSOperations,
 		HTTPRangeRequestsTotal,
 		HTTPRangeRequestDuration,
