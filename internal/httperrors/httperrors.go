@@ -214,7 +214,7 @@ func Serve500WithRequest(w http.ResponseWriter, r *http.Request, reason string, 
 		"host":           r.Host,
 		"path":           r.URL.Path,
 	}).WithError(err).Error(reason)
-	errortracking.Capture(err, errortracking.WithRequest(r))
+	errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
 	serveErrorPage(w, content500)
 }
 

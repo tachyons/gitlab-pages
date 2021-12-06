@@ -131,7 +131,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 			return true
 		}
 
-		errortracking.Capture(err, errortracking.WithRequest(r))
+		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
 		httperrors.Serve503(w)
 		return true
 	}
@@ -149,7 +149,7 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		errortracking.Capture(err, errortracking.WithRequest(r))
+		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
 		httperrors.Serve503(w)
 		return
 	}
@@ -173,7 +173,7 @@ func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		errortracking.Capture(err, errortracking.WithRequest(r))
+		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
 		httperrors.Serve503(w)
 		return
 	}

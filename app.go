@@ -132,7 +132,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 
 	if _, err := domain.GetLookupPath(r); err != nil {
 		if errors.Is(err, gitlab.ErrDiskDisabled) {
-			errortracking.Capture(err)
+			errortracking.Capture(err, errortracking.WithStackTrace())
 			httperrors.Serve500(w)
 			return true
 		}
@@ -517,7 +517,7 @@ func handlePanicMiddleware(handler http.Handler) http.Handler {
 				err := fmt.Errorf("panic trace: %v", i)
 				metrics.PanicRecoveredCount.Inc()
 				logging.LogRequest(r).WithError(err).Error("recovered from panic")
-				errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithContext(r.Context()))
+				errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithContext(r.Context()), errortracking.WithStackTrace())
 				httperrors.Serve500(w)
 			}
 		}()

@@ -32,6 +32,7 @@ func fileForListener(l net.Listener) *os.File {
 }
 
 func capturingFatal(err error, fields ...errortracking.CaptureOption) {
+	fields = append(fields, errortracking.WithStackTrace())
 	errortracking.Capture(err, fields...)
 	fatal(err, "capturing fatal")
 }

@@ -108,7 +108,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 		errsave := session.Save(r, w)
 		if errsave != nil {
 			logRequest(r).WithError(errsave).Error(saveSessionErrMsg)
-			errortracking.Capture(errsave, errortracking.WithRequest(r))
+			captureErrWithReqAndStackTrace(errsave, r)
 			httperrors.Serve500(w)
 			return nil, errsave
 		}
@@ -178,7 +178,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	decryptedCode, err := a.DecryptCode(r.URL.Query().Get("code"), getRequestDomain(r))
 	if err != nil {
 		logRequest(r).WithError(err).Error("failed to decrypt secure code")
-		errortracking.Capture(err, errortracking.WithRequest(r))
+		captureErrWithReqAndStackTrace(err, r)
 		httperrors.Serve500(w)
 		return
 	}
@@ -193,7 +193,9 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 		errortracking.Capture(
 			err,
 			errortracking.WithRequest(r),
-			errortracking.WithField("redirect_uri", redirectURI))
+			errortracking.WithField("redirect_uri", redirectURI),
+			errortracking.WithStackTrace(),
+		)
 
 		httperrors.Serve503(w)
 		return
@@ -204,7 +206,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	err = session.Save(r, w)
 	if err != nil {
 		logRequest(r).WithError(err).Error(saveSessionErrMsg)
-		errortracking.Capture(err, errortracking.WithRequest(r))
+		captureErrWithReqAndStackTrace(err, r)
 
 		httperrors.Serve500(w)
 		return
@@ -240,7 +242,11 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		proxyurl, err := url.Parse(domain)
 		if err != nil {
 			logRequest(r).WithField("domain", domain).Error(queryParameterErrMsg)
-			errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithField("domain", domain))
+			errortracking.Capture(err,
+				errortracking.WithRequest(r),
+				errortracking.WithField("domain", domain),
+				errortracking.WithStackTrace(),
+			)
 
 			httperrors.Serve500(w)
 			return true
@@ -263,7 +269,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		err = session.Save(r, w)
 		if err != nil {
 			logRequest(r).WithError(err).Error(saveSessionErrMsg)
-			errortracking.Capture(err, errortracking.WithRequest(r))
+			captureErrWithReqAndStackTrace(err, r)
 
 			httperrors.Serve500(w)
 			return true
@@ -294,7 +300,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		err := session.Save(r, w)
 		if err != nil {
 			logRequest(r).WithError(err).Error(saveSessionErrMsg)
-			errortracking.Capture(err, errortracking.WithRequest(r))
+			captureErrWithReqAndStackTrace(err, r)
 
 			httperrors.Serve500(w)
 			return true
@@ -308,7 +314,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		signedCode, err := a.EncryptAndSignCode(proxyDomain, query.Get("code"))
 		if err != nil {
 			logRequest(r).WithError(err).Error(saveSessionErrMsg)
-			errortracking.Capture(err, errortracking.WithRequest(r))
+			captureErrWithReqAndStackTrace(err, r)
 
 			httperrors.Serve503(w)
 			return true
@@ -405,7 +411,7 @@ func (a *Auth) fetchAccessToken(ctx context.Context, code string) (tokenResponse
 
 	if resp.StatusCode != 200 {
 		err = errResponseNotOk
-		errortracking.Capture(err, errortracking.WithRequest(req))
+		captureErrWithReqAndStackTrace(err, req)
 		return token, err
 	}
 
@@ -448,7 +454,7 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 		err := session.Save(r, w)
 		if err != nil {
 			logRequest(r).WithError(err).Error(saveSessionErrMsg)
-			errortracking.Capture(err, errortracking.WithRequest(r))
+			captureErrWithReqAndStackTrace(err, r)
 
 			httperrors.Serve500(w)
 			return true
@@ -475,7 +481,7 @@ func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Re
 	err := session.Save(r, w)
 	if err != nil {
 		logRequest(r).WithError(err).Error(saveSessionErrMsg)
-		errortracking.Capture(err, errortracking.WithRequest(r))
+		captureErrWithReqAndStackTrace(err, r)
 
 		httperrors.Serve500(w)
 		return
@@ -507,7 +513,7 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 
 	if err != nil {
 		logRequest(r).WithError(err).Error(failAuthErrMsg)
-		errortracking.Capture(err, errortracking.WithRequest(req))
+		captureErrWithReqAndStackTrace(err, r)
 
 		httperrors.Serve500(w)
 		return true
@@ -518,7 +524,7 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 
 	if err != nil {
 		logRequest(r).WithError(err).Error("Failed to retrieve info with token")
-		errortracking.Capture(err)
+		captureErrWithReqAndStackTrace(err, r)
 		// call serve404 handler when auth fails
 		domain.ServeNotFoundAuthFailed(w, r)
 		return true
@@ -532,8 +538,9 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 
 	if resp.StatusCode != http.StatusOK {
 		// call serve404 handler when auth fails
-		logRequest(r).WithField("status", resp.Status).Error("Unexpected response fetching access token")
-		errortracking.Capture(fmt.Errorf("unexpected response fetching access token status: %d", resp.StatusCode))
+		err := fmt.Errorf("unexpected response fetching access token status: %d", resp.StatusCode)
+		logRequest(r).WithError(err).WithField("status", resp.Status).Error("Unexpected response fetching access token")
+		captureErrWithReqAndStackTrace(err, r)
 		domain.ServeNotFoundAuthFailed(w, r)
 		return true
 	}
@@ -581,7 +588,7 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, domai
 
 	if a == nil {
 		logRequest(r).Error(errAuthNotConfigured)
-		errortracking.Capture(errAuthNotConfigured, errortracking.WithRequest(r))
+		captureErrWithReqAndStackTrace(errAuthNotConfigured, r)
 
 		httperrors.Serve500(w)
 		return true
@@ -618,7 +625,7 @@ func checkResponseForInvalidToken(resp *http.Response, session *sessions.Session
 		defer resp.Body.Close()
 		err := json.NewDecoder(resp.Body).Decode(&errResp)
 		if err != nil {
-			errortracking.Capture(err)
+			captureErrWithReqAndStackTrace(err, r)
 			return false
 		}
 
@@ -686,4 +693,8 @@ func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internal
 		jwtExpiry:     time.Minute,
 		now:           time.Now,
 	}, nil
+}
+
+func captureErrWithReqAndStackTrace(err error, r *http.Request) {
+	errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
 }
