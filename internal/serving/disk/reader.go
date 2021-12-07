@@ -277,15 +277,21 @@ func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter
 }
 
 func handleRootError(err error, h serving.Handler) bool {
-	switch err {
-	case fs.ErrNotExist:
+	if err == nil {
 		return false
-	case context.Canceled:
+	}
+
+	if errors.Is(err, fs.ErrNotExist) {
+		return false
+	}
+
+	if errors.Is(err, context.Canceled) {
 		// Handle context.Canceled error as not found exist https://gitlab.com/gitlab-org/gitlab-pages/-/issues/669
-		//httperrors.Serve404(h.Writer)
-		return true
-	default:
-		httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
+		httperrors.Serve404(h.Writer)
 		return true
 	}
+
+	httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
+	return true
+
 }

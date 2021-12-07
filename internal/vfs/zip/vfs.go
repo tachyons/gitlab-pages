@@ -179,14 +179,13 @@ func (zfs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.
 	// we do it in loop to not use any additional locks
 	for {
 		root, err := zfs.findOrOpenArchive(ctx, cacheKey, path)
-		if err != nil {
-			switch err {
-			case httprange.ErrNotFound:
-				// If archive is not found, return a known `vfs` error
-				return nil, fs.ErrNotExist
-			case errAlreadyCached:
-				continue
-			}
+		if errors.Is(err, errAlreadyCached) {
+			continue
+		}
+
+		// If archive is not found, return a known `vfs` error
+		if errors.Is(err, httprange.ErrNotFound) {
+			return nil, fs.ErrNotExist
 		}
 
 		return root, err
