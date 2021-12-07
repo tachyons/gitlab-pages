@@ -293,5 +293,4 @@ func handleRootError(err error, h serving.Handler) bool {
 
 	httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
 	return true
-
 }
