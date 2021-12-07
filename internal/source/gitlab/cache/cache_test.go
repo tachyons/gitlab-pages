@@ -221,7 +221,7 @@ func TestResolve(t *testing.T) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 			require.Equal(t, 0, len(resolver.lookups))
-			require.EqualError(t, lookup.Error, "retrieval context done")
+			require.EqualError(t, lookup.Error, "retrieval context done: "+context.DeadlineExceeded.Error())
 		})
 	})
 
@@ -235,7 +235,7 @@ func TestResolve(t *testing.T) {
 				resolver.domain <- "err.gitlab.com"
 
 				require.Equal(t, "my.gitlab.com", lookup.Name)
-				require.EqualError(t, lookup.Error, "context done")
+				require.EqualError(t, lookup.Error, "context done: "+context.Canceled.Error())
 			})
 		})
 	})

@@ -449,6 +449,7 @@ type stubOpts struct {
 	pagesHandler        http.HandlerFunc
 	pagesStatusResponse int
 	pagesRoot           string
+	delay               time.Duration
 }
 
 func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
@@ -528,6 +529,10 @@ func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
 			// shortcut for healthy checkup done by WaitUntilRequestSucceeds
 			w.WriteHeader(http.StatusNoContent)
 			return
+		}
+		// to test slow responses from the API
+		if opts.delay > 0 {
+			time.Sleep(opts.delay)
 		}
 
 		opts.setAPICalled(true)

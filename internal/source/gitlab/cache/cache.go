@@ -2,7 +2,7 @@ package cache
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
@@ -100,7 +100,7 @@ func (c *Cache) retrieve(ctx context.Context, entry *Entry) *api.Lookup {
 	var lookup *api.Lookup
 	select {
 	case <-ctx.Done():
-		lookup = &api.Lookup{Name: entry.domain, Error: errors.New("context done")}
+		lookup = &api.Lookup{Name: entry.domain, Error: fmt.Errorf("context done: %w", ctx.Err())}
 	case <-entry.retrieved:
 		lookup = entry.Lookup()
 	}
