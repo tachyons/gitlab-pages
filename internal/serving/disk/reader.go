@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
@@ -41,11 +42,8 @@ func (reader *Reader) serveRedirectsStatus(h serving.Handler, redirects *redirec
 func (reader *Reader) tryRedirects(h serving.Handler) bool {
 	ctx := h.Request.Context()
 	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.SHA256)
-	if errors.Is(err, fs.ErrNotExist) {
-		return false
-	} else if err != nil {
-		httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
-		return true
+	if err != nil {
+		return handleRootError(err, h)
 	}
 
 	r := redirects.ParseRedirects(ctx, root)
@@ -74,12 +72,8 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
 	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.SHA256)
-	if errors.Is(err, fs.ErrNotExist) {
-		return false
-	} else if err != nil {
-		httperrors.Serve500WithRequest(h.Writer, h.Request,
-			"vfs.Root", err)
-		return true
+	if err != nil {
+		return handleRootError(err, h)
 	}
 
 	fullPath, err := reader.resolvePath(ctx, root, h.SubPath)
@@ -137,11 +131,8 @@ func (reader *Reader) tryNotFound(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
 	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.SHA256)
-	if errors.Is(err, fs.ErrNotExist) {
-		return false
-	} else if err != nil {
-		httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
-		return true
+	if err != nil {
+		return handleRootError(err, h)
 	}
 
 	page404, err := reader.resolvePath(ctx, root, "404.html")
@@ -153,6 +144,12 @@ func (reader *Reader) tryNotFound(h serving.Handler) bool {
 
 	err = reader.serveCustomFile(ctx, h.Writer, h.Request, http.StatusNotFound, root, page404)
 	if err != nil {
+		// Handle context.Canceled error as not exist https://gitlab.com/gitlab-org/gitlab-pages/-/issues/669
+		if errors.Is(err, context.Canceled) {
+			logging.LogRequest(h.Request).WithError(err).Warn("user cancelled request")
+			return false
+		}
+
 		httperrors.Serve500WithRequest(h.Writer, h.Request, "serveCustomFile", err)
 		return true
 	}
@@ -251,11 +248,6 @@ func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter
 	// Open and serve content of file
 	file, err := root.Open(ctx, fullPath)
 	if err != nil {
-		// Handle context.Canceled error as not exist https://gitlab.com/gitlab-org/gitlab-pages/-/issues/669
-		if errors.Is(err, context.Canceled) {
-			return fs.ErrNotExist
-		}
-
 		return err
 	}
 	defer file.Close()
@@ -282,4 +274,18 @@ func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter
 	}
 
 	return nil
+}
+
+func handleRootError(err error, h serving.Handler) bool {
+	switch err {
+	case fs.ErrNotExist:
+		return false
+	case context.Canceled:
+		// Handle context.Canceled error as not found exist https://gitlab.com/gitlab-org/gitlab-pages/-/issues/669
+		//httperrors.Serve404(h.Writer)
+		return true
+	default:
+		httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
+		return true
+	}
 }
