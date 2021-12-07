@@ -80,7 +80,7 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 	req, err := http.NewRequestWithContext(r.Context(), "GET", reqURL.String(), nil)
 	if err != nil {
 		logging.LogRequest(r).WithError(err).Error(createArtifactRequestErrMsg)
-		errortracking.Capture(err, errortracking.WithRequest(r))
+		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
 		httperrors.Serve500(w)
 		return
 	}
@@ -92,7 +92,7 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 
 	if err != nil {
 		logging.LogRequest(r).WithError(err).Error(artifactRequestErrMsg)
-		errortracking.Capture(err, errortracking.WithRequest(r))
+		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
 		httperrors.Serve502(w)
 		return
 	}
@@ -110,7 +110,7 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 
 	if resp.StatusCode == http.StatusInternalServerError {
 		logging.LogRequest(r).Error(errArtifactResponse)
-		errortracking.Capture(errArtifactResponse, errortracking.WithRequest(r))
+		errortracking.Capture(errArtifactResponse, errortracking.WithRequest(r), errortracking.WithStackTrace())
 		httperrors.Serve500(w)
 		return
 	}

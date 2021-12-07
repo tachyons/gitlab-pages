@@ -55,7 +55,7 @@ func (reader *Reader) tryRedirects(h serving.Handler) bool {
 		if err != redirects.ErrNoRedirect {
 			// We assume that rewrite failure is not fatal
 			// and we only capture the error
-			errortracking.Capture(err, errortracking.WithRequest(h.Request))
+			errortracking.Capture(err, errortracking.WithRequest(h.Request), errortracking.WithStackTrace())
 		}
 		return false
 	}
