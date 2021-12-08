@@ -3,7 +3,6 @@ package rejectmethods
 import (
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,27 +18,11 @@ func TestNewMiddleware(t *testing.T) {
 	acceptedMethods := []string{"GET", "HEAD", "POST", "PUT", "PATCH", "CONNECT", "OPTIONS", "TRACE"}
 	for _, method := range acceptedMethods {
 		t.Run(method, func(t *testing.T) {
-			tmpRequest, _ := http.NewRequest(method, "/", nil)
-			recorder := httptest.NewRecorder()
-
-			middleware.ServeHTTP(recorder, tmpRequest)
-
-			result := recorder.Result()
-			defer result.Body.Close()
-
-			require.Equal(t, http.StatusOK, result.StatusCode)
+			require.HTTPStatusCode(t, middleware.ServeHTTP, method, "/", nil, http.StatusOK)
 		})
 	}
 
 	t.Run("UNKNOWN", func(t *testing.T) {
-		tmpRequest, _ := http.NewRequest("UNKNOWN", "/", nil)
-		recorder := httptest.NewRecorder()
-
-		middleware.ServeHTTP(recorder, tmpRequest)
-
-		result := recorder.Result()
-		defer result.Body.Close()
-
-		require.Equal(t, http.StatusMethodNotAllowed, result.StatusCode)
+		require.HTTPStatusCode(t, middleware.ServeHTTP, "UNKNOWN", "/", nil, http.StatusMethodNotAllowed)
 	})
 }
