@@ -9,7 +9,8 @@
             "project_id": 123,
             "source": {
                 "path": "some/path/to/project/",
-                "type": "file"
+                "type": "file",
+                "sha256": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
             }
         },
         {
@@ -19,7 +20,8 @@
             "project_id": 124,
             "source": {
                 "path": "some/path/to/project-2/",
-                "type": "file"
+                "type": "file",
+                "sha256": "6affdae3b3c1aa6aa7689e9b6a7b3225a636aa1ac0025f490cca1285ceaf1487"
             }
         },
         {
@@ -29,7 +31,8 @@
             "project_id": 125,
             "source": {
                 "path": "some/path/to/project-3/",
-                "type": "file"
+                "type": "file",
+                "sha256": "0f8ef3377b30fc47f96b48247f463a726a802f62f3faa03d56403751d2f66c67"
             }
         }
     ]

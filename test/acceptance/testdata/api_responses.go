@@ -1,6 +1,7 @@
 package testdata
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -162,6 +163,10 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 				cfg = projectConfig{}
 			}
 
+			sourcePath := fmt.Sprintf("file://%s", wd+"/"+dir+project)
+			sum := sha256.Sum256([]byte(sourcePath))
+			sha := string(sum[:])
+
 			lookupPath := api.LookupPath{
 				ProjectID:     cfg.projectID,
 				AccessControl: cfg.accessControl,
@@ -169,8 +174,9 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 				// gitlab.Resolve logic expects prefix to have ending slash
 				Prefix: ensureEndingSlash(prefix),
 				Source: api.Source{
-					Type: "zip",
-					Path: fmt.Sprintf("file://%s", wd+"/"+dir+project),
+					Type:   "zip",
+					Path:   sourcePath,
+					SHA256: sha,
 				},
 			}
 
@@ -196,6 +202,10 @@ func customDomain(config projectConfig) responseFn {
 	return func(t *testing.T, wd string) api.VirtualDomain {
 		t.Helper()
 
+		sourcePath := fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk)
+		sum := sha256.Sum256([]byte(sourcePath))
+		sha := string(sum[:])
+
 		return api.VirtualDomain{
 			Certificate: "",
 			Key:         "",
@@ -209,8 +219,9 @@ func customDomain(config projectConfig) responseFn {
 					// see internal/serving/disk/ for details
 					Prefix: "/",
 					Source: api.Source{
-						Type: "zip",
-						Path: fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk),
+						Type:   "zip",
+						SHA256: sha,
+						Path:   sourcePath,
 					},
 				},
 			},

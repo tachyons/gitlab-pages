@@ -9,7 +9,8 @@
             "project_id": 123,
             "source": {
                 "path": "http://127.0.0.1:38001/not-found.zip",
-                "type": "zip"
+                "type": "zip",
+                "sha256": "84d0a9f3e5430a2b849b8240359578a6a0710ee34e4ba77b240b1e5142d8d4be"
             }
         }
     ]

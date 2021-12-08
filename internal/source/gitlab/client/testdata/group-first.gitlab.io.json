@@ -9,7 +9,8 @@
         "project_id": 1,
         "source": {
           "path": "some/path/group/",
-          "type": "file"
+          "type": "file",
+          "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
         }
       },
       {
@@ -19,7 +20,8 @@
         "project_id": 2,
         "source": {
           "path": "some/path/to/project-2/",
-          "type": "file"
+          "type": "file",
+          "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
         }
       }
     ]

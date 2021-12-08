@@ -30,6 +30,7 @@ func TestGetExtraLogFields(t *testing.T) {
 			ServingType: "file",
 			ProjectID:   100,
 			Prefix:      "/prefix",
+			SHA256:      "foo",
 		}
 	}})
 
