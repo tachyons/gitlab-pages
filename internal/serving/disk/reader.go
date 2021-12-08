@@ -41,9 +41,10 @@ func (reader *Reader) serveRedirectsStatus(h serving.Handler, redirects *redirec
 // tryRedirects returns true if it successfully handled request
 func (reader *Reader) tryRedirects(h serving.Handler) bool {
 	ctx := h.Request.Context()
-	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.SHA256)
-	if err != nil {
-		return handleRootError(err, h)
+
+	root, served := reader.root(h)
+	if root == nil {
+		return served
 	}
 
 	r := redirects.ParseRedirects(ctx, root)
@@ -71,9 +72,9 @@ func (reader *Reader) tryRedirects(h serving.Handler) bool {
 func (reader *Reader) tryFile(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
-	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.SHA256)
-	if err != nil {
-		return handleRootError(err, h)
+	root, served := reader.root(h)
+	if root == nil {
+		return served
 	}
 
 	fullPath, err := reader.resolvePath(ctx, root, h.SubPath)
@@ -130,9 +131,9 @@ func redirectPath(request *http.Request) string {
 func (reader *Reader) tryNotFound(h serving.Handler) bool {
 	ctx := h.Request.Context()
 
-	root, err := reader.vfs.Root(ctx, h.LookupPath.Path, h.LookupPath.SHA256)
-	if err != nil {
-		return handleRootError(err, h)
+	root, served := reader.root(h)
+	if root == nil {
+		return served
 	}
 
 	page404, err := reader.resolvePath(ctx, root, "404.html")
@@ -276,21 +277,25 @@ func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter
 	return nil
 }
 
-func handleRootError(err error, h serving.Handler) bool {
+// root tries to resolve the vfs.Root and handles errors for it.
+// It returns whether we served the response or not.
+func (reader *Reader) root(h serving.Handler) (vfs.Root, bool) {
+	root, err := reader.vfs.Root(h.Request.Context(), h.LookupPath.Path, h.LookupPath.SHA256)
 	if err == nil {
-		return false
+		return root, false
 	}
 
 	if errors.Is(err, fs.ErrNotExist) {
-		return false
+		return nil, false
 	}
 
 	if errors.Is(err, context.Canceled) {
 		// Handle context.Canceled error as not found exist https://gitlab.com/gitlab-org/gitlab-pages/-/issues/669
 		httperrors.Serve404(h.Writer)
-		return true
+		return nil, true
 	}
 
 	httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
-	return true
+	return nil, true
+
 }
