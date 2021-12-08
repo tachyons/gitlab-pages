@@ -87,7 +87,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 		},
 		"accessing archive that is 404": {
 			vfsPath: testServerURL + "/invalid.zip",
-			path:   "/index.html",
+			path:    "/index.html",
 			// we expect the status to not be set
 			expectedStatus: 0,
 		},
