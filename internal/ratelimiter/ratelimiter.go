@@ -17,6 +17,10 @@ const (
 	// DefaultSourceIPBurstSize is the maximum burst allowed per rate limiter.
 	// E.g. The first 100 requests within 1s will succeed, but the 101st will fail.
 	DefaultSourceIPBurstSize = 100
+
+	// based on an avg ~4,000 unique IPs per minute
+	// https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b
+	DefaultSourceIPCacheSize = 5000
 )
 
 // Option function to configure a RateLimiter
@@ -33,21 +37,24 @@ type RateLimiter struct {
 	sourceIPBurstSize      int
 	sourceIPBlockedCount   *prometheus.GaugeVec
 	sourceIPCache          *lru.Cache
+
+	sourceIPCacheOptions []lru.Option
 	// TODO: add domainCache https://gitlab.com/gitlab-org/gitlab-pages/-/issues/630
 }
 
 // New creates a new RateLimiter with default values that can be configured via Option functions
-func New(c *lru.Cache, opts ...Option) *RateLimiter {
+func New(opts ...Option) *RateLimiter {
 	rl := &RateLimiter{
 		now:                    time.Now,
 		sourceIPLimitPerSecond: DefaultSourceIPLimitPerSecond,
 		sourceIPBurstSize:      DefaultSourceIPBurstSize,
-		sourceIPCache:          c,
 	}
 
 	for _, opt := range opts {
 		opt(rl)
 	}
+
+	rl.sourceIPCache = lru.New("source_ip", rl.sourceIPCacheOptions...)
 
 	return rl
 }
@@ -73,9 +80,32 @@ func WithSourceIPBurstSize(burst int) Option {
 	}
 }
 
+// WithBlockedCountMetric configures metric reporting how many requests were blocked based by IP
 func WithBlockedCountMetric(m *prometheus.GaugeVec) Option {
 	return func(rl *RateLimiter) {
 		rl.sourceIPBlockedCount = m
+	}
+}
+
+// WithSourceIPCacheMaxSize configures cache size for source IP ratelimiter
+func WithSourceIPCacheMaxSize(size int64) Option {
+	return func(rl *RateLimiter) {
+		rl.sourceIPCacheOptions = append(rl.sourceIPCacheOptions, lru.WithMaxSize(size))
+	}
+}
+
+// WithSourceIPCachedEntriesMetric configures metric reporting how many IPs are currently stored in
+// source-IP rate-limiter cache
+func WithSourceIPCachedEntriesMetric(m *prometheus.GaugeVec) Option {
+	return func(rl *RateLimiter) {
+		rl.sourceIPCacheOptions = append(rl.sourceIPCacheOptions, lru.WithCachedEntriesMetric(m))
+	}
+}
+
+// WithSourceIPCachedRequestsMetric configures metric for how many times we ask source IP cache
+func WithSourceIPCachedRequestsMetric(m *prometheus.CounterVec) Option {
+	return func(rl *RateLimiter) {
+		rl.sourceIPCacheOptions = append(rl.sourceIPCacheOptions, lru.WithCachedRequestsMetric(m))
 	}
 }
 

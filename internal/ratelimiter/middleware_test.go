@@ -10,7 +10,6 @@ import (
 	testlog "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/lru"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -29,7 +28,6 @@ func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
-				lru.New("source_ip"),
 				WithNow(mockNow),
 				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
 				WithSourceIPBurstSize(tc.sourceIPBurstSize),
@@ -85,10 +83,8 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 	for tn, tc := range tcs {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
-				lru.New("source_ip",
-					lru.WithCachedEntriesMetric(cachedEntries),
-					lru.WithCachedRequestsMetric(cacheReqs),
-				),
+				WithSourceIPCachedEntriesMetric(cachedEntries),
+				WithSourceIPCachedRequestsMetric(cacheReqs),
 				WithBlockedCountMetric(blocked),
 				WithNow(mockNow),
 				WithSourceIPLimitPerSecond(1),
