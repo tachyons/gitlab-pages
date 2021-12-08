@@ -1,6 +1,7 @@
 package acceptance_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -550,4 +551,33 @@ func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
 			return true
 		}, time.Second, 10*time.Millisecond)
 	}
+}
+
+func TestSlowRequests(t *testing.T) {
+	opts := &stubOpts{
+		delay: 250 * time.Millisecond,
+	}
+	logBuf := RunPagesProcess(t,
+		withStubOptions(opts),
+		withExtraArgument("gitlab-retrieval-timeout", "1s"),
+		withListeners([]ListenSpec{httpListener}),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), opts.delay/2)
+	defer cancel()
+
+	url := httpListener.URL("/index.html")
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	require.NoError(t, err)
+
+	req.Host = "group.gitlab-example.com"
+
+	_, err = DoPagesRequest(t, httpListener, req)
+	require.Error(t, err, "cancelling the context should trigger this error")
+
+	require.Eventually(t, func() bool {
+		require.Contains(t, logBuf.String(), "context done: context canceled", "error mismatch")
+		require.Contains(t, logBuf.String(), "\"status\":404", "status mismatch")
+		return true
+	}, time.Second, time.Millisecond)
 }

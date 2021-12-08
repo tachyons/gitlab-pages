@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -47,7 +48,7 @@ func (r *Retriever) Retrieve(originalCtx context.Context, domain string) (lookup
 	select {
 	case <-ctx.Done():
 		logMsg = "retrieval context done"
-		lookup = api.Lookup{Error: errors.New(logMsg)}
+		lookup = api.Lookup{Error: fmt.Errorf(logMsg+": %w", ctx.Err())}
 	case lookup = <-r.resolveWithBackoff(ctx, domain):
 		logMsg = "retrieval response sent"
 	}
