@@ -4,6 +4,7 @@ FROM ${RUBY_IMAGE}
 
 ARG GITLAB_SHELL_VERSION
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-shell" \
@@ -22,22 +23,23 @@ ADD gitlab-gomplate.tar.gz /
 COPY scripts/ /scripts/
 COPY sshd_config /etc/ssh/
 
-RUN dnf clean all \
+RUN dnf ${DNF_OPTS} install -by --nodocs procps fipscheck-lib \
+    && dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs procps fipscheck-lib \
     && rpm --import /usr/local/tmp/openssh-server-rpm-key.pub \
     && dnf ${DNF_OPTS} install -by --disablerepo="*" --nodocs /usr/local/tmp/openssh*.rpm \
     && rm -r /usr/local/tmp /usr/libexec/openssh/ssh-keysign \
-    && adduser -m ${GITLAB_USER} \
+    && adduser -m ${GITLAB_USER} -u ${UID} \
     && mkdir -p /srv/sshd /var/log/gitlab-shell \
     && touch /var/log/gitlab-shell/gitlab-shell.log \
     && mv /scripts/authorized_keys /authorized_keys \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /srv/sshd /srv/gitlab-shell /var/log/gitlab-shell /etc/ssh /scripts \
+    && chown -R ${UID}:0 /srv/sshd /srv/gitlab-shell /var/log/gitlab-shell /etc/ssh /scripts /home/${GITLAB_USER} \
+    && chmod -R g=u /srv/sshd /srv/gitlab-shell /var/log/gitlab-shell /etc/ssh /scripts /home/${GITLAB_USER} \
     && chmod 0755 /authorized_keys
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/srv/gitlab-shell
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+USER ${UID}
 
 CMD "/scripts/process-wrapper"
 

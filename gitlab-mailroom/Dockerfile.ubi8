@@ -4,6 +4,7 @@ FROM ${RUBY_IMAGE}
 
 ARG MAILROOM_VERSION
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-mailroom" \
@@ -15,16 +16,19 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-mailr
       summary="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received." \
       description="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received."
 
-ADD gitlab-mailroom.tar.gz /
+RUN dnf ${DNF_OPTS} install -by --nodocs procps libicu tzdata \
+    && dnf clean all \
+    && rm -r /var/cache/dnf \
+    && adduser -m ${GITLAB_USER} -u ${UID}
 
 COPY scripts/ /scripts/
 
-RUN dnf clean all \
-    && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs procps libicu tzdata \
-    && adduser -m ${GITLAB_USER}
+RUN chgrp -R 0 /scripts /home/${GITLAB_USER} && \
+    chmod -R g=u /scripts /home/${GITLAB_USER}
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+ADD gitlab-mailroom.tar.gz /
+
+USER ${UID}
 
 CMD /usr/bin/mail_room -c /var/opt/gitlab/mail_room.yml --log-exit-as json
 

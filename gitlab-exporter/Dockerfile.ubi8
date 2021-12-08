@@ -4,6 +4,7 @@ FROM ${RUBY_IMAGE}
 
 ARG GITLAB_EXPORTER_VERSION
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-exporter" \
@@ -23,15 +24,16 @@ ADD gitlab-exporter.tar.gz /
 
 COPY scripts/ /scripts/
 
-RUN dnf clean all \
+RUN dnf ${DNF_OPTS} install -by --nodocs procps uuid \
+    && dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs procps uuid \
-    && adduser -m ${GITLAB_USER} \
+    && adduser -m ${GITLAB_USER} -u ${UID} \
     && mkdir -p /var/log/gitlab ${CONFIG_DIRECTORY} \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab ${CONFIG_DIRECTORY} \
+    && chown -R ${UID}:0 /var/log/gitlab ${CONFIG_DIRECTORY} /scripts \
+    && chmod -R g=u ${CONFIG_DIRECTORY} /scripts \
     && ldconfig
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+USER ${UID}
 
 CMD /usr/bin/gitlab-exporter web -c ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
 

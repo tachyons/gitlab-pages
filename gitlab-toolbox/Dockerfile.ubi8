@@ -4,6 +4,7 @@ FROM ${RAILS_IMAGE}
 
 ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG DNF_OPTS
 ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
 
@@ -22,10 +23,17 @@ ADD gitlab-python.tar.gz /
 COPY scripts/bin/* /usr/local/bin/
 COPY scripts/lib/* ${LIBDIR}/ruby/vendor_ruby/
 
-RUN dnf clean all \
-    && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs ca-certificates openssl
+RUN dnf ${DNF_OPTS} install -by --nodocs ca-certificates openssl \
+    && dnf clean all \
+    && rm -r /var/cache/dnf
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+RUN chown -R ${UID}:0 /scripts /home/${GITLAB_USER} /var/log/gitlab && \
+    chmod -R g=u /scripts /home/${GITLAB_USER} /var/log/gitlab
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# Declare /var/log volume after initial log files
+# are written to the perms can be fixed
+VOLUME /var/log
+
+USER ${UID}
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-ubi8.sh"]

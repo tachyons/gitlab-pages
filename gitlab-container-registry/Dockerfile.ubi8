@@ -4,6 +4,8 @@ FROM ${UBI_IMAGE}
 
 ARG REGISTRY_VERSION
 ARG GITLAB_USER=git
+ARG UID=1000
+ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-container-registry" \
       name="Container Registry" \
@@ -14,19 +16,24 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-conta
       summary="The Docker toolset to pack, ship, store, and deliver content." \
       description="The Docker toolset to pack, ship, store, and deliver content. This is a fork of official Docker Registry 2.0 implementation."
 
+RUN adduser -m ${GITLAB_USER} -u ${UID} \
+    && ln -sf /usr/local/bin/registry /bin/registry
+
 ADD gitlab-gomplate.tar.gz /
 ADD gitlab-container-registry.tar.gz /
 
 COPY scripts/ /scripts/
 
-RUN adduser -m ${GITLAB_USER} \
-    && ln -sf /usr/local/bin/registry /bin/registry
+RUN chgrp -R 0 /scripts /home/${GITLAB_USER} && \
+    chmod -R g=u /scripts /home/${GITLAB_USER}
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+USER ${UID}
 
 ENV CONFIG_DIRECTORY=/etc/docker/registry
 ENV CONFIG_FILENAME=config.yml
+ENV GITLAB_USER=${GITLAB_USER}
 
+ENTRYPOINT ["/scripts/entrypoint-ubi8.sh"]
 CMD /bin/registry serve ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck

@@ -4,6 +4,7 @@ FROM ${RUBY_IMAGE}
 
 ARG GITLAB_VERSION=v13.8.0
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG GITLAB_DATA=/var/opt/gitlab
 ARG DNF_OPTS
 
@@ -23,17 +24,24 @@ ADD gitlab-gomplate.tar.gz /
 
 COPY scripts/ /scripts/
 
-RUN dnf clean all \
+RUN dnf ${DNF_OPTS} install -by --nodocs perl \
+    && dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs perl \
-    && adduser -m ${GITLAB_USER} \
+    && adduser -m ${GITLAB_USER} -u ${UID} \
     && mkdir -p /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA} \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} \
+    && chown -R ${UID}:0 \
         /srv/gitlab \
         /var/log/gitlab \
-        ${GITLAB_DATA}
+        ${GITLAB_DATA} \
+        /home/${GITLAB_USER} \
+    && chmod -R g=u \
+        /srv/gitlab \
+        /var/log/gitlab \
+        ${GITLAB_DATA} \
+        /home/${GITLAB_USER} \
+        /scripts
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+USER ${UID}
 
 CMD /scripts/start-workhorse
 

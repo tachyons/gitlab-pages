@@ -4,6 +4,7 @@ FROM ${RUBY_IMAGE}
 
 ARG GITLAB_PAGES_VERSION
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG CONFIG_DIRECTORY=/etc/gitlab-pages
 ARG DATA_DIRECTORY=/srv/gitlab-pages
 ARG DNF_OPTS
@@ -22,14 +23,15 @@ ADD gitlab-gomplate.tar.gz /
 
 COPY scripts/ /scripts
 
-RUN dnf clean all \
+RUN dnf ${DNF_OPTS} install -by --nodocs procps libicu tzdata \
+    && dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs procps libicu tzdata \
-    && adduser -m ${GITLAB_USER} \
+    && adduser -m ${GITLAB_USER} -u ${UID} \
     && mkdir -p ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab
+    && chown -R ${UID}:0 ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab /scripts \
+    && chmod -R g=u ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab /scripts
 
-USER $GITLAB_USER:$GITLAB_USER
+USER ${UID}
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitlab-pages
 

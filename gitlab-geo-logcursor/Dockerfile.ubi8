@@ -4,6 +4,7 @@ FROM ${RAILS_IMAGE}
 
 ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-geo-logcursor" \
@@ -20,12 +21,13 @@ ENV DB_SCHEMA_TARGET=geo
 
 COPY scripts/  /scripts/
 
-RUN dnf clean all \
+RUN dnf ${DNF_OPTS} install -by --nodocs procps \
+    && dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs procps \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
+    && chown -R ${UID}:0 /scripts /home/${GITLAB_USER} \
+    && chmod -R g=u scripts /home/${GITLAB_USER}
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+USER ${UID}
 
 CMD /scripts/process-wrapper
 

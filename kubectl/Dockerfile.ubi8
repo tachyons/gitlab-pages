@@ -17,9 +17,9 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/kubectl" \
 ADD kubectl.tar.gz /
 
 RUN chmod +x /usr/local/bin/{kubectl,yq} \
+    && dnf ${DNF_OPTS} install -by --nodocs openssh openssl \
     && dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs openssh openssl \
     && rm /usr/libexec/openssh/ssh-keysign
 
 # Default to non-root user
