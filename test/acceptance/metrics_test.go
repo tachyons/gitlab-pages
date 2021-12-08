@@ -9,8 +9,7 @@ import (
 )
 
 func TestPrometheusMetricsCanBeScraped(t *testing.T) {
-	_, cleanup := newZipFileServerURL(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
-	defer cleanup()
+	runObjectStorage(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 
 	RunPagesProcess(t,
 		withExtraArgument("max-conns", "10"),

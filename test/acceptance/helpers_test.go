@@ -245,7 +245,7 @@ func RunPagesProcessWithSSLCertFile(t *testing.T, listeners []ListenSpec, sslCer
 	RunPagesProcess(t,
 		withListeners(listeners),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 		withEnv([]string{"SSL_CERT_FILE=" + sslCertFile}),
 	)
@@ -263,7 +263,7 @@ func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCert
 	RunPagesProcess(t,
 		withListeners(listeners),
 		withArguments([]string{
-			"-config=" + defaultAuthConfigWith(t),
+			"-config=" + defaultAuthConfig(t),
 		}),
 		withEnv([]string{"SSL_CERT_DIR=" + sslCertDir}),
 	)
@@ -464,14 +464,14 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 
 	router.HandleFunc("/api/v4/internal/pages", pagesHandler)
 
-	authHandler := defaultAuthHandler(t, opts)
+	authHandler := defaultAuthHandler(t)
 	if opts.authHandler != nil {
 		authHandler = opts.authHandler
 	}
 
 	router.HandleFunc("/oauth/token", authHandler)
 
-	userHandler := defaultUserHandler(t, opts)
+	userHandler := defaultUserHandler(t)
 	if opts.userHandler != nil {
 		userHandler = opts.userHandler
 	}
@@ -549,7 +549,7 @@ func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
 	}
 }
 
-func defaultAuthHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
+func defaultAuthHandler(t *testing.T) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "POST", r.Method)
 		err := json.NewEncoder(w).Encode(struct {
@@ -561,7 +561,7 @@ func defaultAuthHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
 	}
 }
 
-func defaultUserHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
+func defaultUserHandler(t *testing.T) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
 		w.WriteHeader(http.StatusOK)

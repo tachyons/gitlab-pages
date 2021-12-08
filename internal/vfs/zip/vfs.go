@@ -200,7 +200,7 @@ func (zfs *zipVFS) Name() string {
 // otherwise creates the archive entry in a cache and try to save it,
 // if saving fails it's because the archive has already been cached
 // (e.g. by another concurrent request)
-func (zfs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArchive, error) {
+func (zfs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 	// This needs to happen in lock to ensure that
 	// concurrent access will not remove it
 	// it is needed due to the bug https://github.com/patrickmn/go-cache/issues/48
@@ -259,7 +259,7 @@ func (zfs *zipVFS) findOrCreateArchive(ctx context.Context, key string) (*zipArc
 
 // findOrOpenArchive gets archive from cache and tries to open it
 func (zfs *zipVFS) findOrOpenArchive(ctx context.Context, key, path string) (*zipArchive, error) {
-	zipArchive, err := zfs.findOrCreateArchive(ctx, key)
+	zipArchive, err := zfs.findOrCreateArchive(key)
 	if err != nil {
 		return nil, err
 	}
