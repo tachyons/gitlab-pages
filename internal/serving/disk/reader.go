@@ -297,5 +297,4 @@ func (reader *Reader) root(h serving.Handler) (vfs.Root, bool) {
 
 	httperrors.Serve500WithRequest(h.Writer, h.Request, "vfs.Root", err)
 	return nil, true
-
 }
