@@ -8,9 +8,9 @@ ARG FETCH_ARTIFACTS_PAT
 ARG CI_API_V4_URL
 ARG DNF_OPTS
 
-RUN dnf clean all \
-    && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs git
+RUN dnf ${DNF_OPTS} install -by --nodocs git \
+    && dnf clean all \
+    && rm -r /var/cache/dnf
 
 RUN mkdir /assets \
     && echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_SERVER_VERSION}" \

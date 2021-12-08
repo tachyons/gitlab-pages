@@ -3,6 +3,7 @@ ARG RUBY_IMAGE=
 FROM ${RUBY_IMAGE}
 
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG GITLAB_DATA=/var/opt/gitlab
 ARG DNF_OPTS
 
@@ -15,14 +16,14 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-rails
       summary="Rails container for GitLab." \
       description="Rails container for GitLab."
 
-RUN dnf clean all \
-    && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs \
+RUN dnf ${DNF_OPTS} install -by --nodocs \
             libicu tzdata uuid \
             libpng libjpeg-turbo zlib libtiff \
-    && adduser -m ${GITLAB_USER} \
+    && dnf clean all \
+    && rm -r /var/cache/dnf \
+    && adduser -m ${GITLAB_USER} -u ${UID} \
     && mkdir -p ${GITLAB_DATA}/{.upgrade-status,data,repo,config} \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} ${GITLAB_DATA} \
+    && chown -R ${UID}:0 ${GITLAB_DATA} \
     && chmod -R ug+rwX,o-rwx ${GITLAB_DATA}/repo \
     && chmod -R ug-s ${GITLAB_DATA}/repo
 
@@ -30,10 +31,11 @@ ADD gitlab-rails-ee.tar.gz /
 ADD gitlab-gomplate.tar.gz /
 
 COPY scripts/ /scripts
-
-RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts /srv/gitlab \
-    && chmod o-w /scripts/lib /scripts/lib/checks \
-    && mv /srv/gitlab/log /var/log/gitlab \
+   
+RUN chown -R ${UID}:0 /scripts /srv/gitlab /home/${GITLAB_USER} \
+    && chmod o-w /scripts/lib /srv/gitlab /scripts/lib/checks \
+    && chmod -R g=u /scripts /home/${GITLAB_USER} /srv/gitlab \
+    && mv /srv/gitlab/log/ /var/log/gitlab/ \
     && ln -s /var/log/gitlab /srv/gitlab/log \
     && cd /srv/gitlab \
     && mkdir -p public/uploads \
@@ -43,7 +45,8 @@ RUN chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts /srv/gitlab \
     && chmod -R ug+rwX shared/pages/ \
     && chmod 0700 public/uploads \
     && mkdir /home/git/gitlab-shell \
-    && chown ${GITLAB_USER}:${GITLAB_USER} /home/git/gitlab-shell \
+    && chown ${UID}:0 /home/git/gitlab-shell \
+    && chmod -R g=u /home/git/gitlab-shell \
     && ln -s /srv/gitlab/GITLAB_SHELL_VERSION /home/git/gitlab-shell/VERSION \
     && sed -e '/host: localhost/d' -e '/port: 80/d' -i config/gitlab.yml \
     && sed -e "s/# user:.*/user: ${GITLAB_USER}/" -e "s:/home/git/repositories:${GITLAB_DATA}/repo:" -i config/gitlab.yml \
@@ -64,4 +67,10 @@ RUN echo "Generating bootsnap cache"; \
     du -hs ${BOOTSNAP_CACHE_DIR} ;
 # exit code of this command will be that of `du`
 
-VOLUME ${GITLAB_DATA} /var/log
+# Ensure user can access all created directories
+RUN chown -R ${UID}:0 /srv/gitlab \
+    && chmod -R g=u /srv/gitlab
+
+VOLUME ${GITLAB_DATA}
+
+

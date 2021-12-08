@@ -5,6 +5,7 @@ FROM ${GIT_IMAGE}
 ARG GITALY_SERVER_VERSION
 ARG GITLAB_USER=git
 ARG DNF_OPTS
+ARG UID=1000
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitaly" \
       name="Gitaly" \
@@ -22,25 +23,34 @@ COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
 COPY gitconfig /usr/local/etc/gitconfig
 
-RUN dnf clean all \
+RUN dnf ${DNF_OPTS} install -by --nodocs procps net-tools libicu openssh-clients \
+    && dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs procps net-tools libicu openssh-clients \
     && rm -f /usr/local/tmp/openssh-server-*.rpm /usr/libexec/openssh/ssh-keysign \
-    && adduser -m ${GITLAB_USER} \
+    && adduser -u ${UID} -m ${GITLAB_USER} \
     && mkdir -p /etc/gitaly /var/log/gitaly /home/${GITLAB_USER}/repositories /srv/gitlab-shell \
     && touch /var/log/gitaly/gitaly.log \
     && touch /var/log/gitaly/gitlab-shell.log \
     && cd /srv/gitaly-ruby \
     && bundle binstubs --all \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} \
+    && chown -R ${UID}:0 \
       /scripts \
       /etc/gitaly \
       /var/log/gitaly \
       /home/${GITLAB_USER}/repositories \
       /srv/gitaly-ruby \
-      /srv/gitlab-shell
+      /srv/gitlab-shell \
+      /home/${GITLAB_USER} \
+    && chmod -R g=u \
+      /scripts \
+      /etc/gitaly \
+      /var/log/gitaly \
+      /home/${GITLAB_USER}/repositories \
+      /srv/gitaly-ruby \
+      /srv/gitlab-shell \
+      /home/${GITLAB_USER}
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+USER ${UID}
 
 ENV PATH "$PATH:/srv/gitaly-ruby/bin"
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitaly

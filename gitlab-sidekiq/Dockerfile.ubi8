@@ -4,6 +4,7 @@ FROM ${RAILS_IMAGE}
 
 ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-sidekiq" \
@@ -24,13 +25,18 @@ ADD gitlab-logger.tar.gz /usr/local/bin
 
 COPY scripts/ /scripts/
 
-RUN dnf clean all \
+RUN dnf ${DNF_OPTS} install -by --nodocs procps openssh-clients \
+    && dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs procps openssh-clients \
     && rm /usr/libexec/openssh/ssh-keysign \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} /scripts
+    && chown -R ${UID}:0 /scripts /home/${GITLAB_USER} /var/log/gitlab \
+    && chmod -R g=u /scripts /home/${GITLAB_USER} /var/log/gitlab
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+USER ${UID}
+
+# Declare /var/log volume after initial log files
+# are written to the perms can be fixed
+VOLUME /var/log
 
 CMD /scripts/process-wrapper
 

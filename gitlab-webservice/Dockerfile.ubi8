@@ -5,6 +5,7 @@ FROM ${RAILS_IMAGE}
 ARG GITLAB_CONFIG=/srv/gitlab/config
 ARG GITLAB_VERSION
 ARG GITLAB_USER=git
+ARG UID=1000
 ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-webservice" \
@@ -21,19 +22,24 @@ ADD gitlab-python.tar.gz /
 ADD gitlab-logger.tar.gz /usr/local/bin
 
 COPY scripts/ /scripts
-COPY --chown=git configuration/ ${GITLAB_CONFIG}/
+COPY --chown=${UID}:0 configuration/ ${GITLAB_CONFIG}/
 
 ENV GITALY_FEATURE_DEFAULT_ON=1
 
-RUN dnf clean all \
+RUN dnf ${DNF_OPTS} install -by --nodocs procps \
+    && dnf clean all \
     && rm -r /var/cache/dnf \
-    && dnf ${DNF_OPTS} install -by --nodocs procps \
     && cd /srv/gitlab \
     && mkdir -p public/uploads \
     && chmod 0700 public/uploads \
-    && chown -R ${GITLAB_USER}:${GITLAB_USER} public/uploads
+    && chown -R ${UID}:0 public/uploads /home/${GITLAB_USER} /var/log/gitlab \
+    && chmod -R g=u public/uploads /home/${GITLAB_USER} /var/log/gitlab
 
-USER ${GITLAB_USER}:${GITLAB_USER}
+USER ${UID}
+
+# Declare /var/log volume after initial log files
+# are written to the perms can be fixed
+VOLUME /var/log
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
 
