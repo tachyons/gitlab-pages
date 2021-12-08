@@ -1,12 +1,14 @@
 package ratelimiter
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/time/rate"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/lru"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
 const (
@@ -26,35 +28,40 @@ const (
 // Option function to configure a RateLimiter
 type Option func(*RateLimiter)
 
-// RateLimiter holds an LRU cache of elements to be rate limited. Currently, it supports
-// a sourceIPCache and each item returns a rate.Limiter.
+// KeyFunc returns unique identifier for the subject of rate limit(e.g. client IP or domain)
+type KeyFunc func(*http.Request) string
+
+// RateLimiter holds an LRU cache of elements to be rate limited.
 // It uses "golang.org/x/time/rate" as its Token Bucket rate limiter per source IP entry.
 // See example https://www.fatalerrors.org/a/design-and-implementation-of-time-rate-limiter-for-golang-standard-library.html
 // It also holds a now function that can be mocked in unit tests.
 type RateLimiter struct {
-	now                    func() time.Time
-	sourceIPLimitPerSecond float64
-	sourceIPBurstSize      int
-	sourceIPBlockedCount   *prometheus.GaugeVec
-	sourceIPCache          *lru.Cache
+	name           string
+	now            func() time.Time
+	limitPerSecond float64
+	burstSize      int
+	blockedCount   *prometheus.GaugeVec
+	cache          *lru.Cache
+	key            KeyFunc
 
-	sourceIPCacheOptions []lru.Option
-	// TODO: add domainCache https://gitlab.com/gitlab-org/gitlab-pages/-/issues/630
+	cacheOptions []lru.Option
 }
 
 // New creates a new RateLimiter with default values that can be configured via Option functions
-func New(opts ...Option) *RateLimiter {
+func New(name string, opts ...Option) *RateLimiter {
 	rl := &RateLimiter{
-		now:                    time.Now,
-		sourceIPLimitPerSecond: DefaultSourceIPLimitPerSecond,
-		sourceIPBurstSize:      DefaultSourceIPBurstSize,
+		name:           name,
+		now:            time.Now,
+		limitPerSecond: DefaultSourceIPLimitPerSecond,
+		burstSize:      DefaultSourceIPBurstSize,
+		key:            request.GetRemoteAddrWithoutPort,
 	}
 
 	for _, opt := range opts {
 		opt(rl)
 	}
 
-	rl.sourceIPCache = lru.New("source_ip", rl.sourceIPCacheOptions...)
+	rl.cache = lru.New(name, rl.cacheOptions...)
 
 	return rl
 }
@@ -66,60 +73,61 @@ func WithNow(now func() time.Time) Option {
 	}
 }
 
-// WithSourceIPLimitPerSecond allows configuring per source IP limit per second for RateLimiter
-func WithSourceIPLimitPerSecond(limit float64) Option {
+// WithLimitPerSecond allows configuring limit per second for RateLimiter
+func WithLimitPerSecond(limit float64) Option {
 	return func(rl *RateLimiter) {
-		rl.sourceIPLimitPerSecond = limit
+		rl.limitPerSecond = limit
 	}
 }
 
-// WithSourceIPBurstSize configures burst per source IP for the RateLimiter
-func WithSourceIPBurstSize(burst int) Option {
+// WithBurstSize configures burst per key for the RateLimiter
+func WithBurstSize(burst int) Option {
 	return func(rl *RateLimiter) {
-		rl.sourceIPBurstSize = burst
+		rl.burstSize = burst
 	}
 }
 
-// WithBlockedCountMetric configures metric reporting how many requests were blocked based by IP
+// WithBlockedCountMetric configures metric reporting how many requests were blocked
 func WithBlockedCountMetric(m *prometheus.GaugeVec) Option {
 	return func(rl *RateLimiter) {
-		rl.sourceIPBlockedCount = m
+		rl.blockedCount = m
 	}
 }
 
-// WithSourceIPCacheMaxSize configures cache size for source IP ratelimiter
-func WithSourceIPCacheMaxSize(size int64) Option {
+// WithCacheMaxSize configures cache size for ratelimiter
+func WithCacheMaxSize(size int64) Option {
 	return func(rl *RateLimiter) {
-		rl.sourceIPCacheOptions = append(rl.sourceIPCacheOptions, lru.WithMaxSize(size))
+		rl.cacheOptions = append(rl.cacheOptions, lru.WithMaxSize(size))
 	}
 }
 
-// WithSourceIPCachedEntriesMetric configures metric reporting how many IPs are currently stored in
-// source-IP rate-limiter cache
-func WithSourceIPCachedEntriesMetric(m *prometheus.GaugeVec) Option {
+// WithCachedEntriesMetric configures metric reporting how many keys are currently stored in
+// the rate-limiter cache
+func WithCachedEntriesMetric(m *prometheus.GaugeVec) Option {
 	return func(rl *RateLimiter) {
-		rl.sourceIPCacheOptions = append(rl.sourceIPCacheOptions, lru.WithCachedEntriesMetric(m))
+		rl.cacheOptions = append(rl.cacheOptions, lru.WithCachedEntriesMetric(m))
 	}
 }
 
-// WithSourceIPCachedRequestsMetric configures metric for how many times we ask source IP cache
-func WithSourceIPCachedRequestsMetric(m *prometheus.CounterVec) Option {
+// WithCachedRequestsMetric configures metric for how many times we ask key cache
+func WithCachedRequestsMetric(m *prometheus.CounterVec) Option {
 	return func(rl *RateLimiter) {
-		rl.sourceIPCacheOptions = append(rl.sourceIPCacheOptions, lru.WithCachedRequestsMetric(m))
+		rl.cacheOptions = append(rl.cacheOptions, lru.WithCachedRequestsMetric(m))
 	}
 }
 
-func (rl *RateLimiter) getSourceIPLimiter(sourceIP string) *rate.Limiter {
-	limiterI, _ := rl.sourceIPCache.FindOrFetch(sourceIP, sourceIP, func() (interface{}, error) {
-		return rate.NewLimiter(rate.Limit(rl.sourceIPLimitPerSecond), rl.sourceIPBurstSize), nil
+func (rl *RateLimiter) limiter(key string) *rate.Limiter {
+	limiterI, _ := rl.cache.FindOrFetch(key, key, func() (interface{}, error) {
+		return rate.NewLimiter(rate.Limit(rl.limitPerSecond), rl.burstSize), nil
 	})
 
 	return limiterI.(*rate.Limiter)
 }
 
-// SourceIPAllowed checks that the real remote IP address is allowed to perform an operation
-func (rl *RateLimiter) SourceIPAllowed(sourceIP string) bool {
-	limiter := rl.getSourceIPLimiter(sourceIP)
+// RequestAllowed checks that the real remote IP address is allowed to perform an operation
+func (rl *RateLimiter) RequestAllowed(r *http.Request) bool {
+	rateLimitedKey := rl.key(r)
+	limiter := rl.limiter(rateLimitedKey)
 
 	// AllowN allows us to use the rl.now function, so we can test this more easily.
 	return limiter.AllowN(rl.now(), 1)

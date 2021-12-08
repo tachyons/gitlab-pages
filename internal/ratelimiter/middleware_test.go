@@ -28,9 +28,10 @@ func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
+				"rate_limiter",
 				WithNow(mockNow),
-				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
-				WithSourceIPBurstSize(tc.sourceIPBurstSize),
+				WithLimitPerSecond(tc.sourceIPLimit),
+				WithBurstSize(tc.sourceIPBurstSize),
 			)
 
 			for i := 0; i < tc.reqNum; i++ {
@@ -38,7 +39,7 @@ func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 				rr := httptest.NewRequest(http.MethodGet, "https://domain.gitlab.io", nil)
 				rr.RemoteAddr = remoteAddr
 
-				handler := rl.SourceIPLimiter(next)
+				handler := rl.Middleware(next)
 
 				handler.ServeHTTP(ww, rr)
 				res := ww.Result()
@@ -83,12 +84,13 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 	for tn, tc := range tcs {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
-				WithSourceIPCachedEntriesMetric(cachedEntries),
-				WithSourceIPCachedRequestsMetric(cacheReqs),
+				"rate_limiter",
+				WithCachedEntriesMetric(cachedEntries),
+				WithCachedRequestsMetric(cacheReqs),
 				WithBlockedCountMetric(blocked),
 				WithNow(mockNow),
-				WithSourceIPLimitPerSecond(1),
-				WithSourceIPBurstSize(1),
+				WithLimitPerSecond(1),
+				WithBurstSize(1),
 			)
 
 			for i := 0; i < 5; i++ {
@@ -103,7 +105,7 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 				rr.RemoteAddr = remoteAddr
 
 				// middleware is evaluated in reverse order
-				handler := rl.SourceIPLimiter(next)
+				handler := rl.Middleware(next)
 
 				handler.ServeHTTP(ww, rr)
 				res := ww.Result()
@@ -126,13 +128,13 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 			}
 			blocked.Reset()
 
-			cachedCount := testutil.ToFloat64(cachedEntries.WithLabelValues("source_ip"))
+			cachedCount := testutil.ToFloat64(cachedEntries.WithLabelValues("rate_limiter"))
 			require.Equal(t, float64(1), cachedCount, "cached count")
 			cachedEntries.Reset()
 
-			cacheReqMiss := testutil.ToFloat64(cacheReqs.WithLabelValues("source_ip", "miss"))
+			cacheReqMiss := testutil.ToFloat64(cacheReqs.WithLabelValues("rate_limiter", "miss"))
 			require.Equal(t, float64(1), cacheReqMiss, "miss count")
-			cacheReqHit := testutil.ToFloat64(cacheReqs.WithLabelValues("source_ip", "hit"))
+			cacheReqHit := testutil.ToFloat64(cacheReqs.WithLabelValues("rate_limiter", "hit"))
 			require.Equal(t, float64(4), cacheReqHit, "hit count")
 			cacheReqs.Reset()
 		})
