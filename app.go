@@ -31,7 +31,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/lru"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
@@ -261,13 +260,9 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	if a.config.RateLimit.SourceIPLimitPerSecond > 0 {
 		rl := ratelimiter.New(
-			lru.New("source_ip",
-				// based on an avg ~4,000 unique IPs per minute
-				// https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b
-				lru.WithMaxSize(5000),
-				lru.WithCachedEntriesMetric(metrics.RateLimitSourceIPCachedEntries),
-				lru.WithCachedRequestsMetric(metrics.RateLimitSourceIPCacheRequests),
-			),
+			ratelimiter.WithSourceIPCacheMaxSize(ratelimiter.DefaultSourceIPCacheSize),
+			ratelimiter.WithSourceIPCachedEntriesMetric(metrics.RateLimitSourceIPCachedEntries),
+			ratelimiter.WithSourceIPCachedRequestsMetric(metrics.RateLimitSourceIPCacheRequests),
 			ratelimiter.WithBlockedCountMetric(metrics.RateLimitSourceIPBlockedCount),
 			ratelimiter.WithSourceIPLimitPerSecond(a.config.RateLimit.SourceIPLimitPerSecond),
 			ratelimiter.WithSourceIPBurstSize(a.config.RateLimit.SourceIPBurst),
