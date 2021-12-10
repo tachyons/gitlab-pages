@@ -211,12 +211,40 @@ var (
 		[]string{"op"},
 	)
 
-	// RateLimitSourceIPBlockedCount is the number of source IPs that have been blocked by the
+	// RateLimitSourceIPBlockedCount is the number of requests that have been blocked by the
 	// source IP rate limiter
 	RateLimitSourceIPBlockedCount = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "gitlab_pages_rate_limit_source_ip_blocked_count",
-			Help: "The number of source IP addresses that have been blocked by the rate limiter",
+			Help: "The number of requests that have been blocked by the IP rate limiter",
+		},
+		[]string{"enforced"},
+	)
+
+	// RateLimitDomainCacheRequests is the number of cache hits/misses
+	RateLimitDomainCacheRequests = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "gitlab_pages_rate_limit_domain_cache_requests",
+			Help: "The number of source_ip cache hits/misses in the rate limiter",
+		},
+		[]string{"op", "cache"},
+	)
+
+	// RateLimitDomainCachedEntries is the number of entries in the cache
+	RateLimitDomainCachedEntries = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_rate_limit_domain_cached_entries",
+			Help: "The number of entries in the cache",
+		},
+		[]string{"op"},
+	)
+
+	// RateLimitDomainBlockedCount is the number of requests that have been blocked by the
+	// domain rate limiter
+	RateLimitDomainBlockedCount = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_rate_limit_domain_blocked_count",
+			Help: "The number of requests addresses that have been blocked by the domain rate limiter",
 		},
 		[]string{"enforced"},
 	)

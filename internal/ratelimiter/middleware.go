@@ -2,6 +2,7 @@ package ratelimiter
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -25,20 +26,20 @@ func (rl *RateLimiter) Middleware(handler http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !rl.requestAllowed(r) {
-			rl.logRateLimitedRequest(r)
+		if rl.requestAllowed(r) {
+			handler.ServeHTTP(w, r)
+			return
+		}
 
-			if feature.EnforceIPRateLimits.Enabled() {
-				if rl.blockedCount != nil {
-					rl.blockedCount.WithLabelValues("true").Inc()
-				}
-				httperrors.Serve429(w)
-				return
-			}
+		rl.logRateLimitedRequest(r)
 
-			if rl.blockedCount != nil {
-				rl.blockedCount.WithLabelValues("false").Inc()
-			}
+		if rl.blockedCount != nil {
+			rl.blockedCount.WithLabelValues(strconv.FormatBool(feature.EnforceIPRateLimits.Enabled())).Inc()
+		}
+
+		if rl.enforce {
+			httperrors.Serve429(w)
+			return
 		}
 
 		handler.ServeHTTP(w, r)

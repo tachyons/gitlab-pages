@@ -17,6 +17,8 @@ var (
 	pagesDomain             = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
 	rateLimitSourceIP       = flag.Float64("rate-limit-source-ip", 0.0, "Rate limit per source IP in number of requests per second, 0 means is disabled")
 	rateLimitSourceIPBurst  = flag.Int("rate-limit-source-ip-burst", 100, "Rate limit per source IP maximum burst allowed per second")
+	rateLimitDomain         = flag.Float64("rate-limit-domain", 0.0, "Rate limit per domain in number of requests per second, 0 means is disabled")
+	rateLimitDomainBurst    = flag.Int("rate-limit-domain-burst", 100, "Rate limit per domain maximum burst allowed per second")
 	artifactsServer         = flag.String("artifacts-server", "", "API URL to proxy artifact requests to, e.g.: 'https://gitlab.com/api/v4'")
 	artifactsServerTimeout  = flag.Int("artifacts-server-timeout", 10, "Timeout (in seconds) for a proxied request to the artifacts server")
 	pagesStatus             = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")

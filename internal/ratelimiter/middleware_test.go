@@ -1,16 +1,18 @@
 package ratelimiter
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	testlog "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -22,41 +24,32 @@ var next = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 })
 
-func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
+func TestMiddlewareWithDifferentLimits(t *testing.T) {
 	hook := testlog.NewGlobal()
-	testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, true)
 
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
 				"rate_limiter",
 				WithNow(mockNow),
-				WithLimitPerSecond(tc.sourceIPLimit),
-				WithBurstSize(tc.sourceIPBurstSize),
+				WithLimitPerSecond(tc.limit),
+				WithBurstSize(tc.burstSize),
+				WithEnforce(true),
 			)
 
+			handler := rl.Middleware(next)
+
 			for i := 0; i < tc.reqNum; i++ {
-				ww := httptest.NewRecorder()
-				rr := httptest.NewRequest(http.MethodGet, "https://domain.gitlab.io", nil)
-				rr.RemoteAddr = remoteAddr
+				r := requestFor(remoteAddr, "http://gitlab.com")
+				code, body := testhelpers.PerformRequest(t, handler, r)
 
-				handler := rl.Middleware(next)
-
-				handler.ServeHTTP(ww, rr)
-				res := ww.Result()
-
-				if i < tc.sourceIPBurstSize {
-					require.Equal(t, http.StatusNoContent, res.StatusCode, "req: %d failed", i)
+				if i < tc.burstSize {
+					require.Equal(t, http.StatusNoContent, code, "req: %d failed", i)
 				} else {
 					// requests should fail after reaching tc.perDomainBurstPerSecond because mockNow
 					// always returns the same time
-					require.Equal(t, http.StatusTooManyRequests, res.StatusCode, "req: %d failed", i)
-					b, err := io.ReadAll(res.Body)
-					require.NoError(t, err)
-
-					require.Contains(t, string(b), "Too many requests.")
-					res.Body.Close()
-
+					require.Equal(t, http.StatusTooManyRequests, code, "req: %d failed", i)
+					require.Contains(t, body, "Too many requests.")
 					assertSourceIPLog(t, remoteAddr, hook)
 				}
 			}
@@ -64,26 +57,28 @@ func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 	}
 }
 
-func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
+func TestMiddlewareDenyRequestsAfterBurst(t *testing.T) {
 	hook := testlog.NewGlobal()
 	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
 
 	tcs := map[string]struct {
-		enabled        bool
+		enforce        bool
 		expectedStatus int
 	}{
 		"disabled_rate_limit_http": {
-			enabled:        false,
+			enforce:        false,
 			expectedStatus: http.StatusNoContent,
 		},
 		"enabled_rate_limit_http_blocks": {
-			enabled:        true,
+			enforce:        true,
 			expectedStatus: http.StatusTooManyRequests,
 		},
 	}
 
 	for tn, tc := range tcs {
 		t.Run(tn, func(t *testing.T) {
+			testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, tc.enforce)
+
 			rl := New(
 				"rate_limiter",
 				WithCachedEntriesMetric(cachedEntries),
@@ -92,37 +87,28 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 				WithNow(mockNow),
 				WithLimitPerSecond(1),
 				WithBurstSize(1),
+				WithEnforce(tc.enforce),
 			)
 
+			// middleware is evaluated in reverse order
+			handler := rl.Middleware(next)
+
 			for i := 0; i < 5; i++ {
-				ww := httptest.NewRecorder()
-				rr := httptest.NewRequest(http.MethodGet, "http://gitlab.com", nil)
-				testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, tc.enabled)
-
-				rr.RemoteAddr = remoteAddr
-
-				// middleware is evaluated in reverse order
-				handler := rl.Middleware(next)
-
-				handler.ServeHTTP(ww, rr)
-				res := ww.Result()
+				r := requestFor(remoteAddr, "http://gitlab.com")
+				code, _ := testhelpers.PerformRequest(t, handler, r)
 
 				if i == 0 {
-					require.Equal(t, http.StatusNoContent, res.StatusCode)
+					require.Equal(t, http.StatusNoContent, code)
 					continue
 				}
 
 				// burst is 1 and limit is 1 per second, all subsequent requests should fail
-				require.Equal(t, tc.expectedStatus, res.StatusCode)
+				require.Equal(t, tc.expectedStatus, code)
 				assertSourceIPLog(t, remoteAddr, hook)
 			}
 
-			blockedCount := testutil.ToFloat64(blocked.WithLabelValues("true"))
-			if tc.enabled {
-				require.Equal(t, float64(4), blockedCount, "blocked count")
-			} else {
-				require.Equal(t, float64(0), blockedCount, "blocked count")
-			}
+			blockedCount := testutil.ToFloat64(blocked.WithLabelValues(strconv.FormatBool(tc.enforce)))
+			require.Equal(t, float64(4), blockedCount, "blocked count")
 			blocked.Reset()
 
 			cachedCount := testutil.ToFloat64(cachedEntries.WithLabelValues("rate_limiter"))
@@ -138,6 +124,90 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 	}
 }
 
+func TestKeyFunc(t *testing.T) {
+	tt := map[string]struct {
+		keyFunc            KeyFunc
+		firstRemoteAddr    string
+		firstTarget        string
+		secondRemoteAddr   string
+		secondTarget       string
+		expectedSecondCode int
+	}{
+		"rejected_by_ip": {
+			keyFunc:            request.GetRemoteAddrWithoutPort,
+			firstRemoteAddr:    "10.0.0.1",
+			firstTarget:        "https://domain.gitlab.io",
+			secondRemoteAddr:   "10.0.0.1",
+			secondTarget:       "https://different.gitlab.io",
+			expectedSecondCode: http.StatusTooManyRequests,
+		},
+		"rejected_by_ip_with_different_port": {
+			keyFunc:            request.GetRemoteAddrWithoutPort,
+			firstRemoteAddr:    "10.0.0.1:41000",
+			firstTarget:        "https://domain.gitlab.io",
+			secondRemoteAddr:   "10.0.0.1:41001",
+			secondTarget:       "https://different.gitlab.io",
+			expectedSecondCode: http.StatusTooManyRequests,
+		},
+		"rejected_by_domain": {
+			keyFunc:            request.GetHostWithoutPort,
+			firstRemoteAddr:    "10.0.0.1",
+			firstTarget:        "https://domain.gitlab.io",
+			secondRemoteAddr:   "10.0.0.2",
+			secondTarget:       "https://domain.gitlab.io",
+			expectedSecondCode: http.StatusTooManyRequests,
+		},
+		"rejected_by_domain_with_different_protocol": {
+			keyFunc:            request.GetHostWithoutPort,
+			firstRemoteAddr:    "10.0.0.1",
+			firstTarget:        "https://domain.gitlab.io",
+			secondRemoteAddr:   "10.0.0.2",
+			secondTarget:       "http://domain.gitlab.io",
+			expectedSecondCode: http.StatusTooManyRequests,
+		},
+		"domain_limiter_allows_same_ip": {
+			keyFunc:            request.GetHostWithoutPort,
+			firstRemoteAddr:    "10.0.0.1",
+			firstTarget:        "https://domain.gitlab.io",
+			secondRemoteAddr:   "10.0.0.1",
+			secondTarget:       "https://different.gitlab.io",
+			expectedSecondCode: http.StatusNoContent,
+		},
+		"ip_limiter_allows_same_domain": {
+			keyFunc:            request.GetRemoteAddrWithoutPort,
+			firstRemoteAddr:    "10.0.0.1",
+			firstTarget:        "https://domain.gitlab.io",
+			secondRemoteAddr:   "10.0.0.2",
+			secondTarget:       "https://domain.gitlab.io",
+			expectedSecondCode: http.StatusNoContent,
+		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			handler := New(
+				"rate_limiter",
+				WithNow(mockNow),
+				WithLimitPerSecond(1),
+				WithBurstSize(1),
+				WithKeyFunc(tc.keyFunc),
+				WithEnforce(true),
+			).Middleware(next)
+
+			r1 := httptest.NewRequest(http.MethodGet, tc.firstTarget, nil)
+			r1.RemoteAddr = tc.firstRemoteAddr
+
+			firstCode, _ := testhelpers.PerformRequest(t, handler, r1)
+			require.Equal(t, http.StatusNoContent, firstCode)
+
+			r2 := httptest.NewRequest(http.MethodGet, tc.secondTarget, nil)
+			r2.RemoteAddr = tc.secondRemoteAddr
+			secondCode, _ := testhelpers.PerformRequest(t, handler, r2)
+			require.Equal(t, tc.expectedSecondCode, secondCode)
+		})
+	}
+}
+
 func assertSourceIPLog(t *testing.T, remoteAddr string, hook *testlog.Hook) {
 	t.Helper()
 
@@ -147,4 +217,25 @@ func assertSourceIPLog(t *testing.T, remoteAddr string, hook *testlog.Hook) {
 	require.Equal(t, remoteAddr, hook.LastEntry().Data["source_ip"])
 
 	hook.Reset()
+}
+
+func newTestMetrics(t *testing.T) (*prometheus.GaugeVec, *prometheus.GaugeVec, *prometheus.CounterVec) {
+	t.Helper()
+
+	blockedGauge := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: t.Name(),
+		},
+		[]string{"enforced"},
+	)
+
+	cachedEntries := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: t.Name(),
+	}, []string{"op"})
+
+	cacheReqs := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: t.Name(),
+	}, []string{"op", "cache"})
+
+	return blockedGauge, cachedEntries, cacheReqs
 }

@@ -2,6 +2,7 @@ package testhelpers
 
 import (
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"net/http/httptest"
@@ -89,10 +90,25 @@ func SetEnvironmentVariable(t testing.TB, key, value string) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		os.Setenv(key, orig)
+		require.NoError(t, os.Setenv(key, orig))
 	})
 }
 
 func StubFeatureFlagValue(t testing.TB, envVar string, value bool) {
 	SetEnvironmentVariable(t, envVar, strconv.FormatBool(value))
+}
+
+func PerformRequest(t *testing.T, handler http.Handler, r *http.Request) (int, string) {
+	t.Helper()
+
+	ww := httptest.NewRecorder()
+
+	handler.ServeHTTP(ww, r)
+	res := ww.Result()
+
+	b, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.NoError(t, res.Body.Close())
+
+	return res.StatusCode, string(b)
 }

@@ -6,112 +6,108 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
+
+	"github.com/stretchr/testify/require"
 )
 
-func TestSourceIPRateLimitMiddleware(t *testing.T) {
+var ratelimitedListeners = map[string]struct {
+	listener ListenSpec
+	header   http.Header
+	clientIP string
+	// We perform requests to server while we're waiting for it to boot up,
+	// successful request gets counted in IP rate limit
+	includeWaitRequest bool
+}{
+	"http_listener": {
+		listener:           httpListener,
+		clientIP:           "127.0.0.1",
+		includeWaitRequest: true,
+	},
+	"https_listener": {
+		listener:           httpsListener,
+		clientIP:           "127.0.0.1",
+		includeWaitRequest: true,
+	},
+	"proxy_listener": {
+		listener: proxyListener,
+		header: http.Header{
+			"X-Forwarded-For":  []string{"172.16.123.1"},
+			"X-Forwarded-Host": []string{"group.gitlab-example.com"},
+		},
+		clientIP: "172.16.123.1",
+	},
+	"proxyv2_listener": {
+		listener:           httpsProxyv2Listener,
+		clientIP:           "10.1.1.1",
+		includeWaitRequest: true,
+	},
+}
+
+func TestIPRateLimits(t *testing.T) {
 	testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, true)
 
-	tcs := map[string]struct {
-		listener   ListenSpec
-		rateLimit  float64
-		rateBurst  string
-		blockedIP  string
-		header     http.Header
-		expectFail bool
-		sleep      time.Duration
-	}{
-		"http_slow_requests_should_not_be_blocked": {
-			listener:  httpListener,
-			rateLimit: 1000,
-			// RunPagesProcess makes one request, so we need to allow a burst of 2
-			// because r.RemoteAddr == 127.0.0.1 and X-Forwarded-For is ignored for non-proxy requests
-			rateBurst: "2",
-			sleep:     10 * time.Millisecond,
-		},
-		"https_slow_requests_should_not_be_blocked": {
-			listener:  httpsListener,
-			rateLimit: 1000,
-			rateBurst: "2",
-			sleep:     10 * time.Millisecond,
-		},
-		"proxy_slow_requests_should_not_be_blocked": {
-			listener:  proxyListener,
-			rateLimit: 1000,
-			// listen-proxy uses X-Forwarded-For
-			rateBurst: "1",
-			header: http.Header{
-				"X-Forwarded-For":  []string{"172.16.123.1"},
-				"X-Forwarded-Host": []string{"group.gitlab-example.com"},
-			},
-			sleep: 10 * time.Millisecond,
-		},
-		"proxyv2_slow_requests_should_not_be_blocked": {
-			listener:  httpsProxyv2Listener,
-			rateLimit: 1000,
-			rateBurst: "2",
-			sleep:     10 * time.Millisecond,
-		},
-		"http_fast_requests_blocked_after_burst": {
-			listener:   httpListener,
-			rateLimit:  1,
-			rateBurst:  "2",
-			expectFail: true,
-			blockedIP:  "127.0.0.1",
-		},
-		"https_fast_requests_blocked_after_burst": {
-			listener:   httpsListener,
-			rateLimit:  1,
-			rateBurst:  "2",
-			expectFail: true,
-			blockedIP:  "127.0.0.1",
-		},
-		"proxy_fast_requests_blocked_after_burst": {
-			listener:  proxyListener,
-			rateLimit: 1,
-			rateBurst: "1",
-			header: http.Header{
-				"X-Forwarded-For":  []string{"172.16.123.1"},
-				"X-Forwarded-Host": []string{"group.gitlab-example.com"},
-			},
-			expectFail: true,
-			blockedIP:  "172.16.123.1",
-		},
-		"proxyv2_fast_requests_blocked_after_burst": {
-			listener:   httpsProxyv2Listener,
-			rateLimit:  1,
-			rateBurst:  "2",
-			expectFail: true,
-			// use TestProxyv2Client SourceIP
-			blockedIP: "10.1.1.1",
-		},
-	}
-
-	for tn, tc := range tcs {
-		t.Run(tn, func(t *testing.T) {
+	for name, tc := range ratelimitedListeners {
+		t.Run(name, func(t *testing.T) {
+			rateLimit := 5
 			logBuf := RunPagesProcess(t,
 				withListeners([]ListenSpec{tc.listener}),
-				withExtraArgument("rate-limit-source-ip", fmt.Sprint(tc.rateLimit)),
-				withExtraArgument("rate-limit-source-ip-burst", tc.rateBurst),
+				withExtraArgument("rate-limit-source-ip", fmt.Sprint(rateLimit)),
+				withExtraArgument("rate-limit-source-ip-burst", fmt.Sprint(rateLimit)),
 			)
 
-			for i := 0; i < 5; i++ {
+			if tc.includeWaitRequest {
+				rateLimit-- // we've already used one of requests while checking if server is up
+			}
+
+			for i := 0; i < 10; i++ {
 				rsp, err := GetPageFromListenerWithHeaders(t, tc.listener, "group.gitlab-example.com", "project/", tc.header)
 				require.NoError(t, err)
-				rsp.Body.Close()
+				require.NoError(t, rsp.Body.Close())
 
-				if tc.expectFail && i >= int(tc.rateLimit) {
+				if i >= rateLimit {
 					require.Equal(t, http.StatusTooManyRequests, rsp.StatusCode, "group.gitlab-example.com request: %d failed", i)
-					assertLogFound(t, logBuf, []string{"request hit rate limit", "\"source_ip\":\"" + tc.blockedIP + "\""})
-					continue
+					assertLogFound(t, logBuf, []string{"request hit rate limit", "\"source_ip\":\"" + tc.clientIP + "\""})
+				} else {
+					require.Equal(t, http.StatusOK, rsp.StatusCode, "request: %d failed", i)
 				}
-
-				require.Equal(t, http.StatusOK, rsp.StatusCode, "request: %d failed", i)
-				time.Sleep(tc.sleep)
 			}
+		})
+	}
+}
+
+func TestDomainateLimits(t *testing.T) {
+	testhelpers.StubFeatureFlagValue(t, feature.EnforceDomainRateLimits.EnvVariable, true)
+
+	for name, tc := range ratelimitedListeners {
+		t.Run(name, func(t *testing.T) {
+			rateLimit := 5
+			logBuf := RunPagesProcess(t,
+				withListeners([]ListenSpec{tc.listener}),
+				withExtraArgument("rate-limit-domain", fmt.Sprint(rateLimit)),
+				withExtraArgument("rate-limit-domain-burst", fmt.Sprint(rateLimit)),
+			)
+
+			for i := 0; i < 10; i++ {
+				rsp, err := GetPageFromListenerWithHeaders(t, tc.listener, "group.gitlab-example.com", "project/", tc.header)
+				require.NoError(t, err)
+				require.NoError(t, rsp.Body.Close())
+
+				if i >= rateLimit {
+					require.Equal(t, http.StatusTooManyRequests, rsp.StatusCode, "group.gitlab-example.com request: %d failed", i)
+					assertLogFound(t, logBuf, []string{"request hit rate limit", "\"source_ip\":\"" + tc.clientIP + "\""})
+				} else {
+					require.Equal(t, http.StatusOK, rsp.StatusCode, "request: %d failed", i)
+				}
+			}
+
+			// make sure that requests to other domains are passing
+			rsp, err := GetPageFromListener(t, tc.listener, "CapitalGroup.gitlab-example.com", "project/")
+			require.NoError(t, err)
+			require.NoError(t, rsp.Body.Close())
+
+			require.Equal(t, http.StatusOK, rsp.StatusCode, "request to unrelated domain failed")
 		})
 	}
 }
