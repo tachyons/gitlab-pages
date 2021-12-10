@@ -90,6 +90,7 @@ RUN chmod -R =rx /scripts/
 USER ${GITLAB_USER}:${GITLAB_USER}
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitaly
+ENV PATH "$PATH:/srv/gitaly-ruby/bin"
 
 CMD "/scripts/process-wrapper"
 
