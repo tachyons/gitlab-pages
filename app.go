@@ -43,10 +43,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-const (
-	xForwardedHost = "X-Forwarded-Host"
-)
-
 var (
 	corsHandler = cors.New(cors.Options{AllowedMethods: []string{http.MethodGet, http.MethodHead}})
 )
@@ -214,17 +210,6 @@ func (a *theApp) httpInitialMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
-// proxyInitialMiddleware sets up proxy requests
-func (a *theApp) proxyInitialMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if forwardedHost := r.Header.Get(xForwardedHost); forwardedHost != "" {
-			r.Host = forwardedHost
-		}
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
 // setRequestScheme will update r.URL.Scheme if empty based on r.TLS
 func setRequestScheme(r *http.Request) *http.Request {
 	if r.URL.Scheme == request.SchemeHTTPS || r.TLS != nil {
@@ -317,7 +302,7 @@ func (a *theApp) Run() {
 		log.WithError(err).Fatal("Unable to configure pipeline")
 	}
 
-	proxyHandler := a.proxyInitialMiddleware(ghandlers.ProxyHeaders(commonHandlerPipeline))
+	proxyHandler := ghandlers.ProxyHeaders(commonHandlerPipeline)
 
 	httpHandler := a.httpInitialMiddleware(commonHandlerPipeline)
 
