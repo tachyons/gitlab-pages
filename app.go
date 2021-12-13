@@ -418,7 +418,7 @@ func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
 
 		l, err := net.FileListener(os.NewFile(fd, "[socket]"))
 		if err != nil {
-			capturingFatal(fmt.Errorf("failed to listen on FD %d: %v", fd, err), errortracking.WithField("listener", "metrics"))
+			capturingFatal(fmt.Errorf("failed to listen on FD %d: %w", fd, err), errortracking.WithField("listener", "metrics"))
 		}
 
 		monitoringOpts := []monitoring.Option{

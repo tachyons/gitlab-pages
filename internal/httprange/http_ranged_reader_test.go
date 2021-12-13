@@ -2,6 +2,7 @@ package httprange
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -95,7 +96,7 @@ func TestSectionReader(t *testing.T) {
 
 			buf := make([]byte, tt.readSize)
 			n, err := s.Read(buf)
-			if tt.expectedErr != nil && err != io.EOF {
+			if tt.expectedErr != nil && !errors.Is(err, io.EOF) {
 				require.EqualError(t, err, tt.expectedErr.Error())
 				return
 			}

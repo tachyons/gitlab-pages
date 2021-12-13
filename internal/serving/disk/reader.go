@@ -50,7 +50,7 @@ func (reader *Reader) tryRedirects(h serving.Handler) bool {
 
 	rewrittenURL, status, err := r.Rewrite(h.Request.URL)
 	if err != nil {
-		if err != redirects.ErrNoRedirect {
+		if !errors.Is(err, redirects.ErrNoRedirect) {
 			// We assume that rewrite failure is not fatal
 			// and we only capture the error
 			errortracking.Capture(err, errortracking.WithRequest(h.Request), errortracking.WithStackTrace())
@@ -81,7 +81,8 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	request := h.Request
 	urlPath := request.URL.Path
 
-	if locationError, _ := err.(*locationDirectoryError); locationError != nil {
+	var locationDirError *locationDirectoryError
+	if errors.As(err, &locationDirError) {
 		if endsWithSlash(urlPath) {
 			fullPath, err = reader.resolvePath(ctx, root, h.SubPath, "index.html")
 		} else {
@@ -90,7 +91,8 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 		}
 	}
 
-	if locationError, _ := err.(*locationFileNoExtensionError); locationError != nil {
+	var locationFileError *locationFileNoExtensionError
+	if errors.As(err, &locationFileError) {
 		fullPath, err = reader.resolvePath(ctx, root, strings.TrimSuffix(h.SubPath, "/")+".html")
 	}
 
