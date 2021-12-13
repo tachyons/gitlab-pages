@@ -3,6 +3,7 @@ package zip
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"sync"
@@ -151,6 +152,10 @@ func (zfs *zipVFS) resetCache() {
 // to try and find the cached archive or return if there's an error, for example
 // if the context is canceled.
 func (zfs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.Root, error) {
+	if cacheKey == "" {
+		return nil, fmt.Errorf("missing cacheKey")
+	}
+
 	// we do it in loop to not use any additional locks
 	for {
 		root, err := zfs.findOrOpenArchive(ctx, cacheKey, path)
