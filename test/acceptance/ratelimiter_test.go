@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
-
-	"github.com/stretchr/testify/require"
 )
 
 var ratelimitedListeners = map[string]struct {

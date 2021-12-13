@@ -7,10 +7,10 @@ import (
 	"net/url"
 	"testing"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
 )
 
 func TestNotHandleArtifactRequestReturnsFalse(t *testing.T) {

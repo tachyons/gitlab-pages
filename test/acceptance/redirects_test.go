@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"testing"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
-
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 )
 
 func TestRedirectStatusPage(t *testing.T) {

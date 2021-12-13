@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	netlifyRedirects "github.com/tj/go-redirects"
-
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
