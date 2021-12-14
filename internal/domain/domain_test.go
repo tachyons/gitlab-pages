@@ -1,33 +1,22 @@
-package domain
+package domain_test
 
 import (
 	"fmt"
 	"net/http"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
-type stubbedResolver struct {
-	project *serving.LookupPath
-	subpath string
-	err     error
-}
-
-func (resolver *stubbedResolver) Resolve(*http.Request) (*serving.Request, error) {
-	return &serving.Request{
-		Serving:    local.Instance(),
-		LookupPath: resolver.project,
-		SubPath:    resolver.subpath,
-	}, resolver.err
-}
-
-func serveFileOrNotFound(domain *Domain) http.HandlerFunc {
+func serveFileOrNotFound(domain *domain.Domain) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !domain.ServeFileHTTP(w, r) {
 			domain.ServeNotFoundHTTP(w, r)
@@ -38,39 +27,41 @@ func serveFileOrNotFound(domain *Domain) http.HandlerFunc {
 func TestIsHTTPSOnly(t *testing.T) {
 	tests := []struct {
 		name     string
-		domain   *Domain
+		domain   *domain.Domain
 		url      string
 		expected bool
 	}{
 		{
 			name: "Custom domain with HTTPS-only enabled",
-			domain: New("custom-domain", "", "",
-				&stubbedResolver{
-					project: &serving.LookupPath{
+			domain: domain.New("custom-domain", "", "",
+				mockResolver(t,
+					&serving.LookupPath{
 						Path:        "group/project/public",
 						SHA256:      "foo",
 						IsHTTPSOnly: true,
 					},
-				}),
+					"",
+					nil)),
 			url:      "http://custom-domain",
 			expected: true,
 		},
 		{
 			name: "Custom domain with HTTPS-only disabled",
-			domain: New("custom-domain", "", "",
-				&stubbedResolver{
-					project: &serving.LookupPath{
+			domain: domain.New("custom-domain", "", "",
+				mockResolver(t,
+					&serving.LookupPath{
 						Path:        "group/project/public",
 						SHA256:      "foo",
 						IsHTTPSOnly: false,
 					},
-				}),
+					"",
+					nil)),
 			url:      "http://custom-domain",
 			expected: false,
 		},
 		{
 			name:     "Unknown project",
-			domain:   New("", "", "", &stubbedResolver{err: ErrDomainDoesNotExist}),
+			domain:   domain.New("", "", "", mockResolver(t, nil, "", domain.ErrDomainDoesNotExist)),
 			url:      "http://test-domain/project",
 			expected: false,
 		},
@@ -88,14 +79,14 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 	cleanup := setUpTests(t)
 	defer cleanup()
 
-	testDomain := New("", "", "", &stubbedResolver{err: ErrDomainDoesNotExist})
+	testDomain := domain.New("", "", "", mockResolver(t, nil, "", domain.ErrDomainDoesNotExist))
 
 	require.HTTPStatusCode(t, serveFileOrNotFound(testDomain), http.MethodGet, "http://group.test.io/not-existing-file", nil, http.StatusNotFound)
 	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), http.MethodGet, "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
 
 func TestGroupCertificate(t *testing.T) {
-	testGroup := &Domain{}
+	testGroup := &domain.Domain{}
 
 	tls, err := testGroup.EnsureCertificate()
 	require.Nil(t, tls)
@@ -103,7 +94,7 @@ func TestGroupCertificate(t *testing.T) {
 }
 
 func TestDomainNoCertificate(t *testing.T) {
-	testDomain := &Domain{
+	testDomain := &domain.Domain{
 		Name: "test.domain.com",
 	}
 
@@ -118,7 +109,7 @@ func TestDomainNoCertificate(t *testing.T) {
 
 func BenchmarkEnsureCertificate(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		testDomain := &Domain{
+		testDomain := &domain.Domain{
 			Name:            "test.domain.com",
 			CertificateCert: fixture.Certificate,
 			CertificateKey:  fixture.Key,
@@ -142,70 +133,91 @@ func TestServeNamespaceNotFound(t *testing.T) {
 		name             string
 		domain           string
 		path             string
-		resolver         *stubbedResolver
+		resolver         domain.Resolver
 		expectedResponse string
 	}{
 		{
 			name:   "public_namespace_domain",
 			domain: "group.404.gitlab-example.com",
 			path:   "/unknown",
-			resolver: &stubbedResolver{
-				project: &serving.LookupPath{
+			resolver: mockResolver(t,
+				&serving.LookupPath{
 					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 				},
-				subpath: "/unknown",
-			},
+				"/unknown",
+				nil,
+			),
 			expectedResponse: "Custom 404 group page",
 		},
 		{
 			name:   "private_project_under_public_namespace_domain",
 			domain: "group.404.gitlab-example.com",
 			path:   "/private_project/unknown",
-			resolver: &stubbedResolver{
-				project: &serving.LookupPath{
+			resolver: mockResolver(t,
+				&serving.LookupPath{
 					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 					HasAccessControl:   false,
 				},
-				subpath: "/",
-			},
+				"/",
+				nil,
+			),
 			expectedResponse: "Custom 404 group page",
 		},
 		{
 			name:   "private_namespace_domain",
 			domain: "group.404.gitlab-example.com",
 			path:   "/unknown",
-			resolver: &stubbedResolver{
-				project: &serving.LookupPath{
+			resolver: mockResolver(t,
+				&serving.LookupPath{
 					Path:               "group.404/group.404.gitlab-example.com/public",
 					IsNamespaceProject: true,
 					HasAccessControl:   true,
 				},
-				subpath: "/",
-			},
+				"/",
+				nil,
+			),
 			expectedResponse: "The page you're looking for could not be found.",
 		},
 		{
 			name:   "no_parent_namespace_domain",
 			domain: "group.404.gitlab-example.com",
 			path:   "/unknown",
-			resolver: &stubbedResolver{
-				err:     ErrDomainDoesNotExist,
-				subpath: "/",
-			},
+			resolver: mockResolver(t,
+				nil,
+				"/",
+				domain.ErrDomainDoesNotExist,
+			),
 			expectedResponse: "The page you're looking for could not be found.",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &Domain{
+			d := &domain.Domain{
 				Name:     tt.domain,
 				Resolver: tt.resolver,
 			}
 
-			require.HTTPStatusCode(t, d.serveNamespaceNotFound, http.MethodGet, fmt.Sprintf("http://%s%s", tt.domain, tt.path), nil, http.StatusNotFound)
-			require.HTTPBodyContains(t, d.serveNamespaceNotFound, http.MethodGet, fmt.Sprintf("http://%s%s", tt.domain, tt.path), nil, tt.expectedResponse)
+			require.HTTPStatusCode(t, d.ServeNamespaceNotFound, http.MethodGet, fmt.Sprintf("http://%s%s", tt.domain, tt.path), nil, http.StatusNotFound)
+			require.HTTPBodyContains(t, d.ServeNamespaceNotFound, http.MethodGet, fmt.Sprintf("http://%s%s", tt.domain, tt.path), nil, tt.expectedResponse)
 		})
 	}
+}
+
+func mockResolver(t *testing.T, project *serving.LookupPath, subpath string, err error) domain.Resolver {
+	mockCtrl := gomock.NewController(t)
+
+	mockResolver := mocks.NewMockResolver(mockCtrl)
+
+	mockResolver.EXPECT().
+		Resolve(gomock.Any()).
+		AnyTimes().
+		Return(&serving.Request{
+			Serving:    local.Instance(),
+			LookupPath: project,
+			SubPath:    subpath,
+		}, err)
+
+	return mockResolver
 }
