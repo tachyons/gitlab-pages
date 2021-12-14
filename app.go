@@ -32,7 +32,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/routing"
@@ -237,6 +236,7 @@ func setRequestScheme(r *http.Request) *http.Request {
 	return r
 }
 
+// TODO: move the pipeline configuration to internal/pipeline https://gitlab.com/gitlab-org/gitlab-pages/-/issues/670
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
 	handler := a.serveFileOrNotFoundHandler()
@@ -258,19 +258,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	handler = routing.NewMiddleware(handler, a.source)
 
-	if a.config.RateLimit.SourceIPLimitPerSecond > 0 {
-		rl := ratelimiter.New(
-			"source_ip",
-			ratelimiter.WithCacheMaxSize(ratelimiter.DefaultSourceIPCacheSize),
-			ratelimiter.WithCachedEntriesMetric(metrics.RateLimitSourceIPCachedEntries),
-			ratelimiter.WithCachedRequestsMetric(metrics.RateLimitSourceIPCacheRequests),
-			ratelimiter.WithBlockedCountMetric(metrics.RateLimitSourceIPBlockedCount),
-			ratelimiter.WithLimitPerSecond(a.config.RateLimit.SourceIPLimitPerSecond),
-			ratelimiter.WithBurstSize(a.config.RateLimit.SourceIPBurst),
-		)
-
-		handler = rl.Middleware(handler)
-	}
+	handler = handlers.Ratelimiter(handler, a.config)
 
 	// Health Check
 	handler, err = a.healthCheckMiddleware(handler)
