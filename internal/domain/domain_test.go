@@ -50,6 +50,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 				&stubbedResolver{
 					project: &serving.LookupPath{
 						Path:        "group/project/public",
+						SHA256:      "foo",
 						IsHTTPSOnly: true,
 					},
 				}),
@@ -62,6 +63,7 @@ func TestIsHTTPSOnly(t *testing.T) {
 				&stubbedResolver{
 					project: &serving.LookupPath{
 						Path:        "group/project/public",
+						SHA256:      "foo",
 						IsHTTPSOnly: false,
 					},
 				}),

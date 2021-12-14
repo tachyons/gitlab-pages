@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io/fs"
 	"net/http"
-	"net/url"
 	"sync"
 	"time"
 
@@ -33,7 +32,8 @@ const (
 )
 
 var (
-	errAlreadyCached = errors.New("archive already cached")
+	errAlreadyCached   = errors.New("archive already cached")
+	errMissingCacheKey = errors.New("missing cache key")
 )
 
 type lruCache interface {
@@ -144,20 +144,6 @@ func (zfs *zipVFS) resetCache() {
 	})
 }
 
-func keyFromPath(path string) (string, error) {
-	// We assume that our URL is https://.../artifacts.zip?content-sign=aaa
-	// our caching key is `https://.../artifacts.zip`
-	// TODO: replace caching key with file_sha256
-	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/489
-	key, err := url.Parse(path)
-	if err != nil {
-		return "", err
-	}
-	key.RawQuery = ""
-	key.Fragment = ""
-	return key.String(), nil
-}
-
 // Root opens an archive given a URL path and returns an instance of zipArchive
 // that implements the vfs.VFS interface.
 // To avoid using locks, the findOrOpenArchive function runs inside of a for
@@ -166,14 +152,8 @@ func keyFromPath(path string) (string, error) {
 // to try and find the cached archive or return if there's an error, for example
 // if the context is canceled.
 func (zfs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.Root, error) {
-	// TODO: update acceptance tests mocked response to return a cacheKey
 	if cacheKey == "" {
-		k, err := keyFromPath(path)
-		if err != nil {
-			return nil, err
-		}
-
-		cacheKey = k
+		return nil, errMissingCacheKey
 	}
 
 	// we do it in loop to not use any additional locks
