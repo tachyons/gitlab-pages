@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	netlifyRedirects "github.com/tj/go-redirects"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 )
 
 var (
@@ -36,7 +38,7 @@ func validateURL(urlText string) error {
 		return errNoStartingForwardSlashInURLPath
 	}
 
-	if placeholdersEnabled() {
+	if feature.RedirectsPlaceholders.Enabled() {
 		// Limit the number of path segments a rule can contain.
 		// This prevents the matching logic from generating regular
 		// expressions that are too large/complex.

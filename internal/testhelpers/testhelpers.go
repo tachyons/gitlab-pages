@@ -7,15 +7,12 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
-
-// FFEnableRateLimiter enforces ratelimiter package to drop requests
-// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
-const FFEnableRateLimiter = "FF_ENABLE_RATE_LIMITER"
 
 // AssertHTTP404 asserts handler returns 404 with provided str body
 func AssertHTTP404(t *testing.T, handler http.HandlerFunc, mode, url string, values url.Values, str interface{}) {
@@ -83,7 +80,7 @@ func Getwd(t *testing.T) string {
 }
 
 // SetEnvironmentVariable for testing, restoring the original value on t.Cleanup
-func SetEnvironmentVariable(t *testing.T, key, value string) {
+func SetEnvironmentVariable(t testing.TB, key, value string) {
 	t.Helper()
 
 	orig := os.Getenv(key)
@@ -92,6 +89,10 @@ func SetEnvironmentVariable(t *testing.T, key, value string) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		os.Setenv(FFEnableRateLimiter, orig)
+		os.Setenv(key, orig)
 	})
+}
+
+func StubFeatureFlagValue(t testing.TB, envVar string, value bool) {
+	SetEnvironmentVariable(t, envVar, strconv.FormatBool(value))
 }

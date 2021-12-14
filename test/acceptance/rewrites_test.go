@@ -7,13 +7,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	redirects "gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 )
 
 func TestRewrites(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
-		withEnv([]string{redirects.FFEnablePlaceholders + "=true"}),
+		withEnv([]string{feature.RedirectsPlaceholders.EnvVariable + "=true"}),
 	)
 
 	tests := map[string]struct {

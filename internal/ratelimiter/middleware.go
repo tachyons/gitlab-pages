@@ -2,12 +2,12 @@ package ratelimiter
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/log"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
@@ -24,9 +24,7 @@ func (rl *RateLimiter) Middleware(handler http.Handler) http.Handler {
 		if !rl.RequestAllowed(r) {
 			rl.logRateLimitedRequest(r)
 
-			// Only drop requests once FF_ENABLE_RATE_LIMITER is enabled
-			// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
-			if rateLimiterEnabled() {
+			if feature.EnforceIPRateLimits.Enabled() {
 				if rl.blockedCount != nil {
 					rl.blockedCount.WithLabelValues("true").Inc()
 				}
@@ -56,14 +54,9 @@ func (rl *RateLimiter) logRateLimitedRequest(r *http.Request) {
 		"x_forwarded_proto":             r.Header.Get(headerXForwardedProto),
 		"x_forwarded_for":               r.Header.Get(headerXForwardedFor),
 		"gitlab_real_ip":                r.Header.Get(headerGitLabRealIP),
-		"rate_limiter_enabled":          rateLimiterEnabled(),
+		"rate_limiter_enabled":          feature.EnforceIPRateLimits.Enabled(),
 		"rate_limiter_limit_per_second": rl.limitPerSecond,
 		"rate_limiter_burst_size":       rl.burstSize,
 	}). // TODO: change to Debug with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
 		Info("request hit rate limit")
-}
-
-// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
-func rateLimiterEnabled() bool {
-	return os.Getenv("FF_ENABLE_RATE_LIMITER") == "true"
 }

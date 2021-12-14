@@ -10,6 +10,7 @@ import (
 	testlog "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -23,7 +24,7 @@ var next = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 func TestSourceIPLimiterWithDifferentLimits(t *testing.T) {
 	hook := testlog.NewGlobal()
-	testhelpers.SetEnvironmentVariable(t, testhelpers.FFEnableRateLimiter, "true")
+	testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, true)
 
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
@@ -96,11 +97,7 @@ func TestSourceIPLimiterDenyRequestsAfterBurst(t *testing.T) {
 			for i := 0; i < 5; i++ {
 				ww := httptest.NewRecorder()
 				rr := httptest.NewRequest(http.MethodGet, "http://gitlab.com", nil)
-				if tc.enabled {
-					testhelpers.SetEnvironmentVariable(t, testhelpers.FFEnableRateLimiter, "true")
-				} else {
-					testhelpers.SetEnvironmentVariable(t, testhelpers.FFEnableRateLimiter, "false")
-				}
+				testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, tc.enabled)
 
 				rr.RemoteAddr = remoteAddr
 

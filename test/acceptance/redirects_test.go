@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 
-	redirects "gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRedirectStatusPage(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
-		withEnv([]string{redirects.FFEnablePlaceholders + "=true"}),
+		withEnv([]string{feature.RedirectsPlaceholders.EnvVariable + "=true"}),
 	)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/_redirects")
@@ -31,7 +31,7 @@ func TestRedirectStatusPage(t *testing.T) {
 func TestRedirect(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
-		withEnv([]string{redirects.FFEnablePlaceholders + "=true"}),
+		withEnv([]string{feature.RedirectsPlaceholders.EnvVariable + "=true"}),
 	)
 
 	// Test that serving a file still works with redirects enabled
