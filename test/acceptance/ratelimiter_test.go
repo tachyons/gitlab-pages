@@ -104,7 +104,7 @@ func TestSourceIPRateLimitMiddleware(t *testing.T) {
 
 				if tc.expectFail && i >= int(tc.rateLimit) {
 					require.Equal(t, http.StatusTooManyRequests, rsp.StatusCode, "group.gitlab-example.com request: %d failed", i)
-					assertLogFound(t, logBuf, []string{"source IP hit rate limit", "\"source_ip\":\"" + tc.blockedIP + "\""})
+					assertLogFound(t, logBuf, []string{"request hit rate limit", "\"source_ip\":\"" + tc.blockedIP + "\""})
 					continue
 				}
 

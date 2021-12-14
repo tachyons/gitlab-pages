@@ -260,15 +260,16 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	if a.config.RateLimit.SourceIPLimitPerSecond > 0 {
 		rl := ratelimiter.New(
-			ratelimiter.WithSourceIPCacheMaxSize(ratelimiter.DefaultSourceIPCacheSize),
-			ratelimiter.WithSourceIPCachedEntriesMetric(metrics.RateLimitSourceIPCachedEntries),
-			ratelimiter.WithSourceIPCachedRequestsMetric(metrics.RateLimitSourceIPCacheRequests),
+			"source_ip",
+			ratelimiter.WithCacheMaxSize(ratelimiter.DefaultSourceIPCacheSize),
+			ratelimiter.WithCachedEntriesMetric(metrics.RateLimitSourceIPCachedEntries),
+			ratelimiter.WithCachedRequestsMetric(metrics.RateLimitSourceIPCacheRequests),
 			ratelimiter.WithBlockedCountMetric(metrics.RateLimitSourceIPBlockedCount),
-			ratelimiter.WithSourceIPLimitPerSecond(a.config.RateLimit.SourceIPLimitPerSecond),
-			ratelimiter.WithSourceIPBurstSize(a.config.RateLimit.SourceIPBurst),
+			ratelimiter.WithLimitPerSecond(a.config.RateLimit.SourceIPLimitPerSecond),
+			ratelimiter.WithBurstSize(a.config.RateLimit.SourceIPBurst),
 		)
 
-		handler = rl.SourceIPLimiter(handler)
+		handler = rl.Middleware(handler)
 	}
 
 	// Health Check

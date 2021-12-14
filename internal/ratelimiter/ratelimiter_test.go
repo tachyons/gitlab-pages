@@ -1,6 +1,8 @@
 package ratelimiter
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -51,17 +53,21 @@ func TestSourceIPAllowed(t *testing.T) {
 	for tn, tc := range sharedTestCases {
 		t.Run(tn, func(t *testing.T) {
 			rl := New(
+				"rate_limiter",
 				WithNow(mockNow),
-				WithSourceIPLimitPerSecond(tc.sourceIPLimit),
-				WithSourceIPBurstSize(tc.sourceIPBurstSize),
+				WithLimitPerSecond(tc.sourceIPLimit),
+				WithBurstSize(tc.sourceIPBurstSize),
 			)
 
 			for i := 0; i < tc.reqNum; i++ {
-				got := rl.SourceIPAllowed("172.16.123.1")
+				r := httptest.NewRequest(http.MethodGet, "https://domain.gitlab.io", nil)
+				r.RemoteAddr = "172.16.123.1"
+
+				got := rl.RequestAllowed(r)
 				if i < tc.sourceIPBurstSize {
 					require.Truef(t, got, "expected true for request no. %d", i)
 				} else {
-					// requests should fail after reaching tc.sourceIPBurstSize because mockNow
+					// requests should fail after reaching tc.burstSize because mockNow
 					// always returns the same time
 					require.False(t, got, "expected false for request no. %d", i)
 				}
@@ -74,20 +80,23 @@ func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	rate := 10 * time.Millisecond
 
 	rl := New(
-		WithSourceIPLimitPerSecond(float64(1/rate)),
-		WithSourceIPBurstSize(1),
+		"rate_limiter",
+		WithLimitPerSecond(float64(1/rate)),
+		WithBurstSize(1),
 	)
 
 	wg := sync.WaitGroup{}
 
-	testFn := func(domain string) func(t *testing.T) {
+	testFn := func(ip string) func(t *testing.T) {
 		return func(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 
 				for i := 0; i < 5; i++ {
-					got := rl.SourceIPAllowed(domain)
+					r := httptest.NewRequest(http.MethodGet, "https://domain.gitlab.io", nil)
+					r.RemoteAddr = ip
+					got := rl.RequestAllowed(r)
 					require.Truef(t, got, "expected true for request no. %d", i)
 					time.Sleep(rate)
 				}
