@@ -3,7 +3,6 @@ package zip
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/fs"
 	"net/http"
 	"sync"
@@ -33,7 +32,8 @@ const (
 )
 
 var (
-	errAlreadyCached = errors.New("archive already cached")
+	errAlreadyCached   = errors.New("archive already cached")
+	errMissingCacheKey = errors.New("missing cache key")
 )
 
 type lruCache interface {
@@ -153,7 +153,7 @@ func (zfs *zipVFS) resetCache() {
 // if the context is canceled.
 func (zfs *zipVFS) Root(ctx context.Context, path string, cacheKey string) (vfs.Root, error) {
 	if cacheKey == "" {
-		return nil, fmt.Errorf("missing cacheKey")
+		return nil, errMissingCacheKey
 	}
 
 	// we do it in loop to not use any additional locks
