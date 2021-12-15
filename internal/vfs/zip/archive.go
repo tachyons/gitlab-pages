@@ -1,7 +1,6 @@
 package zip
 
 import (
-	"archive/zip"
 	"context"
 	"errors"
 	"fmt"
@@ -14,6 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	// TODO: Revert back to zip/archive once we no longer support go1.17
+	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/673
+	zip "gitlab.com/gitlab-org/golang-archive-zip"
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
