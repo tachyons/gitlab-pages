@@ -32,9 +32,6 @@ const (
 
 	// maxRuleCount is used to limit the total number of rules allowed in _redirects
 	maxRuleCount = 1000
-
-	// FFEnablePlaceholders used to check whether placeholder matching is enabled or not
-	FFEnablePlaceholders = "FF_ENABLE_PLACEHOLDERS"
 )
 
 var (

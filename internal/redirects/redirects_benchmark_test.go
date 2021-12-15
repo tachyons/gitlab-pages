@@ -10,12 +10,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func generateRedirectsFile(dirPath string, count int) error {
 	content := "/start.html /redirect.html 301\n"
-	if placeholdersEnabled() {
+	if feature.RedirectsPlaceholders.Enabled() {
 		content += strings.Repeat("/foo/*/bar /foo/:splat/qux 200\n", count/2)
 		content += strings.Repeat("/foo/:placeholder /qux/:placeholder 200\n", count/2)
 	} else {

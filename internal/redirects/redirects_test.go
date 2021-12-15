@@ -12,16 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 	netlifyRedirects "github.com/tj/go-redirects"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
-// enablePlaceholders enables the FF_ENABLE_PLACEHOLDERS in tests
+// enablePlaceholders enables redirect placeholders in tests
 func enablePlaceholders(t testing.TB) {
-	t.Helper()
-
-	orig := os.Getenv(FFEnablePlaceholders)
-	os.Setenv(FFEnablePlaceholders, "true")
-	t.Cleanup(func() { os.Setenv(FFEnablePlaceholders, orig) })
+	testhelpers.StubFeatureFlagValue(t, feature.RedirectsPlaceholders.EnvVariable, true)
 }
 
 func TestRedirectsRewrite(t *testing.T) {

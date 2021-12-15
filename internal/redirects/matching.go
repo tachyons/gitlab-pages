@@ -7,6 +7,8 @@ import (
 
 	netlifyRedirects "github.com/tj/go-redirects"
 	"gitlab.com/gitlab-org/labkit/log"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 )
 
 var (
@@ -43,7 +45,7 @@ func matchesRule(rule *netlifyRedirects.Rule, path string) (bool, string) {
 
 	// Any logic beyond this point handles placeholders and splats.
 	// If the FF_ENABLE_PLACEHOLDERS feature flag isn't enabled, exit now.
-	if !placeholdersEnabled() {
+	if !feature.RedirectsPlaceholders.Enabled() {
 		return false, ""
 	}
 

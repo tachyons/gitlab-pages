@@ -8,11 +8,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestSourceIPRateLimitMiddleware(t *testing.T) {
-	testhelpers.SetEnvironmentVariable(t, testhelpers.FFEnableRateLimiter, "true")
+	testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, true)
 
 	tcs := map[string]struct {
 		listener   ListenSpec
