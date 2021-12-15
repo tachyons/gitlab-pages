@@ -169,7 +169,7 @@ func TestVFSFindOrOpenArchiveRefresh(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			withExpectedArchiveCount(t, 1, func(t *testing.T) {
-				cfg := *&zipCfg
+				cfg := zipCfg
 				cfg.ExpirationInterval = test.expirationInterval
 				cfg.RefreshInterval = test.refreshInterval
 
