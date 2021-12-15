@@ -5,11 +5,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -380,6 +383,85 @@ func TestReadArchiveFails(t *testing.T) {
 
 	_, err = zip.Open(context.Background(), "index.html")
 	require.EqualError(t, err, os.ErrNotExist.Error())
+}
+
+func createArchive(t *testing.T, dir string) (map[string][]byte, int64) {
+	t.Helper()
+
+	f, err := os.Create(filepath.Join(dir, "public.zip"))
+	require.NoError(t, err)
+	defer f.Close()
+	zw := zip.NewWriter(f)
+
+	entries := make(map[string][]byte)
+	for _, size := range []int{0, 32 * 1024, 128 * 1024, 5 * 1024 * 1024} {
+		entryName := fmt.Sprintf("public/file_%d", size)
+		entries[entryName] = bytes.Repeat([]byte{'z'}, size)
+
+		w, err := zw.Create(entryName)
+		require.NoError(t, err)
+
+		_, err = w.Write(entries[entryName])
+		require.NoError(t, err)
+	}
+
+	require.NoError(t, zw.Close())
+
+	fi, err := f.Stat()
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	return entries, fi.Size()
+}
+
+func TestMinimalRangeRequests(t *testing.T) {
+	dir := t.TempDir()
+	entries, size := createArchive(t, dir)
+
+	mux := http.NewServeMux()
+
+	var ranges []string
+	mux.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+		rangeHdr := r.Header.Get("Range")
+		if rangeHdr == "" {
+			rw.Header().Add("Content-Length", fmt.Sprintf("%d", size))
+			return
+		}
+
+		ranges = append(ranges, rangeHdr)
+
+		http.FileServer(http.Dir(dir)).ServeHTTP(rw, r)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fs := New(&zipCfg).(*zipVFS)
+	zip := newArchive(fs, time.Second)
+	err := zip.openArchive(ctx, srv.URL+"/public.zip")
+	require.NoError(t, err)
+
+	require.Len(t, zip.files, len(entries))
+	require.Len(t, ranges, 3, "range requests should be minimal")
+
+	for _, zf := range zip.files {
+		if !zf.Mode().IsRegular() {
+			continue
+		}
+
+		f, err := zip.Open(context.Background(), strings.TrimPrefix(zf.Name, "public/"))
+		require.NoError(t, err)
+
+		io.Copy(io.Discard, f)
+
+		require.NoError(t, f.Close())
+	}
+
+	// ensure minimal requests: https://gitlab.com/gitlab-org/gitlab-pages/-/issues/625
+	require.Len(t, ranges, 11, "range requests should be minimal")
 }
 
 func openZipArchive(t *testing.T, requests *int64, fromDisk bool) (*zipArchive, func()) {
