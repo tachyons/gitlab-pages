@@ -1,3 +1,27 @@
+## 1.49.0 (2021-12-16)
+
+### Added (1 change)
+
+- [feat: handle extra headers when serving from compressed zip archive](gitlab-org/gitlab-pages@85621f69f855e43afe983e2ca107e921aa14c8c8) by @feistel ([merge request](gitlab-org/gitlab-pages!529))
+
+### Fixed (2 changes)
+
+- [feat: hide handling cache headers behind the faeture flag](gitlab-org/gitlab-pages@0cfd85f8edd8f52db96b72b9efb99f0183053536) ([merge request](gitlab-org/gitlab-pages!645))
+- [fix(auth): check suffix correctly in domainAllowed](gitlab-org/gitlab-pages@50095a1ceda366e5ed6b7adfe72d3387c44d1be8) by @mlegner ([merge request](gitlab-org/gitlab-pages!619))
+
+### Changed (2 changes)
+
+- [fix: update vfs/zip implementation to ensure minimum range requests for go1.17](gitlab-org/gitlab-pages@26e1d310b513cc235f00336f8866c8c059f7ce80) ([merge request](gitlab-org/gitlab-pages!646))
+- [refactor: replace deprecated StandardClaims with RFC7519-compliant RegisteredClaims](gitlab-org/gitlab-pages@1d0f0e81ba7db826d42051705e89ba304ad95ce7) by @feistel ([merge request](gitlab-org/gitlab-pages!608))
+
+### Other (1 change)
+
+- [chore: upgrade to labkit 1.11.0](gitlab-org/gitlab-pages@86d8aac645d1a6ccb24ab57c87e4aacf535bec7b) ([merge request](gitlab-org/gitlab-pages!633))
+
+### changed. (1 change)
+
+- [fix(vfs): handle context.Canceled errors](gitlab-org/gitlab-pages@d9c27aea72fb9ef1dcfe3c8fb4ecface8400e534) ([merge request](gitlab-org/gitlab-pages!628))
+
 ## 1.48.0 (2021-11-15)
 
 - [chore: Update golang to 1.16.10](gitlab-org/gitlab-pages@d016cf6a8ac3c1569ee4e41317dbd76a2ef5a1ef) ([merge request](gitlab-org/gitlab-pages!615))
