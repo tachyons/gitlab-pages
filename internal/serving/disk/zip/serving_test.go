@@ -2,6 +2,8 @@ package zip
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -59,12 +61,30 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 				"If-Modified-Since": {time.Now().Format(http.TimeFormat)},
 			},
 		},
+		"accessing / If-Modified-Since fails": {
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
+			extraHeaders: http.Header{
+				"If-Modified-Since": {time.Now().AddDate(-10, 0, 0).Format(http.TimeFormat)},
+			},
+		},
 		"accessing / If-Unmodified-Since": {
 			vfsPath:        httpURL,
 			path:           "/",
 			expectedStatus: http.StatusPreconditionFailed,
 			extraHeaders: http.Header{
 				"If-Unmodified-Since": {time.Now().AddDate(-10, 0, 0).Format(http.TimeFormat)},
+			},
+		},
+		"accessing / If-Unmodified-Since fails": {
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
+			extraHeaders: http.Header{
+				"If-Unmodified-Since": {time.Now().Format(http.TimeFormat)},
 			},
 		},
 		"accessing / from disk": {
@@ -77,13 +97,13 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			vfsPath:        httpURL,
 			path:           "",
 			expectedStatus: http.StatusFound,
-			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
+			expectedBody:   "<a href=\"//zip.gitlab.io/zip/\">Found</a>.\n\n",
 		},
 		"accessing without / from disk": {
 			vfsPath:        fileURL,
 			path:           "",
 			expectedStatus: http.StatusFound,
-			expectedBody:   `<a href="//zip.gitlab.io/zip/">Found</a>.`,
+			expectedBody:   "<a href=\"//zip.gitlab.io/zip/\">Found</a>.\n\n",
 		},
 		"accessing archive that is 404": {
 			vfsPath: testServerURL + "/invalid.zip",
@@ -100,6 +120,48 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			vfsPath:        "file:///some/file/outside/path",
 			path:           "/index.html",
 			expectedStatus: http.StatusInternalServerError,
+		},
+		"accessing / If-None-Match": {
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusNotModified,
+			extraHeaders: http.Header{
+				"If-None-Match": {fmt.Sprintf("%q", sha(httpURL))},
+			},
+		},
+		"accessing / If-None-Match fails": {
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
+			extraHeaders: http.Header{
+				"If-None-Match": {fmt.Sprintf("%q", "badetag")},
+			},
+		},
+		"accessing / If-Match": {
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "zip.gitlab.io/project/index.html\n",
+			extraHeaders: http.Header{
+				"If-Match": {fmt.Sprintf("%q", sha(httpURL))},
+			},
+		},
+		"accessing / If-Match fails": {
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusPreconditionFailed,
+			extraHeaders: http.Header{
+				"If-Match": {fmt.Sprintf("%q", "wrongetag")},
+			},
+		},
+		"accessing / If-Match fails2": {
+			vfsPath:        httpURL,
+			path:           "/",
+			expectedStatus: http.StatusPreconditionFailed,
+			extraHeaders: http.Header{
+				"If-Match": {","},
+			},
 		},
 	}
 
@@ -123,10 +185,9 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			w.Code = 0 // ensure that code is not set, and it is being set by handler
 			r := httptest.NewRequest(http.MethodGet, "http://zip.gitlab.io/zip"+test.path, nil)
 
-			r.Header = test.extraHeaders
-
-			sha := sha256.Sum256([]byte(test.vfsPath))
-			etag := string(sha[:])
+			if test.extraHeaders != nil {
+				r.Header = test.extraHeaders
+			}
 
 			handler := serving.Handler{
 				Writer:  w,
@@ -134,7 +195,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 				LookupPath: &serving.LookupPath{
 					Prefix: "/zip/",
 					Path:   test.vfsPath,
-					SHA256: etag,
+					SHA256: sha(test.vfsPath),
 				},
 				SubPath: test.path,
 			}
@@ -156,11 +217,20 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 
 			if test.expectedStatus == http.StatusOK {
 				require.NotEmpty(t, resp.Header.Get("Last-Modified"))
+				require.NotEmpty(t, resp.Header.Get("ETag"))
 			}
 
-			require.Contains(t, string(body), test.expectedBody)
+			if test.expectedStatus != http.StatusInternalServerError {
+				require.Equal(t, test.expectedBody, string(body))
+			}
 		})
 	}
+}
+
+func sha(path string) string {
+	sha := sha256.Sum256([]byte(path))
+	s := hex.EncodeToString(sha[:])
+	return s
 }
 
 var chdirSet = false
