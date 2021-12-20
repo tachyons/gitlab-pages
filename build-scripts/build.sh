@@ -23,8 +23,8 @@ function is_nightly(){
   [ -n "$NIGHTLY" ] && $(_containsElement $CI_JOB_NAME ${nightly_builds[@]})
 }
 
-function is_master(){
-  [ "$CI_COMMIT_REF_NAME" == "master" ]
+function is_default_branch(){
+  [ "$CI_COMMIT_REF_NAME" == "$CI_DEFAULT_BRANCH" ]
 }
 
 function is_stable(){
@@ -193,7 +193,7 @@ function push_tags(){
 
   # If a version has been specified and we are on master branch or a
   # non-auto-deploy tag, we use the specified version.
-  if [ -n "$1" ] && (is_master || is_regular_tag); then
+  if [ -n "$1" ] && (is_default_branch || is_regular_tag); then
     local edition=$1
 
     # If on a non-auto-deploy tag pipeline, we can trim the `-ee` suffixes.
