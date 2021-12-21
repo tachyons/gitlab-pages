@@ -301,6 +301,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 
 	cleanup := func() {
 		cmd.Process.Signal(os.Interrupt)
+		cmd.Process.Wait()
 		<-waitCh
 	}
 
