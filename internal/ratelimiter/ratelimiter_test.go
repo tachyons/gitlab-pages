@@ -3,7 +3,6 @@ package ratelimiter
 import (
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"testing"
 	"time"
 
@@ -63,7 +62,7 @@ func TestSourceIPAllowed(t *testing.T) {
 				r := httptest.NewRequest(http.MethodGet, "https://domain.gitlab.io", nil)
 				r.RemoteAddr = "172.16.123.1"
 
-				got := rl.RequestAllowed(r)
+				got := rl.requestAllowed(r)
 				if i < tc.sourceIPBurstSize {
 					require.Truef(t, got, "expected true for request no. %d", i)
 				} else {
@@ -77,43 +76,30 @@ func TestSourceIPAllowed(t *testing.T) {
 }
 
 func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
-	rate := 10 * time.Millisecond
+	now := time.Now()
 
 	rl := New(
 		"rate_limiter",
-		WithLimitPerSecond(float64(1/rate)),
+		WithLimitPerSecond(1),
 		WithBurstSize(1),
+		WithNow(func() time.Time {
+			return now
+		}),
 	)
 
-	wg := sync.WaitGroup{}
-
-	testFn := func(ip string) func(t *testing.T) {
-		return func(t *testing.T) {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
-				for i := 0; i < 5; i++ {
-					r := httptest.NewRequest(http.MethodGet, "https://domain.gitlab.io", nil)
-					r.RemoteAddr = ip
-					got := rl.RequestAllowed(r)
-					require.Truef(t, got, "expected true for request no. %d", i)
-					time.Sleep(rate)
-				}
-			}()
-		}
+	testRequest := func(ip string, i int) {
+		r := httptest.NewRequest(http.MethodGet, "https://domain.gitlab.io", nil)
+		r.RemoteAddr = ip
+		got := rl.requestAllowed(r)
+		require.Truef(t, got, "expected true for %v request no. %d", ip, i)
 	}
 
-	first := "172.16.123.10"
-	t.Run(first, testFn(first))
-
-	second := "172.16.123.20"
-	t.Run(second, testFn(second))
-
-	third := "172.16.123.30"
-	t.Run(third, testFn(third))
-
-	wg.Wait()
+	for i := 0; i < 5; i++ {
+		testRequest("172.16.123.10", i)
+		testRequest("172.16.123.20", i)
+		testRequest("172.16.123.30", i)
+		now = now.Add(time.Second)
+	}
 }
 
 func newTestMetrics(t *testing.T) (*prometheus.GaugeVec, *prometheus.GaugeVec, *prometheus.CounterVec) {

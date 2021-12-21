@@ -258,7 +258,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	handler = routing.NewMiddleware(handler, a.source)
 
-	handler = handlers.Ratelimiter(handler, a.config)
+	handler = handlers.Ratelimiter(handler, &a.config.RateLimit)
 
 	// Health Check
 	handler, err = a.healthCheckMiddleware(handler)

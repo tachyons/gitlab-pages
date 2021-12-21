@@ -20,8 +20,12 @@ const (
 
 // Middleware returns middleware for rate-limiting clients
 func (rl *RateLimiter) Middleware(handler http.Handler) http.Handler {
+	if rl.limitPerSecond <= 0.0 {
+		return handler
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !rl.RequestAllowed(r) {
+		if !rl.requestAllowed(r) {
 			rl.logRateLimitedRequest(r)
 
 			if feature.EnforceIPRateLimits.Enabled() {

@@ -12,14 +12,6 @@ import (
 )
 
 const (
-	// DefaultSourceIPLimitPerSecond is the limit per second that rate.Limiter
-	// needs to generate tokens every second.
-	// The default value is 20 requests per second.
-	DefaultSourceIPLimitPerSecond = 20.0
-	// DefaultSourceIPBurstSize is the maximum burst allowed per rate limiter.
-	// E.g. The first 100 requests within 1s will succeed, but the 101st will fail.
-	DefaultSourceIPBurstSize = 100
-
 	// based on an avg ~4,000 unique IPs per minute
 	// https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b
 	DefaultSourceIPCacheSize = 5000
@@ -50,18 +42,18 @@ type RateLimiter struct {
 // New creates a new RateLimiter with default values that can be configured via Option functions
 func New(name string, opts ...Option) *RateLimiter {
 	rl := &RateLimiter{
-		name:           name,
-		now:            time.Now,
-		limitPerSecond: DefaultSourceIPLimitPerSecond,
-		burstSize:      DefaultSourceIPBurstSize,
-		key:            request.GetRemoteAddrWithoutPort,
+		name: name,
+		now:  time.Now,
+		key:  request.GetRemoteAddrWithoutPort,
 	}
 
 	for _, opt := range opts {
 		opt(rl)
 	}
 
-	rl.cache = lru.New(name, rl.cacheOptions...)
+	if rl.limitPerSecond > 0.0 {
+		rl.cache = lru.New(name, rl.cacheOptions...)
+	}
 
 	return rl
 }
@@ -124,8 +116,8 @@ func (rl *RateLimiter) limiter(key string) *rate.Limiter {
 	return limiterI.(*rate.Limiter)
 }
 
-// RequestAllowed checks that the real remote IP address is allowed to perform an operation
-func (rl *RateLimiter) RequestAllowed(r *http.Request) bool {
+// requestAllowed checks that the real remote IP address is allowed to perform an operation
+func (rl *RateLimiter) requestAllowed(r *http.Request) bool {
 	rateLimitedKey := rl.key(r)
 	limiter := rl.limiter(rateLimitedKey)
 
