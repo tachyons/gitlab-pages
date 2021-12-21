@@ -220,7 +220,8 @@ func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 		processCfg.gitlabStubOpts.pagesRoot = wd
 	}
 
-	source := NewGitlabDomainsSourceStub(t, processCfg.gitlabStubOpts)
+	source := NewGitlabUnstartedServerStub(t, processCfg.gitlabStubOpts)
+	source.Start()
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	processCfg.extraArgs = append(
@@ -442,17 +443,14 @@ func ClientWithConfig(tlsConfig *tls.Config) (*http.Client, func()) {
 }
 
 type stubOpts struct {
-	m                   sync.RWMutex
-	apiCalled           bool
-	authHandler         http.HandlerFunc
-	userHandler         http.HandlerFunc
-	pagesHandler        http.HandlerFunc
-	pagesStatusResponse int
-	pagesRoot           string
-	delay               time.Duration
+	m            sync.RWMutex
+	apiCalled    bool
+	pagesHandler http.HandlerFunc
+	pagesRoot    string
+	delay        time.Duration
 }
 
-func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
+func NewGitlabUnstartedServerStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	t.Helper()
 	require.NotNil(t, opts)
 
@@ -466,28 +464,21 @@ func NewGitlabDomainsSourceStub(t *testing.T, opts *stubOpts) *httptest.Server {
 	router.HandleFunc("/api/v4/internal/pages", pagesHandler)
 
 	authHandler := defaultAuthHandler(t)
-	if opts.authHandler != nil {
-		authHandler = opts.authHandler
-	}
-
 	router.HandleFunc("/oauth/token", authHandler)
 
 	userHandler := defaultUserHandler(t)
-	if opts.userHandler != nil {
-		userHandler = opts.userHandler
-	}
-
 	router.HandleFunc("/api/v4/user", userHandler)
 
 	router.HandleFunc("/api/v4/projects/{project_id:[0-9]+}/pages_access", func(w http.ResponseWriter, r *http.Request) {
-		if handleAccessControlArtifactRequests(t, w, r) {
-			return
-		}
-
 		handleAccessControlRequests(t, w, r)
 	})
 
-	return httptest.NewServer(router)
+	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ok := handleAccessControlArtifactRequests(t, w, r)
+		require.True(t, ok)
+	})
+
+	return httptest.NewUnstartedServer(router)
 }
 
 func (o *stubOpts) setAPICalled(v bool) {
@@ -536,11 +527,6 @@ func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
 		}
 
 		opts.setAPICalled(true)
-
-		if opts.pagesStatusResponse != 0 {
-			w.WriteHeader(opts.pagesStatusResponse)
-			return
-		}
 
 		// check if predefined response exists
 		if responseFn, ok := testdata.DomainResponses[domain]; ok {

@@ -155,7 +155,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 func TestPrivateArtifactProxyRequest(t *testing.T) {
 	setupTransport(t)
 
-	testServer := makeGitLabPagesAccessStub(t)
+	testServer := NewGitlabUnstartedServerStub(t, &stubOpts{})
 
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
