@@ -82,7 +82,6 @@ production: &base
   monitoring:
     ip_whitelist:
       - 127.0.0.0/8
-    sidekiq_exporter:
   extra:
   rack_attack:
     git_basic_auth:
