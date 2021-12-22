@@ -31,7 +31,7 @@ ADD gitlab-rails-ee.tar.gz /
 ADD gitlab-gomplate.tar.gz /
 
 COPY scripts/ /scripts
-   
+
 RUN chown -R ${UID}:0 /scripts /srv/gitlab /home/${GITLAB_USER} \
     && chmod o-w /scripts/lib /srv/gitlab /scripts/lib/checks \
     && chmod -R g=u /scripts /home/${GITLAB_USER} /srv/gitlab \
@@ -64,12 +64,10 @@ RUN echo "Generating bootsnap cache"; \
     cd /srv/gitlab && \
     su ${GITLAB_USER} -c "mkdir ${BOOTSNAP_CACHE_DIR}"  && \
     su ${GITLAB_USER} -c "ENABLE_BOOTSNAP=1 BOOTSNAP_CACHE_DIR=${BOOTSNAP_CACHE_DIR} bin/rake about" && \
+    chown -R ${UID}:0 ${BOOTSNAP_CACHE_DIR} && \
+    chmod -R g=u ${BOOTSNAP_CACHE_DIR} && \
     du -hs ${BOOTSNAP_CACHE_DIR} ;
 # exit code of this command will be that of `du`
-
-# Ensure user can access all created directories
-RUN chown -R ${UID}:0 /srv/gitlab \
-    && chmod -R g=u /srv/gitlab
 
 VOLUME ${GITLAB_DATA}
 
