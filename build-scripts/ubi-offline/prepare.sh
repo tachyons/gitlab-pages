@@ -47,11 +47,11 @@ tar -xvf "${WORKSPACE}/${PACKAGE_NAME}" -C "${WORKSPACE}"
 rm "${WORKSPACE}/${PACKAGE_NAME}" "${WORKSPACE}/${PACKAGE_NAME}.asc"
 for ARCHIVE in $(ls ${WORKSPACE}); do
   TARGET=${ARCHIVE%*.tar.gz}
-  cp "${WORKSPACE}/${ARCHIVE}" "${SCRIPT_HOME}/../../${TARGET%*-ee}"
+  if [ -f "${SCRIPT_HOME}/../../${TARGET%*-ee}/Dockerfile.ubi8" ]; then
+    resources=($(sed -rn 's/^ADD (.*.tar.gz).*$/\1/p' "${SCRIPT_HOME}/../../${TARGET%*-ee}/Dockerfile.ubi8"))
+    for resource in "${resources[@]}"
+    do
+      cp "${WORKSPACE}/${resource}" "${SCRIPT_HOME}/../../${TARGET%*-ee}"
+    done
+  fi
 done
-
-# Apply special cases
-cp "${WORKSPACE}/gitlab-shell.tar.gz" "${SCRIPT_HOME}/../../gitaly"
-cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-toolbox"
-cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-webservice"
-cp "${WORKSPACE}/gitlab-python.tar.gz" "${SCRIPT_HOME}/../../gitlab-sidekiq"
