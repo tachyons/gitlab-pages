@@ -10,14 +10,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestZipServing(t *testing.T) {
-	testhelpers.StubFeatureFlagValue(t, feature.HandleCacheHeaders.EnvVariable, true)
-
 	runObjectStorage(t, "../../shared/pages/group/zip.gitlab.io/public.zip")
 
 	RunPagesProcess(t,
@@ -243,8 +238,6 @@ func TestZipServingCache(t *testing.T) {
 }
 
 func TestZipServingFromDisk(t *testing.T) {
-	testhelpers.StubFeatureFlagValue(t, feature.HandleCacheHeaders.EnvVariable, true)
-
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 	)
