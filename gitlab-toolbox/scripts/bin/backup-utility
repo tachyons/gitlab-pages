@@ -211,7 +211,7 @@ function get_skipped(){
 
 function backup(){
   backup_name=$(get_backup_name)
-  mkdir -p $backup_tars_path $backups_path
+  rm -rf $backup_tars_path $backups_path && mkdir -p $backup_tars_path $backups_path
 
   if ! [[ ${skipping_backup_for[@]} =~ "db" ]]; then
     gitlab-rake gitlab:backup:db:create
