@@ -7,6 +7,8 @@ variables:
   # https://gitlab.com/gitlab-org/release/docs/blob/master/general/deploy/auto-deploy.md#auto-deploy-tagging
   AUTO_DEPLOY_TAG_REGEX: '^[0-9]+\.[0-9]+\.[0-9]+\+[a-z0-9]{7,}$'
   AUTO_DEPLOY_BRANCH_REGEX: '^[0-9]+-[0-9]+-auto-deploy-[0-9]+$'
+  # Follow the Ruby upgrade guidelines when changing the ruby version
+  # link: https://docs.gitlab.com/ee/development/ruby_upgrade.html
   RUBY_VERSION: 2.7.5
   # Suffix to the cache key of gitlab-rails-* where Gem vendor bundles are stored. Enables easy cache busting.
   RAILS_CACHE_SUFFIX: 20201123
