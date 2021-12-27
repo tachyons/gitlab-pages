@@ -12,7 +12,7 @@ backups_path=$rails_dir/tmp/backups
 backup_tars_path=$rails_dir/tmp/backup_tars
 object_storage_backends=( registry uploads artifacts lfs packages external_diffs terraform_state pages )
 
-skipping_backup_for=()
+skipped_via_flag=()
 
 function usage()
 {
@@ -28,7 +28,7 @@ function usage()
      -t TIMESTAMP                           Timestamp (part before '_gitlab_backup.tar' in archive name),
                                             can be used to specify backup source or target name.
      --rsyncable                            Pass the '--rsyncable' parameter to gzip for artifact compression.
-     --skip COMPONENT                       When specified, utility will skip the backup of COMPONENT.
+     --skip COMPONENT                       When specified, utility will skip the backup or restore of COMPONENT.
                                             May be defined multiple times. Valid values for COMPONENT are
                                             db, repositories, and any of the object storages (e.g. 'lfs').
      --backend BACKEND                      Object storage backend to use for backups.
@@ -213,15 +213,15 @@ function backup(){
   backup_name=$(get_backup_name)
   mkdir -p $backup_tars_path $backups_path
 
-  if ! [[ ${skipping_backup_for[@]} =~ "db" ]]; then
+  if ! [[ ${skipped_via_flag[@]} =~ "db" ]]; then
     gitlab-rake gitlab:backup:db:create
   fi
-  if ! [[ ${skipping_backup_for[@]} =~ "repositories" ]]; then
+  if ! [[ ${skipped_via_flag[@]} =~ "repositories" ]]; then
     gitlab-rake gitlab:backup:repo:create
   fi
 
   for backup_item in ${object_storage_backends[@]}; do
-    if ! [[ ${skipping_backup_for[@]} =~ $backup_item ]]; then
+    if ! [[ ${skipped_via_flag[@]} =~ $backup_item ]]; then
       object-storage-backup $backup_item $backups_path/${backup_item}.tar.gz
     fi
   done
@@ -292,7 +292,7 @@ function restore(){
   unpack_backup $file
 
   skipped_line=$(grep skipped $(dirname $file)/backup_information.yml)
-  export SKIPPED=$(echo ${skipped_line#:skipped:})
+  export SKIPPED=$(echo ${skipped_line#:skipped:},${skipped_via_flag})
 
   installation_type_line=$(grep installation_type $(dirname $file)/backup_information.yml || echo ":installation_type: unknown")
   export INSTALLATION_TYPE=$(echo ${installation_type_line#:installation_type: })
@@ -374,7 +374,7 @@ do
       shift
       ;;
     --skip)
-      skipping_backup_for+=( "$2" )
+      skipped_via_flag+=( "$2" )
       shift
       shift
       ;;
