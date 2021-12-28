@@ -26,7 +26,7 @@ require (
 	github.com/tj/go-redirects v0.0.0-20180508180010-5c02ead0bbc5
 	gitlab.com/gitlab-org/go-mimedb v1.45.0
 	gitlab.com/gitlab-org/golang-archive-zip v0.1.1
-	gitlab.com/gitlab-org/labkit v1.11.0
+	gitlab.com/gitlab-org/labkit v1.12.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420
 	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069
