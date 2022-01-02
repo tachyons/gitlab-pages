@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	ghandlers "github.com/gorilla/handlers"
-	"github.com/rs/cors"
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/go-mimedb"
@@ -43,10 +42,6 @@ import (
 
 const (
 	xForwardedHost = "X-Forwarded-Host"
-)
-
-var (
-	corsHandler = cors.New(cors.Options{AllowedMethods: []string{http.MethodGet, http.MethodHead}})
 )
 
 type theApp struct {
@@ -213,9 +208,7 @@ func setRequestScheme(r *http.Request) *http.Request {
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
 	handler := handlers.ServeFileOrNotFoundHandler(a.Auth)
-	if !a.config.General.DisableCrossOriginRequests {
-		handler = corsHandler.Handler(handler)
-	}
+	handler = handlers.CorsHandler(a.config, handler)
 	handler = a.Auth.AuthorizationMiddleware(handler)
 	handler = a.auxiliaryMiddleware(handler)
 	handler = a.Auth.AuthenticationMiddleware(handler, a.source)
