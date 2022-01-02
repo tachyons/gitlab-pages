@@ -209,9 +209,9 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
 	handler := handlers.ServeFileOrNotFoundHandler(a.Auth)
 	handler = handlers.CorsHandler(a.config, handler)
-	handler = a.Auth.AuthorizationMiddleware(handler)
+	handler = handlers.Authorization(a.Auth, handler)
 	handler = a.auxiliaryMiddleware(handler)
-	handler = a.Auth.AuthenticationMiddleware(handler, a.source)
+	handler = handlers.Authentication(a.Auth, a.source, handler)
 	handler = a.AcmeMiddleware.AcmeMiddleware(handler)
 	handler, err := logging.BasicAccessLogger(handler, a.config.Log.Format, domain.LogFields)
 	if err != nil {
