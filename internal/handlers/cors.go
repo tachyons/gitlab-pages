@@ -12,7 +12,7 @@ var (
 	corsHandler = cors.New(cors.Options{AllowedMethods: []string{http.MethodGet, http.MethodHead}})
 )
 
-func CorsHandler(config *config.Config, handler http.Handler) http.Handler {
+func Cors(config *config.Config, handler http.Handler) http.Handler {
 	if !config.General.DisableCrossOriginRequests {
 		handler = corsHandler.Handler(handler)
 	}

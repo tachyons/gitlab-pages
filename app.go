@@ -207,8 +207,8 @@ func setRequestScheme(r *http.Request) *http.Request {
 // TODO: move the pipeline configuration to internal/pipeline https://gitlab.com/gitlab-org/gitlab-pages/-/issues/670
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
-	handler := handlers.ServeFileOrNotFoundHandler(a.Auth)
-	handler = handlers.CorsHandler(a.config, handler)
+	handler := handlers.ServeFileOrNotFound(a.Auth)
+	handler = handlers.Cors(a.config, handler)
 	handler = handlers.Authorization(a.Auth, handler)
 	handler = a.auxiliaryMiddleware(handler)
 	handler = handlers.Authentication(a.Auth, a.source, handler)

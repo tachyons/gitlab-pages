@@ -9,9 +9,9 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-// ServeFileOrNotFoundHandler will serve static content or
+// ServeFileOrNotFound will serve static content or
 // return a 404 Not Found response
-func ServeFileOrNotFoundHandler(auth *auth.Auth) http.Handler {
+func ServeFileOrNotFound(auth *auth.Auth) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		defer metrics.ServingTime.Observe(time.Since(start).Seconds())
