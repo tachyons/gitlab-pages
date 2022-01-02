@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"time"
 
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/rs/cors"
@@ -180,32 +179,6 @@ func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
-// serveFileOrNotFoundHandler will serve static content or
-// return a 404 Not Found response
-func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		defer metrics.ServingTime.Observe(time.Since(start).Seconds())
-
-		domain := domain.FromRequest(r)
-		fileServed := domain.ServeFileHTTP(w, r)
-
-		if !fileServed {
-			// We need to trigger authentication flow here if file does not exist to prevent exposing possibly private project existence,
-			// because the projects override the paths of the namespace project and they might be private even though
-			// namespace project is public
-			if domain.IsNamespaceProject(r) {
-				if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
-					return
-				}
-			}
-
-			// domain found and authentication succeeds
-			domain.ServeNotFoundHTTP(w, r)
-		}
-	})
-}
-
 // httpInitialMiddleware sets up HTTP requests
 func (a *theApp) httpInitialMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -239,7 +212,7 @@ func setRequestScheme(r *http.Request) *http.Request {
 // TODO: move the pipeline configuration to internal/pipeline https://gitlab.com/gitlab-org/gitlab-pages/-/issues/670
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
-	handler := a.serveFileOrNotFoundHandler()
+	handler := handlers.ServeFileOrNotFoundHandler(a.Auth)
 	if !a.config.General.DisableCrossOriginRequests {
 		handler = corsHandler.Handler(handler)
 	}
