@@ -71,7 +71,7 @@ func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate
 	return nil, nil
 }
 
-func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
+func redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
 	u := *r.URL
 	u.Scheme = request.SchemeHTTPS
 	u.Host = r.Host
@@ -100,7 +100,7 @@ func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.Respons
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
 	// Add auto redirect
 	if !https && a.config.General.RedirectHTTP {
-		a.redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
+		redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
 		return true
 	}
 
@@ -126,7 +126,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 	}
 
 	if !https && domain.IsHTTPSOnly(r) {
-		a.redirectToHTTPS(w, r, http.StatusMovedPermanently)
+		redirectToHTTPS(w, r, http.StatusMovedPermanently)
 		return true
 	}
 
