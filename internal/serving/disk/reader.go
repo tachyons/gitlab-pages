@@ -14,7 +14,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
@@ -235,11 +234,7 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 		http.ServeContent(w, r, origPath, fi.ModTime(), rs)
 	} else {
 		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
-		if feature.HandleCacheHeaders.Enabled() {
-			vfsServing.ServeCompressedFile(w, r, fi.ModTime(), file)
-		} else {
-			io.Copy(w, file)
-		}
+		vfsServing.ServeCompressedFile(w, r, fi.ModTime(), file)
 	}
 
 	return true

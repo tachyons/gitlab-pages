@@ -19,12 +19,6 @@ var RedirectsPlaceholders = Feature{
 	EnvVariable: "FF_ENABLE_PLACEHOLDERS",
 }
 
-// HandleCacheHeaders enables handling cache headers when serving from compressed ZIP archives
-// TODO: enable and remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/672
-var HandleCacheHeaders = Feature{
-	EnvVariable: "FF_HANDLE_CACHE_HEADERS",
-}
-
 // Enabled reads the environment variable responsible for the feature flag
 // if FF is disabled by default, the environment variable needs to be "true" to explicitly enable it
 // if FF is enabled by default, variable needs to be "false" to explicitly disable it
