@@ -9,8 +9,6 @@
   - job: gitlab-mailroom
   - job: gitlab-pages
   - job: gitlab-shell
-  - job: gitlab-shell-libproxyproto
-    optional: true
   - job: gitlab-rails-ee
     optional: true
   - job: gitlab-rails-ce

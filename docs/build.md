@@ -194,7 +194,6 @@ graph LR;
     gitlab-exporter:::final
     gitlab-mailroom:::final
     gitlab-shell:::final
-    gitlab-shell-libproxyproto
     gitlab-pages:::final
     gitaly:::final
     kubectl:::final
@@ -228,8 +227,6 @@ graph LR;
 
   gitlab-shell===>git-base;
 
-  gitlab-shell-libproxyproto==>gitlab-shell;
-
   gitaly===>git-base;
   gitlab-container-registry==>debian
 
@@ -253,7 +250,6 @@ graph LR;
     gitlab-exporter:::final
     gitlab-mailroom:::final
     gitlab-shell:::final
-    gitlab-shell-libproxyproto
     gitlab-pages:::final
     gitaly:::final
     kubectl:::final
@@ -337,8 +333,6 @@ graph LR;
   gitlab-shell==>git-base;
   gitlab-shell-.->gitlab-logger;
   gitlab-shell-.->gitlab-gomplate;
-
-  gitlab-shell-libproxyproto==>gitlab-shell;
 
   git-base==>gitlab-go;
 
