@@ -2,7 +2,7 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.5
 
 FROM ${UBI_IMAGE}
 
-ARG GO_VERSION=1.16.9
+ARG GO_VERSION=1.16.12
 
 RUN mkdir -p /assets/usr/local \
     && curl --retry 6 https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz -o go${GO_VERSION}.linux-amd64.tar.gz \
