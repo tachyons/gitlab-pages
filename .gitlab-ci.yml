@@ -1038,28 +1038,6 @@ gitlab-shell:
     - job: build:gitlab-shell
       optional: true
 
-gitlab-shell-libproxyproto:
-  <<: *job-base
-  <<: *except-deps
-  stage: phase-five
-  script:
-    - export shell_container=$(cat artifacts/container_versions/gitlab-shell_tag.txt)
-    - build_if_needed --build-arg "TAG=$shell_container"
-    - push_tags gitlab-$GITLAB_REF_SLUG
-    - push_tags $GITLAB_SHELL_VERSION
-  needs:
-    - gitlab-shell
-  rules:
-    - <<: *if_deps_pipeline
-      when: never
-    - <<: *if_ubi_pipeline
-      when: never
-    - <<: *if_ubi_tag
-      when: never
-    - <<: *if_ubi_branch
-      when: never
-    - when: always
-
 build:git-base:
   <<: *build-job-base
   stage: prepare:phase-one
