@@ -71,36 +71,14 @@ func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate
 	return nil, nil
 }
 
-func redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
-	u := *r.URL
-	u.Scheme = request.SchemeHTTPS
-	u.Host = r.Host
-	u.User = nil
-
-	http.Redirect(w, r, u.String(), statusCode)
-}
-
 func (a *theApp) domain(ctx context.Context, host string) (*domain.Domain, error) {
 	return a.source.GetDomain(ctx, host)
-}
-
-// checkAuthAndServeNotFound performs the auth process if domain can't be found
-// the main purpose of this process is to avoid leaking the project existence/not-existence
-// by behaving the same if user has no access to the project or if project simply does not exists
-func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.ResponseWriter, r *http.Request) {
-	// To avoid user knowing if pages exist, we will force user to login and authorize pages
-	if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
-		return
-	}
-
-	// auth succeeded try to serve the correct 404 page
-	domain.ServeNotFoundAuthFailed(w, r)
 }
 
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
 	// Add auto redirect
 	if !https && a.config.General.RedirectHTTP {
-		redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
+		handlers.RedirectToHTTPS(w, r, http.StatusTemporaryRedirect)
 		return true
 	}
 
@@ -121,12 +99,12 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		}
 
 		// redirect to auth and serve not found
-		a.checkAuthAndServeNotFound(domain, w, r)
+		handlers.CheckAuthAndServeNotFound(a.Auth, domain, w, r)
 		return true
 	}
 
 	if !https && domain.IsHTTPSOnly(r) {
-		redirectToHTTPS(w, r, http.StatusMovedPermanently)
+		handlers.RedirectToHTTPS(w, r, http.StatusMovedPermanently)
 		return true
 	}
 
@@ -209,7 +187,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
 	handler := handlers.ServeFileOrNotFound(a.Auth)
 	handler = handlers.Cors(a.config, handler)
-	handler = handlers.Authorization(a.Auth, handler)
+	handler = a.Handlers.Authorization(handler)
 	handler = a.auxiliaryMiddleware(handler)
 	handler = handlers.Authentication(a.Auth, a.source, handler)
 	handler = a.AcmeMiddleware.AcmeMiddleware(handler)
@@ -399,7 +377,7 @@ func runApp(config *cfg.Config) {
 
 	a.setAuth(config)
 
-	a.Handlers = handlers.New(a.Auth, a.Artifact)
+	a.Handlers = handlers.New(a.config, a.Auth, a.Artifact)
 
 	// TODO: This if was introduced when `gitlab-server` wasn't a required parameter
 	// once we completely remove support for legacy architecture and make it required

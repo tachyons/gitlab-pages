@@ -4,14 +4,13 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 // ServeFileOrNotFound will serve static content or
 // return a 404 Not Found response
-func ServeFileOrNotFound(auth *auth.Auth) http.Handler {
+func (h *Handlers) ServeFileOrNotFound() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		defer metrics.ServingTime.Observe(time.Since(start).Seconds())
@@ -24,7 +23,7 @@ func ServeFileOrNotFound(auth *auth.Auth) http.Handler {
 			// because the projects override the paths of the namespace project and they might be private even though
 			// namespace project is public
 			if d.IsNamespaceProject(r) {
-				if auth.CheckAuthenticationWithoutProject(w, r, d) {
+				if h.Auth.CheckAuthenticationWithoutProject(w, r, d) {
 					return
 				}
 			}

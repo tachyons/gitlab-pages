@@ -11,8 +11,10 @@ type Artifact interface {
 
 // Auth handles the authentication logic
 type Auth interface {
+	AuthorizationMiddleware(handler http.Handler) http.Handler
 	IsAuthSupported() bool
 	RequireAuth(w http.ResponseWriter, r *http.Request) bool
 	GetTokenIfExists(w http.ResponseWriter, r *http.Request) (string, error)
 	CheckResponseForInvalidToken(w http.ResponseWriter, r *http.Request, resp *http.Response) bool
+	CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request, domain domain) bool
 }

@@ -7,10 +7,11 @@ import (
 	"net/url"
 	"testing"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
 )
 
 func TestNotHandleArtifactRequestReturnsFalse(t *testing.T) {
@@ -28,7 +29,7 @@ func TestNotHandleArtifactRequestReturnsFalse(t *testing.T) {
 		Return("", nil).
 		Times(1)
 
-	handlers := New(mockAuth, mockArtifact)
+	handlers := New(&config.Config{}, mockAuth, mockArtifact)
 
 	result := httptest.NewRecorder()
 	reqURL, err := url.Parse("/something")
@@ -53,7 +54,7 @@ func TestHandleArtifactRequestedReturnsTrue(t *testing.T) {
 		Return("", nil).
 		Times(1)
 
-	handlers := New(mockAuth, mockArtifact)
+	handlers := New(&config.Config{}, mockAuth, mockArtifact)
 
 	result := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/something", nil)
@@ -68,7 +69,7 @@ func TestNotFoundWithTokenIsNotHandled(t *testing.T) {
 	mockAuth.EXPECT().CheckResponseForInvalidToken(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(false)
 
-	handlers := New(mockAuth, nil)
+	handlers := New(&config.Config{}, mockAuth, nil)
 
 	w := httptest.NewRecorder()
 	reqURL, _ := url.Parse("/")
@@ -110,7 +111,7 @@ func TestForbiddenWithTokenIsNotHandled(t *testing.T) {
 					Return(false)
 			}
 
-			handlers := New(mockAuth, nil)
+			handlers := New(&config.Config{}, mockAuth, nil)
 
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -128,7 +129,7 @@ func TestNotFoundWithoutTokenIsNotHandledWhenNotAuthSupport(t *testing.T) {
 	mockAuth := mocks.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().IsAuthSupported().Return(false)
 
-	handlers := New(mockAuth, nil)
+	handlers := New(&config.Config{}, mockAuth, nil)
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -144,7 +145,7 @@ func TestNotFoundWithoutTokenIsHandled(t *testing.T) {
 	mockAuth.EXPECT().IsAuthSupported().Return(true)
 	mockAuth.EXPECT().RequireAuth(gomock.Any(), gomock.Any()).Times(1).Return(true)
 
-	handlers := New(mockAuth, nil)
+	handlers := New(&config.Config{}, mockAuth, nil)
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -160,7 +161,7 @@ func TestInvalidTokenResponseIsHandled(t *testing.T) {
 	mockAuth.EXPECT().CheckResponseForInvalidToken(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(true)
 
-	handlers := New(mockAuth, nil)
+	handlers := New(&config.Config{}, mockAuth, nil)
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -181,7 +182,7 @@ func TestHandleArtifactRequestButGetTokenFails(t *testing.T) {
 	mockAuth := mocks.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().GetTokenIfExists(gomock.Any(), gomock.Any()).Return("", errors.New("error when retrieving token"))
 
-	handlers := New(mockAuth, mockArtifact)
+	handlers := New(&config.Config{}, mockAuth, mockArtifact)
 
 	result := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/something", nil)

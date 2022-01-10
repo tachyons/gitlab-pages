@@ -122,6 +122,16 @@ func (m *MockAuth) RequireAuth(w http.ResponseWriter, r *http.Request) bool {
 	return ret0
 }
 
+// AuthorizationMiddleware handles authorization
+func (m *MockAuth) AuthorizationMiddleware(handler http.Handler) http.Handler {
+	return handler
+}
+
+// CheckAuthenticationWithoutProject checks if user is authenticated and has a valid token
+func (a *Auth) CheckAuthenticationWithoutProject(w http.ResponseWriter, r *http.Request, domain domain) bool {
+	return false
+}
+
 // RequireAuth indicates an expected call of RequireAuth.
 func (mr *MockAuthMockRecorder) RequireAuth(w, r interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
