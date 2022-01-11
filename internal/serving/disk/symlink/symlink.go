@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
+// nolint: gocyclo // this is vendored code
 func walkSymlinks(ctx context.Context, root vfs.Root, path string) (string, error) {
 	volLen := volumeNameLen(path)
 	pathSeparator := string(os.PathSeparator)
@@ -24,6 +25,7 @@ func walkSymlinks(ctx context.Context, root vfs.Root, path string) (string, erro
 	vol := path[:volLen]
 	dest := vol
 	linksWalked := 0
+	// nolint: ineffassign // this is vendored code
 	for start, end := volLen, volLen; start < len(path); start = end {
 		for start < len(path) && os.IsPathSeparator(path[start]) {
 			start++
