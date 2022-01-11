@@ -111,6 +111,10 @@ function build_if_needed(){
 
     docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.} "${openshift_labels[@]}"
 
+    # Output "Final Image Size: %d" (gitlab-org/charts/gitlab#1267)
+    docker inspect "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" \
+      | awk '/"Size": ([0-9]+)[,]?/{ printf "Final Image Size: %d\n", $2 }'
+
     popd # exit image directory
 
     # Push new image unless it is a UBI build image
