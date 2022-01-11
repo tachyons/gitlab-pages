@@ -2,15 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//nolint
 package serving_test
 
 import (
 	"io"
-	"io/fs"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -25,6 +22,7 @@ var (
 	lastMod = time.Now()
 )
 
+// nolint: gocyclo // this is vendored code
 func TestServeContent(t *testing.T) {
 	defer afterTest(t)
 	type serveParam struct {
@@ -218,7 +216,7 @@ func TestServeContent(t *testing.T) {
 		},
 	}
 	for testName, tt := range tests {
-		for _, method := range []string{"GET", "HEAD"} {
+		for _, method := range []string{http.MethodGet, http.MethodHead} {
 			servec <- serveParam{
 				file:        tt.file,
 				modtime:     tt.modtime,
@@ -256,8 +254,6 @@ func TestServeContent(t *testing.T) {
 	}
 }
 
-type panicOnSeek struct{ io.ReadSeeker }
-
 func Test_scanETag(t *testing.T) {
 	tests := []struct {
 		in         string
@@ -279,12 +275,4 @@ func Test_scanETag(t *testing.T) {
 			t.Errorf("scanETag(%q)=%q %q, want %q %q", test.in, etag, remain, test.wantETag, test.wantRemain)
 		}
 	}
-}
-
-func mustStat(t *testing.T, fileName string) fs.FileInfo {
-	fi, err := os.Stat(fileName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return fi
 }

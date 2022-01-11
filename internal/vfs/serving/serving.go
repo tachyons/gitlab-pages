@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//nolint
 package serving
 
 import (
@@ -50,7 +49,7 @@ func serveContent(w http.ResponseWriter, r *http.Request, modtime time.Time, con
 
 	w.WriteHeader(code)
 
-	if r.Method != "HEAD" {
+	if r.Method != http.MethodHead {
 		io.Copy(w, content)
 	}
 }
@@ -185,7 +184,7 @@ func checkIfNoneMatch(w http.ResponseWriter, r *http.Request) condResult {
 }
 
 func checkIfModifiedSince(r *http.Request, modtime time.Time) condResult {
-	if r.Method != "GET" && r.Method != "HEAD" {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		return condNone
 	}
 	ims := r.Header.Get("If-Modified-Since")
@@ -247,13 +246,12 @@ func checkPreconditions(w http.ResponseWriter, r *http.Request, modtime time.Tim
 	}
 	switch checkIfNoneMatch(w, r) {
 	case condFalse:
-		if r.Method == "GET" || r.Method == "HEAD" {
+		if r.Method == http.MethodGet || r.Method == http.MethodHead {
 			writeNotModified(w)
 			return true
-		} else {
-			w.WriteHeader(http.StatusPreconditionFailed)
-			return true
 		}
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return true
 	case condNone:
 		if checkIfModifiedSince(r, modtime) == condFalse {
 			writeNotModified(w)
