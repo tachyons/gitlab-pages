@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,33 +19,33 @@ func mockNow() time.Time {
 }
 
 var sharedTestCases = map[string]struct {
-	sourceIPLimit     float64
-	sourceIPBurstSize int
-	reqNum            int
+	limit     float64
+	burstSize int
+	reqNum    int
 }{
 	"one_request_per_second": {
-		sourceIPLimit:     1,
-		sourceIPBurstSize: 1,
-		reqNum:            2,
+		limit:     1,
+		burstSize: 1,
+		reqNum:    2,
 	},
 	"one_request_per_second_but_big_bucket": {
-		sourceIPLimit:     1,
-		sourceIPBurstSize: 10,
-		reqNum:            11,
+		limit:     1,
+		burstSize: 10,
+		reqNum:    11,
 	},
 	"three_req_per_second_bucket_size_one": {
-		sourceIPLimit:     3,
-		sourceIPBurstSize: 1, // max burst 1 means 1 at a time
-		reqNum:            3,
+		limit:     3,
+		burstSize: 1, // max burst 1 means 1 at a time
+		reqNum:    3,
 	},
 	"10_requests_per_second": {
-		sourceIPLimit:     10,
-		sourceIPBurstSize: 10,
-		reqNum:            11,
+		limit:     10,
+		burstSize: 10,
+		reqNum:    11,
 	},
 }
 
-func TestSourceIPAllowed(t *testing.T) {
+func TestRequestAllowed(t *testing.T) {
 	t.Parallel()
 
 	for tn, tc := range sharedTestCases {
@@ -54,16 +53,15 @@ func TestSourceIPAllowed(t *testing.T) {
 			rl := New(
 				"rate_limiter",
 				WithNow(mockNow),
-				WithLimitPerSecond(tc.sourceIPLimit),
-				WithBurstSize(tc.sourceIPBurstSize),
+				WithLimitPerSecond(tc.limit),
+				WithBurstSize(tc.burstSize),
 			)
 
 			for i := 0; i < tc.reqNum; i++ {
-				r := httptest.NewRequest(http.MethodGet, "https://domain.gitlab.io", nil)
-				r.RemoteAddr = "172.16.123.1"
+				r := requestFor("172.16.123.1", "https://domain.gitlab.io")
 
 				got := rl.requestAllowed(r)
-				if i < tc.sourceIPBurstSize {
+				if i < tc.burstSize {
 					require.Truef(t, got, "expected true for request no. %d", i)
 				} else {
 					// requests should fail after reaching tc.burstSize because mockNow
@@ -88,8 +86,7 @@ func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	)
 
 	testRequest := func(ip string, i int) {
-		r := httptest.NewRequest(http.MethodGet, "https://domain.gitlab.io", nil)
-		r.RemoteAddr = ip
+		r := requestFor(ip, "https://domain.gitlab.io")
 		got := rl.requestAllowed(r)
 		require.Truef(t, got, "expected true for %v request no. %d", ip, i)
 	}
@@ -102,23 +99,8 @@ func TestSingleRateLimiterWithMultipleSourceIPs(t *testing.T) {
 	}
 }
 
-func newTestMetrics(t *testing.T) (*prometheus.GaugeVec, *prometheus.GaugeVec, *prometheus.CounterVec) {
-	t.Helper()
-
-	blockedGauge := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: t.Name(),
-		},
-		[]string{"enforced"},
-	)
-
-	cachedEntries := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: t.Name(),
-	}, []string{"op"})
-
-	cacheReqs := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: t.Name(),
-	}, []string{"op", "cache"})
-
-	return blockedGauge, cachedEntries, cacheReqs
+func requestFor(remoteAddr, domain string) *http.Request {
+	r := httptest.NewRequest(http.MethodGet, domain, nil)
+	r.RemoteAddr = remoteAddr
+	return r
 }

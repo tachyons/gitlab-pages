@@ -7,10 +7,16 @@ type Feature struct {
 	defaultEnabled bool
 }
 
-// EnforceIPRateLimits enforces ratelimiter package to drop requests
+// EnforceIPRateLimits enforces IP rate limiter to drop requests
 // TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
 var EnforceIPRateLimits = Feature{
 	EnvVariable: "FF_ENFORCE_IP_RATE_LIMITS",
+}
+
+// EnforceDomainRateLimits enforces domain rate limiter to drop requests
+// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/655
+var EnforceDomainRateLimits = Feature{
+	EnvVariable: "FF_ENFORCE_DOMAIN_RATE_LIMITS",
 }
 
 // RedirectsPlaceholders enables support for placeholders in redirects file

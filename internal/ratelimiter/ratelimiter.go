@@ -15,6 +15,10 @@ const (
 	// based on an avg ~4,000 unique IPs per minute
 	// https://log.gprd.gitlab.net/app/lens#/edit/f7110d00-2013-11ec-8c8e-ed83b5469915?_g=h@e78830b
 	DefaultSourceIPCacheSize = 5000
+
+	// we have less than 4000 different hosts per minute
+	// https://log.gprd.gitlab.net/app/dashboards#/view/d52ab740-61a4-11ec-b20d-65f14d890d9b?_a=(viewMode:edit)&_g=h@42b0d52
+	DefaultDomainCacheSize = 4000
 )
 
 // Option function to configure a RateLimiter
@@ -30,11 +34,12 @@ type KeyFunc func(*http.Request) string
 type RateLimiter struct {
 	name           string
 	now            func() time.Time
+	keyFunc        KeyFunc
 	limitPerSecond float64
 	burstSize      int
 	blockedCount   *prometheus.GaugeVec
 	cache          *lru.Cache
-	key            KeyFunc
+	enforce        bool
 
 	cacheOptions []lru.Option
 }
@@ -42,9 +47,9 @@ type RateLimiter struct {
 // New creates a new RateLimiter with default values that can be configured via Option functions
 func New(name string, opts ...Option) *RateLimiter {
 	rl := &RateLimiter{
-		name: name,
-		now:  time.Now,
-		key:  request.GetRemoteAddrWithoutPort,
+		name:    name,
+		now:     time.Now,
+		keyFunc: request.GetRemoteAddrWithoutPort,
 	}
 
 	for _, opt := range opts {
@@ -72,7 +77,7 @@ func WithLimitPerSecond(limit float64) Option {
 	}
 }
 
-// WithBurstSize configures burst per key for the RateLimiter
+// WithBurstSize configures burst per keyFunc value for the RateLimiter
 func WithBurstSize(burst int) Option {
 	return func(rl *RateLimiter) {
 		rl.burstSize = burst
@@ -101,10 +106,24 @@ func WithCachedEntriesMetric(m *prometheus.GaugeVec) Option {
 	}
 }
 
-// WithCachedRequestsMetric configures metric for how many times we ask key cache
+// WithCachedRequestsMetric configures metric for how many times we access cache
 func WithCachedRequestsMetric(m *prometheus.CounterVec) Option {
 	return func(rl *RateLimiter) {
 		rl.cacheOptions = append(rl.cacheOptions, lru.WithCachedRequestsMetric(m))
+	}
+}
+
+// WithKeyFunc configures keyFunc
+func WithKeyFunc(f KeyFunc) Option {
+	return func(rl *RateLimiter) {
+		rl.keyFunc = f
+	}
+}
+
+// WithEnforce configures if requests are actually rejected, or we just report them as rejected in metrics
+func WithEnforce(enforce bool) Option {
+	return func(rl *RateLimiter) {
+		rl.enforce = enforce
 	}
 }
 
@@ -116,9 +135,9 @@ func (rl *RateLimiter) limiter(key string) *rate.Limiter {
 	return limiterI.(*rate.Limiter)
 }
 
-// requestAllowed checks that the real remote IP address is allowed to perform an operation
+// requestAllowed checks if request is within the rate-limit
 func (rl *RateLimiter) requestAllowed(r *http.Request) bool {
-	rateLimitedKey := rl.key(r)
+	rateLimitedKey := rl.keyFunc(r)
 	limiter := rl.limiter(rateLimitedKey)
 
 	// AllowN allows us to use the rl.now function, so we can test this more easily.
