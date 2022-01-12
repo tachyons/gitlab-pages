@@ -1,3 +1,14 @@
+## 1.51.0 (2022-01-12)
+
+### Added (2 changes)
+
+- [feat: add domain rate-limiter](gitlab-org/gitlab-pages@f62bc0dd08e3a9e14b6bf6c35b04dd6bdcec4491) ([merge request](gitlab-org/gitlab-pages!635))
+- [feat: enable Etag caching](gitlab-org/gitlab-pages@d40af81155fdd50f7ea3b78249cc303b91acf63e) ([merge request](gitlab-org/gitlab-pages!653))
+
+### Other (1 change)
+
+- [chore: Use Go v1.16.12](gitlab-org/gitlab-pages@e971baaace956056f0477a23f5e03406f9f9296f) ([merge request](gitlab-org/gitlab-pages!660))
+
 ## 1.50.0 (2021-12-29)
 
 No changes.
