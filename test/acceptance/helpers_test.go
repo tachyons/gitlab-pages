@@ -288,11 +288,12 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 	cmd.Stdout = out
 	cmd.Stderr = out
 	require.NoError(t, cmd.Start())
+
 	t.Logf("Running %s %v", pagesBinary, args)
 
 	waitCh := make(chan struct{})
 	go func() {
-		cmd.Wait()
+		require.NoError(t, cmd.Wait())
 		for _, tempfile := range tempfiles {
 			os.Remove(tempfile)
 		}
@@ -300,8 +301,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 	}()
 
 	cleanup := func() {
-		cmd.Process.Signal(os.Interrupt)
-		cmd.Process.Wait()
+		require.NoError(t, cmd.Process.Signal(os.Interrupt))
 		<-waitCh
 	}
 
