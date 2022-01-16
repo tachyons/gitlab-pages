@@ -414,7 +414,7 @@ request is as follows:
 
 1. Fork the project into your personal space on GitLab.com
 1. Create a feature branch, branch away from `master`
-1. Write [tests](https://gitlab.com/gitlab-org/gitlab-development-kit#running-the-tests) and code
+1. Write [tests](https://gitlab.com/gitlab-org/gitlab-pages/-/blob/master/doc/development.md#testing) and code
 1. If you are writing documentation, make sure to follow the
    [documentation styleguide][doc-styleguide]
 1. If you have multiple commits please combine them into a few logically
@@ -607,7 +607,7 @@ available at [http://contributor-covenant.org/version/1/1/0/](http://contributor
 [license-finder-doc]: https://docs.gitlab.com/ee/development/licensing.html
 [GitLab Inc engineering workflow]: https://about.gitlab.com/handbook/engineering/workflow/#labelling-issues
 [polling-etag]: https://docs.gitlab.com/ce/development/polling.html
-[testing]: https://docs.gitlab.com/ee/development/testing.html
+[testing]: https://docs.gitlab.com/ee/development/testing_guide/
 
 [^1]: Please note that specs other than JavaScript specs are considered backend
       code.
