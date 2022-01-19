@@ -5,27 +5,28 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/httputil"
+	contentencoding "gitlab.com/feistel/go-contentencoding/encoding"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
-var compressedEncodings = map[string]string{
-	"br":   ".br",
-	"gzip": ".gz",
-}
+var (
+	// Server side content encoding priority.
+	supportedEncodings = contentencoding.Preference{
+		contentencoding.Brotli:   1.0,
+		contentencoding.Gzip:     0.5,
+		contentencoding.Identity: 0.1,
+	}
 
-// Server side content encoding priority.
-// Map iteration order is not deterministic in go, so we need this array to specify the priority
-// when the client doesn't provide one
-var compressedEncodingsPriority = []string{
-	"br",
-	"gzip",
-}
+	compressedEncodings = map[string]string{
+		contentencoding.Brotli: ".br",
+		contentencoding.Gzip:   ".gz",
+	}
+)
 
 func endsWithSlash(path string) bool {
 	return strings.HasSuffix(path, "/")
@@ -66,35 +67,39 @@ func (reader *Reader) handleContentEncoding(ctx context.Context, w http.Response
 		return fullPath
 	}
 
-	files := map[string]os.FileInfo{}
+	acceptHeader := r.Header.Get("Accept-Encoding")
 
-	// finding compressed files
-	for encoding, extension := range compressedEncodings {
+	// don't send compressed content if there's no accept-encoding header
+	if acceptHeader == "" {
+		return fullPath
+	}
+
+	results, err := supportedEncodings.Negotiate(acceptHeader, contentencoding.AliasIdentity)
+	if err != nil {
+		return fullPath
+	}
+
+	if len(results) == 0 {
+		return fullPath
+	}
+
+	for _, encoding := range results {
+		if encoding == contentencoding.Identity {
+			break
+		}
+
+		extension := compressedEncodings[encoding]
 		path := fullPath + extension
 
 		// Ensure the file is not a symlink
 		if fi, err := root.Lstat(ctx, path); err == nil && fi.Mode().IsRegular() {
-			files[encoding] = fi
+			w.Header().Set("Content-Encoding", encoding)
+
+			// http.ServeContent doesn't set Content-Length if Content-Encoding is set
+			w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
+
+			return path
 		}
-	}
-
-	offers := make([]string, 0, len(files)+1)
-	for _, encoding := range compressedEncodingsPriority {
-		if _, ok := files[encoding]; ok {
-			offers = append(offers, encoding)
-		}
-	}
-	offers = append(offers, "identity")
-
-	acceptedEncoding := httputil.NegotiateContentEncoding(r, offers)
-
-	if fi, ok := files[acceptedEncoding]; ok {
-		w.Header().Set("Content-Encoding", acceptedEncoding)
-
-		// http.ServeContent doesn't set Content-Length if Content-Encoding is set
-		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
-
-		return fullPath + compressedEncodings[acceptedEncoding]
 	}
 
 	return fullPath
