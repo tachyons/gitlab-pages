@@ -8,10 +8,13 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	ghandlers "github.com/gorilla/handlers"
+	"github.com/hashicorp/go-multierror"
 	"github.com/rs/cors"
 	"gitlab.com/gitlab-org/labkit/log"
 
@@ -286,6 +289,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	return handler, nil
 }
 
+// nolint: gocyclo // ignore this
 func (a *theApp) Run() {
 	var wg sync.WaitGroup
 
@@ -310,24 +314,63 @@ func (a *theApp) Run() {
 
 	httpHandler := a.httpInitialMiddleware(commonHandlerPipeline)
 
+	var servers []*http.Server
+
 	// Listen for HTTP
 	for _, fd := range a.config.Listeners.HTTP {
-		a.listenHTTPFD(&wg, fd, httpHandler, limiter)
+		s := a.listen(
+			fd,
+			httpHandler,
+			errortracking.WithField("listener", request.SchemeHTTP),
+			withLimiter(limiter),
+		)
+		servers = append(servers, s)
 	}
 
 	// Listen for HTTPS
 	for _, fd := range a.config.Listeners.HTTPS {
-		a.listenHTTPSFD(&wg, fd, httpHandler, limiter)
+		tlsConfig, err := a.TLSConfig()
+		if err != nil {
+			log.WithError(err).Fatal("Unable to retrieve tls config")
+		}
+
+		s := a.listen(
+			fd,
+			httpHandler,
+			errortracking.WithField("listener", request.SchemeHTTPS),
+			withLimiter(limiter),
+			withTLSConfig(tlsConfig),
+		)
+		servers = append(servers, s)
 	}
 
 	// Listen for HTTP proxy requests
 	for _, fd := range a.config.Listeners.Proxy {
-		a.listenProxyFD(&wg, fd, proxyHandler, limiter)
+		s := a.listen(
+			fd,
+			proxyHandler,
+			errortracking.WithField("listener", "http proxy"),
+			withLimiter(limiter),
+		)
+		servers = append(servers, s)
 	}
 
 	// Listen for HTTPS PROXYv2 requests
 	for _, fd := range a.config.Listeners.HTTPSProxyv2 {
-		a.ListenHTTPSProxyv2FD(&wg, fd, httpHandler, limiter)
+		tlsConfig, err := a.TLSConfig()
+		if err != nil {
+			log.WithError(err).Fatal("Unable to retrieve tls config")
+		}
+
+		s := a.listen(
+			fd,
+			httpHandler,
+			errortracking.WithField("listener", "https proxy"),
+			withLimiter(limiter),
+			withTLSConfig(tlsConfig),
+			withProxyV2(),
+		)
+		servers = append(servers, s)
 	}
 
 	// Serve metrics for Prometheus
@@ -335,61 +378,38 @@ func (a *theApp) Run() {
 		a.listenMetricsFD(&wg, a.config.ListenMetrics)
 	}
 
-	wg.Wait()
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
+	<-sigChan
+
+	var result *multierror.Error
+
+	for _, srv := range servers {
+		// TODO: make this timeout configurable
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+
+		if err := srv.Shutdown(ctx); err != nil {
+			result = multierror.Append(result, err)
+		}
+
+		cancel()
+	}
+
+	if result.ErrorOrNil() != nil {
+		capturingFatal(result)
+	}
 }
 
-func (a *theApp) listenHTTPFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, limiter *netutil.Limiter) {
-	wg.Add(1)
+func (a *theApp) listen(fd uintptr, h http.Handler, errTrackingOpt errortracking.CaptureOption, opts ...option) *http.Server {
+	server := &http.Server{}
 	go func() {
-		defer wg.Done()
-		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter}); err != nil {
-			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTP))
+		if err := a.listenAndServe(server, fd, h, opts...); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			capturingFatal(err, errTrackingOpt)
 		}
 	}()
-}
 
-func (a *theApp) listenHTTPSFD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, limiter *netutil.Limiter) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		tlsConfig, err := a.TLSConfig()
-		if err != nil {
-			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
-		}
-
-		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter, tlsConfig: tlsConfig}); err != nil {
-			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
-		}
-	}()
-}
-
-func (a *theApp) listenProxyFD(wg *sync.WaitGroup, fd uintptr, proxyHandler http.Handler, limiter *netutil.Limiter) {
-	wg.Add(1)
-	go func() {
-		wg.Add(1)
-		go func(fd uintptr) {
-			defer wg.Done()
-			if err := a.listenAndServe(listenerConfig{fd: fd, handler: proxyHandler, limiter: limiter}); err != nil {
-				capturingFatal(err, errortracking.WithField("listener", "http proxy"))
-			}
-		}(fd)
-	}()
-}
-
-// https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
-func (a *theApp) ListenHTTPSProxyv2FD(wg *sync.WaitGroup, fd uintptr, httpHandler http.Handler, limiter *netutil.Limiter) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		tlsConfig, err := a.TLSConfig()
-		if err != nil {
-			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
-		}
-
-		if err := a.listenAndServe(listenerConfig{fd: fd, handler: httpHandler, limiter: limiter, tlsConfig: tlsConfig, isProxyV2: true}); err != nil {
-			capturingFatal(err, errortracking.WithField("listener", request.SchemeHTTPS))
-		}
-	}()
+	return server
 }
 
 func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
