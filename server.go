@@ -1,11 +1,11 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"time"
 
 	proxyproto "github.com/pires/go-proxyproto"
@@ -13,35 +13,13 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 )
 
-type keepAliveListener struct {
-	net.Listener
-}
-
-type keepAliveSetter interface {
-	SetKeepAlive(bool) error
-	SetKeepAlivePeriod(time.Duration) error
-}
-
 type listenerConfig struct {
 	isProxyV2 bool
 	tlsConfig *tls.Config
 	limiter   *netutil.Limiter
 }
 
-func (ln *keepAliveListener) Accept() (net.Conn, error) {
-	conn, err := ln.Listener.Accept()
-	if err != nil {
-		return nil, err
-	}
-
-	kc := conn.(keepAliveSetter)
-	kc.SetKeepAlive(true)
-	kc.SetKeepAlivePeriod(3 * time.Minute)
-
-	return conn, nil
-}
-
-func (a *theApp) listenAndServe(server *http.Server, fd uintptr, h http.Handler, opts ...option) error {
+func (a *theApp) listenAndServe(server *http.Server, addr string, h http.Handler, opts ...option) error {
 	config := &listenerConfig{}
 
 	for _, opt := range opts {
@@ -58,16 +36,18 @@ func (a *theApp) listenAndServe(server *http.Server, fd uintptr, h http.Handler,
 		server.TLSConfig.NextProtos = append(server.TLSConfig.NextProtos, "h2")
 	}
 
-	l, err := net.FileListener(os.NewFile(fd, "[socket]"))
+	lc := net.ListenConfig{
+		KeepAlive: 3 * time.Minute,
+	}
+
+	l, err := lc.Listen(context.Background(), "tcp", addr)
 	if err != nil {
-		return fmt.Errorf("failed to listen on FD %d: %w", fd, err)
+		return fmt.Errorf("failed to listen on addr %s: %w", addr, err)
 	}
 
 	if config.limiter != nil {
 		l = netutil.SharedLimitListener(l, config.limiter)
 	}
-
-	l = &keepAliveListener{l}
 
 	if config.isProxyV2 {
 		l = &proxyproto.Listener{

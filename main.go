@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"math/rand"
 	"os"
 	"time"
@@ -75,103 +74,7 @@ func appMain() {
 		fatal(err, "could not change directory into pagesRoot")
 	}
 
-	for _, cs := range [][]io.Closer{
-		createAppListeners(config),
-		createMetricsListener(config),
-	} {
-		defer closeAll(cs)
-	}
-
 	runApp(config)
-}
-
-func closeAll(cs []io.Closer) {
-	for _, c := range cs {
-		c.Close()
-	}
-}
-
-// createAppListeners returns net.Listener and *os.File instances. The
-// caller must ensure they don't get closed or garbage-collected (which
-// implies closing) too soon.
-func createAppListeners(config *cfg.Config) []io.Closer {
-	var closers []io.Closer
-	var httpListeners []uintptr
-	var httpsListeners []uintptr
-	var proxyListeners []uintptr
-	var httpsProxyv2Listeners []uintptr
-
-	for _, addr := range config.ListenHTTPStrings.Split() {
-		l, f := createSocket(addr)
-		closers = append(closers, l, f)
-
-		log.WithFields(log.Fields{
-			"listener": addr,
-		}).Debug("Set up HTTP listener")
-
-		httpListeners = append(httpListeners, f.Fd())
-	}
-
-	for _, addr := range config.ListenHTTPSStrings.Split() {
-		l, f := createSocket(addr)
-		closers = append(closers, l, f)
-
-		log.WithFields(log.Fields{
-			"listener": addr,
-		}).Debug("Set up HTTPS listener")
-
-		httpsListeners = append(httpsListeners, f.Fd())
-	}
-
-	for _, addr := range config.ListenProxyStrings.Split() {
-		l, f := createSocket(addr)
-		closers = append(closers, l, f)
-
-		log.WithFields(log.Fields{
-			"listener": addr,
-		}).Debug("Set up proxy listener")
-
-		proxyListeners = append(proxyListeners, f.Fd())
-	}
-
-	for _, addr := range config.ListenHTTPSProxyv2Strings.Split() {
-		l, f := createSocket(addr)
-		closers = append(closers, l, f)
-
-		log.WithFields(log.Fields{
-			"listener": addr,
-		}).Debug("Set up https proxyv2 listener")
-
-		httpsProxyv2Listeners = append(httpsProxyv2Listeners, f.Fd())
-	}
-
-	config.Listeners = cfg.Listeners{
-		HTTP:         httpListeners,
-		HTTPS:        httpsListeners,
-		Proxy:        proxyListeners,
-		HTTPSProxyv2: httpsProxyv2Listeners,
-	}
-
-	return closers
-}
-
-// createMetricsListener returns net.Listener and *os.File instances. The
-// caller must ensure they don't get closed or garbage-collected (which
-// implies closing) too soon.
-func createMetricsListener(config *cfg.Config) []io.Closer {
-	addr := config.General.MetricsAddress
-	if addr == "" {
-		return nil
-	}
-
-	l, f := createSocket(addr)
-	config.ListenMetrics = f.Fd()
-
-	log.WithFields(log.Fields{
-		"listener": addr,
-	}).Debug("Set up metrics listener")
-
-	return []io.Closer{l, f}
 }
 
 func printVersion(showVersion bool, version string) {

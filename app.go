@@ -301,9 +301,9 @@ func (a *theApp) Run() {
 	var servers []*http.Server
 
 	// Listen for HTTP
-	for _, fd := range a.config.Listeners.HTTP {
+	for _, addr := range a.config.ListenHTTPStrings.Split() {
 		s := a.listen(
-			fd,
+			addr,
 			httpHandler,
 			errortracking.WithField("listener", request.SchemeHTTP),
 			withLimiter(limiter),
@@ -312,14 +312,14 @@ func (a *theApp) Run() {
 	}
 
 	// Listen for HTTPS
-	for _, fd := range a.config.Listeners.HTTPS {
+	for _, addr := range a.config.ListenHTTPSStrings.Split() {
 		tlsConfig, err := a.TLSConfig()
 		if err != nil {
 			log.WithError(err).Fatal("Unable to retrieve tls config")
 		}
 
 		s := a.listen(
-			fd,
+			addr,
 			httpHandler,
 			errortracking.WithField("listener", request.SchemeHTTPS),
 			withLimiter(limiter),
@@ -329,9 +329,9 @@ func (a *theApp) Run() {
 	}
 
 	// Listen for HTTP proxy requests
-	for _, fd := range a.config.Listeners.Proxy {
+	for _, addr := range a.config.ListenProxyStrings.Split() {
 		s := a.listen(
-			fd,
+			addr,
 			proxyHandler,
 			errortracking.WithField("listener", "http proxy"),
 			withLimiter(limiter),
@@ -340,14 +340,14 @@ func (a *theApp) Run() {
 	}
 
 	// Listen for HTTPS PROXYv2 requests
-	for _, fd := range a.config.Listeners.HTTPSProxyv2 {
+	for _, addr := range a.config.ListenHTTPSProxyv2Strings.Split() {
 		tlsConfig, err := a.TLSConfig()
 		if err != nil {
 			log.WithError(err).Fatal("Unable to retrieve tls config")
 		}
 
 		s := a.listen(
-			fd,
+			addr,
 			httpHandler,
 			errortracking.WithField("listener", "https proxy"),
 			withLimiter(limiter),
@@ -358,8 +358,8 @@ func (a *theApp) Run() {
 	}
 
 	// Serve metrics for Prometheus
-	if a.config.ListenMetrics != 0 {
-		a.listenMetricsFD(&wg, a.config.ListenMetrics)
+	if a.config.General.MetricsAddress != "" {
+		a.listenMetrics(&wg, a.config.General.MetricsAddress)
 	}
 
 	sigChan := make(chan os.Signal, 1)
@@ -385,10 +385,10 @@ func (a *theApp) Run() {
 	}
 }
 
-func (a *theApp) listen(fd uintptr, h http.Handler, errTrackingOpt errortracking.CaptureOption, opts ...option) *http.Server {
+func (a *theApp) listen(addr string, h http.Handler, errTrackingOpt errortracking.CaptureOption, opts ...option) *http.Server {
 	server := &http.Server{}
 	go func() {
-		if err := a.listenAndServe(server, fd, h, opts...); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := a.listenAndServe(server, addr, h, opts...); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			capturingFatal(err, errTrackingOpt)
 		}
 	}()
@@ -396,14 +396,14 @@ func (a *theApp) listen(fd uintptr, h http.Handler, errTrackingOpt errortracking
 	return server
 }
 
-func (a *theApp) listenMetricsFD(wg *sync.WaitGroup, fd uintptr) {
+func (a *theApp) listenMetrics(wg *sync.WaitGroup, addr string) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
-		l, err := net.FileListener(os.NewFile(fd, "[socket]"))
+		l, err := net.Listen("tcp", addr)
 		if err != nil {
-			capturingFatal(fmt.Errorf("failed to listen on FD %d: %w", fd, err), errortracking.WithField("listener", "metrics"))
+			capturingFatal(fmt.Errorf("failed to listen on addr %s: %w", addr, err), errortracking.WithField("listener", "metrics"))
 		}
 
 		monitoringOpts := []monitoring.Option{

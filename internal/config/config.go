@@ -20,17 +20,10 @@ type Config struct {
 	ArtifactsServer ArtifactsServer
 	Authentication  Auth
 	GitLab          GitLab
-	Listeners       Listeners
 	Log             Log
 	Sentry          Sentry
 	TLS             TLS
 	Zip             ZipServing
-
-	// Fields used to share information between files. These are not directly
-	// set by command line flags, but rather populated based on info from them.
-	// ListenMetrics points to a file descriptor of a socket, whose address is
-	// specified by `Config.General.MetricsAddress`.
-	ListenMetrics uintptr
 
 	// These fields contain the raw strings passed for listen-http,
 	// listen-https, listen-proxy and listen-https-proxyv2 settings. It is used
@@ -109,15 +102,6 @@ type GitLab struct {
 	JWTTokenExpiration time.Duration
 	Cache              Cache
 	EnableDisk         bool
-}
-
-// Listeners groups settings related to configuring various listeners
-// (HTTP, HTTPS, Proxy, HTTPSProxyv2)
-type Listeners struct {
-	HTTP         []uintptr
-	HTTPS        []uintptr
-	Proxy        []uintptr
-	HTTPSProxyv2 []uintptr
 }
 
 // Log groups settings related to configuring logging
@@ -251,7 +235,6 @@ func loadConfig() (*Config, error) {
 		ListenHTTPSStrings:        listenHTTPS,
 		ListenProxyStrings:        listenProxy,
 		ListenHTTPSProxyv2Strings: listenHTTPSProxyv2,
-		Listeners:                 Listeners{},
 	}
 
 	var err error
