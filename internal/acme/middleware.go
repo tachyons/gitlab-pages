@@ -2,6 +2,7 @@ package acme
 
 import (
 	"net/http"
+
 	// TODO: break this dependency too https://gitlab.com/gitlab-org/gitlab-pages/-/issues/650
 	domainCfg "gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 )

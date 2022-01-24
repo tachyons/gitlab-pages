@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
-
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 )
 
 func TestFSOpen(t *testing.T) {

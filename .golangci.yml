@@ -44,6 +44,7 @@ linters:
     - bodyclose
     - deadcode
     - dogsled
+    - gci
     - goconst
     - gocyclo
     - goimports

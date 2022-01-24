@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
-
 	"github.com/stretchr/testify/require"
 )
 

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-
 	"gitlab.com/gitlab-org/labkit/correlation"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"

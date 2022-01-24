@@ -17,9 +17,8 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/hkdf"
-
 	"gitlab.com/gitlab-org/labkit/errortracking"
+	"golang.org/x/crypto/hkdf"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"

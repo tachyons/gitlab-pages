@@ -16,11 +16,10 @@ import (
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/hashicorp/go-multierror"
 	"github.com/rs/cors"
-	"gitlab.com/gitlab-org/labkit/log"
-
 	"gitlab.com/gitlab-org/go-mimedb"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/errortracking"
+	"gitlab.com/gitlab-org/labkit/log"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
 
