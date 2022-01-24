@@ -2,9 +2,7 @@ package domain
 
 import (
 	"fmt"
-	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -92,7 +90,8 @@ func TestPredefined404ServeHTTP(t *testing.T) {
 
 	testDomain := New("", "", "", &stubbedResolver{err: ErrDomainDoesNotExist})
 
-	testhelpers.AssertHTTP404(t, serveFileOrNotFound(testDomain), "GET", "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
+	require.HTTPStatusCode(t, serveFileOrNotFound(testDomain), http.MethodGet, "http://group.test.io/not-existing-file", nil, http.StatusNotFound)
+	require.HTTPBodyContains(t, serveFileOrNotFound(testDomain), http.MethodGet, "http://group.test.io/not-existing-file", nil, "The page you're looking for could not be found")
 }
 
 func TestGroupCertificate(t *testing.T) {
@@ -204,18 +203,9 @@ func TestServeNamespaceNotFound(t *testing.T) {
 				Name:     tt.domain,
 				Resolver: tt.resolver,
 			}
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", fmt.Sprintf("http://%s%s", tt.domain, tt.path), nil)
-			d.serveNamespaceNotFound(w, r)
 
-			resp := w.Result()
-			defer resp.Body.Close()
-
-			require.Equal(t, http.StatusNotFound, resp.StatusCode)
-			body, err := io.ReadAll(resp.Body)
-			require.NoError(t, err)
-
-			require.Contains(t, string(body), tt.expectedResponse)
+			require.HTTPStatusCode(t, d.serveNamespaceNotFound, http.MethodGet, fmt.Sprintf("http://%s%s", tt.domain, tt.path), nil, http.StatusNotFound)
+			require.HTTPBodyContains(t, d.serveNamespaceNotFound, http.MethodGet, fmt.Sprintf("http://%s%s", tt.domain, tt.path), nil, tt.expectedResponse)
 		})
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -40,11 +42,11 @@ var (
 )
 
 func TestServeAcmeChallengesNotConfigured(t *testing.T) {
-	testhelpers.AssertHTTP404(t, serveAcmeOrNotFound(nil, domain), "GET", challengeURL, nil, nil)
+	require.HTTPStatusCode(t, serveAcmeOrNotFound(nil, domain), http.MethodGet, challengeURL, nil, http.StatusNotFound)
 }
 
 func TestServeAcmeChallengeWhenPresent(t *testing.T) {
-	testhelpers.AssertHTTP404(t, serveAcmeOrNotFound(middleware, domainWithChallenge), "GET", challengeURL, nil, nil)
+	require.HTTPStatusCode(t, serveAcmeOrNotFound(middleware, domainWithChallenge), http.MethodGet, challengeURL, nil, http.StatusNotFound)
 }
 
 func TestServeAcmeChallengeWhenMissing(t *testing.T) {
@@ -54,5 +56,5 @@ func TestServeAcmeChallengeWhenMissing(t *testing.T) {
 		"https://gitlab.example.com/-/acme-challenge?domain=example.com&token=token",
 	)
 
-	testhelpers.AssertHTTP404(t, serveAcmeOrNotFound(middleware, domain), "GET", indexURL, nil, nil)
+	require.HTTPStatusCode(t, serveAcmeOrNotFound(middleware, domain), http.MethodGet, indexURL, nil, http.StatusNotFound)
 }
