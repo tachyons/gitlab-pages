@@ -9,37 +9,81 @@ import (
 )
 
 func TestIsHTTPS(t *testing.T) {
-	t.Run("when scheme is http", func(t *testing.T) {
-		httpRequest, err := http.NewRequest("GET", "/", nil)
-		require.NoError(t, err)
-		httpRequest.URL.Scheme = SchemeHTTP
-		require.False(t, IsHTTPS(httpRequest))
-	})
+	tests := map[string]struct {
+		u      string
+		scheme string
+	}{
+		"when scheme is http": {
+			u:      "/",
+			scheme: SchemeHTTP,
+		},
+		"when scheme is https": {
+			u:      "/",
+			scheme: SchemeHTTPS,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, test.u, nil)
+			req.URL.Scheme = test.scheme
 
-	t.Run("when scheme is https", func(t *testing.T) {
-		httpsRequest, err := http.NewRequest("GET", "/", nil)
-		require.NoError(t, err)
-		httpsRequest.URL.Scheme = SchemeHTTPS
-		require.True(t, IsHTTPS(httpsRequest))
-	})
+			require.Equal(t, test.scheme == SchemeHTTPS, IsHTTPS(req))
+		})
+	}
 }
 
 func TestGetHostWithoutPort(t *testing.T) {
-	t.Run("when port component is provided", func(t *testing.T) {
-		request := httptest.NewRequest("GET", "https://example.com:443", nil)
-		request.Host = "my.example.com:8080"
+	tests := map[string]struct {
+		u        string
+		host     string
+		expected string
+	}{
+		"when port component is provided": {
+			u:        "https://example.com:443",
+			host:     "my.example.com:8080",
+			expected: "my.example.com",
+		},
+		"when port component is not provided": {
+			u:        "http://example.com",
+			host:     "my.example.com",
+			expected: "my.example.com",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, test.u, nil)
+			req.Host = test.host
 
-		host := GetHostWithoutPort(request)
+			host := GetHostWithoutPort(req)
+			require.Equal(t, test.expected, host)
+		})
+	}
+}
 
-		require.Equal(t, "my.example.com", host)
-	})
+func TestGetRemoteAddrWithoutPort(t *testing.T) {
+	tests := map[string]struct {
+		u          string
+		remoteAddr string
+		expected   string
+	}{
+		"when port component is provided": {
+			u:          "https://example.com:443",
+			remoteAddr: "127.0.0.1:1000",
+			expected:   "127.0.0.1",
+		},
+		"when port component is not provided": {
+			u:          "http://example.com",
+			remoteAddr: "127.0.0.1",
+			expected:   "127.0.0.1",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, test.u, nil)
+			req.RemoteAddr = test.remoteAddr
 
-	t.Run("when port component is not provided", func(t *testing.T) {
-		request := httptest.NewRequest("GET", "http://example.com", nil)
-		request.Host = "my.example.com"
-
-		host := GetHostWithoutPort(request)
-
-		require.Equal(t, "my.example.com", host)
-	})
+			addr := GetRemoteAddrWithoutPort(req)
+			require.Equal(t, test.expected, addr)
+		})
+	}
 }
