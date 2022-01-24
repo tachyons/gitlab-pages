@@ -2,13 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//nolint
 package serving_test
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"os"
 	"runtime"
@@ -18,8 +15,6 @@ import (
 	"time"
 )
 
-var quietLog = log.New(io.Discard, "", 0)
-
 func TestMain(m *testing.M) {
 	v := m.Run()
 	if v == 0 && goroutineLeaked() {
@@ -28,6 +23,7 @@ func TestMain(m *testing.M) {
 	os.Exit(v)
 }
 
+// nolint: gocyclo // this is vendored code
 func interestingGoroutines() (gs []string) {
 	buf := make([]byte, 2<<20)
 	buf = buf[:runtime.Stack(buf, true)]
