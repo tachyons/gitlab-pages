@@ -1,4 +1,11 @@
+BINDIR := $(CURDIR)/bin
 GO_BUILD_TAGS   := continuous_profiler_stackdriver
+
+# To compute a unique and deterministic value for GNU build-id, we build the Go binary a second time.
+# From the first build, we extract its unique and deterministic Go build-id, and use that to derive
+# a comparably unique and deterministic GNU build-id to inject into the final binary.
+## Skip generation of the GNU build ID if set to speed up builds.
+WITHOUT_BUILD_ID ?=
 
 .PHONY: all setup generate-mocks build clean
 
@@ -20,10 +27,15 @@ generate-mocks: .GOPATH/.ok
 	$Q bin/mockgen -source=internal/mocks/api/client_stub.go -destination=internal/mocks/client.go -package=mocks
 
 build: .GOPATH/.ok
-	$Q GOBIN=$(CURDIR)/bin go install $(if $V,-v) $(VERSION_FLAGS) -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
+	$Q GOBIN=$(BINDIR) go install $(if $V,-v) -ldflags="$(VERSION_FLAGS)" -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
+ifndef WITHOUT_BUILD_ID
+	GO_BUILD_ID=$$( go tool buildid $(BINDIR)/gitlab-pages ) && \
+	GNU_BUILD_ID=$$( echo $$GO_BUILD_ID | sha1sum | cut -d' ' -f1 ) && \
+	$Q GOBIN=$(BINDIR) go install $(if $V,-v) -ldflags="$(VERSION_FLAGS) -B 0x$$GNU_BUILD_ID" -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
+endif
 
 clean:
-	$Q GOBIN=$(CURDIR)/bin go clean -i -modcache -x
+	$Q GOBIN=$(BINDIR) go clean -i -modcache -x
 
 gitlab-pages: build
-	$Q cp -f ./bin/gitlab-pages .
+	$Q cp -f $(BINDIR)/gitlab-pages .
