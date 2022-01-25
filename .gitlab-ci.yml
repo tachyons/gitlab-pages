@@ -428,6 +428,15 @@ postgresql:
     - push_tags $PG_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/postgresql_tag.txt
 
+build:cfssl-self-sign:
+  <<: *build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${CFSSL_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "CFSSL_VERSION=$CFSSL_VERSION"
+                      --build-arg "CFSSL_CHECKSUM_SHA256=$CFSSL_CHECKSUM_SHA256"
+    - copy_assets
+
 cfssl-self-sign:
   <<: *job-base
   <<: *except-deps
@@ -436,6 +445,7 @@ cfssl-self-sign:
     - export DOCKERFILE_EXT=
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$CFSSL_VERSION" | sha1sum))
     - build_if_needed --build-arg "CFSSL_VERSION=$CFSSL_VERSION"
+                      --build-arg "CFSSL_CHECKSUM_SHA256=$CFSSL_CHECKSUM_SHA256"
                       --build-arg "ALPINE_VERSION=$ALPINE_VERSION"
                       --build-arg "FROM_IMAGE=${DEPENDENCY_PROXY}alpine"
     - push_tags
