@@ -3,7 +3,6 @@ package acceptance_test
 import (
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"regexp"
 	"testing"
@@ -64,46 +63,6 @@ func withArguments(args []string) processOption {
 func withStubOptions(opts *stubOpts) processOption {
 	return func(config *processConfig) {
 		config.gitlabStubOpts = opts
-	}
-}
-
-// makeGitLabPagesAccessStub provides a stub *httptest.Server to check pages_access API call.
-// the result is based on the project id.
-//
-// Project IDs must be 4 digit long and the following rules applies:
-//   1000-1999: Ok
-//   2000-2999: Unauthorized
-//   3000-3999: Invalid token
-func makeGitLabPagesAccessStub(t *testing.T) *httptest.Server {
-	t.Helper()
-
-	return httptest.NewUnstartedServer(apiHandler(t))
-}
-
-func apiHandler(t *testing.T) http.HandlerFunc {
-	t.Helper()
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		// TODO: move OAuth and user endpoints to NewGitlabDomainsSourceStub
-		case "/oauth/token":
-			require.Equal(t, "POST", r.Method)
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, "{\"access_token\":\"abc\"}")
-		case "/api/v4/user":
-			require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-			w.WriteHeader(http.StatusOK)
-		case "/api/v4/internal/pages/status":
-			// Temporarily adding these handlers to this stub.
-			w.WriteHeader(http.StatusNoContent)
-		case "/api/v4/internal/pages":
-			defaultAPIHandler(t, &stubOpts{})(w, r)
-		default:
-			if handleAccessControlArtifactRequests(t, w, r) {
-				return
-			}
-			handleAccessControlRequests(t, w, r)
-		}
 	}
 }
 
