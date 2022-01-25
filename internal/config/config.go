@@ -27,8 +27,7 @@ type Config struct {
 
 	// These fields contain the raw strings passed for listen-http,
 	// listen-https, listen-proxy and listen-https-proxyv2 settings. It is used
-	// by appmain() to create listeners, and the pointers to these listeners
-	// gets assigned to Config.Listeners.* fields
+	// by appmain() to create listeners.
 	ListenHTTPStrings         MultiStringFlag
 	ListenHTTPSStrings        MultiStringFlag
 	ListenProxyStrings        MultiStringFlag
