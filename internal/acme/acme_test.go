@@ -39,10 +39,15 @@ var (
 	domainWithChallenge = &domainStub{hasAcmeChallenge: true}
 	domain              = &domainStub{hasAcmeChallenge: false}
 	middleware          = &Middleware{GitlabURL: "https://gitlab.example.com"}
+	middlewareMalformed = &Middleware{GitlabURL: ":foo"}
 )
 
 func TestServeAcmeChallengesNotConfigured(t *testing.T) {
 	require.HTTPStatusCode(t, serveAcmeOrNotFound(nil, domain), http.MethodGet, challengeURL, nil, http.StatusNotFound)
+}
+
+func TestServeAcmeChallengeMalformed(t *testing.T) {
+	require.HTTPStatusCode(t, serveAcmeOrNotFound(middlewareMalformed, domain), http.MethodGet, challengeURL, nil, http.StatusNotFound)
 }
 
 func TestServeAcmeChallengeWhenPresent(t *testing.T) {
