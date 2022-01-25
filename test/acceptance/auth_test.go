@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -424,12 +423,7 @@ type runPagesFunc func(t *testing.T, listeners []ListenSpec, sslCertFile string)
 func testAccessControl(t *testing.T, runPages runPagesFunc) {
 	setupTransport(t)
 
-	keyFile, certFile := CreateHTTPSFixtureFiles(t)
-
-	t.Cleanup(func() {
-		os.Remove(keyFile)
-		os.Remove(certFile)
-	})
+	_, certFile := CreateHTTPSFixtureFiles(t)
 
 	tests := map[string]struct {
 		host         string

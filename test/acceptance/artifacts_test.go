@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"testing"
 	"time"
 
@@ -49,8 +48,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 	testServer.StartTLS()
 
 	t.Cleanup(func() {
-		os.Remove(keyFile)
-		os.Remove(certFile)
 		testServer.Close()
 	})
 
@@ -165,8 +162,6 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	testServer.StartTLS()
 
 	t.Cleanup(func() {
-		os.Remove(keyFile)
-		os.Remove(certFile)
 		testServer.Close()
 	})
 

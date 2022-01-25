@@ -123,8 +123,7 @@ func TestReadlinkAbsolutePath(t *testing.T) {
 	// /tmp/dir: directory
 	// /tmp/dir/symlink: points to `/tmp/file` outside of the `/tmp/dir`
 	// /tmp/dir/symlink2: points to `/tmp/dir/file`
-	tmpDir, cleanup := tmpDir(t)
-	defer cleanup()
+	tmpDir := tmpDir(t)
 
 	dirPath := filepath.Join(tmpDir, "dir")
 	err := os.Mkdir(dirPath, 0755)

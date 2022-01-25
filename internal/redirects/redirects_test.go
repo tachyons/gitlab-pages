@@ -157,7 +157,7 @@ func TestRedirectsRewrite(t *testing.T) {
 func TestRedirectsParseRedirects(t *testing.T) {
 	ctx := context.Background()
 
-	root, tmpDir := testhelpers.TmpDir(t, "ParseRedirects_tests")
+	root, tmpDir := testhelpers.TmpDir(t)
 
 	tests := []struct {
 		name          string
@@ -220,7 +220,7 @@ func TestRedirectsParseRedirects(t *testing.T) {
 }
 
 func TestMaxRuleCount(t *testing.T) {
-	root, tmpDir := testhelpers.TmpDir(t, "TooManyRules_tests")
+	root, tmpDir := testhelpers.TmpDir(t)
 
 	err := os.WriteFile(path.Join(tmpDir, ConfigFile), []byte(strings.Repeat("/goto.html /target.html 301\n", maxRuleCount-1)+
 		"/1000.html /target1000 301\n"+
