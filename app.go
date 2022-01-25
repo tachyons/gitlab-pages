@@ -373,6 +373,8 @@ func (a *theApp) Run() {
 		// TODO: make this timeout configurable
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
+		srv.SetKeepAlivesEnabled(false)
+
 		if err := srv.Shutdown(ctx); err != nil {
 			result = multierror.Append(result, err)
 		}
