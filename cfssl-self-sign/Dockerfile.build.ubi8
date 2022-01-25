@@ -1,0 +1,17 @@
+# ~ gitlab-ubi-builder, expect registry.access.redhat.com/ubi8/ubi
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.5
+FROM ${UBI_IMAGE}
+
+ARG CFSSL_VERSION="1.6.1"
+ARG CFSSL_PLATFORM="linux_amd64"
+ARG CFSSL_BIN=/usr/local/bin
+
+COPY scripts/install-cfssl.sh /scripts/install-cfssl.sh
+RUN /scripts/install-cfssl.sh
+
+RUN mkdir /assets \
+    && mkdir /assets/licenses \
+    && mv ${CFSSL_BIN}/cfssl.LICENSE /assets/licenses/ \
+    && cp -R --parents \
+        ${CFSSL_BIN}/cfssl* \
+        /assets
