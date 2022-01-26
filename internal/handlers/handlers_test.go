@@ -10,19 +10,19 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers/mock"
 )
 
 func TestNotHandleArtifactRequestReturnsFalse(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 
-	mockArtifact := mocks.NewMockArtifact(mockCtrl)
+	mockArtifact := mock.NewMockArtifact(mockCtrl)
 	mockArtifact.EXPECT().
 		TryMakeRequest(gomock.Any(), gomock.Any(), gomock.Any(), "", gomock.Any()).
 		Return(false).
 		Times(1)
 
-	mockAuth := mocks.NewMockAuth(mockCtrl)
+	mockAuth := mock.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().
 		GetTokenIfExists(gomock.Any(), gomock.Any()).
 		Return("", nil).
@@ -41,13 +41,13 @@ func TestNotHandleArtifactRequestReturnsFalse(t *testing.T) {
 func TestHandleArtifactRequestedReturnsTrue(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 
-	mockArtifact := mocks.NewMockArtifact(mockCtrl)
+	mockArtifact := mock.NewMockArtifact(mockCtrl)
 	mockArtifact.EXPECT().
 		TryMakeRequest(gomock.Any(), gomock.Any(), gomock.Any(), "", gomock.Any()).
 		Return(true).
 		Times(1)
 
-	mockAuth := mocks.NewMockAuth(mockCtrl)
+	mockAuth := mock.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().
 		GetTokenIfExists(gomock.Any(), gomock.Any()).
 		Return("", nil).
@@ -64,7 +64,7 @@ func TestHandleArtifactRequestedReturnsTrue(t *testing.T) {
 func TestNotFoundWithTokenIsNotHandled(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 
-	mockAuth := mocks.NewMockAuth(mockCtrl)
+	mockAuth := mock.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().CheckResponseForInvalidToken(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(false)
 
@@ -101,7 +101,7 @@ func TestForbiddenWithTokenIsNotHandled(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 
-			mockAuth := mocks.NewMockAuth(mockCtrl)
+			mockAuth := mock.NewMockAuth(mockCtrl)
 			if tc.Token == "" {
 				mockAuth.EXPECT().IsAuthSupported().Return(true)
 				mockAuth.EXPECT().RequireAuth(gomock.Any(), gomock.Any()).Return(true)
@@ -125,7 +125,7 @@ func TestForbiddenWithTokenIsNotHandled(t *testing.T) {
 func TestNotFoundWithoutTokenIsNotHandledWhenNotAuthSupport(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 
-	mockAuth := mocks.NewMockAuth(mockCtrl)
+	mockAuth := mock.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().IsAuthSupported().Return(false)
 
 	handlers := New(mockAuth, nil)
@@ -140,7 +140,7 @@ func TestNotFoundWithoutTokenIsNotHandledWhenNotAuthSupport(t *testing.T) {
 func TestNotFoundWithoutTokenIsHandled(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 
-	mockAuth := mocks.NewMockAuth(mockCtrl)
+	mockAuth := mock.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().IsAuthSupported().Return(true)
 	mockAuth.EXPECT().RequireAuth(gomock.Any(), gomock.Any()).Times(1).Return(true)
 
@@ -156,7 +156,7 @@ func TestNotFoundWithoutTokenIsHandled(t *testing.T) {
 func TestInvalidTokenResponseIsHandled(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 
-	mockAuth := mocks.NewMockAuth(mockCtrl)
+	mockAuth := mock.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().CheckResponseForInvalidToken(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(true)
 
@@ -173,12 +173,12 @@ func TestInvalidTokenResponseIsHandled(t *testing.T) {
 func TestHandleArtifactRequestButGetTokenFails(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 
-	mockArtifact := mocks.NewMockArtifact(mockCtrl)
+	mockArtifact := mock.NewMockArtifact(mockCtrl)
 	mockArtifact.EXPECT().
 		TryMakeRequest(gomock.Any(), gomock.Any(), gomock.Any(), "", gomock.Any()).
 		Times(0)
 
-	mockAuth := mocks.NewMockAuth(mockCtrl)
+	mockAuth := mock.NewMockAuth(mockCtrl)
 	mockAuth.EXPECT().GetTokenIfExists(gomock.Any(), gomock.Any()).Return("", errors.New("error when retrieving token"))
 
 	handlers := New(mockAuth, mockArtifact)

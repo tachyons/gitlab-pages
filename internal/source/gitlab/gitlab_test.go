@@ -12,9 +12,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/mock"
 )
 
 func TestGetDomain(t *testing.T) {
@@ -171,10 +171,10 @@ func TestResolveLookupPathsOrderDoesNotMatter(t *testing.T) {
 	}
 }
 
-func NewMockClient(t *testing.T, file string, mockedLookup *api.Lookup) *mocks.MockClientStub {
+func NewMockClient(t *testing.T, file string, mockedLookup *api.Lookup) *mock.MockClientStub {
 	mockCtrl := gomock.NewController(t)
 
-	mockClient := mocks.NewMockClientStub(mockCtrl)
+	mockClient := mock.NewMockClientStub(mockCtrl)
 	mockClient.EXPECT().
 		Resolve(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, domain string) *api.Lookup {

@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/domain/mock"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/local"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
@@ -208,7 +208,7 @@ func TestServeNamespaceNotFound(t *testing.T) {
 func mockResolver(t *testing.T, project *serving.LookupPath, subpath string, err error) domain.Resolver {
 	mockCtrl := gomock.NewController(t)
 
-	mockResolver := mocks.NewMockResolver(mockCtrl)
+	mockResolver := mock.NewMockResolver(mockCtrl)
 
 	mockResolver.EXPECT().
 		Resolve(gomock.Any()).
