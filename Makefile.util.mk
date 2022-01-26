@@ -50,7 +50,7 @@ deps-check: .GOPATH/.ok
   fi;
 
 mocks-check: .GOPATH/.ok generate-mocks
-	@if git diff --color=always --exit-code; then \
+	@if git diff --color=always --exit-code -- *_mock.go; then \
 		echo "mocks are ok"; \
 	else \
     echo ""; \
