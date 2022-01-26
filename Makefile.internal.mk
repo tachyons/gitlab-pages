@@ -32,3 +32,7 @@ bin/golangci-lint: .GOPATH/.ok
 bin/gotestsum: .GOPATH/.ok
 	@test -x $@ || \
 	    { echo "Vendored gotestsum not found, try running 'make setup'..."; exit 1; }
+
+bin/mockgen: .GOPATH/.ok
+	@test -x $@ || \
+	    { echo "Vendored mockgen not found, try running 'make setup'..."; exit 1; }

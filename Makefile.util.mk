@@ -49,6 +49,15 @@ deps-check: .GOPATH/.ok
 		exit 1; \
   fi;
 
+mocks-check: .GOPATH/.ok generate-mocks
+	@if git diff --color=always --exit-code; then \
+		echo "mocks are ok"; \
+	else \
+    echo ""; \
+		echo "mocks needs to be regenerated, please run 'make generate-mocks' and commit them";\
+		exit 1; \
+  fi;
+
 deps-download: .GOPATH/.ok
 	go mod download
 
