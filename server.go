@@ -60,7 +60,7 @@ func (a *theApp) listenAndServe(server *http.Server, fd uintptr, h http.Handler,
 
 	l, err := net.FileListener(os.NewFile(fd, "[socket]"))
 	if err != nil {
-		return fmt.Errorf("failed to listen on FD %d: %v", fd, err)
+		return fmt.Errorf("failed to listen on FD %d: %w", fd, err)
 	}
 
 	if config.limiter != nil {

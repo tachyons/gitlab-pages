@@ -2,6 +2,7 @@ package zip
 
 import (
 	"context"
+	"errors"
 	"io"
 	"io/fs"
 	"testing"
@@ -103,7 +104,7 @@ func TestVFSFindOrOpenArchiveConcurrentAccess(t *testing.T) {
 
 	require.Eventually(t, func() bool {
 		_, err := vfs.findOrOpenArchive(context.Background(), key, path)
-		return err == errAlreadyCached
+		return errors.Is(err, errAlreadyCached)
 	}, 3*time.Second, time.Nanosecond)
 }
 
