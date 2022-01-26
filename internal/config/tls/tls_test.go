@@ -29,7 +29,7 @@ var getCertificate = func(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return nil, nil
 }
 
-func TestValidateTLSVersions(t *testing.T) {
+func TestInvalidTLSVersions(t *testing.T) {
 	tests := map[string]struct {
 		tlsMin string
 		tlsMax string
@@ -44,6 +44,28 @@ func TestValidateTLSVersions(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			err := ValidateTLSVersions(tc.tlsMin, tc.tlsMax)
 			require.EqualError(t, err, tc.err)
+		})
+	}
+}
+
+func TestValidTLSVersions(t *testing.T) {
+	tests := map[string]struct {
+		tlsMin string
+		tlsMax string
+	}{
+		"tls 1.3 only": {tlsMin: "tls1.3", tlsMax: "tls1.3"},
+		"tls 1.2 only": {tlsMin: "tls1.2", tlsMax: "tls1.2"},
+		"tls 1.3 max":  {tlsMax: "tls1.3"},
+		"tls 1.2 max":  {tlsMax: "tls1.2"},
+		"tls 1.3+":     {tlsMin: "tls1.3"},
+		"tls 1.2+":     {tlsMin: "tls1.2"},
+		"default":      {},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := ValidateTLSVersions(tc.tlsMin, tc.tlsMax)
+			require.NoError(t, err)
 		})
 	}
 }
