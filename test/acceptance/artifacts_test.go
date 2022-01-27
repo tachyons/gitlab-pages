@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
+	"gitlab.com/gitlab-org/gitlab-pages/test/gitlabstub"
 )
 
 func TestArtifactProxyRequest(t *testing.T) {
@@ -149,7 +150,8 @@ func TestArtifactProxyRequest(t *testing.T) {
 }
 
 func TestPrivateArtifactProxyRequest(t *testing.T) {
-	testServer := NewGitlabUnstartedServerStub(t, &stubOpts{})
+	testServer, err := gitlabstub.NewUnstartedServer()
+	require.NoError(t, err)
 
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)

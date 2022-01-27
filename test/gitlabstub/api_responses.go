@@ -1,25 +1,23 @@
-package testdata
+package gitlabstub
 
 import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
-	"testing"
-
-	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
-type responseFn func(*testing.T, string) api.VirtualDomain
+type responseFn func(string) api.VirtualDomain
 
-// DomainResponses holds the predefined API responses for certain domains
+// domainResponses holds the predefined API responses for certain domains
 // that can be used with the GitLab API stub in acceptance tests
 // Assume the working dir is inside shared/pages/
-var DomainResponses = map[string]responseFn{
+var domainResponses = map[string]responseFn{
 	"zip-from-disk.gitlab.io": customDomain(projectConfig{
 		projectID:  123,
 		pathOnDisk: "@hashed/zip-from-disk.gitlab.io",
@@ -120,9 +118,7 @@ var DomainResponses = map[string]responseFn{
 // generateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
 // It works for subdomains of pages-domain but not for custom domains (yet)
 func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[string]projectConfig) responseFn {
-	return func(t *testing.T, wd string) api.VirtualDomain {
-		t.Helper()
-
+	return func(wd string) api.VirtualDomain {
 		var foundZips []string
 
 		// walk over dir and save any paths containing a `.zip` file
@@ -131,10 +127,14 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 		cleanDir := filepath.Join(wd, dir)
 
 		// make sure resolved path inside dir is under wd to avoid https://securego.io/docs/rules/g304.html
-		require.Truef(t, strings.HasPrefix(cleanDir, wd), "path %q outside of wd %q", cleanDir, wd)
+		if !strings.HasPrefix(cleanDir, wd) {
+			log.Fatalf("path %q outside of wd %q", cleanDir, wd)
+		}
 
-		filepath.Walk(cleanDir, func(path string, info os.FileInfo, err error) error {
-			require.NoError(t, err)
+		walkErr := filepath.Walk(cleanDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 
 			if strings.HasSuffix(info.Name(), ".zip") {
 				project := strings.TrimPrefix(path, wd+"/"+dir)
@@ -143,6 +143,10 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 
 			return nil
 		})
+
+		if walkErr != nil {
+			log.Fatal(walkErr)
+		}
 
 		lookupPaths := make([]api.LookupPath, 0, len(foundZips))
 		// generate lookup paths
@@ -200,9 +204,7 @@ type projectConfig struct {
 
 // customDomain with per project config
 func customDomain(config projectConfig) responseFn {
-	return func(t *testing.T, wd string) api.VirtualDomain {
-		t.Helper()
-
+	return func(wd string) api.VirtualDomain {
 		sourcePath := fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk)
 		sum := sha256.Sum256([]byte(sourcePath))
 		sha := hex.EncodeToString(sum[:])

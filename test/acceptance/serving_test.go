@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
+	"gitlab.com/gitlab-org/gitlab-pages/test/gitlabstub"
 )
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
@@ -358,9 +359,6 @@ func TestKnownHostInReverseProxySetupReturns200(t *testing.T) {
 
 func TestDomainResolverError(t *testing.T) {
 	domainName := "new-source-test.gitlab.io"
-	opts := &stubOpts{
-		apiCalled: false,
-	}
 
 	tests := map[string]struct {
 		status  int
@@ -380,14 +378,17 @@ func TestDomainResolverError(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			called := false
+
 			// handler setup
-			opts.pagesHandler = func(w http.ResponseWriter, r *http.Request) {
+			pagesHandler := func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Query().Get("host") != domainName {
 					w.WriteHeader(http.StatusNoContent)
 					return
 				}
 
-				opts.setAPICalled(true)
+				called = true
+
 				if test.panic {
 					panic("server failed")
 				}
@@ -404,7 +405,7 @@ func TestDomainResolverError(t *testing.T) {
 
 			RunPagesProcess(t,
 				withListeners([]ListenSpec{httpListener}),
-				withStubOptions(opts),
+				withStubOptions(gitlabstub.WithPagesHandler(pagesHandler)),
 				withArguments(pagesArgs),
 			)
 
@@ -412,7 +413,7 @@ func TestDomainResolverError(t *testing.T) {
 			require.NoError(t, err)
 			testhelpers.Close(t, response.Body)
 
-			require.True(t, opts.getAPICalled(), "api must have been called")
+			require.True(t, called, "api must have been called")
 
 			require.Equal(t, http.StatusBadGateway, response.StatusCode)
 
@@ -556,16 +557,15 @@ func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
 }
 
 func TestSlowRequests(t *testing.T) {
-	opts := &stubOpts{
-		delay: 250 * time.Millisecond,
-	}
+	delay := 250 * time.Millisecond
+
 	logBuf := RunPagesProcess(t,
-		withStubOptions(opts),
+		withStubOptions(gitlabstub.WithDelay(delay)),
 		withExtraArgument("gitlab-retrieval-timeout", "1s"),
 		withListeners([]ListenSpec{httpListener}),
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), opts.delay/2)
+	ctx, cancel := context.WithTimeout(context.Background(), delay/2)
 	defer cancel()
 
 	url := httpListener.URL("/index.html")

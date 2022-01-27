@@ -5,14 +5,10 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path"
@@ -21,14 +17,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/pires/go-proxyproto"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/nettest"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
-	"gitlab.com/gitlab-org/gitlab-pages/test/acceptance/testdata"
+	"gitlab.com/gitlab-org/gitlab-pages/test/gitlabstub"
 )
 
 // The HTTPS certificate isn't signed by anyone. This http client is set up
@@ -250,11 +245,8 @@ func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 		opt(&processCfg)
 	}
 
-	if processCfg.gitlabStubOpts.pagesRoot == "" {
-		processCfg.gitlabStubOpts.pagesRoot = wd
-	}
-
-	source := NewGitlabUnstartedServerStub(t, processCfg.gitlabStubOpts)
+	source, err := gitlabstub.NewUnstartedServer(processCfg.gitlabStubOpts...)
+	require.NoError(t, err)
 	source.Start()
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
@@ -463,123 +455,6 @@ func ClientWithConfig(tlsConfig *tls.Config) (*http.Client, func()) {
 	client := &http.Client{Transport: tr}
 
 	return client, tr.CloseIdleConnections
-}
-
-type stubOpts struct {
-	m            sync.RWMutex
-	apiCalled    bool
-	pagesHandler http.HandlerFunc
-	pagesRoot    string
-	delay        time.Duration
-}
-
-func NewGitlabUnstartedServerStub(t *testing.T, opts *stubOpts) *httptest.Server {
-	t.Helper()
-	require.NotNil(t, opts)
-
-	router := mux.NewRouter()
-
-	pagesHandler := defaultAPIHandler(t, opts)
-	if opts.pagesHandler != nil {
-		pagesHandler = opts.pagesHandler
-	}
-
-	router.HandleFunc("/api/v4/internal/pages", pagesHandler)
-
-	authHandler := defaultAuthHandler(t)
-	router.HandleFunc("/oauth/token", authHandler)
-
-	userHandler := defaultUserHandler(t)
-	router.HandleFunc("/api/v4/user", userHandler)
-
-	router.HandleFunc("/api/v4/projects/{project_id:[0-9]+}/pages_access", func(w http.ResponseWriter, r *http.Request) {
-		handleAccessControlRequests(t, w, r)
-	})
-
-	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ok := handleAccessControlArtifactRequests(t, w, r)
-		require.True(t, ok)
-	})
-
-	return httptest.NewUnstartedServer(router)
-}
-
-func (o *stubOpts) setAPICalled(v bool) {
-	o.m.Lock()
-	defer o.m.Unlock()
-
-	o.apiCalled = v
-}
-
-func (o *stubOpts) getAPICalled() bool {
-	o.m.RLock()
-	defer o.m.RUnlock()
-
-	return o.apiCalled
-}
-
-func lookupFromFile(t *testing.T, domain string, w http.ResponseWriter) {
-	fixture, err := os.Open("../../shared/lookups/" + domain + ".json")
-	if errors.Is(err, fs.ErrNotExist) {
-		w.WriteHeader(http.StatusNoContent)
-
-		t.Logf("GitLab domain %s source stub served 204", domain)
-		return
-	}
-
-	defer fixture.Close()
-	require.NoError(t, err)
-
-	_, err = io.Copy(w, fixture)
-	require.NoError(t, err)
-
-	t.Logf("GitLab domain %s source stub served lookup", domain)
-}
-
-func defaultAPIHandler(t *testing.T, opts *stubOpts) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		domain := r.URL.Query().Get("host")
-		if domain == "127.0.0.1" {
-			// shortcut for healthy checkup done by WaitUntilRequestSucceeds
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		// to test slow responses from the API
-		if opts.delay > 0 {
-			time.Sleep(opts.delay)
-		}
-
-		opts.setAPICalled(true)
-
-		// check if predefined response exists
-		if responseFn, ok := testdata.DomainResponses[domain]; ok {
-			err := json.NewEncoder(w).Encode(responseFn(t, opts.pagesRoot))
-			require.NoError(t, err)
-			return
-		}
-
-		// serve lookup from files
-		lookupFromFile(t, domain, w)
-	}
-}
-
-func defaultAuthHandler(t *testing.T) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "POST", r.Method)
-		err := json.NewEncoder(w).Encode(struct {
-			AccessToken string `json:"access_token"`
-		}{
-			AccessToken: "abc",
-		})
-		require.NoError(t, err)
-	}
-}
-
-func defaultUserHandler(t *testing.T) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "Bearer abc", r.Header.Get("Authorization"))
-		w.WriteHeader(http.StatusOK)
-	}
 }
 
 func newConfigFile(t *testing.T, configs ...string) string {
