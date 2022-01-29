@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"gitlab.com/gitlab-org/labkit/correlation"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -92,15 +94,29 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 	return c.retrieve(ctx, entry)
 }
 
-func (c *Cache) retrieve(ctx context.Context, entry *Entry) *api.Lookup {
+func (c *Cache) retrieve(originalCtx context.Context, entry *Entry) *api.Lookup {
 	// We run the code within an additional func() to run both `e.setResponse`
 	// and `c.retriever.Retrieve` asynchronously.
-	entry.retrieve.Do(func() { go func() { entry.setResponse(c.retriever.Retrieve(ctx, entry.domain)) }() })
+	// We are using a sync.Once so this assumes that setResponse is always called
+	// the first (and only) time f is called, otherwise future requests will hang.
+	entry.retrieve.Do(func() {
+		// forward correlation_id from originalCtx to the new independent context
+		correlationID := correlation.ExtractFromContext(originalCtx)
+		retrieverCtx := correlation.ContextWithCorrelation(context.Background(), correlationID)
+
+		retrieverCtx, cancel := context.WithTimeout(retrieverCtx, c.retriever.retrievalTimeout)
+
+		go func() {
+			l := c.retriever.Retrieve(retrieverCtx, entry.domain)
+			entry.setResponse(l)
+			cancel()
+		}()
+	})
 
 	var lookup *api.Lookup
 	select {
-	case <-ctx.Done():
-		lookup = &api.Lookup{Name: entry.domain, Error: fmt.Errorf("context done: %w", ctx.Err())}
+	case <-originalCtx.Done():
+		lookup = &api.Lookup{Name: entry.domain, Error: fmt.Errorf("original context done: %w", originalCtx.Err())}
 	case <-entry.retrieved:
 		lookup = entry.Lookup()
 	}

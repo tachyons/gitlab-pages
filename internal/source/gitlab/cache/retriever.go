@@ -35,20 +35,15 @@ func NewRetriever(client api.Client, retrievalTimeout, maxRetrievalInterval time
 
 // Retrieve retrieves a lookup response from external source with timeout and
 // backoff. It has its own context with timeout.
-func (r *Retriever) Retrieve(originalCtx context.Context, domain string) (lookup api.Lookup) {
-	logMsg := ""
+func (r *Retriever) Retrieve(ctx context.Context, domain string) (lookup api.Lookup) {
+	var logMsg string
 
-	// forward correlation_id from originalCtx to the new independent context
-	correlationID := correlation.ExtractFromContext(originalCtx)
-	ctx := correlation.ContextWithCorrelation(context.Background(), correlationID)
-
-	ctx, cancel := context.WithTimeout(ctx, r.retrievalTimeout)
-	defer cancel()
+	correlationID := correlation.ExtractFromContext(ctx)
 
 	select {
 	case <-ctx.Done():
 		logMsg = "retrieval context done"
-		lookup = api.Lookup{Error: fmt.Errorf(logMsg+": %w", ctx.Err())}
+		lookup = api.Lookup{Name: domain, Error: fmt.Errorf(logMsg+": %w", ctx.Err())}
 	case lookup = <-r.resolveWithBackoff(ctx, domain):
 		logMsg = "retrieval response sent"
 	}
