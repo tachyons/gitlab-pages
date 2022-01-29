@@ -7,6 +7,10 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/sirupsen/logrus"
+	"gitlab.com/gitlab-org/labkit/log"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -25,6 +29,9 @@ var (
 	// seek errors no need to export them
 	errSeekInvalidWhence = errors.New("invalid whence")
 	errSeekOutsideRange  = errors.New("outside of range")
+
+	rangeRequestPrepareErrMsg = "failed to prepare HTTP range request"
+	rangeRequestFailedErrMsg  = "failed HTTP range response"
 )
 
 // Reader holds a Resource and specifies ranges to read from at a time.
@@ -56,6 +63,13 @@ func (r *Reader) ensureResponse() error {
 
 	req, err := r.prepareRequest()
 	if err != nil {
+		log.WithError(err).WithFields(logrus.Fields{
+			"range_start":   r.rangeStart,
+			"range_size":    r.rangeSize,
+			"offset":        r.offset,
+			"resource_size": r.Resource.Size,
+			"resource_url":  logging.CleanURL(r.Resource.URL()),
+		}).Error(rangeRequestPrepareErrMsg)
 		return err
 	}
 
@@ -73,6 +87,7 @@ func (r *Reader) ensureResponse() error {
 
 		// cleanup body on failure from r.setResponse to avoid memory leak
 		res.Body.Close()
+		logging.LogRequest(req).WithError(err).WithField("status", res.Status).Error(rangeRequestFailedErrMsg)
 	}
 
 	return err
