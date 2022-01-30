@@ -49,6 +49,7 @@ func serveContent(w http.ResponseWriter, r *http.Request, modtime time.Time, con
 
 	if r.Method == http.MethodHead {
 		w.WriteHeader(code)
+		return
 	}
 
 	if r.Method != http.MethodHead {
