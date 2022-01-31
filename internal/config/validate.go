@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 
 	"github.com/hashicorp/go-multierror"
@@ -18,6 +19,7 @@ var (
 	errAuthNoRedirect                   = errors.New("auth-redirect-uri must be defined if authentication is supported")
 	errArtifactsServerUnsupportedScheme = errors.New("artifacts-server scheme must be either http:// or https://")
 	errArtifactsServerInvalidTimeout    = errors.New("artifacts-server-timeout must be greater than or equal to 1")
+	errEmptyListener                    = errors.New("listener must not be empty")
 )
 
 // Validate values populated in Config
@@ -42,7 +44,29 @@ func validateListeners(config *Config) error {
 		return errNoListener
 	}
 
-	return nil
+	var result *multierror.Error
+	for i, s := range config.ListenHTTPStrings.Split() {
+		if s == "" {
+			result = multierror.Append(result, fmt.Errorf("empty http listener at index %d: %w", i, errEmptyListener))
+		}
+	}
+	for i, s := range config.ListenHTTPSStrings.Split() {
+		if s == "" {
+			result = multierror.Append(result, fmt.Errorf("empty https listener at index %d: %w", i, errEmptyListener))
+		}
+	}
+	for i, s := range config.ListenHTTPSProxyv2Strings.Split() {
+		if s == "" {
+			result = multierror.Append(result, fmt.Errorf("empty proxyv2 listener at index %d: %w", i, errEmptyListener))
+		}
+	}
+	for i, s := range config.ListenProxyStrings.Split() {
+		if s == "" {
+			result = multierror.Append(result, fmt.Errorf("empty proxy listener at index %d: %w", i, errEmptyListener))
+		}
+	}
+
+	return result.ErrorOrNil()
 }
 
 func validateAuthConfig(config *Config) error {
