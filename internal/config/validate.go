@@ -45,24 +45,22 @@ func validateListeners(config *Config) error {
 	}
 
 	var result *multierror.Error
-	for i, s := range config.ListenHTTPStrings.Split() {
+
+	result = multierror.Append(result,
+		validateListenerAddr(config.ListenHTTPStrings, "http"),
+		validateListenerAddr(config.ListenHTTPSStrings, "https"),
+		validateListenerAddr(config.ListenHTTPSProxyv2Strings, "proxyv2"),
+		validateListenerAddr(config.ListenProxyStrings, "proxy"),
+	)
+
+	return result.ErrorOrNil()
+}
+
+func validateListenerAddr(listeners MultiStringFlag, name string) error {
+	var result *multierror.Error
+	for i, s := range listeners.Split() {
 		if s == "" {
-			result = multierror.Append(result, fmt.Errorf("empty http listener at index %d: %w", i, errEmptyListener))
-		}
-	}
-	for i, s := range config.ListenHTTPSStrings.Split() {
-		if s == "" {
-			result = multierror.Append(result, fmt.Errorf("empty https listener at index %d: %w", i, errEmptyListener))
-		}
-	}
-	for i, s := range config.ListenHTTPSProxyv2Strings.Split() {
-		if s == "" {
-			result = multierror.Append(result, fmt.Errorf("empty proxyv2 listener at index %d: %w", i, errEmptyListener))
-		}
-	}
-	for i, s := range config.ListenProxyStrings.Split() {
-		if s == "" {
-			result = multierror.Append(result, fmt.Errorf("empty proxy listener at index %d: %w", i, errEmptyListener))
+			result = multierror.Append(result, fmt.Errorf("empty %s listener at index %d: %w", name, i, errEmptyListener))
 		}
 	}
 
