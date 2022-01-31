@@ -1,3 +1,17 @@
+## 1.52.0 (2022-01-31)
+
+### Added (1 change)
+
+- [feat: implement graceful shutdown](gitlab-org/gitlab-pages@b2b9c8d346f96257cd0fbc9577df1b9e81c28d21) by @feistel ([merge request](gitlab-org/gitlab-pages!664))
+
+### Fixed (1 change)
+
+- [fix: log errors when HTTP range requests fail](gitlab-org/gitlab-pages@42bae52a4a5d439efe77244d3105daf4f3598b62) ([merge request](gitlab-org/gitlab-pages!675))
+
+### Changed (1 change)
+
+- [feat: switch to content negotiation library](gitlab-org/gitlab-pages@3f287da18498c8f98855ba43484b712026685d9c) by @feistel ([merge request](gitlab-org/gitlab-pages!624))
+
 ## 1.51.0 (2022-01-12)
 
 ### Added (2 changes)
