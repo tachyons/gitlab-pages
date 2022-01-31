@@ -11,6 +11,7 @@ import (
 	proxyproto "github.com/pires/go-proxyproto"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
+	"gitlab.com/gitlab-org/labkit/log"
 )
 
 type listenerConfig struct {
@@ -61,6 +62,11 @@ func (a *theApp) listenAndServe(server *http.Server, addr string, h http.Handler
 	if config.tlsConfig != nil {
 		l = tls.NewListener(l, server.TLSConfig)
 	}
+
+	log.WithFields(log.Fields{
+		"config_addr": addr,
+		"listen_addr": l.Addr(),
+	}).Infof("server listening on: %s", l.Addr())
 
 	return server.Serve(l)
 }
