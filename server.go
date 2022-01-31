@@ -9,9 +9,9 @@ import (
 	"time"
 
 	proxyproto "github.com/pires/go-proxyproto"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
-	"gitlab.com/gitlab-org/labkit/log"
 )
 
 type listenerConfig struct {
