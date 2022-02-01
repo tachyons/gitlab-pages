@@ -47,17 +47,10 @@ func serveContent(w http.ResponseWriter, r *http.Request, modtime time.Time, con
 		return
 	}
 
-	if r.Method == http.MethodHead {
-		w.WriteHeader(code)
-		return
-	}
+	w.WriteHeader(code)
 
 	if r.Method != http.MethodHead {
-		if _, err := io.Copy(w, content); err != nil {
-			errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
-			logging.LogRequest(r).WithError(err).Error("error serving content")
-			httperrors.Serve500(w)
-		}
+		io.Copy(w, content)
 	}
 }
 
