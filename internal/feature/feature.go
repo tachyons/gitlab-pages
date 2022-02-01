@@ -37,6 +37,11 @@ var RedirectsPlaceholders = Feature{
 	EnvVariable: "FF_ENABLE_PLACEHOLDERS",
 }
 
+// HandleReadErrors reports vfs.ReadErrors to sentry and enable error handling
+var HandleReadErrors = Feature{
+	EnvVariable: "FF_HANDLE_READ_ERRORS",
+}
+
 // Enabled reads the environment variable responsible for the feature flag
 // if FF is disabled by default, the environment variable needs to be "true" to explicitly enable it
 // if FF is enabled by default, variable needs to be "false" to explicitly disable it
