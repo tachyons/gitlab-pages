@@ -1,3 +1,14 @@
+## 1.53.0 (2022-02-01)
+
+### Fixed (2 changes)
+
+- [fix: Fix 500 errors when clients disconnect](gitlab-org/gitlab-pages@1b50e38f3959c784f44c280720ed3249802d2622) ([merge request](gitlab-org/gitlab-pages!681))
+- [fix: fix metrics and logs not including domain resolution time](gitlab-org/gitlab-pages@adc0b9233fa4a0b2b449e27336d9ae39c75819ba) ([merge request](gitlab-org/gitlab-pages!674))
+
+### Changed (1 change)
+
+- [refactor: stop passing file descriptors around and use net.Listen](gitlab-org/gitlab-pages@052a7fb36f4605634385f54c833db21a9edc6d67) by @feistel ([merge request](gitlab-org/gitlab-pages!667))
+
 ## 1.52.0 (2022-01-31)
 
 ### Added (1 change)
