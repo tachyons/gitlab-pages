@@ -61,6 +61,11 @@ func TestConfigValidate(t *testing.T) {
 			cfg:         artifactsInvalidTimeout,
 			expectedErr: errArtifactsServerInvalidTimeout,
 		},
+		{
+			name:        "empty_listener",
+			cfg:         emptyListeners,
+			expectedErr: errEmptyListener,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -74,6 +79,13 @@ func TestConfigValidate(t *testing.T) {
 				require.NoError(t, err)
 			}
 		})
+	}
+}
+
+func emptyListeners(cfg *Config) {
+	cfg.ListenHTTPSStrings = MultiStringFlag{
+		value:     []string{"127.0.0.1:8080", "", ":8081"},
+		separator: ",",
 	}
 }
 
@@ -123,7 +135,11 @@ func artifactsInvalidTimeout(cfg *Config) {
 func validConfig() Config {
 	cfg := Config{
 		ListenHTTPStrings: MultiStringFlag{
-			value:     []string{"127.0.0.1:80"},
+			value:     []string{"127.0.0.1:80", ":8081"},
+			separator: ",",
+		},
+		ListenHTTPSStrings: MultiStringFlag{
+			value:     []string{"127.0.0.1:", ":8082"},
 			separator: ",",
 		},
 		ArtifactsServer: ArtifactsServer{

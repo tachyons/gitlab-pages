@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 
 	"github.com/hashicorp/go-multierror"
@@ -18,6 +19,7 @@ var (
 	errAuthNoRedirect                   = errors.New("auth-redirect-uri must be defined if authentication is supported")
 	errArtifactsServerUnsupportedScheme = errors.New("artifacts-server scheme must be either http:// or https://")
 	errArtifactsServerInvalidTimeout    = errors.New("artifacts-server-timeout must be greater than or equal to 1")
+	errEmptyListener                    = errors.New("listener must not be empty")
 )
 
 // Validate values populated in Config
@@ -42,7 +44,27 @@ func validateListeners(config *Config) error {
 		return errNoListener
 	}
 
-	return nil
+	var result *multierror.Error
+
+	result = multierror.Append(result,
+		validateListenerAddr(config.ListenHTTPStrings, "http"),
+		validateListenerAddr(config.ListenHTTPSStrings, "https"),
+		validateListenerAddr(config.ListenHTTPSProxyv2Strings, "proxyv2"),
+		validateListenerAddr(config.ListenProxyStrings, "proxy"),
+	)
+
+	return result.ErrorOrNil()
+}
+
+func validateListenerAddr(listeners MultiStringFlag, name string) error {
+	var result *multierror.Error
+	for i, s := range listeners.Split() {
+		if s == "" {
+			result = multierror.Append(result, fmt.Errorf("empty %s listener at index %d: %w", name, i, errEmptyListener))
+		}
+	}
+
+	return result.ErrorOrNil()
 }
 
 func validateAuthConfig(config *Config) error {
