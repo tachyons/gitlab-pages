@@ -118,8 +118,7 @@ func TestHealthCheckMiddleware(t *testing.T) {
 			r := httptest.NewRequest("GET", tc.path, nil)
 			rr := httptest.NewRecorder()
 
-			middleware, err := app.healthCheckMiddleware(handler)
-			require.NoError(t, err)
+			middleware := app.healthCheckMiddleware(handler)
 			middleware.ServeHTTP(rr, r)
 
 			require.Equal(t, tc.status, rr.Code)

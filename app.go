@@ -138,7 +138,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 }
 
 // healthCheckMiddleware is serving the application status check
-func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, error) {
+func (a *theApp) healthCheckMiddleware(handler http.Handler) http.Handler {
 	healthCheck := http.HandlerFunc(func(w http.ResponseWriter, _r *http.Request) {
 		if a.isReady() {
 			w.Write([]byte("success\n"))
@@ -147,19 +147,14 @@ func (a *theApp) healthCheckMiddleware(handler http.Handler) (http.Handler, erro
 		}
 	})
 
-	loggedHealthCheck, err := logging.BasicAccessLogger(healthCheck, a.config.Log.Format, nil)
-	if err != nil {
-		return nil, err
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.RequestURI == a.config.General.StatusPath {
-			loggedHealthCheck.ServeHTTP(w, r)
+			healthCheck.ServeHTTP(w, r)
 			return
 		}
 
 		handler.ServeHTTP(w, r)
-	}), nil
+	})
 }
 
 // auxiliaryMiddleware will handle status updates, not-ready requests and other
@@ -234,24 +229,13 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = a.auxiliaryMiddleware(handler)
 	handler = a.Auth.AuthenticationMiddleware(handler, a.source)
 	handler = a.AcmeMiddleware.AcmeMiddleware(handler)
-	handler, err := logging.BasicAccessLogger(handler, a.config.Log.Format, domain.LogFields)
-	if err != nil {
-		return nil, err
-	}
-
-	// Metrics
-	metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
-	handler = metricsMiddleware(handler)
 
 	handler = routing.NewMiddleware(handler, a.source)
 
 	handler = handlers.Ratelimiter(handler, &a.config.RateLimit)
 
 	// Health Check
-	handler, err = a.healthCheckMiddleware(handler)
-	if err != nil {
-		return nil, err
-	}
+	handler = a.healthCheckMiddleware(handler)
 
 	// Custom response headers
 	handler = customheaders.NewMiddleware(handler, a.CustomHeaders)
@@ -262,6 +246,15 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		correlationOpts = append(correlationOpts, correlation.WithPropagation())
 	}
 	handler = handlePanicMiddleware(handler)
+
+	// Access logs and metrics
+	handler, err := logging.BasicAccessLogger(handler, a.config.Log.Format)
+	if err != nil {
+		return nil, err
+	}
+	metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
+	handler = metricsMiddleware(handler)
+
 	handler = correlation.InjectCorrelationID(handler, correlationOpts...)
 
 	// These middlewares MUST be added in the end.
