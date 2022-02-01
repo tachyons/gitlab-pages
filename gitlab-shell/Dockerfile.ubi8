@@ -23,11 +23,9 @@ ADD gitlab-gomplate.tar.gz /
 COPY scripts/ /scripts/
 COPY sshd_config /etc/ssh/
 
-RUN dnf ${DNF_OPTS} install -by --nodocs procps fipscheck-lib \
+RUN dnf ${DNF_OPTS} install -by --nodocs procps fipscheck-lib openssh openssh-server \
     && dnf clean all \
     && rm -r /var/cache/dnf \
-    && rpm --import /usr/local/tmp/openssh-server-rpm-key.pub \
-    && dnf ${DNF_OPTS} install -by --disablerepo="*" --nodocs /usr/local/tmp/openssh*.rpm \
     && rm -r /usr/local/tmp /usr/libexec/openssh/ssh-keysign \
     && adduser -m ${GITLAB_USER} -u ${UID} \
     && mkdir -p /srv/sshd /var/log/gitlab-shell \
