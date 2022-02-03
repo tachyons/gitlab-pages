@@ -11,7 +11,7 @@ variables:
   # link: https://docs.gitlab.com/ee/development/ruby_upgrade.html
   RUBY_VERSION: 2.7.5
   # Suffix to the cache key of gitlab-rails-* where Gem vendor bundles are stored. Enables easy cache busting.
-  RAILS_CACHE_SUFFIX: 20220118
+  RAILS_CACHE_SUFFIX: 20201123
   DNF_OPTS: '--disableplugin=subscription-manager'
   DOCKER_VERSION: 20.10.3
 

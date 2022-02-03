@@ -1,5 +1,5 @@
 ARG FROM_IMAGE=debian
-ARG TAG=bullseye-slim
+ARG TAG=buster-slim
 
 FROM ${FROM_IMAGE}:${TAG} AS download
 
