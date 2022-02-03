@@ -207,7 +207,7 @@ graph LR;
     gitlab-rails
     git-base
     alpine[alpine:3.10]:::external;
-    debian[debian:bullseye-slim]:::external;
+    debian[debian:buster-slim]:::external;
   end
 
   kubectl==>debian;
@@ -278,7 +278,7 @@ graph LR;
     gitlab-assets[registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee]:::external;
     alpine[alpine:3.10]:::external;
     scratch[scratch]:::external;
-    debian[debian:bullseye-slim]:::external;
+    debian[debian:buster-slim]:::external;
   end
 
   gitlab-go==>gitlab-ruby;
