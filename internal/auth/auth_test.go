@@ -443,9 +443,9 @@ func TestGenerateKeys(t *testing.T) {
 	require.NotEqual(t, fmt.Sprint(keys[0]), fmt.Sprint(keys[2]))
 	require.NotEqual(t, fmt.Sprint(keys[1]), fmt.Sprint(keys[2]))
 
-	require.Equal(t, len(keys[0]), 32)
-	require.Equal(t, len(keys[1]), 32)
-	require.Equal(t, len(keys[2]), 32)
+	require.Len(t, keys[0], 32)
+	require.Len(t, keys[1], 32)
+	require.Len(t, keys[2], 32)
 }
 
 func TestGetTokenIfExistsWhenTokenExists(t *testing.T) {
@@ -482,7 +482,7 @@ func TestGetTokenIfExistsWhenTokenDoesNotExist(t *testing.T) {
 
 	token, err := auth.GetTokenIfExists(result, r)
 	require.Equal(t, "", token)
-	require.Equal(t, nil, err)
+	require.NoError(t, err)
 }
 
 func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
