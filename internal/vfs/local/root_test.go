@@ -2,11 +2,11 @@ package local
 
 import (
 	"context"
-	"errors"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -70,25 +70,25 @@ func TestReadlink(t *testing.T) {
 	tests := map[string]struct {
 		path                string
 		expectedTarget      string
-		expectedErr         string
+		expectedErr         error
 		expectedInvalidPath bool
-		expectedIsNotExist  bool
 	}{
 		"a valid link": {
 			path:           "testdata/link",
 			expectedTarget: "file",
 		},
 		"a file": {
-			path:        "testdata/file",
-			expectedErr: "invalid argument",
+			path: "testdata/file",
+			// TODO: use fs.ErrInvalid once https://github.com/golang/go/issues/30322 is fixed
+			expectedErr: syscall.EINVAL,
 		},
 		"a path outside of root directory": {
 			path:                "testdata/../../link",
 			expectedInvalidPath: true,
 		},
 		"a non-existing link": {
-			path:               "non-existing",
-			expectedIsNotExist: true,
+			path:        "non-existing",
+			expectedErr: fs.ErrNotExist,
 		},
 	}
 
@@ -96,19 +96,13 @@ func TestReadlink(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			target, err := root.Readlink(ctx, test.path)
 
-			if test.expectedIsNotExist {
-				require.Equal(t, test.expectedIsNotExist, errors.Is(err, fs.ErrNotExist), "IsNotExist")
-				return
-			}
-
 			if test.expectedInvalidPath {
 				require.IsType(t, &invalidPathError{}, err, "InvalidPath")
 				return
 			}
 
-			if test.expectedErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), test.expectedErr, "Readlink")
+			if test.expectedErr != nil {
+				require.ErrorIs(t, err, test.expectedErr, "Readlink")
 				return
 			}
 
@@ -176,7 +170,7 @@ func TestLstat(t *testing.T) {
 		modePerm            os.FileMode
 		modeType            os.FileMode
 		expectedInvalidPath bool
-		expectedIsNotExist  bool
+		expectedErr         error
 	}{
 		"a directory": {
 			path:     "testdata",
@@ -198,8 +192,8 @@ func TestLstat(t *testing.T) {
 			expectedInvalidPath: true,
 		},
 		"a non-existing link": {
-			path:               "non-existing",
-			expectedIsNotExist: true,
+			path:        "non-existing",
+			expectedErr: fs.ErrNotExist,
 		},
 	}
 
@@ -211,8 +205,8 @@ func TestLstat(t *testing.T) {
 
 			fi, err := root.Lstat(ctx, test.path)
 
-			if test.expectedIsNotExist {
-				require.Equal(t, test.expectedIsNotExist, errors.Is(err, fs.ErrNotExist), "IsNotExist")
+			if test.expectedErr != nil {
+				require.ErrorIs(t, err, test.expectedErr)
 				return
 			}
 
@@ -238,9 +232,8 @@ func TestOpen(t *testing.T) {
 	tests := map[string]struct {
 		path                string
 		expectedInvalidPath bool
-		expectedIsNotExist  bool
 		expectedContent     string
-		expectedErr         string
+		expectedErr         error
 	}{
 		"a file": {
 			path:            "testdata/file",
@@ -248,19 +241,19 @@ func TestOpen(t *testing.T) {
 		},
 		"a directory": {
 			path:        "testdata",
-			expectedErr: errNotFile.Error(),
+			expectedErr: errNotFile,
 		},
 		"a link": {
 			path:        "testdata/link",
-			expectedErr: "too many levels of symbolic links",
+			expectedErr: syscall.ELOOP,
 		},
 		"a path outside of root directory": {
 			path:                "testdata/../../link",
 			expectedInvalidPath: true,
 		},
 		"a non-existing file": {
-			path:               "non-existing",
-			expectedIsNotExist: true,
+			path:        "non-existing",
+			expectedErr: fs.ErrNotExist,
 		},
 	}
 
@@ -271,14 +264,8 @@ func TestOpen(t *testing.T) {
 				defer file.Close()
 			}
 
-			if test.expectedIsNotExist {
-				require.Equal(t, test.expectedIsNotExist, errors.Is(err, fs.ErrNotExist), "IsNotExist")
-				return
-			}
-
-			if test.expectedErr != "" {
-				require.Error(t, err, "Open")
-				require.Contains(t, err.Error(), test.expectedErr, "Open")
+			if test.expectedErr != nil {
+				require.ErrorIs(t, err, test.expectedErr, "Open")
 				return
 			}
 

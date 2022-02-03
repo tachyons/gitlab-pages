@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"net/url"
 	"testing"
 	"time"
 
@@ -17,27 +18,27 @@ import (
 )
 
 func TestVFSRoot(t *testing.T) {
-	url, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
+	u, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
 	tests := map[string]struct {
-		path           string
-		sha256         string
-		expectedErrMsg string
+		path        string
+		sha256      string
+		expectedErr error
 	}{
 		"zip_file_exists": {
 			path:   "/public.zip",
 			sha256: "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
 		},
 		"zip_file_does_not_exist": {
-			path:           "/unknown",
-			sha256:         "filedoesnotexist",
-			expectedErrMsg: fs.ErrNotExist.Error(),
+			path:        "/unknown",
+			sha256:      "filedoesnotexist",
+			expectedErr: fs.ErrNotExist,
 		},
 		"invalid_url": {
-			path:           "/%",
-			sha256:         "invalidurl",
-			expectedErrMsg: "invalid URL",
+			path:        "/%",
+			sha256:      "invalidurl",
+			expectedErr: url.EscapeError("%"),
 		},
 	}
 
@@ -45,10 +46,9 @@ func TestVFSRoot(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			root, err := vfs.Root(context.Background(), url+tt.path, tt.sha256)
-			if tt.expectedErrMsg != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.expectedErrMsg)
+			root, err := vfs.Root(context.Background(), u+tt.path, tt.sha256)
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
 				return
 			}
 

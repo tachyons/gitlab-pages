@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -73,11 +72,7 @@ func TestConfigValidate(t *testing.T) {
 			tt.cfg(&cfg)
 
 			err := Validate(&cfg)
-			if tt.expectedErr != nil {
-				require.True(t, errors.Is(err, tt.expectedErr))
-			} else {
-				require.NoError(t, err)
-			}
+			require.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
 }

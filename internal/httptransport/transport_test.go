@@ -2,7 +2,6 @@ package httptransport
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -92,7 +91,7 @@ func TestRoundTripTTFBTimeout(t *testing.T) {
 
 	res, err := mtr.RoundTrip(req)
 	require.Nil(t, res)
-	require.True(t, errors.Is(err, context.Canceled), "context must have been canceled after ttfb timeout")
+	require.ErrorIs(t, err, context.Canceled, "context must have been canceled after ttfb timeout")
 }
 
 func newTestMetrics(t *testing.T) (*prometheus.HistogramVec, *prometheus.CounterVec) {

@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -179,7 +178,7 @@ func TestMissingDomain(t *testing.T) {
 
 	lookup := client.GetLookup(context.Background(), "group.gitlab.io")
 
-	require.True(t, errors.Is(lookup.Error, domain.ErrDomainDoesNotExist))
+	require.ErrorIs(t, lookup.Error, domain.ErrDomainDoesNotExist)
 	require.Nil(t, lookup.Domain)
 }
 
@@ -273,11 +272,11 @@ func defaultClient(t *testing.T, url string) *Client {
 // prove fix for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/587
 func Test_endpoint(t *testing.T) {
 	tests := map[string]struct {
-		basePath       string
-		urlPath        string
-		params         url.Values
-		expectedURL    string
-		expectedErrMsg string
+		basePath    string
+		urlPath     string
+		params      url.Values
+		expectedURL string
+		expectedErr error
 	}{
 		"all_slashes": {
 			basePath:    "/",
@@ -317,9 +316,9 @@ func Test_endpoint(t *testing.T) {
 			expectedURL: "https://gitlab.com/some/path",
 		},
 		"url_path_is_not_a_url": {
-			basePath:       "https://gitlab.com",
-			urlPath:        "%",
-			expectedErrMsg: `parse "%": invalid URL escape "%"`,
+			basePath:    "https://gitlab.com",
+			urlPath:     "%",
+			expectedErr: url.EscapeError("%"),
 		},
 	}
 
@@ -329,9 +328,8 @@ func Test_endpoint(t *testing.T) {
 			require.NoError(t, err)
 
 			got, err := gc.endpoint(tt.urlPath, tt.params)
-			if tt.expectedErrMsg != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.expectedErrMsg)
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
 				return
 			}
 
