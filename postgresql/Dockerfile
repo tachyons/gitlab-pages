@@ -1,5 +1,5 @@
 ARG FROM_IMAGE="debian"
-FROM ${FROM_IMAGE}:buster-slim
+FROM ${FROM_IMAGE}:bullseye-slim
 
 ARG BUILD_DIR=/tmp/build
 ARG PG_VERSION=14.1
