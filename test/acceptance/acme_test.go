@@ -41,8 +41,8 @@ func TestAcmeChallengesWhenItIsNotConfigured(t *testing.T) {
 			rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
 				test.token)
 
-			defer rsp.Body.Close()
 			require.NoError(t, err)
+			defer rsp.Body.Close()
 			require.Equal(t, test.expectedStatus, rsp.StatusCode)
 			body, err := io.ReadAll(rsp.Body)
 			require.NoError(t, err)
@@ -82,8 +82,8 @@ func TestAcmeChallengesWhenItIsConfigured(t *testing.T) {
 			rsp, err := GetRedirectPage(t, httpListener, "withacmechallenge.domain.com",
 				test.token)
 
-			defer rsp.Body.Close()
 			require.NoError(t, err)
+			defer rsp.Body.Close()
 			require.Equal(t, test.expectedStatus, rsp.StatusCode)
 			body, err := io.ReadAll(rsp.Body)
 			require.NoError(t, err)

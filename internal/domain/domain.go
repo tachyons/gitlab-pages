@@ -157,10 +157,10 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	request.ServeNotFoundHTTP(w, r)
 }
 
-// serveNamespaceNotFound will try to find a parent namespace domain for a request
+// ServeNamespaceNotFound will try to find a parent namespace domain for a request
 // that failed authentication so that we serve the custom namespace error page for
 // public namespace domains
-func (d *Domain) serveNamespaceNotFound(w http.ResponseWriter, r *http.Request) {
+func (d *Domain) ServeNamespaceNotFound(w http.ResponseWriter, r *http.Request) {
 	// clone r and override the path and try to resolve the domain name
 	clonedReq := r.Clone(context.Background())
 	clonedReq.URL.Path = "/"
@@ -201,5 +201,5 @@ func (d *Domain) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	d.serveNamespaceNotFound(w, r)
+	d.ServeNamespaceNotFound(w, r)
 }

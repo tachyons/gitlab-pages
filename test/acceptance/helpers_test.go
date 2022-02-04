@@ -254,11 +254,10 @@ func RunPagesProcessWithSSLCertFile(t *testing.T, listeners []ListenSpec, sslCer
 
 func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCertFile string) {
 	// Create temporary cert dir
-	sslCertDir, err := os.MkdirTemp("", "pages-test-SSL_CERT_DIR")
-	require.NoError(t, err)
+	sslCertDir := t.TempDir()
 
 	// Copy sslCertFile into temp cert dir
-	err = copyFile(sslCertDir+"/"+path.Base(sslCertFile), sslCertFile)
+	err := copyFile(sslCertDir+"/"+path.Base(sslCertFile), sslCertFile)
 	require.NoError(t, err)
 
 	RunPagesProcess(t,
@@ -268,10 +267,6 @@ func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCert
 		}),
 		withEnv([]string{"SSL_CERT_DIR=" + sslCertDir}),
 	)
-
-	t.Cleanup(func() {
-		os.RemoveAll(sslCertDir)
-	})
 }
 
 func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
@@ -283,7 +278,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 	logBuf := &LogCaptureBuffer{}
 	out := io.MultiWriter(&tWriter{t}, logBuf)
 
-	args, tempfiles := getPagesArgs(t, listeners, promPort, extraArgs)
+	args := getPagesArgs(t, listeners, promPort, extraArgs)
 	cmd := exec.Command(pagesBinary, args...)
 	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = out
@@ -295,9 +290,6 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 	waitCh := make(chan struct{})
 	go func() {
 		require.NoError(t, cmd.Wait())
-		for _, tempfile := range tempfiles {
-			os.Remove(tempfile)
-		}
 		close(waitCh)
 	}()
 
@@ -318,7 +310,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 	return logBuf, cleanup
 }
 
-func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraArgs []string) (args, tempfiles []string) {
+func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraArgs []string) (args []string) {
 	var hasHTTPS bool
 	args = append(args, "-log-verbose=true")
 
@@ -332,7 +324,6 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 
 	if hasHTTPS {
 		key, cert := CreateHTTPSFixtureFiles(t)
-		tempfiles = []string{key, cert}
 		args = append(args, "-root-key", key, "-root-cert", cert)
 	}
 
@@ -563,7 +554,7 @@ func defaultUserHandler(t *testing.T) http.HandlerFunc {
 func newConfigFile(t *testing.T, configs ...string) string {
 	t.Helper()
 
-	f, err := os.CreateTemp(os.TempDir(), "gitlab-pages-config")
+	f, err := os.CreateTemp(t.TempDir(), "gitlab-pages-config")
 	require.NoError(t, err)
 	defer f.Close()
 
@@ -585,11 +576,6 @@ func defaultConfigFileWith(t *testing.T, configs ...string) string {
 	)
 
 	name := newConfigFile(t, configs...)
-
-	t.Cleanup(func() {
-		err := os.Remove(name)
-		require.NoError(t, err)
-	})
 
 	return name
 }

@@ -8,7 +8,7 @@ ifneq (v$(VERSION),$(LAST_TAG))
 	VERSION := $(shell echo $(VERSION)~beta.$(COMMITS).g$(REVISION))
 endif
 
-VERSION_FLAGS := -ldflags='-X "main.VERSION=$(VERSION)" -X "main.REVISION=$(REVISION)"'
+VERSION_FLAGS :=-X "main.VERSION=$(VERSION)" -X "main.REVISION=$(REVISION)"
 
 _allpackages = $(shell (go list ./... | \
 	grep -v $(addprefix -e ,$(IGNORED_DIRS))))

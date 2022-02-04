@@ -100,10 +100,9 @@ func (a *zipArchive) openArchive(parentCtx context.Context, url string) (err err
 		return a.err
 	case <-ctx.Done():
 		err := ctx.Err()
-		switch err {
-		case context.Canceled:
+		if errors.Is(err, context.Canceled) {
 			log.ContextLogger(parentCtx).WithError(err).Traceln("open zip archive request canceled")
-		case context.DeadlineExceeded:
+		} else if errors.Is(err, context.DeadlineExceeded) {
 			log.ContextLogger(parentCtx).WithError(err).Traceln("open zip archive timed out")
 		}
 
@@ -264,7 +263,7 @@ func (a *zipArchive) Readlink(ctx context.Context, name string) (string, error) 
 
 		// read up to len(symlink) bytes from the link file
 		n, err := io.ReadFull(rc, link[:])
-		if err != nil && err != io.ErrUnexpectedEOF {
+		if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
 			// if err == io.ErrUnexpectedEOF the link is smaller than len(symlink) so it's OK to not return it
 			return nil, err
 		}

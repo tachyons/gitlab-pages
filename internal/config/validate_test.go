@@ -16,7 +16,7 @@ func TestConfigValidate(t *testing.T) {
 		{
 			name:        "no_listeners",
 			cfg:         noListeners,
-			expectedErr: ErrNoListener,
+			expectedErr: errNoListener,
 		},
 		{
 			name: "no_auth",
@@ -25,27 +25,27 @@ func TestConfigValidate(t *testing.T) {
 		{
 			name:        "auth_no_secret",
 			cfg:         authNoSecret,
-			expectedErr: ErrAuthNoSecret,
+			expectedErr: errAuthNoSecret,
 		},
 		{
 			name:        "auth_no_client_id",
 			cfg:         authNoClientID,
-			expectedErr: ErrAuthNoClientID,
+			expectedErr: errAuthNoClientID,
 		},
 		{
 			name:        "auth_no_client_secret",
 			cfg:         authNoClientSecret,
-			expectedErr: ErrAuthNoClientSecret,
+			expectedErr: errAuthNoClientSecret,
 		},
 		{
 			name:        "auth_no_gitlab_Server",
 			cfg:         authNoPublicServer,
-			expectedErr: ErrAuthNoGitlabServer,
+			expectedErr: errAuthNoGitlabServer,
 		},
 		{
 			name:        "auth_no_redirect",
 			cfg:         authNoRedirect,
-			expectedErr: ErrAuthNoRedirect,
+			expectedErr: errAuthNoRedirect,
 		},
 		{
 			name: "artifact_no_url",
@@ -54,12 +54,17 @@ func TestConfigValidate(t *testing.T) {
 		{
 			name:        "artifact_malformed_scheme",
 			cfg:         artifactsMalformedScheme,
-			expectedErr: ErrArtifactsServerUnsupportedScheme,
+			expectedErr: errArtifactsServerUnsupportedScheme,
 		},
 		{
 			name:        "artifact_invalid_timeout",
 			cfg:         artifactsInvalidTimeout,
-			expectedErr: ErrArtifactsServerInvalidTimeout,
+			expectedErr: errArtifactsServerInvalidTimeout,
+		},
+		{
+			name:        "empty_listener",
+			cfg:         emptyListeners,
+			expectedErr: errEmptyListener,
 		},
 	}
 	for _, tt := range tests {
@@ -74,6 +79,13 @@ func TestConfigValidate(t *testing.T) {
 				require.NoError(t, err)
 			}
 		})
+	}
+}
+
+func emptyListeners(cfg *Config) {
+	cfg.ListenHTTPSStrings = MultiStringFlag{
+		value:     []string{"127.0.0.1:8080", "", ":8081"},
+		separator: ",",
 	}
 }
 
@@ -123,7 +135,11 @@ func artifactsInvalidTimeout(cfg *Config) {
 func validConfig() Config {
 	cfg := Config{
 		ListenHTTPStrings: MultiStringFlag{
-			value:     []string{"127.0.0.1:80"},
+			value:     []string{"127.0.0.1:80", ":8081"},
+			separator: ",",
+		},
+		ListenHTTPSStrings: MultiStringFlag{
+			value:     []string{"127.0.0.1:", ":8082"},
 			separator: ",",
 		},
 		ArtifactsServer: ArtifactsServer{

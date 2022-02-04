@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/errortracking"
+	"gitlab.com/gitlab-org/labkit/log"
 	"golang.org/x/crypto/hkdf"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
@@ -538,7 +539,10 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 	if resp.StatusCode != http.StatusOK {
 		// call serve404 handler when auth fails
 		err := fmt.Errorf("unexpected response fetching access token status: %d", resp.StatusCode)
-		logRequest(r).WithError(err).WithField("status", resp.Status).Error("Unexpected response fetching access token")
+		logRequest(r).WithError(err).WithFields(log.Fields{
+			"status":      resp.StatusCode,
+			"status_text": resp.Status,
+		}).Error("Unexpected response fetching access token")
 		captureErrWithReqAndStackTrace(err, r)
 		domain.ServeNotFoundAuthFailed(w, r)
 		return true

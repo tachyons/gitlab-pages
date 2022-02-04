@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 
 	"github.com/hashicorp/go-multierror"
@@ -10,14 +11,15 @@ import (
 )
 
 var (
-	ErrNoListener                       = errors.New("no listener defined, please specify at least one --listen-* flag")
-	ErrAuthNoSecret                     = errors.New("auth-secret must be defined if authentication is supported")
-	ErrAuthNoClientID                   = errors.New("auth-client-id must be defined if authentication is supported")
-	ErrAuthNoClientSecret               = errors.New("auth-client-secret must be defined if authentication is supported")
-	ErrAuthNoGitlabServer               = errors.New("gitlab-server must be defined if authentication is supported")
-	ErrAuthNoRedirect                   = errors.New("auth-redirect-uri must be defined if authentication is supported")
-	ErrArtifactsServerUnsupportedScheme = errors.New("artifacts-server scheme must be either http:// or https://")
-	ErrArtifactsServerInvalidTimeout    = errors.New("artifacts-server-timeout must be greater than or equal to 1")
+	errNoListener                       = errors.New("no listener defined, please specify at least one --listen-* flag")
+	errAuthNoSecret                     = errors.New("auth-secret must be defined if authentication is supported")
+	errAuthNoClientID                   = errors.New("auth-client-id must be defined if authentication is supported")
+	errAuthNoClientSecret               = errors.New("auth-client-secret must be defined if authentication is supported")
+	errAuthNoGitlabServer               = errors.New("gitlab-server must be defined if authentication is supported")
+	errAuthNoRedirect                   = errors.New("auth-redirect-uri must be defined if authentication is supported")
+	errArtifactsServerUnsupportedScheme = errors.New("artifacts-server scheme must be either http:// or https://")
+	errArtifactsServerInvalidTimeout    = errors.New("artifacts-server-timeout must be greater than or equal to 1")
+	errEmptyListener                    = errors.New("listener must not be empty")
 )
 
 // Validate values populated in Config
@@ -39,10 +41,30 @@ func validateListeners(config *Config) error {
 		config.ListenHTTPSStrings.Len() == 0 &&
 		config.ListenHTTPSProxyv2Strings.Len() == 0 &&
 		config.ListenProxyStrings.Len() == 0 {
-		return ErrNoListener
+		return errNoListener
 	}
 
-	return nil
+	var result *multierror.Error
+
+	result = multierror.Append(result,
+		validateListenerAddr(config.ListenHTTPStrings, "http"),
+		validateListenerAddr(config.ListenHTTPSStrings, "https"),
+		validateListenerAddr(config.ListenHTTPSProxyv2Strings, "proxyv2"),
+		validateListenerAddr(config.ListenProxyStrings, "proxy"),
+	)
+
+	return result.ErrorOrNil()
+}
+
+func validateListenerAddr(listeners MultiStringFlag, name string) error {
+	var result *multierror.Error
+	for i, s := range listeners.Split() {
+		if s == "" {
+			result = multierror.Append(result, fmt.Errorf("empty %s listener at index %d: %w", name, i, errEmptyListener))
+		}
+	}
+
+	return result.ErrorOrNil()
 }
 
 func validateAuthConfig(config *Config) error {
@@ -53,19 +75,19 @@ func validateAuthConfig(config *Config) error {
 
 	var result *multierror.Error
 	if config.Authentication.Secret == "" {
-		result = multierror.Append(result, ErrAuthNoSecret)
+		result = multierror.Append(result, errAuthNoSecret)
 	}
 	if config.Authentication.ClientID == "" {
-		result = multierror.Append(result, ErrAuthNoClientID)
+		result = multierror.Append(result, errAuthNoClientID)
 	}
 	if config.Authentication.ClientSecret == "" {
-		result = multierror.Append(result, ErrAuthNoClientSecret)
+		result = multierror.Append(result, errAuthNoClientSecret)
 	}
 	if config.GitLab.PublicServer == "" {
-		result = multierror.Append(result, ErrAuthNoGitlabServer)
+		result = multierror.Append(result, errAuthNoGitlabServer)
 	}
 	if config.Authentication.RedirectURI == "" {
-		result = multierror.Append(result, ErrAuthNoRedirect)
+		result = multierror.Append(result, errAuthNoRedirect)
 	}
 	return result.ErrorOrNil()
 }
@@ -84,11 +106,11 @@ func validateArtifactsServerConfig(config *Config) error {
 
 	// url.Parse ensures that the Scheme attribute is always lower case.
 	if u.Scheme != "http" && u.Scheme != "https" {
-		result = multierror.Append(result, ErrArtifactsServerUnsupportedScheme)
+		result = multierror.Append(result, errArtifactsServerUnsupportedScheme)
 	}
 
 	if config.ArtifactsServer.TimeoutSeconds < 1 {
-		result = multierror.Append(result, ErrArtifactsServerInvalidTimeout)
+		result = multierror.Append(result, errArtifactsServerInvalidTimeout)
 	}
 
 	return result.ErrorOrNil()

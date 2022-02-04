@@ -14,17 +14,15 @@ import (
 
 var localVFS = &VFS{}
 
-func tmpDir(t *testing.T) (string, func()) {
-	tmpDir, err := os.MkdirTemp("", "vfs")
-	require.NoError(t, err)
+func tmpDir(t *testing.T) string {
+	var err error
+	tmpDir := t.TempDir()
 
 	// On some systems `/tmp` can be a symlink
 	tmpDir, err = filepath.EvalSymlinks(tmpDir)
 	require.NoError(t, err)
 
-	return tmpDir, func() {
-		os.RemoveAll(tmpDir)
-	}
+	return tmpDir
 }
 
 func TestVFSRoot(t *testing.T) {
@@ -35,8 +33,7 @@ func TestVFSRoot(t *testing.T) {
 	// /tmp/file: file
 	// /tmp/file_link: symlink to `file`
 	// /tmp/file_absolute_link: symlink to `/tmp/file`
-	tmpDir, cleanup := tmpDir(t)
-	defer cleanup()
+	tmpDir := tmpDir(t)
 
 	dirPath := filepath.Join(tmpDir, "dir")
 	err := os.Mkdir(dirPath, 0755)
