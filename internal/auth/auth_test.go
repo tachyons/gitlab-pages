@@ -15,8 +15,8 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/mocks"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/mock"
 )
 
 func createTestAuth(t *testing.T, internalServer string, publicServer string) *Auth {
@@ -86,7 +86,7 @@ func TestTryAuthenticate(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 
-	mockSource := mocks.NewMockSource(mockCtrl)
+	mockSource := mock.NewMockSource(mockCtrl)
 	require.False(t, auth.TryAuthenticate(result, r, mockSource))
 }
 
@@ -102,7 +102,7 @@ func TestTryAuthenticateWithError(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 
-	mockSource := mocks.NewMockSource(mockCtrl)
+	mockSource := mock.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusUnauthorized, result.Code)
 }
@@ -124,7 +124,7 @@ func TestTryAuthenticateWithCodeButInvalidState(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 
-	mockSource := mocks.NewMockSource(mockCtrl)
+	mockSource := mock.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusUnauthorized, result.Code)
 }
@@ -149,7 +149,7 @@ func TestTryAuthenticateRemoveTokenFromRedirect(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 
-	mockSource := mocks.NewMockSource(mockCtrl)
+	mockSource := mock.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusFound, result.Code)
 
@@ -168,7 +168,7 @@ func TestTryAuthenticateWithDomainAndState(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 
-	mockSource := mocks.NewMockSource(mockCtrl)
+	mockSource := mock.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 	require.Equal(t, http.StatusFound, result.Code)
 	redirect, err := url.Parse(result.Header().Get("Location"))
@@ -228,7 +228,7 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 
 	mockCtrl := gomock.NewController(t)
 
-	mockSource := mocks.NewMockSource(mockCtrl)
+	mockSource := mock.NewMockSource(mockCtrl)
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 
 	res := result.Result()
@@ -518,7 +518,7 @@ func TestCheckResponseForInvalidTokenWhenNotInvalidToken(t *testing.T) {
 func TestDomainAllowed(t *testing.T) {
 	auth := createTestAuth(t, "", "")
 	mockCtrl := gomock.NewController(t)
-	mockSource := mocks.NewMockSource(mockCtrl)
+	mockSource := mock.NewMockSource(mockCtrl)
 
 	testCases := []struct {
 		name     string
