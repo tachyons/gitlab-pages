@@ -157,7 +157,7 @@ workflow:
     - <<: *if_ubi_branch
 
 .job-base: &job-base
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:2.9.1"
   services:
   - docker:${DOCKER_VERSION}-dind
   needs: []
@@ -191,7 +191,7 @@ workflow:
       - artifacts/
 
 .build-job-base: &build-job-base
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.0.1"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:2.9.1"
   services:
   - docker:${DOCKER_VERSION}-dind
   retry: 1
@@ -227,7 +227,7 @@ workflow:
     - gitlab-ubi-builder
 
 dependency_update:
-  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:1.6.0
+  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:2.9.1
   stage: prepare
   variables:
     INSTALL_SHA256: "c95a33432192688a08d935fd5f563fce4110610a51281f887ae88db208b720ba"
@@ -1442,7 +1442,7 @@ ubi-assets-release:
     - rm -rf artifacts/*
 
 ubi-release-for-certification:
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:2.2.0"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:2.9.1"
   services:
     - docker:${DOCKER_VERSION}-dind
   rules:
