@@ -64,3 +64,8 @@ check deps:
     - echo skipping
   script:
     - make deps-check
+
+check mocks:
+  extends: .tests-common
+  script:
+    - make mocks-check
