@@ -78,6 +78,11 @@ func (r *Retriever) resolveWithBackoff(ctx context.Context, domainName string) <
 				break
 			}
 
+			if errors.Is(lookup.Error, context.Canceled) || errors.Is(lookup.Error, context.DeadlineExceeded) {
+				// do not retry if there's a context error to avoid leaking the goroutine
+				break
+			}
+
 			time.Sleep(r.maxRetrievalInterval)
 		}
 
