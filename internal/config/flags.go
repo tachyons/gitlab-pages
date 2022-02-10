@@ -62,6 +62,11 @@ var (
 	zipCacheRefresh    = flag.Duration("zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval")
 	zipOpenTimeout     = flag.Duration("zip-open-timeout", 30*time.Second, "Zip archive open timeout")
 
+	zipFileOffsetCacheMaxSize        = flag.Int("zip-file-offset-cache-max-size", 50000, "TODO")
+	zipFileOffsetCacheExpiration     = flag.Duration("zip-file-offset-expiration", time.Hour, "TODO")
+	zipReadLinkOffsetCacheMaxSize    = flag.Int("zip-read-link-offset-cache-max-size", 10000, "TODO")
+	zipReadLinkOffsetCacheExpiration = flag.Duration("zip-read-link-offset-expiration", time.Hour, "TODO")
+
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
 	showVersion = flag.Bool("version", false, "Show version")

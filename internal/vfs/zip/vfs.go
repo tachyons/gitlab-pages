@@ -19,18 +19,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-const (
-	// we assume that each item costs around 100 bytes
-	// this gives around 5MB of raw memory needed without acceleration structures
-	defaultDataOffsetItems              = 50000
-	defaultDataOffsetExpirationInterval = time.Hour
-
-	// we assume that each item costs around 200 bytes
-	// this gives around 2MB of raw memory needed without acceleration structures
-	defaultReadlinkItems              = 10000
-	defaultReadlinkExpirationInterval = time.Hour
-)
-
 var (
 	errAlreadyCached   = errors.New("archive already cached")
 	errMissingCacheKey = errors.New("missing cache key")
@@ -87,15 +75,15 @@ func New(cfg *config.ZipServing) vfs.VFS {
 	// TODO: To be removed with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/480
 	zipVFS.dataOffsetCache = lru.New(
 		"data-offset",
-		lru.WithMaxSize(defaultDataOffsetItems),
-		lru.WithExpirationInterval(defaultDataOffsetExpirationInterval),
+		lru.WithMaxSize(cfg.FileOffsetCacheMaxSize),
+		lru.WithExpirationInterval(cfg.FileOffsetCacheExpiration),
 		lru.WithCachedEntriesMetric(metrics.ZipCachedEntries),
 		lru.WithCachedRequestsMetric(metrics.ZipCacheRequests),
 	)
 	zipVFS.readlinkCache = lru.New(
 		"readlink",
-		lru.WithMaxSize(defaultReadlinkItems),
-		lru.WithExpirationInterval(defaultReadlinkExpirationInterval),
+		lru.WithMaxSize(cfg.ReadLinkOffsetCacheMaxSize),
+		lru.WithExpirationInterval(cfg.ReadLinkOffsetCacheExpiration),
 		lru.WithCachedEntriesMetric(metrics.ZipCachedEntries),
 		lru.WithCachedRequestsMetric(metrics.ZipCacheRequests),
 	)

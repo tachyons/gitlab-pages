@@ -123,11 +123,15 @@ type TLS struct {
 
 // ZipServing groups settings to be used by the zip VFS opening and caching
 type ZipServing struct {
-	ExpirationInterval time.Duration
-	CleanupInterval    time.Duration
-	RefreshInterval    time.Duration
-	OpenTimeout        time.Duration
-	AllowedPaths       []string
+	ExpirationInterval            time.Duration
+	CleanupInterval               time.Duration
+	RefreshInterval               time.Duration
+	FileOffsetCacheMaxSize        int64
+	FileOffsetCacheExpiration     time.Duration
+	ReadLinkOffsetCacheMaxSize    int64
+	ReadLinkOffsetCacheExpiration time.Duration
+	OpenTimeout                   time.Duration
+	AllowedPaths                  []string
 }
 
 func internalGitlabServerFromFlags() string {
@@ -221,11 +225,15 @@ func loadConfig() (*Config, error) {
 			MaxVersion: tls.AllTLSVersions[*tlsMaxVersion],
 		},
 		Zip: ZipServing{
-			ExpirationInterval: *zipCacheExpiration,
-			CleanupInterval:    *zipCacheCleanup,
-			RefreshInterval:    *zipCacheRefresh,
-			OpenTimeout:        *zipOpenTimeout,
-			AllowedPaths:       []string{*pagesRoot},
+			ExpirationInterval:            *zipCacheExpiration,
+			CleanupInterval:               *zipCacheCleanup,
+			RefreshInterval:               *zipCacheRefresh,
+			FileOffsetCacheMaxSize:        int64(*zipFileOffsetCacheMaxSize),
+			FileOffsetCacheExpiration:     *zipFileOffsetCacheExpiration,
+			ReadLinkOffsetCacheMaxSize:    int64(*zipReadLinkOffsetCacheMaxSize),
+			ReadLinkOffsetCacheExpiration: *zipReadLinkOffsetCacheExpiration,
+			OpenTimeout:                   *zipOpenTimeout,
+			AllowedPaths:                  []string{*pagesRoot},
 		},
 
 		// Actual listener pointers will be populated in appMain. We populate the
