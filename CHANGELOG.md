@@ -1,3 +1,9 @@
+## 1.54.0 (2022-02-10)
+
+### Fixed (1 change)
+
+- [fix: ensure logging status codes field names are consistent](gitlab-org/gitlab-pages@6f23e35ffe9665ab17af54824a7de2b014829069) ([merge request](gitlab-org/gitlab-pages!679))
+
 ## 1.53.0 (2022-02-01)
 
 ### Fixed (2 changes)
