@@ -33,7 +33,7 @@ ARG YARN_VERSION=1.22.5
 # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=866729
 RUN mkdir -p /usr/share/man/man7 \
     && apt-get update \
-    && apt-get install -y --no-install-recommends libicu63 libre2-5 tzdata
+    && apt-get install -y --no-install-recommends libicu67 libre2-9 tzdata
 
 # Include postgres dev tools
 COPY --from=pg_image /usr/local/psql/bin/ /usr/bin/
@@ -178,7 +178,7 @@ ARG GITLAB_USER=git
 RUN mkdir -p /usr/share/man/man7 \
     && apt-get update \
     && apt-get install -q -y --no-install-recommends \
-         libicu63 libre2-5 tzdata xtail \
+         libicu67 libre2-9 tzdata xtail \
          libpng16-16 libtiff5 libturbojpeg0 zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
