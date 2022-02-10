@@ -1,4 +1,4 @@
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 ARG BUILD_DIR=/tmp/build
 ARG RUBY_MAJOR_VERSION=2.7
@@ -11,8 +11,7 @@ ARG EXIFTOOL_VERSION=11.70
 ENV LANG=C.UTF-8
 
 # install runtime deps
-RUN echo "deb http://deb.debian.org/debian buster-backports main" >> /etc/apt/sources.list \
-  && apt-get update \
+RUN apt-get update \
   && apt-get install -y --no-install-recommends \
   bzip2 \
   ca-certificates \
@@ -24,7 +23,7 @@ RUN echo "deb http://deb.debian.org/debian buster-backports main" >> /etc/apt/so
 	busybox \
   zlib1g-dev \
   coreutils \
-  curl/buster-backports \
+  curl \
   gnupg2 \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p ${BUILD_DIR} \
