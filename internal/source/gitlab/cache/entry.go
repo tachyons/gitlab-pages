@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net"
-	"os"
 	"sync"
 	"time"
 
@@ -113,10 +112,6 @@ func (e *Entry) timedOut() bool {
 // and is different to domain.ErrDomainDoesNotExist (this is an edge case to prevent serving
 // a page right after being deleted).
 func (e *Entry) hasTemporaryError() bool {
-	if os.Getenv("FF_DISABLE_REFRESH_TEMPORARY_ERROR") == "true" {
-		return false
-	}
-
 	return e.response != nil &&
 		e.response.Error != nil &&
 		e.domainExists()

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -117,33 +116,6 @@ func TestEntryRefresh(t *testing.T) {
 		require.Equal(t, storedEntry.refreshedOriginalTimestamp.UnixNano(), originalEntryCreated.UnixNano(),
 			"refreshed entry timestamp should be the same as the original entry created timestamp")
 		require.Equal(t, storedEntry.Lookup(), entry.Lookup(), "lookup should be the same")
-	})
-
-	t.Run("entry is the different when FF_DISABLE_REFRESH_TEMPORARY_ERROR is set to true", func(t *testing.T) {
-		client.failed = false
-		err := os.Setenv("FF_DISABLE_REFRESH_TEMPORARY_ERROR", "true")
-
-		entry := newCacheEntry("test.gitlab.io", cc.EntryRefreshTimeout, cc.CacheExpiry)
-
-		ctx, cancel := context.WithTimeout(context.Background(), cc.RetrievalTimeout)
-		defer cancel()
-
-		lookup := cache.retrieve(ctx, entry)
-		require.NoError(t, lookup.Error)
-
-		require.Eventually(t, entry.NeedsRefresh, 100*time.Millisecond, time.Millisecond, "entry should need refresh")
-
-		require.NoError(t, err)
-
-		cache.refreshFunc(entry)
-
-		require.True(t, client.failed, "refresh should have failed")
-
-		storedEntry := loadEntry(t, "test.gitlab.io", cache.store)
-
-		require.Error(t, storedEntry.Lookup().Error, "resolving failed")
-		require.True(t, storedEntry.refreshedOriginalTimestamp.IsZero())
-		require.NotEqual(t, storedEntry.Lookup(), entry.Lookup(), "lookup should be different")
 	})
 
 	t.Run("entry is different after it expired and calling refresh on it", func(t *testing.T) {
