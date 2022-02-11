@@ -107,17 +107,10 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{bufferSize: 1}, cc, func(cache *Cache, resolver *clientMock) {
 			require.Equal(t, 0, len(resolver.lookups))
 
-			go func() {
-				lookup := cache.Resolve(context.Background(), "foo.gitlab.com")
-				require.ErrorIs(t, lookup.Error, context.DeadlineExceeded)
-				require.Equal(t, "foo.gitlab.com", lookup.Name)
-			}()
-
-			// wait for retrieval timeout to expire, then send a response to the retriever
-			time.Sleep(2 * time.Second)
-
-			// the ctx should be expired and the goroutine should receive an error
-			resolver.domain <- "foo.gitlab.com"
+			// wait for retrieval timeout to expire
+			lookup := cache.Resolve(context.Background(), "foo.gitlab.com")
+			require.ErrorIs(t, lookup.Error, context.DeadlineExceeded)
+			require.Equal(t, "foo.gitlab.com", lookup.Name)
 
 			// future lookups should succeed once the entry has been refreshed.
 			// refresh happens in a separate goroutine so the first few requests might still fail
