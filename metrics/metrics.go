@@ -248,6 +248,34 @@ var (
 		},
 		[]string{"enforced"},
 	)
+
+	// RateLimitDomainTLSCacheRequests is the number of cache hits/misses
+	RateLimitDomainTLSCacheRequests = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "gitlab_pages_rate_limit_domain_tls_cache_requests",
+			Help: "The number of source_ip cache hits/misses in the rate limiter",
+		},
+		[]string{"op", "cache"},
+	)
+
+	// RateLimitDomainTLSCachedEntries is the number of entries in the cache
+	RateLimitDomainTLSCachedEntries = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_rate_limit_domain_tls_cached_entries",
+			Help: "The number of entries in the cache",
+		},
+		[]string{"op"},
+	)
+
+	// RateLimitDomainTLSBlockedCount is the number of TLS connections that have been blocked by the
+	// domain TLS rate limiter
+	RateLimitDomainTLSBlockedCount = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "gitlab_pages_rate_limit_domain_tls_blocked_count",
+			Help: "The number of requests addresses that have been blocked by the domain TLS rate limiter",
+		},
+		[]string{"enforced"},
+	)
 )
 
 // MustRegister collectors with the Prometheus client

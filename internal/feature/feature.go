@@ -19,6 +19,12 @@ var EnforceDomainRateLimits = Feature{
 	EnvVariable: "FF_ENFORCE_DOMAIN_RATE_LIMITS",
 }
 
+// EnforceDomainTLSRateLimits enforces domain rate limits on establishing new TLS connections
+// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/655
+var EnforceDomainTLSRateLimits = Feature{
+	EnvVariable: "FF_ENFORCE_DOMAIN_TLS_RATE_LIMITS",
+}
+
 // RedirectsPlaceholders enables support for placeholders in redirects file
 // TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/620
 var RedirectsPlaceholders = Feature{

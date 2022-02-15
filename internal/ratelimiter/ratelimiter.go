@@ -138,6 +138,11 @@ func (rl *RateLimiter) limiter(key string) *rate.Limiter {
 // requestAllowed checks if request is within the rate-limit
 func (rl *RateLimiter) requestAllowed(r *http.Request) bool {
 	rateLimitedKey := rl.keyFunc(r)
+
+	return rl.allowed(rateLimitedKey)
+}
+
+func (rl *RateLimiter) allowed(rateLimitedKey string) bool {
 	limiter := rl.limiter(rateLimitedKey)
 
 	// AllowN allows us to use the rl.now function, so we can test this more easily.

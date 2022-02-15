@@ -12,7 +12,7 @@ func TestUnknownHTTPMethod(t *testing.T) {
 		withListeners([]ListenSpec{httpListener}),
 	)
 
-	req, err := http.NewRequest("UNKNOWN", httpListener.URL(""), nil)
+	req, err := http.NewRequest("UNKNOWN", httpListener.URL("", ""), nil)
 	require.NoError(t, err)
 	req.Host = ""
 

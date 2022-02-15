@@ -19,6 +19,8 @@ var (
 	rateLimitSourceIPBurst  = flag.Int("rate-limit-source-ip-burst", 100, "Rate limit per source IP maximum burst allowed per second")
 	rateLimitDomain         = flag.Float64("rate-limit-domain", 0.0, "Rate limit per domain in number of requests per second, 0 means is disabled")
 	rateLimitDomainBurst    = flag.Int("rate-limit-domain-burst", 100, "Rate limit per domain maximum burst allowed per second")
+	rateLimitDomainTLS      = flag.Float64("rate-limit-domain-tls", 0.0, "Rate limit per domain in number new TLS connections per second, 0 means is disabled")
+	rateLimitDomainTLSBurst = flag.Int("rate-limit-domain-tls-burst", 100, "Rate limit per domain maximum burst of TLS connections allowed per second")
 	artifactsServer         = flag.String("artifacts-server", "", "API URL to proxy artifact requests to, e.g.: 'https://gitlab.com/api/v4'")
 	artifactsServerTimeout  = flag.Int("artifacts-server-timeout", 10, "Timeout (in seconds) for a proxied request to the artifacts server")
 	pagesStatus             = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")

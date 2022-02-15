@@ -25,7 +25,7 @@ func TestAcceptsSupportedCiphers(t *testing.T) {
 	client, cleanup := ClientWithConfig(tlsConfig)
 	defer cleanup()
 
-	rsp, err := client.Get(httpsListener.URL("/"))
+	rsp, err := client.Get(httpsListener.URL("", "/"))
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -51,7 +51,7 @@ func TestRejectsUnsupportedCiphers(t *testing.T) {
 	client, cleanup := ClientWithConfig(tlsConfigWithInsecureCiphersOnly())
 	defer cleanup()
 
-	rsp, err := client.Get(httpsListener.URL("/"))
+	rsp, err := client.Get(httpsListener.URL("", "/"))
 	require.Nil(t, rsp)
 	require.Error(t, err)
 }
@@ -65,7 +65,7 @@ func TestEnableInsecureCiphers(t *testing.T) {
 	client, cleanup := ClientWithConfig(tlsConfigWithInsecureCiphersOnly())
 	defer cleanup()
 
-	rsp, err := client.Get(httpsListener.URL("/"))
+	rsp, err := client.Get(httpsListener.URL("", "/"))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		rsp.Body.Close()
@@ -107,7 +107,7 @@ func TestTLSVersions(t *testing.T) {
 			client, cleanup := ClientWithConfig(tlsConfig)
 			defer cleanup()
 
-			rsp, err := client.Get(httpsListener.URL("/"))
+			rsp, err := client.Get(httpsListener.URL("", "/"))
 
 			if tc.expectError {
 				require.Error(t, err)

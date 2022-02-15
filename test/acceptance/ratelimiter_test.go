@@ -77,7 +77,7 @@ func TestIPRateLimits(t *testing.T) {
 	}
 }
 
-func TestDomainateLimits(t *testing.T) {
+func TestDomainRateLimits(t *testing.T) {
 	testhelpers.StubFeatureFlagValue(t, feature.EnforceDomainRateLimits.EnvVariable, true)
 
 	for name, tc := range ratelimitedListeners {
@@ -109,6 +109,31 @@ func TestDomainateLimits(t *testing.T) {
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode, "request to unrelated domain failed")
 		})
+	}
+}
+
+func TestDomainTLSRateLimits(t *testing.T) {
+	testhelpers.StubFeatureFlagValue(t, feature.EnforceDomainTLSRateLimits.EnvVariable, true)
+
+	rateLimit := 5
+
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpsListener}),
+		withExtraArgument("rate-limit-domain-tls", fmt.Sprint(rateLimit)),
+		withExtraArgument("rate-limit-domain-tls-burst", fmt.Sprint(rateLimit)),
+	)
+
+	for i := 0; i < 10; i++ {
+		rsp, err := GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
+		require.NoError(t, err)
+		require.NoError(t, rsp.Body.Close())
+
+		if i >= rateLimit {
+			require.Equal(t, http.StatusTooManyRequests, rsp.StatusCode, "group.gitlab-example.com request: %d failed", i)
+			//assertLogFound(t, logBuf, []string{"request hit rate limit", "\"source_ip\":\"" + tc.clientIP + "\""})
+		} else {
+			require.Equal(t, http.StatusOK, rsp.StatusCode, "request: %d failed", i)
+		}
 	}
 }
 

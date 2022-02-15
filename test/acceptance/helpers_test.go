@@ -34,14 +34,6 @@ import (
 // The HTTPS certificate isn't signed by anyone. This http client is set up
 // so it can talk to servers using it.
 var (
-	// The HTTPS certificate isn't signed by anyone. This http client is set up
-	// so it can talk to servers using it.
-	TestHTTPSClient = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: TestCertPool},
-		},
-	}
-
 	// Use HTTP with a very short timeout to repeatedly check for the server to be
 	// up. Again, ignore HTTP
 	QuickTimeoutHTTPSClient = &http.Client{
@@ -151,15 +143,40 @@ func supportedListeners() []ListenSpec {
 	return listeners
 }
 
-func (l ListenSpec) URL(suffix string) string {
-	scheme := request.SchemeHTTP
+func (l ListenSpec) Scheme() string {
 	if l.Type == request.SchemeHTTPS || l.Type == "https-proxyv2" {
-		scheme = request.SchemeHTTPS
+		return request.SchemeHTTPS
 	}
 
+	return request.SchemeHTTP
+}
+
+func (l ListenSpec) URL(host string, suffix string) string {
 	suffix = strings.TrimPrefix(suffix, "/")
 
-	return fmt.Sprintf("%s://%s/%s", scheme, l.JoinHostPort(), suffix)
+	if host == "" {
+		host = l.Host
+	}
+
+	return fmt.Sprintf("%s://%s/%s", l.Scheme(), net.JoinHostPort(host, l.Port), suffix)
+}
+
+func (l ListenSpec) Client() *http.Client {
+	if l.Type == "https-proxyv2" {
+		return TestProxyv2Client
+	}
+
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: TestCertPool},
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				var d net.Dialer
+
+				return d.DialContext(ctx, network, l.JoinHostPort())
+			},
+			ResponseHeaderTimeout: 5 * time.Second,
+		},
+	}
 }
 
 // Returns only once this spec points at a working TCP server
@@ -172,7 +189,7 @@ func (l ListenSpec) WaitUntilRequestSucceeds(done chan struct{}) error {
 		default:
 		}
 
-		req, err := http.NewRequest("GET", l.URL("/"), nil)
+		req, err := http.NewRequest("GET", l.URL("", "/"), nil)
 		if err != nil {
 			return err
 		}
@@ -365,7 +382,7 @@ func GetPageFromListener(t *testing.T, spec ListenSpec, host, urlsuffix string) 
 func GetPageFromListenerWithHeaders(t *testing.T, spec ListenSpec, host, urlSuffix string, header http.Header) (*http.Response, error) {
 	t.Helper()
 
-	url := spec.URL(urlSuffix)
+	url := spec.URL(host, urlSuffix)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -380,11 +397,7 @@ func GetPageFromListenerWithHeaders(t *testing.T, spec ListenSpec, host, urlSuff
 func DoPagesRequest(t *testing.T, spec ListenSpec, req *http.Request) (*http.Response, error) {
 	t.Logf("curl -X %s -H'Host: %s' %s", req.Method, req.Host, req.URL)
 
-	if spec.Type == "https-proxyv2" {
-		return TestProxyv2Client.Do(req)
-	}
-
-	return TestHTTPSClient.Do(req)
+	return spec.Client().Do(req)
 }
 
 func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
@@ -410,7 +423,7 @@ func GetRedirectPageWithCookie(t *testing.T, spec ListenSpec, host, urlsuffix st
 }
 
 func GetRedirectPageWithHeaders(t *testing.T, spec ListenSpec, host, urlsuffix string, header http.Header) (*http.Response, error) {
-	url := spec.URL(urlsuffix)
+	url := spec.URL(host, urlsuffix)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -423,7 +436,7 @@ func GetRedirectPageWithHeaders(t *testing.T, spec ListenSpec, host, urlsuffix s
 		return TestProxyv2Client.Transport.RoundTrip(req)
 	}
 
-	return TestHTTPSClient.Transport.RoundTrip(req)
+	return spec.Client().Transport.RoundTrip(req)
 }
 
 func ClientWithConfig(tlsConfig *tls.Config) (*http.Client, func()) {
@@ -600,14 +613,4 @@ func copyFile(dest, src string) error {
 
 	_, err = io.Copy(destFile, srcFile)
 	return err
-}
-
-func setupTransport(t *testing.T) {
-	t.Helper()
-
-	transport := (TestHTTPSClient.Transport).(*http.Transport)
-	defer func(t time.Duration) {
-		transport.ResponseHeaderTimeout = t
-	}(transport.ResponseHeaderTimeout)
-	transport.ResponseHeaderTimeout = 5 * time.Second
 }

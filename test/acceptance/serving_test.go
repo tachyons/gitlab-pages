@@ -170,7 +170,7 @@ func TestCORSWhenDisabled(t *testing.T) {
 
 	for _, spec := range supportedListeners() {
 		for _, method := range []string{http.MethodGet, http.MethodHead, http.MethodOptions} {
-			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("project/"))
+			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("", "project/"))
 			defer rsp.Body.Close()
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode)
@@ -218,7 +218,7 @@ func TestCORSAllowsMethod(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, spec := range supportedListeners() {
-				rsp := doCrossOriginRequest(t, spec, tt.method, tt.method, spec.URL("project/"))
+				rsp := doCrossOriginRequest(t, spec, tt.method, tt.method, spec.URL("", "project/"))
 				defer rsp.Body.Close()
 
 				require.Equal(t, tt.expectedStatus, rsp.StatusCode)
@@ -566,11 +566,9 @@ func TestSlowRequests(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), opts.delay/2)
 	defer cancel()
 
-	url := httpListener.URL("/index.html")
+	url := httpListener.URL("group.gitlab-example.com", "/index.html")
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	require.NoError(t, err)
-
-	req.Host = "group.gitlab-example.com"
 
 	_, err = DoPagesRequest(t, httpListener, req)
 	require.Error(t, err, "cancelling the context should trigger this error")

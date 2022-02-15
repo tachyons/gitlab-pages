@@ -13,6 +13,9 @@ import (
 	"syscall"
 	"time"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
+
 	ghandlers "github.com/gorilla/handlers"
 	"github.com/hashicorp/go-multierror"
 	"github.com/rs/cors"
@@ -51,6 +54,7 @@ var (
 type theApp struct {
 	config         *cfg.Config
 	source         source.Source
+	tlsConfig      *cryptotls.Config
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
 	Handlers       *handlers.Handlers
@@ -62,7 +66,8 @@ func (a *theApp) isReady() bool {
 	return true
 }
 
-func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
+func (a *theApp) GetCertificate(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
+	log.Info("GetCertificate called")
 	if ch.ServerName == "" {
 		return nil, nil
 	}
@@ -73,6 +78,31 @@ func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate
 	}
 
 	return nil, nil
+}
+
+func (a *theApp) getTLSConfig() (*cryptotls.Config, error) {
+	if a.tlsConfig != nil {
+		return a.tlsConfig, nil
+	}
+	TLSRateLimiter := ratelimiter.New(
+		"tls",
+		ratelimiter.WithCacheMaxSize(ratelimiter.DefaultSourceIPCacheSize),
+		ratelimiter.WithCachedEntriesMetric(metrics.RateLimitDomainTLSCachedEntries),
+		ratelimiter.WithCachedRequestsMetric(metrics.RateLimitDomainTLSCacheRequests),
+		ratelimiter.WithBlockedCountMetric(metrics.RateLimitDomainTLSBlockedCount),
+		ratelimiter.WithLimitPerSecond(a.config.RateLimit.DomainTLSLimitPerSecond),
+		ratelimiter.WithBurstSize(a.config.RateLimit.DomainTLSBurst),
+		ratelimiter.WithEnforce(feature.EnforceDomainTLSRateLimits.Enabled()),
+	)
+
+	getCertificate := TLSRateLimiter.GetCertificateMiddleware(a.GetCertificate)
+
+	tlsConfig, err := tls.Create(a.config.General.RootCertificate, a.config.General.RootKey, getCertificate,
+		a.config.General.InsecureCiphers, a.config.TLS.MinVersion, a.config.TLS.MaxVersion)
+
+	a.tlsConfig = tlsConfig
+
+	return a.tlsConfig, err
 }
 
 func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
@@ -306,7 +336,7 @@ func (a *theApp) Run() {
 
 	// Listen for HTTPS
 	for _, addr := range a.config.ListenHTTPSStrings.Split() {
-		tlsConfig, err := a.TLSConfig()
+		tlsConfig, err := a.getTLSConfig()
 		if err != nil {
 			log.WithError(err).Fatal("Unable to retrieve tls config")
 		}
@@ -334,7 +364,7 @@ func (a *theApp) Run() {
 
 	// Listen for HTTPS PROXYv2 requests
 	for _, addr := range a.config.ListenHTTPSProxyv2Strings.Split() {
-		tlsConfig, err := a.TLSConfig()
+		tlsConfig, err := a.getTLSConfig()
 		if err != nil {
 			log.WithError(err).Fatal("Unable to retrieve tls config")
 		}
@@ -476,11 +506,6 @@ func (a *theApp) setAuth(config *cfg.Config) {
 // fatal will log a fatal error and exit.
 func fatal(err error, message string) {
 	log.WithError(err).Fatal(message)
-}
-
-func (a *theApp) TLSConfig() (*cryptotls.Config, error) {
-	return tls.Create(a.config.General.RootCertificate, a.config.General.RootKey, a.ServeTLS,
-		a.config.General.InsecureCiphers, a.config.TLS.MinVersion, a.config.TLS.MaxVersion)
 }
 
 // handlePanicMiddleware logs and captures the recover() information from any panic

@@ -8,7 +8,6 @@ import (
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/log"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
@@ -34,7 +33,7 @@ func (rl *RateLimiter) Middleware(handler http.Handler) http.Handler {
 		rl.logRateLimitedRequest(r)
 
 		if rl.blockedCount != nil {
-			rl.blockedCount.WithLabelValues(strconv.FormatBool(feature.EnforceIPRateLimits.Enabled())).Inc()
+			rl.blockedCount.WithLabelValues(strconv.FormatBool(rl.enforce)).Inc()
 		}
 
 		if rl.enforce {
@@ -59,7 +58,7 @@ func (rl *RateLimiter) logRateLimitedRequest(r *http.Request) {
 		"x_forwarded_proto":             r.Header.Get(headerXForwardedProto),
 		"x_forwarded_for":               r.Header.Get(headerXForwardedFor),
 		"gitlab_real_ip":                r.Header.Get(headerGitLabRealIP),
-		"rate_limiter_enabled":          feature.EnforceIPRateLimits.Enabled(),
+		"rate_limiter_enabled":          rl.enforce,
 		"rate_limiter_limit_per_second": rl.limitPerSecond,
 		"rate_limiter_burst_size":       rl.burstSize,
 	}). // TODO: change to Debug with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
