@@ -1468,6 +1468,6 @@ issue-bot:
   image: registry.gitlab.com/gitlab-org/distribution/issue-bot:latest
   script: /issue-bot
   rules:
-    # Only run when pipeline fails for the default branch on gitlab.com
-    - if: '$CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH && $CI_SERVER_HOST == "gitlab.com"'
+    # Only run when pipeline fails for the default branch for the primary project on gitlab.com
+    - if: '$CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH && $CI_SERVER_HOST == "gitlab.com" && $CI_PROJECT_PATH == "gitlab-org/build/CNG"'
       when: on_failure
