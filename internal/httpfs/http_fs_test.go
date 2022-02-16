@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestFSOpen(t *testing.T) {
@@ -162,7 +161,7 @@ func TestFileSystemPathCanServeHTTP(t *testing.T) {
 
 			res, err := client.Do(req)
 			require.NoError(t, err)
-			testhelpers.Close(t, res.Body)
+			defer res.Body.Close()
 
 			require.Equal(t, test.expectedStatusCode, res.StatusCode)
 			content, err := io.ReadAll(res.Body)
