@@ -23,18 +23,6 @@ func TestParseHeaderString(t *testing.T) {
 			expectedLen:   1,
 		},
 		{
-			name:          "Whitespace trim case",
-			headerStrings: []string{"   X-Test-String   :   Test  "},
-			valid:         true,
-			expectedLen:   1,
-		},
-		{
-			name:          "Whitespace in key, value case",
-			headerStrings: []string{"My amazing header: This is a test"},
-			valid:         true,
-			expectedLen:   1,
-		},
-		{
 			name:          "Non-tracking header case",
 			headerStrings: []string{"Tk: N"},
 			valid:         true,
@@ -60,6 +48,11 @@ func TestParseHeaderString(t *testing.T) {
 		{
 			name:          "Not valid case",
 			headerStrings: []string{"Tk= N"},
+			valid:         false,
+		},
+		{
+			name:          "duplicate headers",
+			headerStrings: []string{"Tk: N", "Tk: M"},
 			valid:         false,
 		},
 		{
@@ -99,20 +92,11 @@ func TestAddCustomHeaders(t *testing.T) {
 		name          string
 		headerStrings []string
 		wantHeaders   map[string]string
-	}{{
-		name:          "Normal case",
-		headerStrings: []string{"X-Test-String: Test"},
-		wantHeaders:   map[string]string{"X-Test-String": "Test"},
-	},
+	}{
 		{
-			name:          "Whitespace trim case",
-			headerStrings: []string{"   X-Test-String   :   Test  "},
+			name:          "Normal case",
+			headerStrings: []string{"X-Test-String: Test"},
 			wantHeaders:   map[string]string{"X-Test-String": "Test"},
-		},
-		{
-			name:          "Whitespace in key, value case",
-			headerStrings: []string{"My amazing header: This is a test"},
-			wantHeaders:   map[string]string{"My amazing header": "This is a test"},
 		},
 		{
 			name:          "Non-tracking header case",
@@ -122,12 +106,12 @@ func TestAddCustomHeaders(t *testing.T) {
 		{
 			name:          "Content security header case",
 			headerStrings: []string{"content-security-policy: default-src 'self'"},
-			wantHeaders:   map[string]string{"content-security-policy": "default-src 'self'"},
+			wantHeaders:   map[string]string{"Content-Security-Policy": "default-src 'self'"},
 		},
 		{
 			name:          "Multiple header strings",
-			headerStrings: []string{"content-security-policy: default-src 'self'", "X-Test-String: Test", "My amazing header : Amazing"},
-			wantHeaders:   map[string]string{"content-security-policy": "default-src 'self'", "X-Test-String": "Test", "My amazing header": "Amazing"},
+			headerStrings: []string{"content-security-policy: default-src 'self'", "X-Test-String: Test", "My amazing header: Amazing"},
+			wantHeaders:   map[string]string{"Content-Security-Policy": "default-src 'self'", "X-Test-String": "Test", "My amazing header": "Amazing"},
 		},
 	}
 
@@ -139,7 +123,11 @@ func TestAddCustomHeaders(t *testing.T) {
 			customheaders.AddCustomHeaders(w, headers)
 			rsp := w.Result()
 			for k, v := range tt.wantHeaders {
-				require.Equal(t, v, rsp.Header.Get(k), "Expected header %+v, got %+v", v, rsp.Header.Get(k))
+				require.Len(t, rsp.Header[k], 1)
+
+				// use the map directly to make sure ParseHeaderString is adding the canonical keys
+				got := rsp.Header[k][0]
+				require.Equal(t, v, got, "Expected header %+v, got %+v", v, got)
 			}
 		})
 	}
