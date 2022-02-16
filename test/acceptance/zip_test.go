@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestZipServing(t *testing.T) {
@@ -85,8 +87,7 @@ func TestZipServing(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			response, err := GetPageFromListener(t, httpListener, tt.host, tt.urlSuffix)
 			require.NoError(t, err)
-			defer response.Body.Close()
-
+			testhelpers.Close(t, response.Body)
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
 
 			if tt.expectedStatusCode == http.StatusOK {
@@ -217,7 +218,7 @@ func TestZipServingCache(t *testing.T) {
 			// send a request to get the ETag
 			response, err := GetPageFromListener(t, httpListener, tt.host, tt.urlSuffix)
 			require.NoError(t, err)
-			defer response.Body.Close()
+			testhelpers.Close(t, response.Body)
 			require.Equal(t, http.StatusOK, response.StatusCode)
 
 			etag := response.Header.Get("ETag")
@@ -231,7 +232,7 @@ func TestZipServingCache(t *testing.T) {
 			body, err := io.ReadAll(rsp.Body)
 			require.NoError(t, err)
 
-			defer rsp.Body.Close()
+			testhelpers.Close(t, rsp.Body)
 			require.Equal(t, tt.expectedContent, string(body), "content mismatch")
 		})
 	}
@@ -308,7 +309,7 @@ func TestZipServingFromDisk(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			response, err := GetPageFromListener(t, httpListener, tt.host, tt.urlSuffix)
 			require.NoError(t, err)
-			defer response.Body.Close()
+			testhelpers.Close(t, response.Body)
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
 
@@ -333,7 +334,7 @@ func TestZipServingConfigShortTimeout(t *testing.T) {
 
 	response, err := GetPageFromListener(t, httpListener, "zip.gitlab.io", "/")
 	require.NoError(t, err)
-	defer response.Body.Close()
+	testhelpers.Close(t, response.Body)
 
 	require.Equal(t, http.StatusInternalServerError, response.StatusCode, "should fail to serve")
 }

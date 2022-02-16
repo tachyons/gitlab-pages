@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestArtifactProxyRequest(t *testing.T) {
@@ -133,7 +135,7 @@ func TestArtifactProxyRequest(t *testing.T) {
 
 			resp, err := GetPageFromListener(t, httpListener, tt.host, tt.path)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			testhelpers.Close(t, resp.Body)
 
 			require.Equal(t, tt.status, resp.StatusCode)
 			require.Equal(t, tt.contentType, resp.Header.Get("Content-Type"))
@@ -229,7 +231,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 
 			resp, err := GetRedirectPage(t, httpsListener, tt.host, tt.path)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			testhelpers.Close(t, resp.Body)
 
 			require.Equal(t, http.StatusFound, resp.StatusCode)
 
@@ -245,7 +247,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			resp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
 
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			testhelpers.Close(t, resp.Body)
 
 			require.Equal(t, http.StatusFound, resp.StatusCode)
 			pagesDomainCookie := resp.Header.Get("Set-Cookie")
@@ -255,7 +257,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 				state, pagesDomainCookie)
 
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			testhelpers.Close(t, authrsp.Body)
 
 			// Will redirect auth callback to correct host
 			url, err = url.Parse(authrsp.Header.Get("Location"))
@@ -266,7 +268,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			// Request auth callback in project domain
 			authrsp, err = GetRedirectPageWithCookie(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery, cookie)
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			testhelpers.Close(t, authrsp.Body)
 
 			// server returns the ticket, user will be redirected to the project page
 			require.Equal(t, http.StatusFound, authrsp.StatusCode)
@@ -276,7 +278,7 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 			require.Equal(t, tt.status, resp.StatusCode)
 
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			testhelpers.Close(t, resp.Body)
 		})
 	}
 }

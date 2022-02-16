@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestStatusPage(t *testing.T) {
@@ -15,6 +17,6 @@ func TestStatusPage(t *testing.T) {
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }

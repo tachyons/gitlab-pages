@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestUnknownHTTPMethod(t *testing.T) {
@@ -18,7 +20,7 @@ func TestUnknownHTTPMethod(t *testing.T) {
 
 	resp, err := DoPagesRequest(t, httpListener, req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	testhelpers.Close(t, resp.Body)
 
 	require.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 }
