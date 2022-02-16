@@ -122,12 +122,12 @@ func TestAddCustomHeaders(t *testing.T) {
 		{
 			name:          "Content security header case",
 			headerStrings: []string{"content-security-policy: default-src 'self'"},
-			wantHeaders:   map[string]string{"content-security-policy": "default-src 'self'"},
+			wantHeaders:   map[string]string{"Content-Security-Policy": "default-src 'self'"},
 		},
 		{
 			name:          "Multiple header strings",
 			headerStrings: []string{"content-security-policy: default-src 'self'", "X-Test-String: Test", "My amazing header : Amazing"},
-			wantHeaders:   map[string]string{"content-security-policy": "default-src 'self'", "X-Test-String": "Test", "My amazing header": "Amazing"},
+			wantHeaders:   map[string]string{"Content-Security-Policy": "default-src 'self'", "X-Test-String": "Test", "My amazing header": "Amazing"},
 		},
 	}
 
@@ -139,7 +139,8 @@ func TestAddCustomHeaders(t *testing.T) {
 			customheaders.AddCustomHeaders(w, headers)
 			rsp := w.Result()
 			for k, v := range tt.wantHeaders {
-				require.Equal(t, v, rsp.Header.Get(k), "Expected header %+v, got %+v", v, rsp.Header.Get(k))
+				got := rsp.Header[k]
+				require.Equal(t, v, got, "Expected header %+v, got %+v", v, got)
 			}
 		})
 	}
