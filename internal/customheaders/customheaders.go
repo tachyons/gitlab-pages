@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/textproto"
 	"strings"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 var (
@@ -27,22 +29,27 @@ func AddCustomHeaders(w http.ResponseWriter, headers http.Header) {
 func ParseHeaderString(customHeaders []string) (http.Header, error) {
 	headers := make(http.Header, len(customHeaders))
 
+	var result *multierror.Error
 	for _, h := range customHeaders {
 		h = h + "\n\n"
 		tp := textproto.NewReader(bufio.NewReader(strings.NewReader(h)))
 
 		mimeHeader, err := tp.ReadMIMEHeader()
 		if err != nil {
-			return nil, fmt.Errorf("parsing error %s: %w", h, errInvalidHeaderParameter)
+			result = multierror.Append(result, fmt.Errorf("parsing error %s: %w", h, errInvalidHeaderParameter))
 		}
 
 		for key, value := range mimeHeader {
 			if _, ok := headers[key]; ok {
-				return nil, fmt.Errorf("%s already specified with value '%s': %w", key, value, errDuplicateHeader)
+				result = multierror.Append(result, fmt.Errorf("%s already specified with value '%s': %w", key, value, errDuplicateHeader))
 			}
 
 			headers[key] = value
 		}
+	}
+
+	if result.ErrorOrNil() != nil {
+		return nil, result
 	}
 
 	return headers, nil
