@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestRedirectStatusPage(t *testing.T) {
@@ -22,7 +23,7 @@ func TestRedirectStatusPage(t *testing.T) {
 
 	body, err := io.ReadAll(rsp.Body)
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	require.Contains(t, string(body), "14 rules")
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
@@ -37,7 +38,7 @@ func TestRedirect(t *testing.T) {
 	// Test that serving a file still works with redirects enabled
 	rsp, err := GetRedirectPage(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/index.html")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 
@@ -95,7 +96,7 @@ func TestRedirect(t *testing.T) {
 		t.Run(fmt.Sprintf("%s%s -> %s (%d)", tt.host, tt.path, tt.expectedLocation, tt.expectedStatus), func(t *testing.T) {
 			rsp, err := GetRedirectPage(t, httpListener, tt.host, tt.path)
 			require.NoError(t, err)
-			defer rsp.Body.Close()
+			testhelpers.Close(t, rsp.Body)
 
 			require.Equal(t, tt.expectedLocation, rsp.Header.Get("Location"))
 			require.Equal(t, tt.expectedStatus, rsp.StatusCode)

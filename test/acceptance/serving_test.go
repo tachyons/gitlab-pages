@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestUnknownHostReturnsNotFound(t *testing.T) {
@@ -29,7 +31,7 @@ func TestUnknownProjectReturnsNotFound(t *testing.T) {
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 }
 
@@ -38,7 +40,7 @@ func TestGroupDomainReturns200(t *testing.T) {
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 
 	body, err := io.ReadAll(rsp.Body)
@@ -154,7 +156,7 @@ func TestCustom404(t *testing.T) {
 				rsp, err := GetPageFromListener(t, spec, test.host, test.path)
 
 				require.NoError(t, err)
-				defer rsp.Body.Close()
+				testhelpers.Close(t, rsp.Body)
 				require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 
 				page, err := io.ReadAll(rsp.Body)
@@ -171,7 +173,7 @@ func TestCORSWhenDisabled(t *testing.T) {
 	for _, spec := range supportedListeners() {
 		for _, method := range []string{http.MethodGet, http.MethodHead, http.MethodOptions} {
 			rsp := doCrossOriginRequest(t, spec, method, method, spec.URL("project/"))
-			defer rsp.Body.Close()
+			testhelpers.Close(t, rsp.Body)
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode)
 			require.Equal(t, "", rsp.Header.Get("Access-Control-Allow-Origin"))
@@ -219,7 +221,7 @@ func TestCORSAllowsMethod(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, spec := range supportedListeners() {
 				rsp := doCrossOriginRequest(t, spec, tt.method, tt.method, spec.URL("project/"))
-				defer rsp.Body.Close()
+				testhelpers.Close(t, rsp.Body)
 
 				require.Equal(t, tt.expectedStatus, rsp.StatusCode)
 				require.Equal(t, tt.expectedOrigin, rsp.Header.Get("Access-Control-Allow-Origin"))
@@ -237,7 +239,7 @@ func TestCustomHeaders(t *testing.T) {
 	for _, spec := range supportedListeners() {
 		rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com:", "project/")
 		require.NoError(t, err)
-		defer rsp.Body.Close()
+		testhelpers.Close(t, rsp.Body)
 		require.Equal(t, http.StatusOK, rsp.StatusCode)
 		require.Equal(t, "Testing1", rsp.Header.Get("X-Test1"))
 		require.Equal(t, "Testing2", rsp.Header.Get("X-Test2"))
@@ -261,12 +263,12 @@ func TestHttpToHttpsRedirectDisabled(t *testing.T) {
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 
 	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
@@ -275,14 +277,14 @@ func TestHttpToHttpsRedirectEnabled(t *testing.T) {
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
 	require.Equal(t, 1, len(rsp.Header["Location"]))
 	require.Equal(t, "https://group.gitlab-example.com/project/", rsp.Header.Get("Location"))
 
 	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
@@ -408,7 +410,7 @@ func TestDomainResolverError(t *testing.T) {
 
 			response, err := GetPageFromListener(t, httpListener, domainName, "/my/pages/project/")
 			require.NoError(t, err)
-			defer response.Body.Close()
+			testhelpers.Close(t, response.Body)
 
 			require.True(t, opts.getAPICalled(), "api must have been called")
 
@@ -450,7 +452,7 @@ func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
 
 	rsp, err := GetRedirectPage(t, httpsListener, "group.gitlab-example.com", "project?q=test")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
 	require.Equal(t, 1, len(rsp.Header["Location"]))
@@ -458,7 +460,7 @@ func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
 
 	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/?q=test")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }
 
@@ -488,7 +490,7 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 
 				rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "/")
 				require.NoError(t, err)
-				defer rsp.Body.Close()
+				testhelpers.Close(t, rsp.Body)
 
 				require.Equal(t, http.StatusOK, rsp.StatusCode)
 
@@ -540,7 +542,7 @@ func TestDiskDisabledFailsToServeFileAndLocalContent(t *testing.T) {
 		t.Run(host, func(t *testing.T) {
 			rsp, err := GetPageFromListener(t, httpListener, host, suffix)
 			require.NoError(t, err)
-			defer rsp.Body.Close()
+			testhelpers.Close(t, rsp.Body)
 
 			require.Equal(t, http.StatusInternalServerError, rsp.StatusCode)
 		})

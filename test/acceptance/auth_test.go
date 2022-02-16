@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestWhenAuthIsDisabledPrivateIsNotAccessible(t *testing.T) {
@@ -33,7 +35,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
 	require.Equal(t, 1, len(rsp.Header["Location"]))
@@ -41,7 +43,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	require.NoError(t, err)
 	rsp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
 	require.Equal(t, 1, len(rsp.Header["Location"]))
@@ -69,7 +71,7 @@ func TestWhenAuthDeniedWillCauseUnauthorized(t *testing.T) {
 	rsp, err := GetPageFromListener(t, httpsListener, "projects.gitlab-example.com", "/auth?error=access_denied")
 
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	require.Equal(t, http.StatusUnauthorized, rsp.StatusCode)
 }
@@ -84,13 +86,13 @@ func TestWhenLoginCallbackWithWrongStateShouldFail(t *testing.T) {
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	// Go to auth page with wrong state will cause failure
 	authrsp, err := GetPageFromListener(t, httpsListener, "projects.gitlab-example.com", "/auth?code=0&state=0")
 
 	require.NoError(t, err)
-	defer authrsp.Body.Close()
+	testhelpers.Close(t, authrsp.Body)
 
 	require.Equal(t, http.StatusUnauthorized, authrsp.StatusCode)
 }
@@ -106,7 +108,7 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	rsp, err := GetRedirectPage(t, httpsListener, "group.auth.gitlab-example.com", "private.project/")
 
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	cookie := rsp.Header.Get("Set-Cookie")
 
@@ -122,7 +124,7 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 		url.Query().Get("state"), header)
 
 	require.NoError(t, err)
-	defer authrsp.Body.Close()
+	testhelpers.Close(t, authrsp.Body)
 
 	// Will cause 500 because the code is not encrypted
 	require.Equal(t, http.StatusInternalServerError, authrsp.StatusCode)
@@ -153,7 +155,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			rsp, err := GetRedirectPage(t, httpListener, tt.domain, tt.path)
 			require.NoError(t, err)
-			defer rsp.Body.Close()
+			testhelpers.Close(t, rsp.Body)
 
 			cookie := rsp.Header.Get("Set-Cookie")
 
@@ -165,7 +167,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 
 			pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
 			require.NoError(t, err)
-			defer pagesrsp.Body.Close()
+			testhelpers.Close(t, pagesrsp.Body)
 
 			pagescookie := pagesrsp.Header.Get("Set-Cookie")
 
@@ -174,7 +176,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 				state, pagescookie)
 
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			testhelpers.Close(t, authrsp.Body)
 
 			url, err = url.Parse(authrsp.Header.Get("Location"))
 			require.NoError(t, err)
@@ -188,7 +190,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 				state, cookie)
 
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			testhelpers.Close(t, authrsp.Body)
 
 			// Will redirect to the page
 			cookie = authrsp.Header.Get("Set-Cookie")
@@ -203,7 +205,7 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 			// Fetch page in custom domain
 			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, tt.path, cookie)
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			testhelpers.Close(t, authrsp.Body)
 			require.Equal(t, http.StatusOK, authrsp.StatusCode)
 		})
 	}
@@ -254,7 +256,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rsp, err := GetRedirectPage(t, httpListener, tt.domain, tt.path)
 			require.NoError(t, err)
-			defer rsp.Body.Close()
+			testhelpers.Close(t, rsp.Body)
 
 			cookie := rsp.Header.Get("Set-Cookie")
 
@@ -266,7 +268,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 
 			pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
 			require.NoError(t, err)
-			defer pagesrsp.Body.Close()
+			testhelpers.Close(t, pagesrsp.Body)
 
 			pagescookie := pagesrsp.Header.Get("Set-Cookie")
 
@@ -275,7 +277,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 				state, pagescookie)
 
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			testhelpers.Close(t, authrsp.Body)
 
 			url, err = url.Parse(authrsp.Header.Get("Location"))
 			require.NoError(t, err)
@@ -292,7 +294,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 				state, cookie)
 
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			testhelpers.Close(t, authrsp.Body)
 
 			// Will redirect to the page
 			groupCookie := authrsp.Header.Get("Set-Cookie")
@@ -307,7 +309,7 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 			// Fetch page in custom domain
 			anotherResp, err := GetRedirectPageWithCookie(t, httpListener, tt.domain, tt.path, groupCookie)
 			require.NoError(t, err)
-			defer anotherResp.Body.Close()
+			testhelpers.Close(t, anotherResp.Body)
 
 			require.Equal(t, http.StatusNotFound, anotherResp.StatusCode)
 
@@ -328,7 +330,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 
 	rsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/", "", true)
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	cookie := rsp.Header.Get("Set-Cookie")
 
@@ -339,7 +341,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 	require.Equal(t, url.Query().Get("domain"), "https://private.domain.com")
 	pagesrsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, url.Host, url.Path+"?"+url.RawQuery, "", true)
 	require.NoError(t, err)
-	defer pagesrsp.Body.Close()
+	testhelpers.Close(t, pagesrsp.Body)
 
 	pagescookie := pagesrsp.Header.Get("Set-Cookie")
 
@@ -349,7 +351,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 		pagescookie, true)
 
 	require.NoError(t, err)
-	defer authrsp.Body.Close()
+	testhelpers.Close(t, authrsp.Body)
 
 	url, err = url.Parse(authrsp.Header.Get("Location"))
 	require.NoError(t, err)
@@ -366,7 +368,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 		"/auth?code="+code+"&state="+state, cookie, true)
 
 	require.NoError(t, err)
-	defer authrsp.Body.Close()
+	testhelpers.Close(t, authrsp.Body)
 
 	// Will redirect to the page
 	cookie = authrsp.Header.Get("Set-Cookie")
@@ -381,7 +383,7 @@ func TestAccessControlUnderCustomDomainWithHTTPSProxy(t *testing.T) {
 	authrsp, err = GetProxyRedirectPageWithCookie(t, proxyListener, "private.domain.com", "/",
 		cookie, true)
 	require.NoError(t, err)
-	defer authrsp.Body.Close()
+	testhelpers.Close(t, authrsp.Body)
 	require.Equal(t, http.StatusOK, authrsp.StatusCode)
 }
 
@@ -395,7 +397,7 @@ func TestAccessControlGroupDomain404RedirectsAuth(t *testing.T) {
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/nonexistent/")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
 	// Redirects to the projects under gitlab pages domain for authentication flow
 	url, err := url.Parse(rsp.Header.Get("Location"))
@@ -414,7 +416,7 @@ func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
 
 	rsp, err := GetRedirectPage(t, httpListener, "group.gitlab-example.com", "/project/nonexistent/")
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusNotFound, rsp.StatusCode)
 }
 
@@ -488,7 +490,7 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 		t.Run(tn, func(t *testing.T) {
 			rsp1, err1 := GetRedirectPage(t, httpsListener, tt.host, tt.path)
 			require.NoError(t, err1)
-			defer rsp1.Body.Close()
+			testhelpers.Close(t, rsp1.Body)
 
 			require.Equal(t, http.StatusFound, rsp1.StatusCode)
 			cookie := rsp1.Header.Get("Set-Cookie")
@@ -502,7 +504,7 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 
 			rsp2, err2 := GetRedirectPage(t, httpsListener, loc1.Host, loc1.Path+"?"+loc1.RawQuery)
 			require.NoError(t, err2)
-			defer rsp2.Body.Close()
+			testhelpers.Close(t, rsp2.Body)
 
 			require.Equal(t, http.StatusFound, rsp2.StatusCode)
 			pagesDomainCookie := rsp2.Header.Get("Set-Cookie")
@@ -511,7 +513,7 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 			authrsp1, err := GetRedirectPageWithCookie(t, httpsListener, "projects.gitlab-example.com", "/auth?code=1&state="+
 				state, pagesDomainCookie)
 			require.NoError(t, err)
-			defer authrsp1.Body.Close()
+			testhelpers.Close(t, authrsp1.Body)
 
 			// Will redirect auth callback to correct host
 			authLoc, err := url.Parse(authrsp1.Header.Get("Location"))
@@ -522,7 +524,7 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 			// Request auth callback in project domain
 			authrsp2, err := GetRedirectPageWithCookie(t, httpsListener, authLoc.Host, authLoc.Path+"?"+authLoc.RawQuery, cookie)
 			require.NoError(t, err)
-			defer authrsp2.Body.Close()
+			testhelpers.Close(t, authrsp2.Body)
 
 			// server returns the ticket, user will be redirected to the project page
 			require.Equal(t, http.StatusFound, authrsp2.StatusCode)
@@ -530,7 +532,7 @@ func testAccessControl(t *testing.T, runPages runPagesFunc) {
 
 			rsp3, err3 := GetRedirectPageWithCookie(t, httpsListener, tt.host, tt.path, cookie)
 			require.NoError(t, err3)
-			defer rsp3.Body.Close()
+			testhelpers.Close(t, rsp3.Body)
 
 			require.Equal(t, tt.status, rsp3.StatusCode)
 
@@ -580,7 +582,7 @@ func TestHijackedCode(t *testing.T) {
 	hackedURL := fmt.Sprintf("/auth?domain=http://%s&state=%s", attackersDomain, "irrelevant")
 	maliciousResp, err := GetProxyRedirectPageWithCookie(t, proxyListener, "projects.gitlab-example.com", hackedURL, "", true)
 	require.NoError(t, err)
-	defer maliciousResp.Body.Close()
+	testhelpers.Close(t, maliciousResp.Body)
 
 	pagesCookie := maliciousResp.Header.Get("Set-Cookie")
 
@@ -597,7 +599,7 @@ func TestHijackedCode(t *testing.T) {
 		pagesCookie, true)
 
 	require.NoError(t, err)
-	defer authrsp.Body.Close()
+	testhelpers.Close(t, authrsp.Body)
 
 	/****ATTACKER******/
 	// Target is redirected to attacker's domain and attacker receives the proper code
@@ -614,7 +616,7 @@ func TestHijackedCode(t *testing.T) {
 	impersonatingRes, err := GetProxyRedirectPageWithCookie(t, proxyListener, targetDomain,
 		"/auth?code="+hijackedCode+"&state="+attackerState, attackerCookie, true)
 	require.NoError(t, err)
-	defer impersonatingRes.Body.Close()
+	testhelpers.Close(t, impersonatingRes.Body)
 
 	require.Equal(t, impersonatingRes.StatusCode, http.StatusInternalServerError, "should fail to decode code")
 }
@@ -626,7 +628,7 @@ func getValidCookieAndState(t *testing.T, domain string) (string, string) {
 	// visit https://<domain>/
 	rsp, err := GetProxyRedirectPageWithCookie(t, proxyListener, domain, "/", "", true)
 	require.NoError(t, err)
-	defer rsp.Body.Close()
+	testhelpers.Close(t, rsp.Body)
 
 	cookie := rsp.Header.Get("Set-Cookie")
 	require.NotEmpty(t, cookie)

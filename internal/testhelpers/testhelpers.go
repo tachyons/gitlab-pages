@@ -95,3 +95,13 @@ func PerformRequest(t *testing.T, handler http.Handler, r *http.Request) (int, s
 
 	return res.StatusCode, string(b)
 }
+
+// Close will call the close function on a closer as part
+// of the t.Cleanup function.
+func Close(t *testing.T, c io.Closer) {
+	t.Helper()
+
+	t.Cleanup(func() {
+		require.NoError(t, c.Close())
+	})
+}

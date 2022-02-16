@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestRewrites(t *testing.T) {
@@ -47,7 +48,7 @@ func TestRewrites(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			rsp, err := GetPageFromListener(t, httpListener, tt.host, tt.path)
 			require.NoError(t, err)
-			defer rsp.Body.Close()
+			testhelpers.Close(t, rsp.Body)
 
 			body, err := io.ReadAll(rsp.Body)
 			require.NoError(t, err)

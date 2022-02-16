@@ -10,6 +10,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestReconfigureMeteredRoundTripper(t *testing.T) {
@@ -23,7 +24,7 @@ func TestReconfigureMeteredRoundTripper(t *testing.T) {
 
 	res, err := mrt.RoundTrip(r)
 	require.NoError(t, err)
-	defer res.Body.Close()
+	testhelpers.Close(t, res.Body)
 
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	body, err := io.ReadAll(res.Body)

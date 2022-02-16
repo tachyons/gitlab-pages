@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestMIMETypes(t *testing.T) {
@@ -27,7 +29,7 @@ func TestMIMETypes(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "project/"+tt.file)
 			require.NoError(t, err)
-			defer rsp.Body.Close()
+			testhelpers.Close(t, rsp.Body)
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode)
 			mt, _, err := mime.ParseMediaType(rsp.Header.Get("Content-Type"))
@@ -69,7 +71,7 @@ func TestCompressedEncoding(t *testing.T) {
 			}
 			rsp, err := GetPageFromListenerWithHeaders(t, httpListener, "group.gitlab-example.com", "index.html", header)
 			require.NoError(t, err)
-			defer rsp.Body.Close()
+			testhelpers.Close(t, rsp.Body)
 
 			require.Equal(t, http.StatusOK, rsp.StatusCode)
 			require.Equal(t, tt.encoding, rsp.Header.Get("Content-Encoding"))

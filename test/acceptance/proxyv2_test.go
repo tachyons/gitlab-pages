@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestProxyv2(t *testing.T) {
@@ -37,7 +39,7 @@ func TestProxyv2(t *testing.T) {
 
 			response, err := GetPageFromListener(t, httpsProxyv2Listener, tt.host, tt.urlSuffix)
 			require.NoError(t, err)
-			defer response.Body.Close()
+			testhelpers.Close(t, response.Body)
 
 			require.Equal(t, tt.expectedStatusCode, response.StatusCode)
 
