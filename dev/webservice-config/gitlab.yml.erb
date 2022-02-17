@@ -102,3 +102,9 @@ production: &base
   extra:
   rack_attack:
     git_basic_auth:
+  gitlab_kas:
+    enabled: true
+    secret_file: /srv/gitlab/.gitlab_kas_secret
+    external_url: "grpc://127.0.0.1:<%= ENV['KAS_EXTERNAL_API_PORT'] %>"
+    internal_url: "grpc://kas:<%= ENV['KAS_INTERNAL_API_PORT'] %>"
+    external_k8s_proxy_url: "http://127.0.0.1:<%= ENV['KAS_KUBERNETES_API_PORT'] %>"

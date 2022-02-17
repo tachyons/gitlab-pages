@@ -40,6 +40,9 @@ services:
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
       - "ACTION_CABLE_IN_APP=true"
       - "REGISTRY_PORT=${REGISTRY_PORT}"
+      - "KAS_INTERNAL_API_PORT=${KAS_INTERNAL_API_PORT}"
+      - "KAS_EXTERNAL_API_PORT=${KAS_EXTERNAL_API_PORT}"
+      - "KAS_KUBERNETES_API_PORT=${KAS_KUBERNETES_API_PORT}"
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
       - postgres
@@ -51,6 +54,7 @@ services:
       - ./dev/shell-secret:/var/opt/gitlab/config/secrets
       - ./dev/workhorse-config/.gitlab_workhorse_secret:/srv/gitlab/.gitlab_workhorse_secret
       - ./dev/pages-secret/.gitlab_pages_secret:/srv/gitlab/.gitlab_pages_secret
+      - ./dev/gitlab-kas/.gitlab_kas_internal_api_secret:/srv/gitlab/.gitlab_kas_secret
       - uploads:/srv/gitlab/public/uploads
       - shared-dir:/srv/gitlab/shared
       - pages:/srv/gitlab/shared/pages
@@ -148,6 +152,23 @@ services:
       - ./dev/registry/gitlab-registry.crt:/etc/docker/registry/gitlab-registry.crt
       - ./gitlab-container-registry/scripts:/scripts
       - registry-storage:/var/lib/registry/docker/
+  kas:
+    image: ${GITLAB_KAS_IMAGE}
+    command: ["--configuration-file=/etc/kas/config.yml"]
+    depends_on:
+      - redis
+    ports:
+      - "${KAS_EXTERNAL_API_PORT}:8150"
+      - "${KAS_INTERNAL_API_PORT}:8153"
+      - "${KAS_KUBERNETES_API_PORT}:8154"
+      - "${KAS_PRIVATE_API_PORT}:8155"
+    environment:
+      - "OWN_PRIVATE_API_URL=grpc://kas:8155"
+    volumes:
+      - ./dev/gitlab-kas/config.yml:/etc/kas/config.yml
+      - ./dev/gitlab-kas/.gitlab_kas_internal_api_secret:/etc/kas/.gitlab_kas_internal_api_secret
+      - ./dev/gitlab-kas/.gitlab_kas_private_api_secret:/etc/kas/.gitlab_kas_private_api_secret
+      - ./dev/gitlab-kas/.redis_password:/etc/kas/.redis_password
 volumes:
   db-upgrade:
     driver: local

@@ -9,6 +9,7 @@
   - job: gitlab-mailroom
   - job: gitlab-pages
   - job: gitlab-shell
+  - job: gitlab-kas
   - job: gitlab-rails-ee
     optional: true
   - job: gitlab-rails-ce

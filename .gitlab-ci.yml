@@ -1312,6 +1312,49 @@ gitlab-workhorse-ce:
     - job: build:gitlab-gomplate
       optional: true
 
+
+build:gitlab-kas:
+  <<: *build-job-base
+  stage: prepare:phase-two
+  needs:
+    - build:gitlab-go
+  script:
+    - import_assets artifacts/ubi/gitlab-go.tar.gz
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export TARGET_VERSION=$(get_target_version)
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_KAS_VERSION$go_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "BUILD_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-go:$go_version${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_NAMESPACE=gitlab-org"
+                      --build-arg "GITLAB_KAS_VERSION=${GITLAB_KAS_VERSION}"
+                      --build-arg "CI_SERVER_HOST=${CI_SERVER_HOST}"
+                      --build-arg "CI_SERVER_PORT=${CI_SERVER_PORT}"
+    - copy_assets
+
+gitlab-kas:
+  <<: *job-base
+  <<: *except-deps
+  stage: phase-four
+  needs:
+    - job: build:gitlab-kas
+      optional: true
+  script:
+    - go_dir_version=$(get_version gitlab-go)
+    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
+    - export TARGET_VERSION=$(get_target_version)
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_KAS_VERSION$go_version$TARGET_VERSION" | sha1sum))
+    - if [ ! "$UBI_PIPELINE" = "true" ]; then
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version${IMAGE_TAG_EXT}"
+    - fi
+    - build_if_needed --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-go"
+                      --build-arg "TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_NAMESPACE=gitlab-org"
+                      --build-arg "GITLAB_KAS_VERSION=${GITLAB_KAS_VERSION}"
+                      --build-arg "CI_SERVER_HOST=${CI_SERVER_HOST}"
+                      --build-arg "CI_SERVER_PORT=${CI_SERVER_PORT}"
+    - push_tags "$GITLAB_KAS_VERSION${IMAGE_TAG_EXT}"
+    - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-kas_tag.txt
+
 trigger-chart-test:
   stage: final-list
   trigger:
@@ -1425,6 +1468,7 @@ ubi-assets-release:
     - build:gitlab-toolbox-ee
     - build:gitlab-webservice-ee
     - build:gitlab-sidekiq-ee
+    - build:gitlab-kas
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/ && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
       when: manual

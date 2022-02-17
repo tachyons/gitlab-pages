@@ -1,0 +1,28 @@
+agent:
+  listen:
+    address: ":8150"
+    websocket: false
+  kubernetes_api:
+    listen:
+      address: ":8154"
+    url_path_prefix: "/"
+gitlab:
+  address: "http://workhorse:8181"
+  authentication_secret_file: "/etc/kas/.gitlab_kas_internal_api_secret"
+observability:
+  listen:
+    address: ":8151"
+  logging:
+    level: debug
+redis:
+  server:
+    address: redis:6379
+  password_file: "/etc/kas/.redis_password"
+api:
+  listen:
+    address: ":8153"
+    authentication_secret_file: "/etc/kas/.gitlab_kas_internal_api_secret"
+private_api:
+  listen:
+    address: ":8155"
+    authentication_secret_file: "/etc/kas/.gitlab_kas_private_api_secret"

@@ -14,6 +14,7 @@ infrastructure needed to run GitLab.
 * [sidekiq](/gitlab-sidekiq) - The Sidekiq container that runs async Rails jobs.
 * [shell](/gitlab-shell) - Running GitLab Shell and OpenSSH to provide git over ssh, and authorized keys support from the database
 * [gitaly](/gitaly) - The Gitaly container that provides a distributed git repos
+* [gitlab-kas](/gitlab-kas) - The backend for the GitLab Agent for Kubernetes
 * [toolbox](/gitlab-toolbox) - The toolbox container provides utilities for direct interaction with the application suite, without interruping service containers.
 
 ### Dev environment using Docker Compose

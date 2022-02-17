@@ -196,6 +196,7 @@ graph LR;
     gitlab-shell:::final
     gitlab-pages:::final
     gitaly:::final
+    gitlab-kas:::final
     kubectl:::final
     gitlab-container-registry:::final
     alpine-certificates:::final
@@ -208,6 +209,7 @@ graph LR;
     git-base
     alpine[alpine:3.10]:::external;
     debian[debian:bullseye-slim]:::external;
+    gcr.io/distroless/base-debian11
   end
 
   kubectl==>debian;
@@ -229,6 +231,8 @@ graph LR;
 
   gitaly===>git-base;
   gitlab-container-registry==>debian
+
+  gitlab-kas===>gcr.io/distroless/base-debian11;
 
   classDef default fill:#fc6d26;
   classDef external fill:#fca326;
@@ -252,6 +256,7 @@ graph LR;
     gitlab-shell:::final
     gitlab-pages:::final
     gitaly:::final
+    gitlab-kas:::final
     kubectl:::final
     gitlab-container-registry:::final
     alpine-certificates:::final
@@ -279,6 +284,7 @@ graph LR;
     alpine[alpine:3.10]:::external;
     scratch[scratch]:::external;
     debian[debian:bullseye-slim]:::external;
+    gcr.io/distroless/base-debian11
   end
 
   gitlab-go==>gitlab-ruby;
@@ -340,6 +346,9 @@ graph LR;
 
   gitaly==>git-base;
   gitaly-.->gitlab-logger;
+
+  gitlab-kas-.->gitlab-go;
+  gitlab-kas==>gcr.io/distroless/base-debian11
 
   gitlab-container-registry==>debian
   gitlab-container-registry-->git-base
