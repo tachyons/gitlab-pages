@@ -6,6 +6,7 @@ declare -a nightly_builds=(
   gitlab-sidekiq-ee gitlab-sidekiq-ce
   gitlab-workhorse-ce gitlab-workhorse-ee
   gitaly gitlab-shell
+  gitlab-kas
 )
 
 # List of all images that are "final" production images

@@ -69,7 +69,6 @@ buildImage gitlab-workhorse-ee &
 wait
 
 # Stage three
-
 DOCKER_OPTS="--build-arg GIT_IMAGE=$(qualifiedName git-base)"
 buildImage gitaly &
 
@@ -78,5 +77,8 @@ buildImage gitlab-geo-logcursor &
 buildImage gitlab-sidekiq-ee &
 buildImage gitlab-toolbox-ee &
 buildImage gitlab-webservice-ee &
+
+DOCKER_OPTS=""
+buildImage gitlab-kas &
 
 wait

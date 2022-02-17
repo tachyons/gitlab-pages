@@ -1,0 +1,22 @@
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:8.5
+
+FROM ${UBI_IMAGE}
+
+ARG GITLAB_KAS_VERSION=v14.5.0
+ARG GITLAB_USER=git
+ARG UID=1000
+
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-kas" \
+      name="GitLab KAS" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_KAS_VERSION} \
+      release=${GITLAB_KAS_VERSION} \
+      summary="The GitLab Agent Server." \
+      description="The GitLab Agent Server. Handles long-running connections from GitLab Agents for Kubernetes."
+
+ADD gitlab-kas.tar.gz /
+
+USER ${UID}
+
+ENTRYPOINT ["/usr/bin/kas"]

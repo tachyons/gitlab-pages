@@ -1,0 +1,30 @@
+ARG BUILD_IMAGE=
+FROM ${BUILD_IMAGE}
+
+ARG BAZELISK_VERSION=v1.11.0
+ARG GITLAB_KAS_VERSION=v14.5.0
+ARG GITLAB_NAMESPACE=gitlab-org
+ARG BUILD_DIR=/tmp/build-gitlab-kas
+ARG DNF_OPTS
+ARG FETCH_ARTIFACTS_PAT
+ARG CI_SERVER_HOST
+ARG CI_SERVER_PORT
+
+ADD gitlab-go.tar.gz /
+
+# install packages
+RUN dnf ${DNF_OPTS} install -by --nodocs gcc git
+
+# install bazel and go
+RUN ln -sf /usr/local/go/bin/* /usr/local/bin \
+    && go install github.com/bazelbuild/bazelisk@${BAZELISK_VERSION} \
+    && ln -s /root/go/bin/bazelisk /root/go/bin/bazel
+ENV PATH="${PATH}:/root/go/bin"
+
+# install kas
+RUN echo "Downloading source code" \
+    && git clone "https://gitlab-token:${FETCH_ARTIFACTS_PAT}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${GITLAB_NAMESPACE}/cluster-integration/gitlab-agent.git" --branch "${GITLAB_KAS_VERSION}" --single-branch "${BUILD_DIR}" \
+    && cd ${BUILD_DIR} \
+    && echo "Building kas binary" \
+    && mkdir -p /assets/usr/bin \
+    && bazel run //cmd/kas:extract_kas -- /assets/usr/bin
