@@ -21,7 +21,7 @@ ENV PATH="${PATH}:/root/go/bin"
 
 # install kas
 RUN echo "Downloading source code" \
-    && git clone "https://gitlab-token:${FETCH_ARTIFACTS_PAT}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${GITLAB_NAMESPACE}/cluster-integration/gitlab-agent.git" --branch "${GITLAB_KAS_VERSION}" --single-branch "${BUILD_DIR}" \
+    && git clone "https://gitlab-token:${FETCH_ARTIFACTS_PAT}@gitlab.com:${CI_SERVER_PORT}/${GITLAB_NAMESPACE}/cluster-integration/gitlab-agent.git" --branch "${GITLAB_KAS_VERSION}" --single-branch "${BUILD_DIR}" \
     && cd ${BUILD_DIR} \
     && echo "Building kas binary" \
     && bazel run //cmd/kas:extract_kas -- /usr/bin
