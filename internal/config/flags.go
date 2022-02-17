@@ -9,16 +9,24 @@ import (
 )
 
 var (
-	pagesRootCert           = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
-	pagesRootKey            = flag.String("root-key", "", "The default path to file certificate to serve static pages")
-	redirectHTTP            = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
-	_                       = flag.Bool("use-http2", true, "DEPRECATED: HTTP2 is always enabled for pages")
-	pagesRoot               = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
-	pagesDomain             = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
-	rateLimitSourceIP       = flag.Float64("rate-limit-source-ip", 0.0, "Rate limit per source IP in number of requests per second, 0 means is disabled")
-	rateLimitSourceIPBurst  = flag.Int("rate-limit-source-ip-burst", 100, "Rate limit per source IP maximum burst allowed per second")
-	rateLimitDomain         = flag.Float64("rate-limit-domain", 0.0, "Rate limit per domain in number of requests per second, 0 means is disabled")
-	rateLimitDomainBurst    = flag.Int("rate-limit-domain-burst", 100, "Rate limit per domain maximum burst allowed per second")
+	pagesRootCert = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
+	pagesRootKey  = flag.String("root-key", "", "The default path to file certificate to serve static pages")
+	redirectHTTP  = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
+	_             = flag.Bool("use-http2", true, "DEPRECATED: HTTP2 is always enabled for pages")
+	pagesRoot     = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
+	pagesDomain   = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
+
+	// HTTP rate limits
+	rateLimitSourceIP      = flag.Float64("rate-limit-source-ip", 0.0, "Rate limit HTTP requests per second from a single IP, 0 means is disabled")
+	rateLimitSourceIPBurst = flag.Int("rate-limit-source-ip-burst", 100, "Rate limit HTTP requests from a single IP, maximum burst allowed per second")
+	rateLimitDomain        = flag.Float64("rate-limit-domain", 0.0, "Rate limit HTTP requests per second to a single domain, 0 means is disabled")
+	rateLimitDomainBurst   = flag.Int("rate-limit-domain-burst", 100, "Rate limit HTTP requests to a single domain, maximum burst allowed per second")
+	// TLS connections rate limits
+	rateLimitTLSSourceIP      = flag.Float64("rate-limit-tls-source-ip", 0.0, "Rate limit new TLS connections per second from a single IP, 0 means is disabled")
+	rateLimitTLSSourceIPBurst = flag.Int("rate-limit-tls-source-ip-burst", 100, "Rate limit new TLS connections from a single IP, maximum burst allowed per second")
+	rateLimitTLSDomain        = flag.Float64("rate-limit-tls-domain", 0.0, "Rate limit new TLS connections per second from to a single domain, 0 means is disabled")
+	rateLimitTLSDomainBurst   = flag.Int("rate-limit-tls-domain-burst", 100, "Rate limit new TLS connections from a single domain, maximum burst allowed per second")
+
 	artifactsServer         = flag.String("artifacts-server", "", "API URL to proxy artifact requests to, e.g.: 'https://gitlab.com/api/v4'")
 	artifactsServerTimeout  = flag.Int("artifacts-server-timeout", 10, "Timeout (in seconds) for a proxied request to the artifacts server")
 	pagesStatus             = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")

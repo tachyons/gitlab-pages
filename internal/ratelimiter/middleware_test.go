@@ -107,7 +107,7 @@ func TestMiddlewareDenyRequestsAfterBurst(t *testing.T) {
 				assertSourceIPLog(t, remoteAddr, hook)
 			}
 
-			blockedCount := testutil.ToFloat64(blocked.WithLabelValues(strconv.FormatBool(tc.enforce)))
+			blockedCount := testutil.ToFloat64(blocked.WithLabelValues("rate_limiter", strconv.FormatBool(tc.enforce)))
 			require.Equal(t, float64(4), blockedCount, "blocked count")
 			blocked.Reset()
 
@@ -226,7 +226,7 @@ func newTestMetrics(t *testing.T) (*prometheus.GaugeVec, *prometheus.GaugeVec, *
 		prometheus.GaugeOpts{
 			Name: t.Name(),
 		},
-		[]string{"enforced"},
+		[]string{"limit_name", "enforced"},
 	)
 
 	cachedEntries := prometheus.NewGaugeVec(prometheus.GaugeOpts{

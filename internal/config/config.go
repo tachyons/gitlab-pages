@@ -58,10 +58,17 @@ type General struct {
 
 // RateLimit config struct
 type RateLimit struct {
+	// HTTP limits
 	SourceIPLimitPerSecond float64
 	SourceIPBurst          int
 	DomainLimitPerSecond   float64
 	DomainBurst            int
+
+	// TLS connections limits
+	TLSSourceIPLimitPerSecond float64
+	TLSSourceIPBurst          int
+	TLSDomainLimitPerSecond   float64
+	TLSDomainBurst            int
 }
 
 // ArtifactsServer groups settings related to configuring Artifacts
@@ -183,6 +190,11 @@ func loadConfig() (*Config, error) {
 			SourceIPBurst:          *rateLimitSourceIPBurst,
 			DomainLimitPerSecond:   *rateLimitDomain,
 			DomainBurst:            *rateLimitDomainBurst,
+
+			TLSSourceIPLimitPerSecond: *rateLimitTLSSourceIP,
+			TLSSourceIPBurst:          *rateLimitTLSSourceIPBurst,
+			TLSDomainLimitPerSecond:   *rateLimitTLSDomain,
+			TLSDomainBurst:            *rateLimitTLSDomainBurst,
 		},
 		GitLab: GitLab{
 			ClientHTTPTimeout:  *gitlabClientHTTPTimeout,

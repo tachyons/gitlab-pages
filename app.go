@@ -30,10 +30,12 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/customheaders"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/routing"
@@ -51,6 +53,7 @@ var (
 type theApp struct {
 	config         *cfg.Config
 	source         source.Source
+	tlsConfig      *cryptotls.Config
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
 	Handlers       *handlers.Handlers
@@ -62,17 +65,60 @@ func (a *theApp) isReady() bool {
 	return true
 }
 
-func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
+func (a *theApp) GetCertificate(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
+	log.Info("GetCertificate called")
 	if ch.ServerName == "" {
 		return nil, nil
 	}
 
 	if domain, _ := a.domain(context.Background(), ch.ServerName); domain != nil {
-		tls, _ := domain.EnsureCertificate()
-		return tls, nil
+		certificate, _ := domain.EnsureCertificate()
+		return certificate, nil
 	}
 
 	return nil, nil
+}
+
+// TODO: find a better place than app.go for all the TLS logic https://gitlab.com/gitlab-org/gitlab-pages/-/issues/707
+// right now we have config/tls, but I think does more than config
+// related logic should
+func (a *theApp) getTLSConfig() (*cryptotls.Config, error) {
+	if a.tlsConfig != nil {
+		return a.tlsConfig, nil
+	}
+	TLSDomainRateLimiter := ratelimiter.New(
+		"tls_connections_by_domain",
+		ratelimiter.WithTLSKeyFunc(ratelimiter.TLSHostnameKey),
+		ratelimiter.WithCacheMaxSize(ratelimiter.DefaultDomainCacheSize),
+		ratelimiter.WithCachedEntriesMetric(metrics.RateLimitCachedEntries),
+		ratelimiter.WithCachedRequestsMetric(metrics.RateLimitCacheRequests),
+		ratelimiter.WithBlockedCountMetric(metrics.RateLimitBlockedCount),
+		ratelimiter.WithLimitPerSecond(a.config.RateLimit.TLSDomainLimitPerSecond),
+		ratelimiter.WithBurstSize(a.config.RateLimit.TLSDomainBurst),
+		ratelimiter.WithEnforce(feature.EnforceDomainTLSRateLimits.Enabled()),
+	)
+
+	TLSSourceIPRateLimiter := ratelimiter.New(
+		"tls_connections_by_source_ip",
+		ratelimiter.WithTLSKeyFunc(ratelimiter.TLSClientIPKey),
+		ratelimiter.WithCacheMaxSize(ratelimiter.DefaultSourceIPCacheSize),
+		ratelimiter.WithCachedEntriesMetric(metrics.RateLimitCachedEntries),
+		ratelimiter.WithCachedRequestsMetric(metrics.RateLimitCacheRequests),
+		ratelimiter.WithBlockedCountMetric(metrics.RateLimitBlockedCount),
+		ratelimiter.WithLimitPerSecond(a.config.RateLimit.TLSSourceIPLimitPerSecond),
+		ratelimiter.WithBurstSize(a.config.RateLimit.TLSSourceIPBurst),
+		ratelimiter.WithEnforce(feature.EnforceIPTLSRateLimits.Enabled()),
+	)
+
+	getCertificate := TLSDomainRateLimiter.GetCertificateMiddleware(a.GetCertificate)
+	getCertificate = TLSSourceIPRateLimiter.GetCertificateMiddleware(getCertificate)
+
+	tlsConfig, err := tls.Create(a.config.General.RootCertificate, a.config.General.RootKey, getCertificate,
+		a.config.General.InsecureCiphers, a.config.TLS.MinVersion, a.config.TLS.MaxVersion)
+
+	a.tlsConfig = tlsConfig
+
+	return a.tlsConfig, err
 }
 
 func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
@@ -306,7 +352,7 @@ func (a *theApp) Run() {
 
 	// Listen for HTTPS
 	for _, addr := range a.config.ListenHTTPSStrings.Split() {
-		tlsConfig, err := a.TLSConfig()
+		tlsConfig, err := a.getTLSConfig()
 		if err != nil {
 			log.WithError(err).Fatal("Unable to retrieve tls config")
 		}
@@ -334,7 +380,7 @@ func (a *theApp) Run() {
 
 	// Listen for HTTPS PROXYv2 requests
 	for _, addr := range a.config.ListenHTTPSProxyv2Strings.Split() {
-		tlsConfig, err := a.TLSConfig()
+		tlsConfig, err := a.getTLSConfig()
 		if err != nil {
 			log.WithError(err).Fatal("Unable to retrieve tls config")
 		}
@@ -476,11 +522,6 @@ func (a *theApp) setAuth(config *cfg.Config) {
 // fatal will log a fatal error and exit.
 func fatal(err error, message string) {
 	log.WithError(err).Fatal(message)
-}
-
-func (a *theApp) TLSConfig() (*cryptotls.Config, error) {
-	return tls.Create(a.config.General.RootCertificate, a.config.General.RootKey, a.ServeTLS,
-		a.config.General.InsecureCiphers, a.config.TLS.MinVersion, a.config.TLS.MaxVersion)
 }
 
 // handlePanicMiddleware logs and captures the recover() information from any panic
