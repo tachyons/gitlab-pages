@@ -1354,6 +1354,37 @@ final-images-listing:
     paths:
       - artifacts/final/
 
+image-metrics:
+  # intentionally not using .job-base
+  stage: final-list
+  image: ${DEPENDENCY_PROXY}alpine:${ALPINE_VERSION}
+  script:
+    - apk add skopeo jq
+    - . build-scripts/metrics.sh
+    - generate_image_metrics
+  needs: !reference [.final_images]
+  rules: # NOTE: never runs for auto-deploy branches. See `workflow:rules` above.
+      # Don't run on deps pipelines
+    - <<: *if_deps_pipeline
+      when: never
+      # Don't run for specific version pipelines
+    - <<: *if_ce_pipeline
+      when: never
+    - <<: *if_ee_pipeline
+      when: never
+      # Don't run on tags
+    - if: '$CI_COMMIT_TAG'    # Available only in pipelines for tags.
+      when: never
+      # Run on any Branch pipeline on .com (where registry is public)
+      # CI_COMMIT_BRANCH is available in branch pipelines. Not available in MR (detached) or Tag pipelines.
+    - if: '$CI_COMMIT_BRANCH && $CI_PROJECT_PATH == "gitlab-org/build/CNG"'
+      when: always
+  artifacts:
+    paths:
+      - artifacts/final/
+    reports:
+      metrics: metrics/image_metrics.txt
+
 sync-images:
   image: "${DEPENDENCY_PROXY}docker:git"
   variables:
