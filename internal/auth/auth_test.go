@@ -17,6 +17,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/mock"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func createTestAuth(t *testing.T, internalServer string, publicServer string) *Auth {
@@ -68,7 +69,7 @@ func setSessionValues(t *testing.T, r *http.Request, store sessions.Store, value
 	session.Save(tmpRequest, result)
 
 	res := result.Result()
-	defer res.Body.Close()
+	testhelpers.Close(t, res.Body)
 
 	for _, cookie := range res.Cookies() {
 		r.AddCookie(cookie)
@@ -232,7 +233,7 @@ func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	require.True(t, auth.TryAuthenticate(result, r, mockSource))
 
 	res := result.Result()
-	defer res.Body.Close()
+	testhelpers.Close(t, res.Body)
 
 	require.Equal(t, http.StatusFound, result.Code)
 	require.Equal(t, "https://pages.gitlab-example.com/project/", result.Header().Get("Location"))
@@ -318,7 +319,7 @@ func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	contentServed := auth.CheckAuthentication(w, r, &domainMock{projectID: 1000, notFoundContent: "Generic 404"})
 	require.True(t, contentServed)
 	res := w.Result()
-	defer res.Body.Close()
+	testhelpers.Close(t, res.Body)
 
 	require.Equal(t, http.StatusNotFound, res.StatusCode)
 
@@ -493,11 +494,11 @@ func TestCheckResponseForInvalidTokenWhenInvalidToken(t *testing.T) {
 	r := &http.Request{URL: reqURL, Host: "pages.gitlab-example.com", RequestURI: "/test"}
 
 	resp := &http.Response{StatusCode: http.StatusUnauthorized, Body: io.NopCloser(bytes.NewReader([]byte("{\"error\":\"invalid_token\"}")))}
-	defer resp.Body.Close()
+	testhelpers.Close(t, resp.Body)
 
 	require.True(t, auth.CheckResponseForInvalidToken(result, r, resp))
 	res := result.Result()
-	defer res.Body.Close()
+	testhelpers.Close(t, res.Body)
 	require.Equal(t, http.StatusFound, res.StatusCode)
 	require.Equal(t, "http://pages.gitlab-example.com/test", result.Header().Get("Location"))
 }
