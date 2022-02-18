@@ -10,6 +10,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
