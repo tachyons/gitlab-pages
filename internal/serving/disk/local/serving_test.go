@@ -79,7 +79,7 @@ func TestDisk_ServeFileHTTP(t *testing.T) {
 			require.True(t, s.ServeFileHTTP(handler))
 
 			resp := w.Result()
-			defer resp.Body.Close()
+			testhelpers.Close(t, resp.Body)
 
 			require.Equal(t, test.expectedStatus, resp.StatusCode)
 			body, err := io.ReadAll(resp.Body)

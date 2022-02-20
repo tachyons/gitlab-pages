@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestNewMiddleware(t *testing.T) {
@@ -56,7 +58,7 @@ func TestNewMiddleware(t *testing.T) {
 			middleware.ServeHTTP(ww, rr)
 
 			res := ww.Result()
-			defer res.Body.Close()
+			testhelpers.Close(t, res.Body)
 
 			require.Equal(t, tt.expectedStatus, res.StatusCode)
 			if tt.expectedStatus == http.StatusOK {
