@@ -423,8 +423,6 @@ func TestAccessControlProject404DoesNotRedirect(t *testing.T) {
 type runPagesFunc func(t *testing.T, listeners []ListenSpec, sslCertFile string)
 
 func testAccessControl(t *testing.T, runPages runPagesFunc) {
-	setupTransport(t)
-
 	_, certFile := CreateHTTPSFixtureFiles(t)
 
 	tests := map[string]struct {

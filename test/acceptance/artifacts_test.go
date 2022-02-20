@@ -16,9 +16,6 @@ import (
 )
 
 func TestArtifactProxyRequest(t *testing.T) {
-	transport := (TestHTTPSClient.Transport).(*http.Transport).Clone()
-	transport.ResponseHeaderTimeout = 5 * time.Second
-
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
 	contentLength := int64(len(content))
 	testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -152,8 +149,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 }
 
 func TestPrivateArtifactProxyRequest(t *testing.T) {
-	setupTransport(t)
-
 	testServer := NewGitlabUnstartedServerStub(t, &stubOpts{})
 
 	keyFile, certFile := CreateHTTPSFixtureFiles(t)

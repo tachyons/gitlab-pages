@@ -34,65 +34,10 @@ import (
 // The HTTPS certificate isn't signed by anyone. This http client is set up
 // so it can talk to servers using it.
 var (
-	// The HTTPS certificate isn't signed by anyone. This http client is set up
-	// so it can talk to servers using it.
-	TestHTTPSClient = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: TestCertPool},
-		},
-	}
-
-	// Use HTTP with a very short timeout to repeatedly check for the server to be
-	// up. Again, ignore HTTP
-	QuickTimeoutHTTPSClient = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig:       &tls.Config{RootCAs: TestCertPool},
-			ResponseHeaderTimeout: 100 * time.Millisecond,
-		},
-	}
-
-	// Proxyv2 client
-	TestProxyv2Client = &http.Client{
-		Transport: &http.Transport{
-			DialContext:     Proxyv2DialContext,
-			TLSClientConfig: &tls.Config{RootCAs: TestCertPool},
-		},
-	}
-
-	QuickTimeoutProxyv2Client = &http.Client{
-		Transport: &http.Transport{
-			DialContext:           Proxyv2DialContext,
-			TLSClientConfig:       &tls.Config{RootCAs: TestCertPool},
-			ResponseHeaderTimeout: 100 * time.Millisecond,
-		},
-	}
-
 	TestCertPool = x509.NewCertPool()
 
 	// Proxyv2 will create a dummy request with src 10.1.1.1:1000
 	// and dst 20.2.2.2:2000
-	Proxyv2DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		var d net.Dialer
-
-		conn, err := d.DialContext(ctx, network, addr)
-		if err != nil {
-			return nil, err
-		}
-
-		header := &proxyproto.Header{
-			Version:            2,
-			Command:            proxyproto.PROXY,
-			TransportProtocol:  proxyproto.TCPv4,
-			SourceAddress:      net.ParseIP("10.1.1.1"),
-			SourcePort:         1000,
-			DestinationAddress: net.ParseIP("20.2.2.2"),
-			DestinationPort:    2000,
-		}
-
-		_, err = header.WriteTo(conn)
-
-		return conn, err
-	}
 )
 
 type tWriter struct {
@@ -151,15 +96,84 @@ func supportedListeners() []ListenSpec {
 	return listeners
 }
 
-func (l ListenSpec) URL(suffix string) string {
-	scheme := request.SchemeHTTP
+func (l ListenSpec) Scheme() string {
 	if l.Type == request.SchemeHTTPS || l.Type == "https-proxyv2" {
-		scheme = request.SchemeHTTPS
+		return request.SchemeHTTPS
 	}
 
+	return request.SchemeHTTP
+}
+
+func (l ListenSpec) URL(suffix string) string {
 	suffix = strings.TrimPrefix(suffix, "/")
 
-	return fmt.Sprintf("%s://%s/%s", scheme, l.JoinHostPort(), suffix)
+	return fmt.Sprintf("%s://%s/%s", l.Scheme(), l.JoinHostPort(), suffix)
+}
+
+type dialContext func(ctx context.Context, network, addr string) (net.Conn, error)
+
+func (l ListenSpec) proxyV2DialContext() dialContext {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		var d net.Dialer
+
+		// bypass DNS resolution by going directly to host and port
+		conn, err := d.DialContext(ctx, network, l.JoinHostPort())
+		if err != nil {
+			return nil, err
+		}
+
+		header := &proxyproto.Header{
+			Version:            2,
+			Command:            proxyproto.PROXY,
+			TransportProtocol:  proxyproto.TCPv4,
+			SourceAddress:      net.ParseIP("10.1.1.1"),
+			SourcePort:         1000,
+			DestinationAddress: net.ParseIP("20.2.2.2"),
+			DestinationPort:    2000,
+		}
+
+		_, err = header.WriteTo(conn)
+
+		return conn, err
+	}
+}
+
+func (l ListenSpec) httpsDialContext() dialContext {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		var d net.Dialer
+
+		// bypass DNS resolution by going directly to host and port
+		return d.DialContext(ctx, network, l.JoinHostPort())
+	}
+}
+
+func (l ListenSpec) dialContext() dialContext {
+	if l.Type == "https-proxyv2" {
+		return l.proxyV2DialContext()
+	}
+
+	return l.httpsDialContext()
+}
+
+func (l ListenSpec) Client() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig:       &tls.Config{RootCAs: TestCertPool},
+			DialContext:           l.dialContext(),
+			ResponseHeaderTimeout: 5 * time.Second,
+		},
+	}
+}
+
+// Use a very short timeout to repeatedly check for the server to be up.
+func (l ListenSpec) QuickTimeoutClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig:       &tls.Config{RootCAs: TestCertPool},
+			DialContext:           l.dialContext(),
+			ResponseHeaderTimeout: 100 * time.Millisecond,
+		},
+	}
 }
 
 // Returns only once this spec points at a working TCP server
@@ -177,12 +191,7 @@ func (l ListenSpec) WaitUntilRequestSucceeds(done chan struct{}) error {
 			return err
 		}
 
-		client := QuickTimeoutHTTPSClient
-		if l.Type == "https-proxyv2" {
-			client = QuickTimeoutProxyv2Client
-		}
-
-		response, err := client.Transport.RoundTrip(req)
+		response, err := l.QuickTimeoutClient().Transport.RoundTrip(req)
 		if err != nil {
 			time.Sleep(100 * time.Millisecond)
 			continue
@@ -380,11 +389,7 @@ func GetPageFromListenerWithHeaders(t *testing.T, spec ListenSpec, host, urlSuff
 func DoPagesRequest(t *testing.T, spec ListenSpec, req *http.Request) (*http.Response, error) {
 	t.Logf("curl -X %s -H'Host: %s' %s", req.Method, req.Host, req.URL)
 
-	if spec.Type == "https-proxyv2" {
-		return TestProxyv2Client.Do(req)
-	}
-
-	return TestHTTPSClient.Do(req)
+	return spec.Client().Do(req)
 }
 
 func GetRedirectPage(t *testing.T, spec ListenSpec, host, urlsuffix string) (*http.Response, error) {
@@ -419,11 +424,7 @@ func GetRedirectPageWithHeaders(t *testing.T, spec ListenSpec, host, urlsuffix s
 
 	req.Host = host
 
-	if spec.Type == "https-proxyv2" {
-		return TestProxyv2Client.Transport.RoundTrip(req)
-	}
-
-	return TestHTTPSClient.Transport.RoundTrip(req)
+	return spec.Client().Transport.RoundTrip(req)
 }
 
 func ClientWithConfig(tlsConfig *tls.Config) (*http.Client, func()) {
@@ -600,14 +601,4 @@ func copyFile(dest, src string) error {
 
 	_, err = io.Copy(destFile, srcFile)
 	return err
-}
-
-func setupTransport(t *testing.T) {
-	t.Helper()
-
-	transport := (TestHTTPSClient.Transport).(*http.Transport)
-	defer func(t time.Duration) {
-		transport.ResponseHeaderTimeout = t
-	}(transport.ResponseHeaderTimeout)
-	transport.ResponseHeaderTimeout = 5 * time.Second
 }
