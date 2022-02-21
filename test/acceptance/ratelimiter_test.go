@@ -114,120 +114,91 @@ func TestDomainRateLimits(t *testing.T) {
 }
 
 func TestTLSRateLimits(t *testing.T) {
-	rateLimit := 5
-
 	tests := map[string]struct {
 		spec           ListenSpec
-		options        []processOption
+		domainLimit    bool
 		sourceIP       string
-		featureName    string
 		enforceEnabled bool
-		limitName      string
 	}{
 		"https_with_domain_limit": {
-			spec: httpsListener,
-			options: []processOption{
-				withExtraArgument("metrics-address", ":42345"),
-				withExtraArgument("rate-limit-tls-domain", fmt.Sprint(rateLimit)),
-				withExtraArgument("rate-limit-tls-domain-burst", fmt.Sprint(rateLimit)),
-			},
+			spec:           httpsListener,
+			domainLimit:    true,
 			sourceIP:       "127.0.0.1",
-			featureName:    feature.EnforceDomainTLSRateLimits.EnvVariable,
 			enforceEnabled: true,
-			limitName:      "tls_connections_by_domain",
 		},
 		"https_with_domain_limit_not_enforced": {
-			spec: httpsListener,
-			options: []processOption{
-				withExtraArgument("metrics-address", ":42345"),
-				withExtraArgument("rate-limit-tls-domain", fmt.Sprint(rateLimit)),
-				withExtraArgument("rate-limit-tls-domain-burst", fmt.Sprint(rateLimit)),
-			},
+			spec:           httpsListener,
+			domainLimit:    true,
 			sourceIP:       "127.0.0.1",
-			featureName:    feature.EnforceDomainTLSRateLimits.EnvVariable,
 			enforceEnabled: false,
-			limitName:      "tls_connections_by_domain",
 		},
 		"https_with_ip_limit": {
-			spec: httpsListener,
-			options: []processOption{
-				withExtraArgument("metrics-address", ":42345"),
-				withExtraArgument("rate-limit-tls-source-ip", fmt.Sprint(rateLimit)),
-				withExtraArgument("rate-limit-tls-source-ip-burst", fmt.Sprint(rateLimit)),
-			},
+			spec:           httpsListener,
 			sourceIP:       "127.0.0.1",
-			featureName:    feature.EnforceIPTLSRateLimits.EnvVariable,
 			enforceEnabled: true,
-			limitName:      "tls_connections_by_source_ip",
 		},
 		"https_with_ip_limit_not_enforced": {
-			spec: httpsListener,
-			options: []processOption{
-				withExtraArgument("metrics-address", ":42345"),
-				withExtraArgument("rate-limit-tls-source-ip", fmt.Sprint(rateLimit)),
-				withExtraArgument("rate-limit-tls-source-ip-burst", fmt.Sprint(rateLimit)),
-			},
+			spec:           httpsListener,
 			sourceIP:       "127.0.0.1",
-			featureName:    feature.EnforceIPTLSRateLimits.EnvVariable,
 			enforceEnabled: false,
-			limitName:      "tls_connections_by_source_ip",
 		},
 		"proxyv2_with_domain_limit": {
-			spec: httpsProxyv2Listener,
-			options: []processOption{
-				withExtraArgument("metrics-address", ":42345"),
-				withExtraArgument("rate-limit-tls-domain", fmt.Sprint(rateLimit)),
-				withExtraArgument("rate-limit-tls-domain-burst", fmt.Sprint(rateLimit)),
-			},
+			spec:           httpsProxyv2Listener,
+			domainLimit:    true,
 			sourceIP:       "10.1.1.1",
-			featureName:    feature.EnforceDomainTLSRateLimits.EnvVariable,
 			enforceEnabled: true,
-			limitName:      "tls_connections_by_domain",
 		},
 		"proxyv2_with_domain_limit_not_enforced": {
-			spec: httpsProxyv2Listener,
-			options: []processOption{
-				withExtraArgument("metrics-address", ":42345"),
-				withExtraArgument("rate-limit-tls-domain", fmt.Sprint(rateLimit)),
-				withExtraArgument("rate-limit-tls-domain-burst", fmt.Sprint(rateLimit)),
-			},
+			spec:           httpsProxyv2Listener,
+			domainLimit:    true,
 			sourceIP:       "10.1.1.1",
-			featureName:    feature.EnforceDomainTLSRateLimits.EnvVariable,
 			enforceEnabled: false,
-			limitName:      "tls_connections_by_domain",
 		},
 		"proxyv2_with_ip_limit": {
-			spec: httpsProxyv2Listener,
-			options: []processOption{
-				withExtraArgument("metrics-address", ":42345"),
-				withExtraArgument("rate-limit-tls-source-ip", fmt.Sprint(rateLimit)),
-				withExtraArgument("rate-limit-tls-source-ip-burst", fmt.Sprint(rateLimit)),
-			},
+			spec:           httpsProxyv2Listener,
 			sourceIP:       "10.1.1.1",
-			featureName:    feature.EnforceIPTLSRateLimits.EnvVariable,
 			enforceEnabled: true,
-			limitName:      "tls_connections_by_source_ip",
 		},
 		"proxyv2_with_ip_limit_not_enforced": {
-			spec: httpsProxyv2Listener,
-			options: []processOption{
-				withExtraArgument("metrics-address", ":42345"),
-				withExtraArgument("rate-limit-tls-source-ip", fmt.Sprint(rateLimit)),
-				withExtraArgument("rate-limit-tls-source-ip-burst", fmt.Sprint(rateLimit)),
-			},
+			spec:           httpsProxyv2Listener,
 			sourceIP:       "10.1.1.1",
-			featureName:    feature.EnforceIPTLSRateLimits.EnvVariable,
 			enforceEnabled: false,
-			limitName:      "tls_connections_by_source_ip",
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			testhelpers.StubFeatureFlagValue(t, tt.featureName, tt.enforceEnabled)
+			rateLimit := 5
 
-			options := append(tt.options, withListeners([]ListenSpec{tt.spec}))
+			options := []processOption{
+				withListeners([]ListenSpec{tt.spec}),
+				withExtraArgument("metrics-address", ":42345"),
+			}
+
+			featureName := feature.EnforceIPTLSRateLimits.EnvVariable
+			limitName := "tls_connections_by_source_ip"
+
+			if tt.domainLimit {
+				options = append(options,
+					withExtraArgument("rate-limit-tls-domain", fmt.Sprint(rateLimit)),
+					withExtraArgument("rate-limit-tls-domain-burst", fmt.Sprint(rateLimit)))
+
+				featureName = feature.EnforceDomainTLSRateLimits.EnvVariable
+				limitName = "tls_connections_by_domain"
+			} else {
+				options = append(options,
+					withExtraArgument("rate-limit-tls-source-ip", fmt.Sprint(rateLimit)),
+					withExtraArgument("rate-limit-tls-source-ip-burst", fmt.Sprint(rateLimit)))
+			}
+
+			testhelpers.StubFeatureFlagValue(t, featureName, tt.enforceEnabled)
 			logBuf := RunPagesProcess(t, options...)
+
+			// when we start the process we make 1 requests to verify that process is up
+			// it gets counted in the rate limit for IP, but host is different
+			if !tt.domainLimit {
+				rateLimit--
+			}
 
 			for i := 0; i < 10; i++ {
 				rsp, err := makeTLSRequest(t, tt.spec)
@@ -247,13 +218,13 @@ func TestTLSRateLimits(t *testing.T) {
 					continue
 				}
 
-				require.NoError(t, err)
+				require.NoError(t, err, "request: %d failed", i)
 				require.NoError(t, rsp.Body.Close())
 				require.Equal(t, http.StatusOK, rsp.StatusCode, "request: %d failed", i)
 			}
 			expectedMetric := fmt.Sprintf(
-				"gitlab_pages_rate_limit_blocked_count{enforced=\"%t\",limit_name=\"%s\"} 5",
-				tt.enforceEnabled, tt.limitName)
+				"gitlab_pages_rate_limit_blocked_count{enforced=\"%t\",limit_name=\"%s\"} %v",
+				tt.enforceEnabled, limitName, 10-rateLimit)
 
 			RequireMetricEqual(t, "127.0.0.1:42345", expectedMetric)
 		})

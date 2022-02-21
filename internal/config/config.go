@@ -9,8 +9,6 @@ import (
 
 	"github.com/namsral/flag"
 	"gitlab.com/gitlab-org/labkit/log"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
 // Config stores all the config options relevant to GitLab Pages.
@@ -229,8 +227,8 @@ func loadConfig() (*Config, error) {
 			Environment: *sentryEnvironment,
 		},
 		TLS: TLS{
-			MinVersion: tls.AllTLSVersions[*tlsMinVersion],
-			MaxVersion: tls.AllTLSVersions[*tlsMaxVersion],
+			MinVersion: allTLSVersions[*tlsMinVersion],
+			MaxVersion: allTLSVersions[*tlsMaxVersion],
 		},
 		Zip: ZipServing{
 			ExpirationInterval: *zipCacheExpiration,

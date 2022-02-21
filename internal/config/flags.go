@@ -1,14 +1,23 @@
 package config
 
 import (
+	"crypto/tls"
+	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/namsral/flag"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
 var (
+	// allTLSVersions has all supported flag values
+	allTLSVersions = map[string]uint16{
+		"":       0, // Default value in tls.Config
+		"tls1.2": tls.VersionTLS12,
+		"tls1.3": tls.VersionTLS13,
+	}
+
 	pagesRootCert = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
 	pagesRootKey  = flag.String("root-key", "", "The default path to file certificate to serve static pages")
 	redirectHTTP  = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
@@ -63,8 +72,8 @@ var (
 	maxConns           = flag.Int("max-conns", 0, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners, 0 for no limit")
 	maxURILength       = flag.Int("max-uri-length", 1024, "Limit the length of URI, 0 for unlimited.")
 	insecureCiphers    = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
-	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tls.FlagUsage("min"))
-	tlsMaxVersion      = flag.String("tls-max-version", "", tls.FlagUsage("max"))
+	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tlsVersionFlagUsage("min"))
+	tlsMaxVersion      = flag.String("tls-max-version", "", tlsVersionFlagUsage("max"))
 	zipCacheExpiration = flag.Duration("zip-cache-expiration", 60*time.Second, "Zip serving archive cache expiration interval")
 	zipCacheCleanup    = flag.Duration("zip-cache-cleanup", 30*time.Second, "Zip serving archive cache cleanup interval")
 	zipCacheRefresh    = flag.Duration("zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval")
@@ -95,4 +104,18 @@ func initFlags() {
 	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
 
 	flag.Parse()
+}
+
+// tlsVersionFlagUsage returns string with explanation how to use the tls version CLI flag
+func tlsVersionFlagUsage(minOrMax string) string {
+	versions := []string{}
+
+	for version := range allTLSVersions {
+		if version != "" {
+			versions = append(versions, fmt.Sprintf("%q", version))
+		}
+	}
+	sort.Strings(versions)
+
+	return fmt.Sprintf("Specifies the "+minOrMax+"imum SSL/TLS version, supported values are %s", strings.Join(versions, ", "))
 }

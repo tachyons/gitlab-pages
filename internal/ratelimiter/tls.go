@@ -7,13 +7,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/log"
-
-	tlsconfig "gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
 var ErrTLSRateLimited = errors.New("too many connections, please retry later")
 
-func (rl *RateLimiter) GetCertificateMiddleware(getCertificate tlsconfig.GetCertificateFunc) tlsconfig.GetCertificateFunc {
+type GetCertificateFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
+
+func (rl *RateLimiter) GetCertificateMiddleware(getCertificate GetCertificateFunc) GetCertificateFunc {
 	if rl.limitPerSecond <= 0.0 {
 		return getCertificate
 	}

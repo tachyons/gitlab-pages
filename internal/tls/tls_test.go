@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 )
 
 var cert = []byte(`-----BEGIN CERTIFICATE-----
@@ -29,65 +31,46 @@ var getCertificate = func(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return nil, nil
 }
 
-func TestInvalidTLSVersions(t *testing.T) {
-	tests := map[string]struct {
-		tlsMin string
-		tlsMax string
-		err    string
-	}{
-		"invalid minimum TLS version": {tlsMin: "tls123", tlsMax: "", err: "invalid minimum TLS version: tls123"},
-		"invalid maximum TLS version": {tlsMin: "", tlsMax: "tls123", err: "invalid maximum TLS version: tls123"},
-		"TLS versions conflict":       {tlsMin: "tls1.3", tlsMax: "tls1.2", err: "invalid maximum TLS version: tls1.2; should be at least tls1.3"},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			err := ValidateTLSVersions(tc.tlsMin, tc.tlsMax)
-			require.EqualError(t, err, tc.err)
-		})
-	}
-}
-
-func TestValidTLSVersions(t *testing.T) {
-	tests := map[string]struct {
-		tlsMin string
-		tlsMax string
-	}{
-		"tls 1.3 only": {tlsMin: "tls1.3", tlsMax: "tls1.3"},
-		"tls 1.2 only": {tlsMin: "tls1.2", tlsMax: "tls1.2"},
-		"tls 1.3 max":  {tlsMax: "tls1.3"},
-		"tls 1.2 max":  {tlsMax: "tls1.2"},
-		"tls 1.3+":     {tlsMin: "tls1.3"},
-		"tls 1.2+":     {tlsMin: "tls1.2"},
-		"default":      {},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			err := ValidateTLSVersions(tc.tlsMin, tc.tlsMax)
-			require.NoError(t, err)
-		})
-	}
-}
-
 func TestInvalidKeyPair(t *testing.T) {
-	_, err := Create([]byte(``), []byte(``), getCertificate, false, tls.VersionTLS11, tls.VersionTLS12)
+	cfg := &config.Config{}
+	_, err := GetTLSConfig(cfg, getCertificate)
 	require.EqualError(t, err, "tls: failed to find any PEM data in certificate input")
 }
 
 func TestInsecureCiphers(t *testing.T) {
-	tlsConfig, err := Create(cert, key, getCertificate, true, tls.VersionTLS11, tls.VersionTLS12)
+	cfg := &config.Config{
+		General: config.General{
+			RootCertificate: cert,
+			RootKey:         key,
+			InsecureCiphers: true,
+		},
+	}
+	tlsConfig, err := GetTLSConfig(cfg, getCertificate)
 	require.NoError(t, err)
 	require.False(t, tlsConfig.PreferServerCipherSuites)
 	require.Empty(t, tlsConfig.CipherSuites)
 }
 
-func TestCreate(t *testing.T) {
-	tlsConfig, err := Create(cert, key, getCertificate, false, tls.VersionTLS11, tls.VersionTLS12)
+func TestGetTLSConfig(t *testing.T) {
+	cfg := &config.Config{
+		General: config.General{
+			RootCertificate: cert,
+			RootKey:         key,
+		},
+		TLS: config.TLS{
+			MinVersion: tls.VersionTLS11,
+			MaxVersion: tls.VersionTLS12,
+		},
+	}
+	tlsConfig, err := GetTLSConfig(cfg, getCertificate)
 	require.NoError(t, err)
 	require.IsType(t, getCertificate, tlsConfig.GetCertificate)
 	require.True(t, tlsConfig.PreferServerCipherSuites)
 	require.Equal(t, preferredCipherSuites, tlsConfig.CipherSuites)
 	require.Equal(t, uint16(tls.VersionTLS11), tlsConfig.MinVersion)
 	require.Equal(t, uint16(tls.VersionTLS12), tlsConfig.MaxVersion)
+
+	cert, err := tlsConfig.GetCertificate(&tls.ClientHelloInfo{})
+	require.NoError(t, err)
+	require.NotNil(t, cert)
 }

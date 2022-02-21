@@ -27,21 +27,19 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/customheaders"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/routing"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/tls"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/urilimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -66,7 +64,6 @@ func (a *theApp) isReady() bool {
 }
 
 func (a *theApp) GetCertificate(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
-	log.Info("GetCertificate called")
 	if ch.ServerName == "" {
 		return nil, nil
 	}
@@ -79,42 +76,15 @@ func (a *theApp) GetCertificate(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certi
 	return nil, nil
 }
 
-// TODO: find a better place than app.go for all the TLS logic https://gitlab.com/gitlab-org/gitlab-pages/-/issues/707
-// right now we have config/tls, but I think does more than config
-// related logic should
 func (a *theApp) getTLSConfig() (*cryptotls.Config, error) {
+	// we call this function only when tls config is needed, and we ignore TLS related flags otherwise
+	// in theory you can configure both listen-https and listen-proxyv2,
+	// so this return is here to have a single TLS config
 	if a.tlsConfig != nil {
 		return a.tlsConfig, nil
 	}
-	TLSDomainRateLimiter := ratelimiter.New(
-		"tls_connections_by_domain",
-		ratelimiter.WithTLSKeyFunc(ratelimiter.TLSHostnameKey),
-		ratelimiter.WithCacheMaxSize(ratelimiter.DefaultDomainCacheSize),
-		ratelimiter.WithCachedEntriesMetric(metrics.RateLimitCachedEntries),
-		ratelimiter.WithCachedRequestsMetric(metrics.RateLimitCacheRequests),
-		ratelimiter.WithBlockedCountMetric(metrics.RateLimitBlockedCount),
-		ratelimiter.WithLimitPerSecond(a.config.RateLimit.TLSDomainLimitPerSecond),
-		ratelimiter.WithBurstSize(a.config.RateLimit.TLSDomainBurst),
-		ratelimiter.WithEnforce(feature.EnforceDomainTLSRateLimits.Enabled()),
-	)
 
-	TLSSourceIPRateLimiter := ratelimiter.New(
-		"tls_connections_by_source_ip",
-		ratelimiter.WithTLSKeyFunc(ratelimiter.TLSClientIPKey),
-		ratelimiter.WithCacheMaxSize(ratelimiter.DefaultSourceIPCacheSize),
-		ratelimiter.WithCachedEntriesMetric(metrics.RateLimitCachedEntries),
-		ratelimiter.WithCachedRequestsMetric(metrics.RateLimitCacheRequests),
-		ratelimiter.WithBlockedCountMetric(metrics.RateLimitBlockedCount),
-		ratelimiter.WithLimitPerSecond(a.config.RateLimit.TLSSourceIPLimitPerSecond),
-		ratelimiter.WithBurstSize(a.config.RateLimit.TLSSourceIPBurst),
-		ratelimiter.WithEnforce(feature.EnforceIPTLSRateLimits.Enabled()),
-	)
-
-	getCertificate := TLSDomainRateLimiter.GetCertificateMiddleware(a.GetCertificate)
-	getCertificate = TLSSourceIPRateLimiter.GetCertificateMiddleware(getCertificate)
-
-	tlsConfig, err := tls.Create(a.config.General.RootCertificate, a.config.General.RootKey, getCertificate,
-		a.config.General.InsecureCiphers, a.config.TLS.MinVersion, a.config.TLS.MaxVersion)
+	tlsConfig, err := tls.GetTLSConfig(a.config, a.GetCertificate)
 
 	a.tlsConfig = tlsConfig
 
