@@ -2,7 +2,7 @@
 - Decide on the version number by reference to
     the [Versioning](https://gitlab.com/gitlab-org/gitlab-pages/blob/master/PROCESS.md#versioning)
     * Typically if you want to release code from current `master` branch you will update `MINOR` version, e.g. `1.12.0` -> `1.13.0`. In that case you **don't** need to create stable branch
-    * If you want to backport some bug fix or security fix you will need to update stable branch `X-Y-stable`
+    * If you want to backport some bug fix or security fix you will need to create a stable branch `X-Y-stable` on the [security project](https://gitlab.com/gitlab-org/security/gitlab-pages). You will need maintainer access to create the stable branch.
 - [ ] Create an MR for [gitlab-pages project](https://gitlab.com/gitlab-org/gitlab-pages).
     You can use [this MR](https://gitlab.com/gitlab-org/gitlab-pages/merge_requests/217) as an example.
     - [ ] Update `VERSION`, and push your branch
