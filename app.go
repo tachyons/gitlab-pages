@@ -84,9 +84,8 @@ func (a *theApp) getTLSConfig() (*cryptotls.Config, error) {
 		return a.tlsConfig, nil
 	}
 
-	tlsConfig, err := tls.GetTLSConfig(a.config, a.GetCertificate)
-
-	a.tlsConfig = tlsConfig
+	var err error
+	a.tlsConfig, err = tls.GetTLSConfig(a.config, a.GetCertificate)
 
 	return a.tlsConfig, err
 }

@@ -38,7 +38,7 @@ func TestTLSClientIPKey(t *testing.T) {
 	for _, tt := range tests {
 		addr, err := net.ResolveTCPAddr("tcp", tt.addr)
 		require.NoError(t, err)
-		conn := stubConn{addr}
+		conn := stubConn{remoteAddr: addr}
 		info := &tls.ClientHelloInfo{Conn: conn}
 
 		require.Equal(t, tt.expected, TLSClientIPKey(info))
@@ -121,7 +121,7 @@ func TestGetCertificateMiddleware(t *testing.T) {
 
 			addr, err := net.ResolveTCPAddr("tcp", "10.1.2.3:12345")
 			require.NoError(t, err)
-			conn := stubConn{addr}
+			conn := stubConn{remoteAddr: addr}
 			info := &tls.ClientHelloInfo{Conn: conn, ServerName: "group.gitlab.io"}
 
 			for i := 0; i < tt.successfulReqCnt; i++ {
@@ -162,7 +162,7 @@ func TestGetCertificateMiddleware(t *testing.T) {
 			} else {
 				addr, err := net.ResolveTCPAddr("tcp", "10.10.20.30:12345")
 				require.NoError(t, err)
-				conn = stubConn{addr}
+				conn = stubConn{remoteAddr: addr}
 				info.Conn = conn
 			}
 

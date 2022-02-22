@@ -27,7 +27,7 @@ type GetCertificateFunc func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 // GetTLSConfig initializes tls.Config based on config flags
 // getCertificateByServerName obtains certificate based on domain
 func GetTLSConfig(cfg *config.Config, getCertificateByServerName GetCertificateFunc) (*tls.Config, error) {
-	certificate, err := tls.X509KeyPair(cfg.General.RootCertificate, cfg.General.RootKey)
+	wildcardCertificate, err := tls.X509KeyPair(cfg.General.RootCertificate, cfg.General.RootKey)
 	if err != nil {
 		return nil, err
 	}
@@ -41,13 +41,13 @@ func GetTLSConfig(cfg *config.Config, getCertificateByServerName GetCertificateF
 		// So we don't set tls.Config.Certificates, but simulate the behavior of golang:
 		// 1. try to get certificate by name
 		// 2. if we can't, fallback to default(wildcard) certificate
-		cert, err := getCertificateByServerName(info)
+		customCertificate, err := getCertificateByServerName(info)
 
-		if cert != nil || err != nil {
-			return cert, err
+		if customCertificate != nil || err != nil {
+			return customCertificate, err
 		}
 
-		return &certificate, nil
+		return &wildcardCertificate, nil
 	}
 
 	TLSDomainRateLimiter := ratelimiter.New(
