@@ -159,3 +159,44 @@ func validConfig() Config {
 
 	return cfg
 }
+
+func TestValidTLSVersions(t *testing.T) {
+	tests := map[string]struct {
+		tlsMin string
+		tlsMax string
+	}{
+		"tls 1.3 only": {tlsMin: "tls1.3", tlsMax: "tls1.3"},
+		"tls 1.2 only": {tlsMin: "tls1.2", tlsMax: "tls1.2"},
+		"tls 1.3 max":  {tlsMax: "tls1.3"},
+		"tls 1.2 max":  {tlsMax: "tls1.2"},
+		"tls 1.3+":     {tlsMin: "tls1.3"},
+		"tls 1.2+":     {tlsMin: "tls1.2"},
+		"default":      {},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := validateTLSVersions(tc.tlsMin, tc.tlsMax)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestInvalidTLSVersions(t *testing.T) {
+	tests := map[string]struct {
+		tlsMin string
+		tlsMax string
+		err    string
+	}{
+		"invalid minimum TLS version": {tlsMin: "tls123", tlsMax: "", err: "invalid minimum TLS version: tls123"},
+		"invalid maximum TLS version": {tlsMin: "", tlsMax: "tls123", err: "invalid maximum TLS version: tls123"},
+		"TLS versions conflict":       {tlsMin: "tls1.3", tlsMax: "tls1.2", err: "invalid maximum TLS version: tls1.2; should be at least tls1.3"},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := validateTLSVersions(tc.tlsMin, tc.tlsMax)
+			require.EqualError(t, err, tc.err)
+		})
+	}
+}

@@ -1,24 +1,41 @@
 package config
 
 import (
+	"crypto/tls"
+	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/namsral/flag"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
 var (
-	pagesRootCert           = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
-	pagesRootKey            = flag.String("root-key", "", "The default path to file certificate to serve static pages")
-	redirectHTTP            = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
-	_                       = flag.Bool("use-http2", true, "DEPRECATED: HTTP2 is always enabled for pages")
-	pagesRoot               = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
-	pagesDomain             = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
-	rateLimitSourceIP       = flag.Float64("rate-limit-source-ip", 0.0, "Rate limit per source IP in number of requests per second, 0 means is disabled")
-	rateLimitSourceIPBurst  = flag.Int("rate-limit-source-ip-burst", 100, "Rate limit per source IP maximum burst allowed per second")
-	rateLimitDomain         = flag.Float64("rate-limit-domain", 0.0, "Rate limit per domain in number of requests per second, 0 means is disabled")
-	rateLimitDomainBurst    = flag.Int("rate-limit-domain-burst", 100, "Rate limit per domain maximum burst allowed per second")
+	// allTLSVersions has all supported flag values
+	allTLSVersions = map[string]uint16{
+		"":       0, // Default value in tls.Config
+		"tls1.2": tls.VersionTLS12,
+		"tls1.3": tls.VersionTLS13,
+	}
+
+	pagesRootCert = flag.String("root-cert", "", "The default path to file certificate to serve static pages")
+	pagesRootKey  = flag.String("root-key", "", "The default path to file certificate to serve static pages")
+	redirectHTTP  = flag.Bool("redirect-http", false, "Redirect pages from HTTP to HTTPS")
+	_             = flag.Bool("use-http2", true, "DEPRECATED: HTTP2 is always enabled for pages")
+	pagesRoot     = flag.String("pages-root", "shared/pages", "The directory where pages are stored")
+	pagesDomain   = flag.String("pages-domain", "gitlab-example.com", "The domain to serve static pages")
+
+	// HTTP rate limits
+	rateLimitSourceIP      = flag.Float64("rate-limit-source-ip", 0.0, "Rate limit HTTP requests per second from a single IP, 0 means is disabled")
+	rateLimitSourceIPBurst = flag.Int("rate-limit-source-ip-burst", 100, "Rate limit HTTP requests from a single IP, maximum burst allowed per second")
+	rateLimitDomain        = flag.Float64("rate-limit-domain", 0.0, "Rate limit HTTP requests per second to a single domain, 0 means is disabled")
+	rateLimitDomainBurst   = flag.Int("rate-limit-domain-burst", 100, "Rate limit HTTP requests to a single domain, maximum burst allowed per second")
+	// TLS connections rate limits
+	rateLimitTLSSourceIP      = flag.Float64("rate-limit-tls-source-ip", 0.0, "Rate limit new TLS connections per second from a single IP, 0 means is disabled")
+	rateLimitTLSSourceIPBurst = flag.Int("rate-limit-tls-source-ip-burst", 100, "Rate limit new TLS connections from a single IP, maximum burst allowed per second")
+	rateLimitTLSDomain        = flag.Float64("rate-limit-tls-domain", 0.0, "Rate limit new TLS connections per second from to a single domain, 0 means is disabled")
+	rateLimitTLSDomainBurst   = flag.Int("rate-limit-tls-domain-burst", 100, "Rate limit new TLS connections from a single domain, maximum burst allowed per second")
+
 	artifactsServer         = flag.String("artifacts-server", "", "API URL to proxy artifact requests to, e.g.: 'https://gitlab.com/api/v4'")
 	artifactsServerTimeout  = flag.Int("artifacts-server-timeout", 10, "Timeout (in seconds) for a proxied request to the artifacts server")
 	pagesStatus             = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")
@@ -55,8 +72,8 @@ var (
 	maxConns           = flag.Int("max-conns", 0, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners, 0 for no limit")
 	maxURILength       = flag.Int("max-uri-length", 1024, "Limit the length of URI, 0 for unlimited.")
 	insecureCiphers    = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
-	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tls.FlagUsage("min"))
-	tlsMaxVersion      = flag.String("tls-max-version", "", tls.FlagUsage("max"))
+	tlsMinVersion      = flag.String("tls-min-version", "tls1.2", tlsVersionFlagUsage("min"))
+	tlsMaxVersion      = flag.String("tls-max-version", "", tlsVersionFlagUsage("max"))
 	zipCacheExpiration = flag.Duration("zip-cache-expiration", 60*time.Second, "Zip serving archive cache expiration interval")
 	zipCacheCleanup    = flag.Duration("zip-cache-cleanup", 30*time.Second, "Zip serving archive cache cleanup interval")
 	zipCacheRefresh    = flag.Duration("zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval")
@@ -87,4 +104,18 @@ func initFlags() {
 	flag.String(flag.DefaultConfigFlagname, "", "path to config file")
 
 	flag.Parse()
+}
+
+// tlsVersionFlagUsage returns string with explanation how to use the tls version CLI flag
+func tlsVersionFlagUsage(minOrMax string) string {
+	versions := []string{}
+
+	for version := range allTLSVersions {
+		if version != "" {
+			versions = append(versions, fmt.Sprintf("%q", version))
+		}
+	}
+	sort.Strings(versions)
+
+	return fmt.Sprintf("Specifies the "+minOrMax+"imum SSL/TLS version, supported values are %s", strings.Join(versions, ", "))
 }

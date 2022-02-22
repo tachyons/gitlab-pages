@@ -1,6 +1,8 @@
 package ratelimiter
 
 import (
+	"crypto/tls"
+	"net"
 	"net/http"
 	"time"
 
@@ -27,6 +29,9 @@ type Option func(*RateLimiter)
 // KeyFunc returns unique identifier for the subject of rate limit(e.g. client IP or domain)
 type KeyFunc func(*http.Request) string
 
+// TLSKeyFunc is used by GetCertificateMiddleware to identify the subject of rate limit (client IP or SNI servername)
+type TLSKeyFunc func(*tls.ClientHelloInfo) string
+
 // RateLimiter holds an LRU cache of elements to be rate limited.
 // It uses "golang.org/x/time/rate" as its Token Bucket rate limiter per source IP entry.
 // See example https://www.fatalerrors.org/a/design-and-implementation-of-time-rate-limiter-for-golang-standard-library.html
@@ -35,6 +40,7 @@ type RateLimiter struct {
 	name           string
 	now            func() time.Time
 	keyFunc        KeyFunc
+	tlsKeyFunc     TLSKeyFunc
 	limitPerSecond float64
 	burstSize      int
 	blockedCount   *prometheus.GaugeVec
@@ -120,6 +126,26 @@ func WithKeyFunc(f KeyFunc) Option {
 	}
 }
 
+func TLSHostnameKey(info *tls.ClientHelloInfo) string {
+	return info.ServerName
+}
+
+func TLSClientIPKey(info *tls.ClientHelloInfo) string {
+	remoteAddr := info.Conn.RemoteAddr().String()
+	remoteAddr, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return remoteAddr
+	}
+
+	return remoteAddr
+}
+
+func WithTLSKeyFunc(keyFunc TLSKeyFunc) Option {
+	return func(rl *RateLimiter) {
+		rl.tlsKeyFunc = keyFunc
+	}
+}
+
 // WithEnforce configures if requests are actually rejected, or we just report them as rejected in metrics
 func WithEnforce(enforce bool) Option {
 	return func(rl *RateLimiter) {
@@ -138,6 +164,11 @@ func (rl *RateLimiter) limiter(key string) *rate.Limiter {
 // requestAllowed checks if request is within the rate-limit
 func (rl *RateLimiter) requestAllowed(r *http.Request) bool {
 	rateLimitedKey := rl.keyFunc(r)
+
+	return rl.allowed(rateLimitedKey)
+}
+
+func (rl *RateLimiter) allowed(rateLimitedKey string) bool {
 	limiter := rl.limiter(rateLimitedKey)
 
 	// AllowN allows us to use the rl.now function, so we can test this more easily.

@@ -6,8 +6,6 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/go-multierror"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
 var (
@@ -30,7 +28,7 @@ func Validate(config *Config) error {
 		validateListeners(config),
 		validateAuthConfig(config),
 		validateArtifactsServerConfig(config),
-		tls.ValidateTLSVersions(*tlsMinVersion, *tlsMaxVersion),
+		validateTLSVersions(*tlsMinVersion, *tlsMaxVersion),
 	)
 
 	return result.ErrorOrNil()
@@ -114,4 +112,22 @@ func validateArtifactsServerConfig(config *Config) error {
 	}
 
 	return result.ErrorOrNil()
+}
+
+// validateTLSVersions returns error if the provided TLS versions config values are not valid
+func validateTLSVersions(min, max string) error {
+	tlsMin, tlsMinOk := allTLSVersions[min]
+	tlsMax, tlsMaxOk := allTLSVersions[max]
+
+	if !tlsMinOk {
+		return fmt.Errorf("invalid minimum TLS version: %s", min)
+	}
+	if !tlsMaxOk {
+		return fmt.Errorf("invalid maximum TLS version: %s", max)
+	}
+	if tlsMin > tlsMax && tlsMax > 0 {
+		return fmt.Errorf("invalid maximum TLS version: %s; should be at least %s", max, min)
+	}
+
+	return nil
 }

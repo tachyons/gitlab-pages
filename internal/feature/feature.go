@@ -8,15 +8,27 @@ type Feature struct {
 }
 
 // EnforceIPRateLimits enforces IP rate limiter to drop requests
-// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629
+// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/706
 var EnforceIPRateLimits = Feature{
 	EnvVariable: "FF_ENFORCE_IP_RATE_LIMITS",
 }
 
 // EnforceDomainRateLimits enforces domain rate limiter to drop requests
-// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/655
+// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/706
 var EnforceDomainRateLimits = Feature{
 	EnvVariable: "FF_ENFORCE_DOMAIN_RATE_LIMITS",
+}
+
+// EnforceDomainTLSRateLimits enforces domain rate limits on establishing new TLS connections
+// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/706
+var EnforceDomainTLSRateLimits = Feature{
+	EnvVariable: "FF_ENFORCE_DOMAIN_TLS_RATE_LIMITS",
+}
+
+// EnforceIPTLSRateLimits enforces domain rate limits on establishing new TLS connections
+// TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/706
+var EnforceIPTLSRateLimits = Feature{
+	EnvVariable: "FF_ENFORCE_IP_TLS_RATE_LIMITS",
 }
 
 // RedirectsPlaceholders enables support for placeholders in redirects file

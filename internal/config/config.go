@@ -9,8 +9,6 @@ import (
 
 	"github.com/namsral/flag"
 	"gitlab.com/gitlab-org/labkit/log"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 )
 
 // Config stores all the config options relevant to GitLab Pages.
@@ -58,10 +56,17 @@ type General struct {
 
 // RateLimit config struct
 type RateLimit struct {
+	// HTTP limits
 	SourceIPLimitPerSecond float64
 	SourceIPBurst          int
 	DomainLimitPerSecond   float64
 	DomainBurst            int
+
+	// TLS connections limits
+	TLSSourceIPLimitPerSecond float64
+	TLSSourceIPBurst          int
+	TLSDomainLimitPerSecond   float64
+	TLSDomainBurst            int
 }
 
 // ArtifactsServer groups settings related to configuring Artifacts
@@ -183,6 +188,11 @@ func loadConfig() (*Config, error) {
 			SourceIPBurst:          *rateLimitSourceIPBurst,
 			DomainLimitPerSecond:   *rateLimitDomain,
 			DomainBurst:            *rateLimitDomainBurst,
+
+			TLSSourceIPLimitPerSecond: *rateLimitTLSSourceIP,
+			TLSSourceIPBurst:          *rateLimitTLSSourceIPBurst,
+			TLSDomainLimitPerSecond:   *rateLimitTLSDomain,
+			TLSDomainBurst:            *rateLimitTLSDomainBurst,
 		},
 		GitLab: GitLab{
 			ClientHTTPTimeout:  *gitlabClientHTTPTimeout,
@@ -217,8 +227,8 @@ func loadConfig() (*Config, error) {
 			Environment: *sentryEnvironment,
 		},
 		TLS: TLS{
-			MinVersion: tls.AllTLSVersions[*tlsMinVersion],
-			MaxVersion: tls.AllTLSVersions[*tlsMaxVersion],
+			MinVersion: allTLSVersions[*tlsMinVersion],
+			MaxVersion: allTLSVersions[*tlsMaxVersion],
 		},
 		Zip: ZipServing{
 			ExpirationInterval: *zipCacheExpiration,
@@ -267,40 +277,48 @@ func loadConfig() (*Config, error) {
 
 func LogConfig(config *Config) {
 	log.WithFields(log.Fields{
-		"artifacts-server":              *artifactsServer,
-		"artifacts-server-timeout":      *artifactsServerTimeout,
-		"default-config-filename":       flag.DefaultConfigFlagname,
-		"disable-cross-origin-requests": *disableCrossOriginRequests,
-		"domain":                        config.General.Domain,
-		"insecure-ciphers":              config.General.InsecureCiphers,
-		"listen-http":                   listenHTTP,
-		"listen-https":                  listenHTTPS,
-		"listen-proxy":                  listenProxy,
-		"listen-https-proxyv2":          listenHTTPSProxyv2,
-		"log-format":                    *logFormat,
-		"metrics-address":               *metricsAddress,
-		"pages-domain":                  *pagesDomain,
-		"pages-root":                    *pagesRoot,
-		"pages-status":                  *pagesStatus,
-		"propagate-correlation-id":      *propagateCorrelationID,
-		"redirect-http":                 config.General.RedirectHTTP,
-		"root-cert":                     *pagesRootKey,
-		"root-key":                      *pagesRootCert,
-		"status_path":                   config.General.StatusPath,
-		"tls-min-version":               *tlsMinVersion,
-		"tls-max-version":               *tlsMaxVersion,
-		"gitlab-server":                 config.GitLab.PublicServer,
-		"internal-gitlab-server":        config.GitLab.InternalServer,
-		"api-secret-key":                *gitLabAPISecretKey,
-		"enable-disk":                   config.GitLab.EnableDisk,
-		"auth-redirect-uri":             config.Authentication.RedirectURI,
-		"auth-scope":                    config.Authentication.Scope,
-		"max-conns":                     config.General.MaxConns,
-		"max-uri-length":                config.General.MaxURILength,
-		"zip-cache-expiration":          config.Zip.ExpirationInterval,
-		"zip-cache-cleanup":             config.Zip.CleanupInterval,
-		"zip-cache-refresh":             config.Zip.RefreshInterval,
-		"zip-open-timeout":              config.Zip.OpenTimeout,
+		"artifacts-server":               *artifactsServer,
+		"artifacts-server-timeout":       *artifactsServerTimeout,
+		"default-config-filename":        flag.DefaultConfigFlagname,
+		"disable-cross-origin-requests":  *disableCrossOriginRequests,
+		"domain":                         config.General.Domain,
+		"insecure-ciphers":               config.General.InsecureCiphers,
+		"listen-http":                    listenHTTP,
+		"listen-https":                   listenHTTPS,
+		"listen-proxy":                   listenProxy,
+		"listen-https-proxyv2":           listenHTTPSProxyv2,
+		"log-format":                     *logFormat,
+		"metrics-address":                *metricsAddress,
+		"pages-domain":                   *pagesDomain,
+		"pages-root":                     *pagesRoot,
+		"pages-status":                   *pagesStatus,
+		"propagate-correlation-id":       *propagateCorrelationID,
+		"redirect-http":                  config.General.RedirectHTTP,
+		"root-cert":                      *pagesRootKey,
+		"root-key":                       *pagesRootCert,
+		"status_path":                    config.General.StatusPath,
+		"tls-min-version":                *tlsMinVersion,
+		"tls-max-version":                *tlsMaxVersion,
+		"gitlab-server":                  config.GitLab.PublicServer,
+		"internal-gitlab-server":         config.GitLab.InternalServer,
+		"api-secret-key":                 *gitLabAPISecretKey,
+		"enable-disk":                    config.GitLab.EnableDisk,
+		"auth-redirect-uri":              config.Authentication.RedirectURI,
+		"auth-scope":                     config.Authentication.Scope,
+		"max-conns":                      config.General.MaxConns,
+		"max-uri-length":                 config.General.MaxURILength,
+		"zip-cache-expiration":           config.Zip.ExpirationInterval,
+		"zip-cache-cleanup":              config.Zip.CleanupInterval,
+		"zip-cache-refresh":              config.Zip.RefreshInterval,
+		"zip-open-timeout":               config.Zip.OpenTimeout,
+		"rate-limit-source-ip":           config.RateLimit.SourceIPLimitPerSecond,
+		"rate-limit-source-ip-burst":     config.RateLimit.SourceIPBurst,
+		"rate-limit-domain":              config.RateLimit.DomainLimitPerSecond,
+		"rate-limit-domain-burst":        config.RateLimit.DomainBurst,
+		"rate-limit-tls-source-ip":       config.RateLimit.TLSSourceIPLimitPerSecond,
+		"rate-limit-tls-source-ip-burst": config.RateLimit.TLSSourceIPBurst,
+		"rate-limit-tls-domain":          config.RateLimit.TLSDomainLimitPerSecond,
+		"rate-limit-tls-domain-burst":    config.RateLimit.TLSDomainBurst,
 	}).Debug("Start Pages with configuration")
 }
 

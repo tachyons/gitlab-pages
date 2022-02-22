@@ -602,3 +602,15 @@ func copyFile(dest, src string) error {
 	_, err = io.Copy(destFile, srcFile)
 	return err
 }
+
+// RequireMetricEqual requests prometheus metrics and makes sure metric is there
+func RequireMetricEqual(t *testing.T, metricsAddress, metricWithValue string) {
+	resp, err := http.Get(fmt.Sprintf("http://%s/metrics", metricsAddress))
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	require.Contains(t, string(body), metricWithValue)
+}

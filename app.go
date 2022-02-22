@@ -27,7 +27,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config/tls"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/customheaders"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
@@ -40,6 +39,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/tls"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/urilimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -51,6 +51,7 @@ var (
 type theApp struct {
 	config         *cfg.Config
 	source         source.Source
+	tlsConfig      *cryptotls.Config
 	Artifact       *artifact.Artifact
 	Auth           *auth.Auth
 	Handlers       *handlers.Handlers
@@ -62,17 +63,31 @@ func (a *theApp) isReady() bool {
 	return true
 }
 
-func (a *theApp) ServeTLS(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
+func (a *theApp) GetCertificate(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
 	if ch.ServerName == "" {
 		return nil, nil
 	}
 
 	if domain, _ := a.domain(context.Background(), ch.ServerName); domain != nil {
-		tls, _ := domain.EnsureCertificate()
-		return tls, nil
+		certificate, _ := domain.EnsureCertificate()
+		return certificate, nil
 	}
 
 	return nil, nil
+}
+
+func (a *theApp) getTLSConfig() (*cryptotls.Config, error) {
+	// we call this function only when tls config is needed, and we ignore TLS related flags otherwise
+	// in theory you can configure both listen-https and listen-proxyv2,
+	// so this return is here to have a single TLS config
+	if a.tlsConfig != nil {
+		return a.tlsConfig, nil
+	}
+
+	var err error
+	a.tlsConfig, err = tls.GetTLSConfig(a.config, a.GetCertificate)
+
+	return a.tlsConfig, err
 }
 
 func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
@@ -306,7 +321,7 @@ func (a *theApp) Run() {
 
 	// Listen for HTTPS
 	for _, addr := range a.config.ListenHTTPSStrings.Split() {
-		tlsConfig, err := a.TLSConfig()
+		tlsConfig, err := a.getTLSConfig()
 		if err != nil {
 			log.WithError(err).Fatal("Unable to retrieve tls config")
 		}
@@ -334,7 +349,7 @@ func (a *theApp) Run() {
 
 	// Listen for HTTPS PROXYv2 requests
 	for _, addr := range a.config.ListenHTTPSProxyv2Strings.Split() {
-		tlsConfig, err := a.TLSConfig()
+		tlsConfig, err := a.getTLSConfig()
 		if err != nil {
 			log.WithError(err).Fatal("Unable to retrieve tls config")
 		}
@@ -476,11 +491,6 @@ func (a *theApp) setAuth(config *cfg.Config) {
 // fatal will log a fatal error and exit.
 func fatal(err error, message string) {
 	log.WithError(err).Fatal(message)
-}
-
-func (a *theApp) TLSConfig() (*cryptotls.Config, error) {
-	return tls.Create(a.config.General.RootCertificate, a.config.General.RootKey, a.ServeTLS,
-		a.config.General.InsecureCiphers, a.config.TLS.MinVersion, a.config.TLS.MaxVersion)
 }
 
 // handlePanicMiddleware logs and captures the recover() information from any panic

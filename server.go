@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	stdlog "log"
 	"net"
 	"net/http"
 	"time"
 
-	proxyproto "github.com/pires/go-proxyproto"
+	"github.com/pires/go-proxyproto"
+	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -31,6 +33,7 @@ func (a *theApp) listenAndServe(server *http.Server, addr string, h http.Handler
 	server.Handler = h
 	server.TLSConfig = config.tlsConfig
 
+	server.ErrorLog = stdlog.New(logrus.StandardLogger().Writer(), "", 0)
 	// ensure http2 is enabled even if TLSConfig is not null
 	// See https://github.com/golang/go/blob/97cee43c93cfccded197cd281f0a5885cdb605b4/src/net/http/server.go#L2947-L2954
 	if server.TLSConfig != nil {
