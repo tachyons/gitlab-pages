@@ -1,3 +1,13 @@
+## 1.55.0 (2022-02-22)
+
+### Added (1 change)
+
+- [feat: Add TLS rate limits](gitlab-org/gitlab-pages@62a6491652aa6975d9ecf3b9e258766c886d49d4) ([merge request](gitlab-org/gitlab-pages!700))
+
+### Fixed (1 change)
+
+- [fix: do no retry resolving the domain if there's a ctx error](gitlab-org/gitlab-pages@970531c7f80db47d209196921043aabcdf7590ef) by @feistel ([merge request](gitlab-org/gitlab-pages!691))
+
 ## 1.54.0 (2022-02-10)
 
 ### Fixed (1 change)
