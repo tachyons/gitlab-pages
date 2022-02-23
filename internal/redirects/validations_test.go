@@ -13,55 +13,46 @@ func TestRedirectsValidateUrl(t *testing.T) {
 
 	tests := map[string]struct {
 		url         string
-		expectedErr string
+		expectedErr error
 	}{
 		"valid_url": {
-			url:         "/goto.html",
-			expectedErr: "",
+			url: "/goto.html",
 		},
 		"no_domain_level_redirects": {
 			url:         "https://GitLab.com",
-			expectedErr: errNoDomainLevelRedirects.Error(),
+			expectedErr: errNoDomainLevelRedirects,
 		},
 		"no_schemaless_url_domain_level_redirects": {
 			url:         "//GitLab.com/pages.html",
-			expectedErr: errNoDomainLevelRedirects.Error(),
+			expectedErr: errNoDomainLevelRedirects,
 		},
 		"no_bare_domain_level_redirects": {
 			url:         "GitLab.com",
-			expectedErr: errNoStartingForwardSlashInURLPath.Error(),
+			expectedErr: errNoStartingForwardSlashInURLPath,
 		},
 		"no_parent_traversing_relative_url": {
 			url:         "../target.html",
-			expectedErr: errNoStartingForwardSlashInURLPath.Error(),
+			expectedErr: errNoStartingForwardSlashInURLPath,
 		},
 		"too_many_slashes": {
 			url:         strings.Repeat("/a", 26),
-			expectedErr: errTooManyPathSegments.Error(),
+			expectedErr: errTooManyPathSegments,
 		},
 		"placeholders": {
-			url:         "/news/:year/:month/:date/:slug",
-			expectedErr: "",
+			url: "/news/:year/:month/:date/:slug",
 		},
 		"splats": {
-			url:         "/blog/*",
-			expectedErr: "",
+			url: "/blog/*",
 		},
 		"splat_placeholders": {
-			url:         "/new/path/:splat",
-			expectedErr: "",
+			url: "/new/path/:splat",
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			err := validateURL(tt.url)
-			if tt.expectedErr != "" {
-				require.EqualError(t, err, tt.expectedErr)
-				return
-			}
-
-			require.NoError(t, err)
+			require.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
 }
@@ -72,27 +63,22 @@ func TestRedirectsValidateUrl(t *testing.T) {
 func TestRedirectsValidateUrlNoPlaceholders(t *testing.T) {
 	tests := map[string]struct {
 		url         string
-		expectedErr string
+		expectedErr error
 	}{
 		"no_splats": {
 			url:         "/blog/*",
-			expectedErr: errNoSplats.Error(),
+			expectedErr: errNoSplats,
 		},
 		"no_placeholders": {
 			url:         "/news/:year/:month/:date/:slug",
-			expectedErr: errNoPlaceholders.Error(),
+			expectedErr: errNoPlaceholders,
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			err := validateURL(tt.url)
-			if tt.expectedErr != "" {
-				require.EqualError(t, err, tt.expectedErr)
-				return
-			}
-
-			require.NoError(t, err)
+			require.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
 }
@@ -102,31 +88,30 @@ func TestRedirectsValidateRule(t *testing.T) {
 
 	tests := map[string]struct {
 		rule        string
-		expectedErr string
+		expectedErr error
 	}{
 		"valid_rule": {
-			rule:        "/goto.html /target.html 301",
-			expectedErr: "",
+			rule: "/goto.html /target.html 301",
 		},
 		"invalid_from_url": {
 			rule:        "invalid.com /teapot.html 302",
-			expectedErr: errNoStartingForwardSlashInURLPath.Error(),
+			expectedErr: errNoStartingForwardSlashInURLPath,
 		},
 		"invalid_to_url": {
 			rule:        "/goto.html invalid.com",
-			expectedErr: errNoStartingForwardSlashInURLPath.Error(),
+			expectedErr: errNoStartingForwardSlashInURLPath,
 		},
 		"no_parameters": {
 			rule: "/	/something	302	foo=bar",
-			expectedErr: errNoParams.Error(),
+			expectedErr: errNoParams,
 		},
 		"invalid_status": {
 			rule:        "/goto.html /target.html 418",
-			expectedErr: errUnsupportedStatus.Error(),
+			expectedErr: errUnsupportedStatus,
 		},
 		"force_not_supported": {
 			rule:        "/goto.html /target.html 302!",
-			expectedErr: errNoForce.Error(),
+			expectedErr: errNoForce,
 		},
 	}
 
@@ -136,12 +121,7 @@ func TestRedirectsValidateRule(t *testing.T) {
 			require.NoError(t, err)
 
 			err = validateRule(rules[0])
-			if tt.expectedErr != "" {
-				require.EqualError(t, err, tt.expectedErr)
-				return
-			}
-
-			require.NoError(t, err)
+			require.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
 }

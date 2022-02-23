@@ -30,7 +30,7 @@ func TestRedirectsRewrite(t *testing.T) {
 		rule           string
 		expectedURL    string
 		expectedStatus int
-		expectedErr    string
+		expectedErr    error
 	}{
 		{
 			name:           "No rules given",
@@ -38,7 +38,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "",
 			expectedURL:    "",
 			expectedStatus: 0,
-			expectedErr:    ErrNoRedirect.Error(),
+			expectedErr:    ErrNoRedirect,
 		},
 		{
 			name:           "No matching rules",
@@ -46,7 +46,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/cake-portal.html  /still-alive.html 301",
 			expectedURL:    "",
 			expectedStatus: 0,
-			expectedErr:    ErrNoRedirect.Error(),
+			expectedErr:    ErrNoRedirect,
 		},
 		{
 			name:           "Matching rule redirects",
@@ -54,7 +54,6 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/cake-portal.html  /still-alive.html 301",
 			expectedURL:    "/still-alive.html",
 			expectedStatus: http.StatusMovedPermanently,
-			expectedErr:    "",
 		},
 		{
 			name:           "Does not redirect to invalid rule",
@@ -62,7 +61,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/goto.html GitLab.com 301",
 			expectedURL:    "",
 			expectedStatus: 0,
-			expectedErr:    ErrNoRedirect.Error(),
+			expectedErr:    ErrNoRedirect,
 		},
 		{
 			name:           "Matches trailing slash rule to no trailing slash URL",
@@ -70,7 +69,6 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/cake-portal/  /still-alive/ 301",
 			expectedURL:    "/still-alive/",
 			expectedStatus: http.StatusMovedPermanently,
-			expectedErr:    "",
 		},
 		{
 			name:           "Matches trailing slash rule to trailing slash URL",
@@ -78,7 +76,6 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/cake-portal/  /still-alive/ 301",
 			expectedURL:    "/still-alive/",
 			expectedStatus: http.StatusMovedPermanently,
-			expectedErr:    "",
 		},
 		{
 			name:           "Matches no trailing slash rule to no trailing slash URL",
@@ -86,7 +83,6 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/cake-portal  /still-alive 301",
 			expectedURL:    "/still-alive",
 			expectedStatus: http.StatusMovedPermanently,
-			expectedErr:    "",
 		},
 		{
 			name:           "Matches no trailing slash rule to trailing slash URL",
@@ -94,7 +90,6 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/cake-portal  /still-alive 301",
 			expectedURL:    "/still-alive",
 			expectedStatus: http.StatusMovedPermanently,
-			expectedErr:    "",
 		},
 		{
 			name:           "matches_splat_rule",
@@ -102,7 +97,6 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/the-cake/* /is-a-lie 200",
 			expectedURL:    "/is-a-lie",
 			expectedStatus: http.StatusOK,
-			expectedErr:    "",
 		},
 		{
 			name:           "replaces_splat_placeholdes",
@@ -110,7 +104,6 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/from/*/path /to/:splat/path 200",
 			expectedURL:    "/to/weighted/companion/cube/path",
 			expectedStatus: http.StatusOK,
-			expectedErr:    "",
 		},
 		{
 			name:           "matches_placeholder_rule",
@@ -118,7 +111,6 @@ func TestRedirectsRewrite(t *testing.T) {
 			rule:           "/the/:placeholder/is/delicious /the/:placeholder/is/a/lie 200",
 			expectedURL:    "/the/cake/is/a/lie",
 			expectedStatus: http.StatusOK,
-			expectedErr:    "",
 		},
 	}
 
@@ -144,12 +136,7 @@ func TestRedirectsRewrite(t *testing.T) {
 			}
 
 			require.Equal(t, tt.expectedStatus, status)
-
-			if tt.expectedErr != "" {
-				require.EqualError(t, err, tt.expectedErr)
-			} else {
-				require.NoError(t, err)
-			}
+			require.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
 }
@@ -163,31 +150,29 @@ func TestRedirectsParseRedirects(t *testing.T) {
 		name          string
 		redirectsFile string
 		expectedRules int
-		expectedErr   string
+		expectedErr   error
 	}{
 		{
 			name:          "No `_redirects` file present",
 			redirectsFile: "",
 			expectedRules: 0,
-			expectedErr:   errConfigNotFound.Error(),
+			expectedErr:   errConfigNotFound,
 		},
 		{
 			name:          "Everything working as expected",
 			redirectsFile: `/goto.html /target.html 301`,
 			expectedRules: 1,
-			expectedErr:   "",
 		},
 		{
 			name:          "Invalid _redirects syntax gives no rules",
 			redirectsFile: `foobar::baz`,
 			expectedRules: 0,
-			expectedErr:   "",
 		},
 		{
 			name:          "Config file too big",
 			redirectsFile: strings.Repeat("a", 2*maxConfigSize),
 			expectedRules: 0,
-			expectedErr:   errFileTooLarge.Error(),
+			expectedErr:   errFileTooLarge,
 		},
 		// In future versions of `github.com/tj/go-redirects`,
 		// this may not throw a parsing error and this test could be removed
@@ -195,7 +180,7 @@ func TestRedirectsParseRedirects(t *testing.T) {
 			name:          "Parsing error is caught",
 			redirectsFile: "/store id=:id  /blog/:id  301",
 			expectedRules: 0,
-			expectedErr:   errFailedToParseConfig.Error(),
+			expectedErr:   errFailedToParseConfig,
 		},
 	}
 
@@ -208,12 +193,7 @@ func TestRedirectsParseRedirects(t *testing.T) {
 
 			redirects := ParseRedirects(ctx, root)
 
-			if tt.expectedErr != "" {
-				require.EqualError(t, redirects.error, tt.expectedErr)
-			} else {
-				require.NoError(t, redirects.error)
-			}
-
+			require.ErrorIs(t, redirects.error, tt.expectedErr)
 			require.Len(t, redirects.rules, tt.expectedRules)
 		})
 	}
@@ -230,14 +210,14 @@ func TestMaxRuleCount(t *testing.T) {
 
 	redirects := ParseRedirects(context.Background(), root)
 
-	testFn := func(path, expectedToURL string, expectedStatus int, expectedErr string) func(t *testing.T) {
+	testFn := func(path, expectedToURL string, expectedStatus int, expectedErr error) func(t *testing.T) {
 		return func(t *testing.T) {
 			originalURL, err := url.Parse(path)
 			require.NoError(t, err)
 
 			toURL, status, err := redirects.Rewrite(originalURL)
-			if expectedErr != "" {
-				require.EqualError(t, err, expectedErr)
+			if expectedErr != nil {
+				require.ErrorIs(t, err, expectedErr)
 				return
 			}
 
@@ -248,6 +228,6 @@ func TestMaxRuleCount(t *testing.T) {
 		}
 	}
 
-	t.Run("maxRuleCount matches", testFn("/1000.html", "/target1000", http.StatusMovedPermanently, ""))
-	t.Run("maxRuleCount+1 does not match", testFn("/1001.html", "", 0, ErrNoRedirect.Error()))
+	t.Run("maxRuleCount matches", testFn("/1000.html", "/target1000", http.StatusMovedPermanently, nil))
+	t.Run("maxRuleCount+1 does not match", testFn("/1001.html", "", 0, ErrNoRedirect))
 }

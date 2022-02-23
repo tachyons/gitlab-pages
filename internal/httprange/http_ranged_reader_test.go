@@ -97,7 +97,7 @@ func TestSectionReader(t *testing.T) {
 			buf := make([]byte, tt.readSize)
 			n, err := s.Read(buf)
 			if tt.expectedErr != nil && !errors.Is(err, io.EOF) {
-				require.EqualError(t, err, tt.expectedErr.Error())
+				require.ErrorIs(t, err, tt.expectedErr)
 				return
 			}
 
@@ -179,7 +179,7 @@ func TestReadAt(t *testing.T) {
 
 				n, err := reader.ReadAt(buf, int64(tt.sectionOffset))
 				if tt.expectedErr != nil {
-					require.EqualError(t, err, tt.expectedErr.Error())
+					require.ErrorIs(t, err, tt.expectedErr)
 					return
 				}
 
@@ -265,8 +265,7 @@ func TestReadContextCanceled(t *testing.T) {
 
 		buf := make([]byte, resource.Size)
 		n, err := s.Read(buf)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "context canceled")
+		require.ErrorIs(t, err, context.Canceled)
 		require.Zero(t, n)
 	})
 
@@ -274,8 +273,7 @@ func TestReadContextCanceled(t *testing.T) {
 		rr.WithCachedReader(ctx, func() {
 			buf := make([]byte, resource.Size)
 			n, err := rr.ReadAt(buf, int64(0))
-			require.Error(t, err)
-			require.Contains(t, err.Error(), "context canceled")
+			require.ErrorIs(t, err, context.Canceled)
 			require.Zero(t, n)
 		})
 	})

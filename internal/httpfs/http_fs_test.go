@@ -2,6 +2,7 @@ package httpfs
 
 import (
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,7 +23,7 @@ func TestFSOpen(t *testing.T) {
 		allowedPaths    []string
 		fileName        string
 		expectedContent string
-		expectedErrMsg  string
+		expectedErr     error
 	}{
 		"file_allowed_in_file_path": {
 			allowedPaths:    []string{wd + "/testdata"},
@@ -35,19 +36,19 @@ func TestFSOpen(t *testing.T) {
 			expectedContent: "subdir/file2.txt\n",
 		},
 		"file_not_in_allowed_path": {
-			allowedPaths:   []string{wd + "/testdata/subdir"},
-			fileName:       wd + "/testdata/file1.txt",
-			expectedErrMsg: os.ErrPermission.Error(),
+			allowedPaths: []string{wd + "/testdata/subdir"},
+			fileName:     wd + "/testdata/file1.txt",
+			expectedErr:  fs.ErrPermission,
 		},
 		"file_does_not_exist": {
-			allowedPaths:   []string{wd + "/testdata"},
-			fileName:       wd + "/testdata/unknown.txt",
-			expectedErrMsg: "no such file or directory",
+			allowedPaths: []string{wd + "/testdata"},
+			fileName:     wd + "/testdata/unknown.txt",
+			expectedErr:  fs.ErrNotExist,
 		},
 		"relative_path_not_allowed": {
-			allowedPaths:   []string{"testdata"},
-			fileName:       "testdata/file1.txt",
-			expectedErrMsg: os.ErrPermission.Error(),
+			allowedPaths: []string{"testdata"},
+			fileName:     "testdata/file1.txt",
+			expectedErr:  fs.ErrPermission,
 		},
 		"dot_dot_in_file_resolved": {
 			allowedPaths:    []string{wd + "/testdata"},
@@ -55,9 +56,9 @@ func TestFSOpen(t *testing.T) {
 			expectedContent: "file1.txt\n",
 		},
 		"dot_dot_in_file_resolved_not_allowed": {
-			allowedPaths:   []string{wd + "/testdata/subdir"},
-			fileName:       wd + "/../httpfs/testdata/file1.txt",
-			expectedErrMsg: os.ErrPermission.Error(),
+			allowedPaths: []string{wd + "/testdata/subdir"},
+			fileName:     wd + "/../httpfs/testdata/file1.txt",
+			expectedErr:  fs.ErrPermission,
 		},
 	}
 
@@ -67,9 +68,8 @@ func TestFSOpen(t *testing.T) {
 			require.NoError(t, err)
 
 			got, err := p.Open(test.fileName)
-			if test.expectedErrMsg != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), test.expectedErrMsg)
+			if test.expectedErr != nil {
+				require.ErrorIs(t, err, test.expectedErr)
 				return
 			}
 

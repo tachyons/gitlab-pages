@@ -2,7 +2,6 @@ package local
 
 import (
 	"context"
-	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -56,10 +55,9 @@ func TestVFSRoot(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		path               string
-		expectedPath       string
-		expectedErr        error
-		expectedIsNotExist bool
+		path         string
+		expectedPath string
+		expectedErr  error
 	}{
 		"a valid directory": {
 			path:         "dir",
@@ -86,8 +84,8 @@ func TestVFSRoot(t *testing.T) {
 			expectedErr: errNotDirectory,
 		},
 		"a non-existing file": {
-			path:               "not-existing",
-			expectedIsNotExist: true,
+			path:        "not-existing",
+			expectedErr: fs.ErrNotExist,
 		},
 	}
 
@@ -95,13 +93,8 @@ func TestVFSRoot(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			rootVFS, err := localVFS.Root(context.Background(), filepath.Join(tmpDir, test.path), "")
 
-			if test.expectedIsNotExist {
-				require.Equal(t, test.expectedIsNotExist, errors.Is(err, fs.ErrNotExist))
-				return
-			}
-
 			if test.expectedErr != nil {
-				require.EqualError(t, err, test.expectedErr.Error())
+				require.ErrorIs(t, err, test.expectedErr)
 				return
 			}
 

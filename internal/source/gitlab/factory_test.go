@@ -54,7 +54,7 @@ func TestFabricateServing(t *testing.T) {
 			Source: api.Source{Type: "file"},
 		}
 		srv, err := g.fabricateServing(lookup)
-		require.EqualError(t, err, ErrDiskDisabled.Error())
+		require.ErrorIs(t, err, ErrDiskDisabled)
 		require.Nil(t, srv)
 	})
 }

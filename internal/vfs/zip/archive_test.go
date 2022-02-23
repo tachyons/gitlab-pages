@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -66,7 +67,7 @@ func testOpen(t *testing.T, zip *zipArchive) {
 		},
 		"file_does_not_exist": {
 			file:        "unknown.html",
-			expectedErr: os.ErrNotExist,
+			expectedErr: fs.ErrNotExist,
 		},
 	}
 
@@ -74,7 +75,7 @@ func testOpen(t *testing.T, zip *zipArchive) {
 		t.Run(name, func(t *testing.T) {
 			f, err := zip.Open(context.Background(), tt.file)
 			if tt.expectedErr != nil {
-				require.EqualError(t, err, tt.expectedErr.Error())
+				require.ErrorIs(t, err, tt.expectedErr)
 				return
 			}
 
@@ -248,7 +249,7 @@ func testLstat(t *testing.T, zip *zipArchive) {
 		},
 		"file_does_not_exist": {
 			file:        "unknown.html",
-			expectedErr: os.ErrNotExist,
+			expectedErr: fs.ErrNotExist,
 		},
 	}
 
@@ -256,7 +257,7 @@ func testLstat(t *testing.T, zip *zipArchive) {
 		t.Run(name, func(t *testing.T) {
 			fi, err := zip.Lstat(context.Background(), tt.file)
 			if tt.expectedErr != nil {
-				require.EqualError(t, err, tt.expectedErr.Error())
+				require.ErrorIs(t, err, tt.expectedErr)
 				return
 			}
 
@@ -309,7 +310,7 @@ func testReadLink(t *testing.T, zip *zipArchive) {
 		},
 		"file_does_not_exist": {
 			file:        "unknown.html",
-			expectedErr: os.ErrNotExist,
+			expectedErr: fs.ErrNotExist,
 		},
 	}
 
@@ -317,7 +318,7 @@ func testReadLink(t *testing.T, zip *zipArchive) {
 		t.Run(name, func(t *testing.T) {
 			link, err := zip.Readlink(context.Background(), tt.file)
 			if tt.expectedErr != nil {
-				require.EqualError(t, err, tt.expectedErr.Error())
+				require.ErrorIs(t, err, tt.expectedErr)
 				return
 			}
 
@@ -357,7 +358,7 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 	cancel()
 
 	err := zip.openArchive(ctx, testServerURL+"/public.zip")
-	require.EqualError(t, err, context.Canceled.Error())
+	require.ErrorIs(t, err, context.Canceled)
 
 	<-zip.done
 
@@ -374,15 +375,14 @@ func TestReadArchiveFails(t *testing.T) {
 	testServerURL, cleanup := newZipFileServerURL(t, "group/zip.gitlab.io/public.zip", nil)
 	defer cleanup()
 
-	fs := New(&zipCfg).(*zipVFS)
-	zip := newArchive(fs, time.Second)
+	zfs := New(&zipCfg).(*zipVFS)
+	zip := newArchive(zfs, time.Second)
 
 	err := zip.openArchive(context.Background(), testServerURL+"/unkown.html")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), httprange.ErrNotFound.Error())
+	require.ErrorIs(t, err, httprange.ErrNotFound)
 
 	_, err = zip.Open(context.Background(), "index.html")
-	require.EqualError(t, err, os.ErrNotExist.Error())
+	require.ErrorIs(t, err, fs.ErrNotExist)
 }
 
 func createArchive(t *testing.T, dir string) (map[string][]byte, int64) {
