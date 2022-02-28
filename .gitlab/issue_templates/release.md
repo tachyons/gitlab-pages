@@ -42,4 +42,4 @@
     - [ ] Added `Changelog: added` footer to your commit
     - [ ] Assign to a reviewer
 
-/label ~backend ~"Category:Pages" ~"devops::release" ~"group::release" ~"feature::maintenance"
+/label ~backend ~"Category:Pages" ~"devops::release" ~"group::release" ~"type::maintenance"
