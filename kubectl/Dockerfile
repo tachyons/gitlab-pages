@@ -15,7 +15,7 @@ RUN apt-get update \
   && curl --retry 6 -LsO https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl \
   && chmod +x kubectl \
   && mv kubectl /usr/local/bin/kubectl \
-  && curl --retry 6 -LsO https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 \
+  && curl --retry 6 -LsO https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 \
   && chmod +x yq_linux_amd64 \
   && mv yq_linux_amd64 /usr/local/bin/yq
 
