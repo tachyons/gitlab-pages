@@ -5,7 +5,7 @@ FROM ${FROM_IMAGE}:bullseye-slim
 
 # ARG must be redeclared after each FROM
 ARG KUBECTL_VERSION
-ARG YQ_VERSION="4.19.1"
+ARG YQ_VERSION="4.21.1"
 
 # Providing to environment, for easy information gathering.
 ENV KUBECTL_VERSION ${KUBECTL_VERSION}
