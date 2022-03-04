@@ -47,6 +47,7 @@ var (
 	_                       = flag.Bool("daemon-enable-jail", false, "DEPRECATED and ignored, will be removed in 15.0")
 	_                       = flag.Bool("daemon-inplace-chroot", false, "DEPRECATED and ignored, will be removed in 15.0") // TODO: https://gitlab.com/gitlab-org/gitlab-pages/-/issues/599
 	propagateCorrelationID  = flag.Bool("propagate-correlation-id", false, "Reuse existing Correlation-ID from the incoming request header `X-Request-ID` if present")
+	serverShutdownTimeout   = flag.Duration("server-shutdown-timeout", 30*time.Second, "GitLab Pages server shutdown timeout (default: 30s)")
 	logFormat               = flag.String("log-format", "json", "The log output format: 'text' or 'json'")
 	logVerbose              = flag.Bool("log-verbose", false, "Verbose logging")
 	secret                  = flag.String("auth-secret", "", "Cookie store hash key, should be at least 32 bytes long")

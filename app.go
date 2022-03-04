@@ -378,8 +378,7 @@ func (a *theApp) Run() {
 	var result *multierror.Error
 
 	for _, srv := range servers {
-		// TODO: make this timeout configurable
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), a.config.General.ServerShutdownTimeout)
 
 		if err := srv.Shutdown(ctx); err != nil {
 			result = multierror.Append(result, err)

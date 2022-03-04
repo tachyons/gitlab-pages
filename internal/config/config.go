@@ -35,15 +35,16 @@ type Config struct {
 // General groups settings that are general to GitLab Pages and can not
 // be categorized under other head.
 type General struct {
-	Domain          string
-	MaxConns        int
-	MaxURILength    int
-	MetricsAddress  string
-	RedirectHTTP    bool
-	RootCertificate []byte
-	RootDir         string
-	RootKey         []byte
-	StatusPath      string
+	Domain                string
+	MaxConns              int
+	MaxURILength          int
+	MetricsAddress        string
+	RedirectHTTP          bool
+	RootCertificate       []byte
+	RootDir               string
+	RootKey               []byte
+	ServerShutdownTimeout time.Duration
+	StatusPath            string
 
 	DisableCrossOriginRequests bool
 	InsecureCiphers            bool
@@ -177,6 +178,7 @@ func loadConfig() (*Config, error) {
 			RedirectHTTP:               *redirectHTTP,
 			RootDir:                    *pagesRoot,
 			StatusPath:                 *pagesStatus,
+			ServerShutdownTimeout:      *serverShutdownTimeout,
 			DisableCrossOriginRequests: *disableCrossOriginRequests,
 			InsecureCiphers:            *insecureCiphers,
 			PropagateCorrelationID:     *propagateCorrelationID,
