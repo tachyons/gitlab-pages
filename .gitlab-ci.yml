@@ -232,7 +232,7 @@ dependency_update:
   variables:
     INSTALL_SHA256: "c95a33432192688a08d935fd5f563fce4110610a51281f887ae88db208b720ba"
   script:
-    - curl --retry 6 -O https://deps.app/install.sh
+    - curl --retry 6 -fO https://deps.app/install.sh
     - echo "${INSTALL_SHA256}  install.sh" | sha256sum --check
     - cat install.sh | bash -s -- -b $HOME/bin
     # Remove the install.sh script otherwise deps gets upset about pending changes when it goes to create new branches
@@ -479,7 +479,7 @@ alpine-certificates:
   stage: phase-one
   script:
     # sets CA_PKG_VERSION to `20171114-r3` (from `P:ca-certificates\nV:VERSION\n`)
-    - export CA_PKG_VERSION=$(curl --retry 6 -qs http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/x86_64/APKINDEX.tar.gz | tar xzf - -O APKINDEX | grep -A1 '^P:ca-certificates$' | tail -n1 | cut -d ':' -f2)
+    - export CA_PKG_VERSION=$(curl --retry 6 -qsf http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/x86_64/APKINDEX.tar.gz | tar xzf - -O APKINDEX | grep -A1 '^P:ca-certificates$' | tail -n1 | cut -d ':' -f2)
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$CA_PKG_VERSION" | sha1sum))
     - build_if_needed --build-arg "ALPINE_VERSION=${ALPINE_VERSION}"
                       --build-arg "CA_PKG_VERSION=${CA_PKG_VERSION}"
@@ -1531,9 +1531,9 @@ ubi-release-for-certification:
     # Install skopeo
     - cd /tmp
     - apt-get -y update && apt-get -y install libgpgme11
-    - curl -o skopeo.deb http://ftp.debian.org/debian/pool/main/s/skopeo/skopeo_1.4.1+ds1-1_amd64.deb
-    - curl -o golang-github-containers-common.deb http://ftp.debian.org/debian/pool/main/g/golang-github-containers-common/golang-github-containers-common_0.42.1+ds1-2_all.deb
-    - curl -o golang-github-containers-image.deb http://ftp.debian.org/debian/pool/main/g/golang-github-containers-image/golang-github-containers-image_5.15.2-2_all.deb
+    - curl -f -o skopeo.deb http://ftp.debian.org/debian/pool/main/s/skopeo/skopeo_1.4.1+ds1-1_amd64.deb
+    - curl -f -o golang-github-containers-common.deb http://ftp.debian.org/debian/pool/main/g/golang-github-containers-common/golang-github-containers-common_0.42.1+ds1-2_all.deb
+    - curl -f -o golang-github-containers-image.deb http://ftp.debian.org/debian/pool/main/g/golang-github-containers-image/golang-github-containers-image_5.15.2-2_all.deb
     - dpkg -i golang-github-containers-image.deb && dpkg -i golang-github-containers-image.deb && dpkg -i skopeo.deb
   script:
     - ruby build-scripts/redhat_certfication.rb "${CI_COMMIT_REF_NAME}"

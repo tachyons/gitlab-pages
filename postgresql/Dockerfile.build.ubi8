@@ -7,8 +7,8 @@ ARG PG_VERSION=14.1
 ENV LANG=C.UTF-8
 
 RUN mkdir /assets \
-    && curl --retry 6 https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz -o postgresql-${PG_VERSION}.tar.gz \
-    && curl --retry 6 https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz.md5 -o postgresql-${PG_VERSION}.tar.gz.md5 \
+    && curl -f --retry 6 https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz -o postgresql-${PG_VERSION}.tar.gz \
+    && curl -f --retry 6 https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz.md5 -o postgresql-${PG_VERSION}.tar.gz.md5 \
     && [ "$(cat postgresql-${PG_VERSION}.tar.gz.md5)" = "$(md5sum postgresql-${PG_VERSION}.tar.gz)" ] \
     && tar -xzf postgresql-${PG_VERSION}.tar.gz \
     && cd postgresql-${PG_VERSION} \

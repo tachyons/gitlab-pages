@@ -40,7 +40,7 @@ RUN buildDeps=' \
   && apt-get install -y --no-install-recommends $buildDeps \
   && rm -rf /var/lib/apt/lists/* \
   && cd ${BUILD_DIR} \
-  && curl --retry 6 -so postgresql.tar.gz https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz \
+  && curl --retry 6 -sfo postgresql.tar.gz https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz \
   && tar -xzf postgresql.tar.gz \
   && rm postgresql.tar.gz \
   && cd postgresql-${PG_VERSION} \

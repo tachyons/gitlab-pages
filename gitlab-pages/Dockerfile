@@ -21,7 +21,7 @@ RUN buildDeps=' \
   && mkdir -p ${BUILD_DIR} \
   && cd ${BUILD_DIR} \
   && echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-pages/repository/archive.tar.bz2?sha=${GITLAB_PAGES_VERSION}" \
-  && curl --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o pages.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-pages/repository/archive.tar.bz2?sha=${GITLAB_PAGES_VERSION}" \
+  && curl -f --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o pages.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-pages/repository/archive.tar.bz2?sha=${GITLAB_PAGES_VERSION}" \
   && tar -xjf pages.tar.bz2 \
   && rm pages.tar.bz2 \
   && cd gitlab-pages-* \

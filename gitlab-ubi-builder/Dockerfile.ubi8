@@ -17,7 +17,7 @@ RUN dnf ${DNF_OPTS} install -by --nodocs \
     && cd ${BUILD_DIR} \
     # Adding libedit development headers from source.
     # Instructions are adapted from `libedit-3.1-23.20170329cvs.el8.src.rpm` spec.
-    && curl --retry 6 https://thrysoee.dk/editline/libedit-${LIBEDIT_VERSION}.tar.gz | tar -xz \
+    && curl -f --retry 6 https://thrysoee.dk/editline/libedit-${LIBEDIT_VERSION}.tar.gz | tar -xz \
     && cd libedit-${LIBEDIT_VERSION} \
     && ./configure --disable-static --disable-silent-rules --prefix=/usr --libdir=${LIBDIR} --includedir=${INCLUDEDIR} \
     && sed -i 's/lncurses/ltinfo/' src/Makefile \
