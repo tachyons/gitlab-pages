@@ -29,7 +29,7 @@ RUN buildDeps=' \
 
 RUN cd ${BUILD_DIR} \
     echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_SERVER_VERSION}" \
-    && curl --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitaly.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_SERVER_VERSION}" \
+    && curl -f --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitaly.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_SERVER_VERSION}" \
     && mkdir gitaly \
     && tar --strip-components 1 -C gitaly -xjf gitaly.tar.bz2 \
     && rm gitaly.tar.bz2 \

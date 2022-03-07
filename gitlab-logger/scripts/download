@@ -8,7 +8,7 @@ set -exo pipefail
 
 pushd /build
 # Downloads sources
-curl --retry 6 -LOsS "${GITLAB_LOGGER_SOURCE_URL}"
+curl --retry 6 -fLOsS "${GITLAB_LOGGER_SOURCE_URL}"
 
 # Verify source tarball
 echo "${GITLAB_LOGGER_SHA256} $(basename "${GITLAB_LOGGER_SOURCE_URL}")" > SHASUM
