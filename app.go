@@ -30,6 +30,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
+	health "gitlab.com/gitlab-org/gitlab-pages/internal/healthcheck"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
@@ -57,10 +58,6 @@ type theApp struct {
 	Handlers       *handlers.Handlers
 	AcmeMiddleware *acme.Middleware
 	CustomHeaders  http.Header
-}
-
-func (a *theApp) isReady() bool {
-	return true
 }
 
 func (a *theApp) GetCertificate(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
@@ -127,11 +124,6 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 		return true
 	}
 
-	if !a.isReady() {
-		httperrors.Serve503(w)
-		return true
-	}
-
 	if _, err := domain.GetLookupPath(r); err != nil {
 		if errors.Is(err, gitlab.ErrDiskDisabled) {
 			errortracking.CaptureErrWithReqAndStackTrace(err, r)
@@ -150,26 +142,6 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 	}
 
 	return false
-}
-
-// healthCheckMiddleware is serving the application status check
-func (a *theApp) healthCheckMiddleware(handler http.Handler) http.Handler {
-	healthCheck := http.HandlerFunc(func(w http.ResponseWriter, _r *http.Request) {
-		if a.isReady() {
-			w.Write([]byte("success\n"))
-		} else {
-			http.Error(w, "not yet ready", http.StatusServiceUnavailable)
-		}
-	})
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.RequestURI == a.config.General.StatusPath {
-			healthCheck.ServeHTTP(w, r)
-			return
-		}
-
-		handler.ServeHTTP(w, r)
-	})
 }
 
 // auxiliaryMiddleware will handle status updates, not-ready requests and other
@@ -250,7 +222,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = handlers.Ratelimiter(handler, &a.config.RateLimit)
 
 	// Health Check
-	handler = a.healthCheckMiddleware(handler)
+	handler = health.NewMiddleware(handler, a.config.General.StatusPath)
 
 	// Custom response headers
 	handler = customheaders.NewMiddleware(handler, a.CustomHeaders)
