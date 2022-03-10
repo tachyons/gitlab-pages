@@ -142,7 +142,7 @@ project_data.each_key do |name|
   # it is assumed that the "version" (commit ref) from CLI param
   # is correct.
   if ENV['CI_COMMIT_REF_NAME'] == 'master' || regular_tag?
-    version = "%{ENV[project_data[name]['version_variable']].sub(/-(ce|ee)$/, '')}-ubi8"
+    version = "#{ENV[project_data[name]['version_variable']].sub(/-(ce|ee)$/, '')}-ubi8"
   end
 
   if project_data.key? name
