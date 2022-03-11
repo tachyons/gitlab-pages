@@ -17,10 +17,10 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"gitlab.com/gitlab-org/labkit/log"
 	"golang.org/x/crypto/hkdf"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
@@ -108,7 +108,7 @@ func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.S
 		errsave := session.Save(r, w)
 		if errsave != nil {
 			logRequest(r).WithError(errsave).Error(saveSessionErrMsg)
-			captureErrWithReqAndStackTrace(errsave, r)
+			errortracking.CaptureErrWithReqAndStackTrace(errsave, r)
 			httperrors.Serve500(w)
 			return nil, errsave
 		}
@@ -178,7 +178,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	decryptedCode, err := a.DecryptCode(r.URL.Query().Get("code"), getRequestDomain(r))
 	if err != nil {
 		logRequest(r).WithError(err).Error("failed to decrypt secure code")
-		captureErrWithReqAndStackTrace(err, r)
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		httperrors.Serve500(w)
 		return
 	}
@@ -190,12 +190,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 		logRequest(r).WithError(err).WithField(
 			"redirect_uri", redirectURI,
 		).Error(fetchAccessTokenErrMsg)
-		errortracking.Capture(
-			err,
-			errortracking.WithRequest(r),
-			errortracking.WithField("redirect_uri", redirectURI),
-			errortracking.WithStackTrace(),
-		)
+		errortracking.CaptureErrWithReqAndStackTrace(err, r, errortracking.WithField("redirect_uri", redirectURI))
 
 		httperrors.Serve503(w)
 		return
@@ -206,7 +201,7 @@ func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.Res
 	err = session.Save(r, w)
 	if err != nil {
 		logRequest(r).WithError(err).Error(saveSessionErrMsg)
-		captureErrWithReqAndStackTrace(err, r)
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 
 		httperrors.Serve500(w)
 		return
@@ -242,11 +237,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		proxyurl, err := url.Parse(domain)
 		if err != nil {
 			logRequest(r).WithField("domain", domain).Error(queryParameterErrMsg)
-			errortracking.Capture(err,
-				errortracking.WithRequest(r),
-				errortracking.WithField("domain", domain),
-				errortracking.WithStackTrace(),
-			)
+			errortracking.CaptureErrWithReqAndStackTrace(err, r, errortracking.WithField("domain", domain))
 
 			httperrors.Serve500(w)
 			return true
@@ -269,7 +260,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		err = session.Save(r, w)
 		if err != nil {
 			logRequest(r).WithError(err).Error(saveSessionErrMsg)
-			captureErrWithReqAndStackTrace(err, r)
+			errortracking.CaptureErrWithReqAndStackTrace(err, r)
 
 			httperrors.Serve500(w)
 			return true
@@ -300,7 +291,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		err := session.Save(r, w)
 		if err != nil {
 			logRequest(r).WithError(err).Error(saveSessionErrMsg)
-			captureErrWithReqAndStackTrace(err, r)
+			errortracking.CaptureErrWithReqAndStackTrace(err, r)
 
 			httperrors.Serve500(w)
 			return true
@@ -314,7 +305,7 @@ func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWrit
 		signedCode, err := a.EncryptAndSignCode(proxyDomain, query.Get("code"))
 		if err != nil {
 			logRequest(r).WithError(err).Error(saveSessionErrMsg)
-			captureErrWithReqAndStackTrace(err, r)
+			errortracking.CaptureErrWithReqAndStackTrace(err, r)
 
 			httperrors.Serve503(w)
 			return true
@@ -402,7 +393,6 @@ func (a *Auth) fetchAccessToken(ctx context.Context, code string) (tokenResponse
 
 	// Request token
 	resp, err := a.apiClient.Do(req)
-
 	if err != nil {
 		return token, err
 	}
@@ -411,7 +401,7 @@ func (a *Auth) fetchAccessToken(ctx context.Context, code string) (tokenResponse
 
 	if resp.StatusCode != 200 {
 		err = errResponseNotOk
-		captureErrWithReqAndStackTrace(err, req)
+		errortracking.CaptureErrWithReqAndStackTrace(err, req)
 		return token, err
 	}
 
@@ -454,7 +444,7 @@ func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter
 		err := session.Save(r, w)
 		if err != nil {
 			logRequest(r).WithError(err).Error(saveSessionErrMsg)
-			captureErrWithReqAndStackTrace(err, r)
+			errortracking.CaptureErrWithReqAndStackTrace(err, r)
 
 			httperrors.Serve500(w)
 			return true
@@ -481,7 +471,7 @@ func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Re
 	err := session.Save(r, w)
 	if err != nil {
 		logRequest(r).WithError(err).Error(saveSessionErrMsg)
-		captureErrWithReqAndStackTrace(err, r)
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 
 		httperrors.Serve500(w)
 		return
@@ -510,10 +500,9 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 		url = fmt.Sprintf(apiURLUserTemplate, a.internalGitlabServer)
 	}
 	req, err := http.NewRequestWithContext(r.Context(), "GET", url, nil)
-
 	if err != nil {
 		logRequest(r).WithError(err).Error(failAuthErrMsg)
-		captureErrWithReqAndStackTrace(err, r)
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 
 		httperrors.Serve500(w)
 		return true
@@ -521,10 +510,9 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 
 	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
 	resp, err := a.apiClient.Do(req)
-
 	if err != nil {
 		logRequest(r).WithError(err).Error("Failed to retrieve info with token")
-		captureErrWithReqAndStackTrace(err, r)
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		// call serve404 handler when auth fails
 		domain.ServeNotFoundAuthFailed(w, r)
 		return true
@@ -543,7 +531,7 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 			"status":      resp.StatusCode,
 			"status_text": resp.Status,
 		}).Error("Unexpected response fetching access token")
-		captureErrWithReqAndStackTrace(err, r)
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		domain.ServeNotFoundAuthFailed(w, r)
 		return true
 	}
@@ -591,7 +579,7 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, domai
 
 	if a == nil {
 		logRequest(r).Error(errAuthNotConfigured)
-		captureErrWithReqAndStackTrace(errAuthNotConfigured, r)
+		errortracking.CaptureErrWithReqAndStackTrace(errAuthNotConfigured, r)
 
 		httperrors.Serve500(w)
 		return true
@@ -602,7 +590,8 @@ func (a *Auth) CheckAuthentication(w http.ResponseWriter, r *http.Request, domai
 
 // CheckResponseForInvalidToken checks response for invalid token and destroys session if it was invalid
 func (a *Auth) CheckResponseForInvalidToken(w http.ResponseWriter, r *http.Request,
-	resp *http.Response) bool {
+	resp *http.Response,
+) bool {
 	if a == nil {
 		// No auth supported
 		return false
@@ -628,7 +617,7 @@ func checkResponseForInvalidToken(resp *http.Response, session *sessions.Session
 		defer resp.Body.Close()
 		err := json.NewDecoder(resp.Body).Decode(&errResp)
 		if err != nil {
-			captureErrWithReqAndStackTrace(err, r)
+			errortracking.CaptureErrWithReqAndStackTrace(err, r)
 			return false
 		}
 
@@ -696,8 +685,4 @@ func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internal
 		jwtExpiry:     time.Minute,
 		now:           time.Now,
 	}, nil
-}
-
-func captureErrWithReqAndStackTrace(err error, r *http.Request) {
-	errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
 }

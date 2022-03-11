@@ -5,8 +5,9 @@ import (
 	"net/http"
 
 	"gitlab.com/gitlab-org/labkit/correlation"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"gitlab.com/gitlab-org/labkit/log"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
 )
 
 type content struct {
@@ -214,7 +215,7 @@ func Serve500WithRequest(w http.ResponseWriter, r *http.Request, reason string, 
 		"host":           r.Host,
 		"path":           r.URL.Path,
 	}).WithError(err).Error(reason)
-	errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
+	errortracking.CaptureErrWithReqAndStackTrace(err, r)
 	serveErrorPage(w, content500)
 }
 

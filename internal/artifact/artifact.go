@@ -12,8 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/gitlab-org/labkit/errortracking"
-
+	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
@@ -80,7 +79,7 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 	req, err := http.NewRequestWithContext(r.Context(), "GET", reqURL.String(), nil)
 	if err != nil {
 		logging.LogRequest(r).WithError(err).Error(createArtifactRequestErrMsg)
-		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		httperrors.Serve500(w)
 		return
 	}
@@ -89,10 +88,9 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 		req.Header.Add("Authorization", "Bearer "+token)
 	}
 	resp, err := a.client.Do(req)
-
 	if err != nil {
 		logging.LogRequest(r).WithError(err).Error(artifactRequestErrMsg)
-		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		httperrors.Serve502(w)
 		return
 	}
@@ -110,7 +108,7 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 
 	if resp.StatusCode == http.StatusInternalServerError {
 		logging.LogRequest(r).Error(errArtifactResponse)
-		errortracking.Capture(errArtifactResponse, errortracking.WithRequest(r), errortracking.WithStackTrace())
+		errortracking.CaptureErrWithReqAndStackTrace(errArtifactResponse, r)
 		httperrors.Serve500(w)
 		return
 	}

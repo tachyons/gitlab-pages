@@ -12,8 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/gitlab-org/labkit/errortracking"
-
+	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
@@ -40,7 +39,8 @@ func serveContent(w http.ResponseWriter, r *http.Request, modtime time.Time, con
 	_, haveType := w.Header()["Content-Type"]
 	if !haveType {
 		// this shouldn't happen
-		errortracking.Capture(errUnknownContentType, errortracking.WithRequest(r), errortracking.WithStackTrace())
+
+		errortracking.CaptureErrWithReqAndStackTrace(errUnknownContentType, r)
 		logging.LogRequest(r).WithError(errUnknownContentType).Error("could not serve content")
 		httperrors.Serve500(w)
 

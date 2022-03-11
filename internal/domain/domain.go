@@ -7,8 +7,7 @@ import (
 	"net/http"
 	"sync"
 
-	"gitlab.com/gitlab-org/labkit/errortracking"
-
+	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
@@ -131,7 +130,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 			return true
 		}
 
-		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		httperrors.Serve503(w)
 		return true
 	}
@@ -149,7 +148,7 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		httperrors.Serve503(w)
 		return
 	}
@@ -173,7 +172,7 @@ func (d *Domain) ServeNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithStackTrace())
+		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		httperrors.Serve503(w)
 		return
 	}
