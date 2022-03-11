@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
@@ -53,7 +53,8 @@ func (reader *Reader) tryRedirects(h serving.Handler) bool {
 		if !errors.Is(err, redirects.ErrNoRedirect) {
 			// We assume that rewrite failure is not fatal
 			// and we only capture the error
-			errortracking.Capture(err, errortracking.WithRequest(h.Request), errortracking.WithStackTrace())
+
+			errortracking.CaptureErrWithReqAndStackTrace(err, h.Request)
 		}
 		return false
 	}

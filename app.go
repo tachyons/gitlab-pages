@@ -18,7 +18,6 @@ import (
 	"github.com/rs/cors"
 	"gitlab.com/gitlab-org/go-mimedb"
 	"gitlab.com/gitlab-org/labkit/correlation"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"gitlab.com/gitlab-org/labkit/log"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
@@ -29,6 +28,7 @@ import (
 	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/customheaders"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/handlers"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
@@ -134,7 +134,7 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 
 	if _, err := domain.GetLookupPath(r); err != nil {
 		if errors.Is(err, gitlab.ErrDiskDisabled) {
-			errortracking.Capture(err, errortracking.WithStackTrace())
+			errortracking.CaptureErrWithReqAndStackTrace(err, r)
 			httperrors.Serve500(w)
 			return true
 		}
@@ -501,7 +501,7 @@ func handlePanicMiddleware(handler http.Handler) http.Handler {
 				err := fmt.Errorf("panic trace: %v", i)
 				metrics.PanicRecoveredCount.Inc()
 				logging.LogRequest(r).WithError(err).Error("recovered from panic")
-				errortracking.Capture(err, errortracking.WithRequest(r), errortracking.WithContext(r.Context()), errortracking.WithStackTrace())
+				errortracking.CaptureErrWithReqAndStackTrace(err, r)
 				httperrors.Serve500(w)
 			}
 		}()
