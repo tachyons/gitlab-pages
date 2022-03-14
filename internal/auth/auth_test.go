@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/gorilla/sessions"
@@ -30,7 +31,7 @@ func createTestAuth(t *testing.T, internalServer string, publicServer string) *A
 		"http://pages.gitlab-example.com/auth",
 		internalServer,
 		publicServer,
-		"scope")
+		"scope", 5*time.Second)
 
 	require.NoError(t, err)
 
