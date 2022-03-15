@@ -135,6 +135,7 @@ type ZipServing struct {
 	RefreshInterval    time.Duration
 	OpenTimeout        time.Duration
 	AllowedPaths       []string
+	HTTPClientTimeout  time.Duration
 }
 
 func internalGitlabServerFromFlags() string {
@@ -240,6 +241,7 @@ func loadConfig() (*Config, error) {
 			RefreshInterval:    *zipCacheRefresh,
 			OpenTimeout:        *zipOpenTimeout,
 			AllowedPaths:       []string{*pagesRoot},
+			HTTPClientTimeout:  *zipHTTPClientTimeout,
 		},
 
 		// Actual listener pointers will be populated in appMain. We populate the
@@ -315,6 +317,7 @@ func LogConfig(config *Config) {
 		"zip-cache-cleanup":              config.Zip.CleanupInterval,
 		"zip-cache-refresh":              config.Zip.RefreshInterval,
 		"zip-open-timeout":               config.Zip.OpenTimeout,
+		"zip-http-client-timeout":        config.Zip.HTTPClientTimeout,
 		"rate-limit-source-ip":           config.RateLimit.SourceIPLimitPerSecond,
 		"rate-limit-source-ip-burst":     config.RateLimit.SourceIPBurst,
 		"rate-limit-domain":              config.RateLimit.DomainLimitPerSecond,
