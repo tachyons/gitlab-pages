@@ -80,7 +80,7 @@ var (
 	zipCacheCleanup      = flag.Duration("zip-cache-cleanup", 30*time.Second, "Zip serving archive cache cleanup interval")
 	zipCacheRefresh      = flag.Duration("zip-cache-refresh", 30*time.Second, "Zip serving archive cache refresh interval")
 	zipOpenTimeout       = flag.Duration("zip-open-timeout", 30*time.Second, "Zip archive open timeout")
-	zipHTTPClientTimeout = flag.Duration("zip-http-client-timeout", 30*time.Minute, "Zip http client timeout")
+	zipHTTPClientTimeout = flag.Duration("zip-http-client-timeout", 30*time.Minute, "Zip HTTP client timeout")
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
 
