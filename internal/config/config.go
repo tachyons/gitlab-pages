@@ -85,6 +85,7 @@ type Auth struct {
 	ClientSecret string
 	RedirectURI  string
 	Scope        string
+	Timeout      time.Duration
 }
 
 // Cache configuration for GitLab API
@@ -220,6 +221,7 @@ func loadConfig() (*Config, error) {
 			ClientSecret: *clientSecret,
 			RedirectURI:  *redirectURI,
 			Scope:        *authScope,
+			Timeout:      *authTimeout,
 		},
 		Log: Log{
 			Format:  *logFormat,

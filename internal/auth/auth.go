@@ -660,7 +660,7 @@ func generateKeys(secret string, count int) ([][]byte, error) {
 }
 
 // New when authentication supported this will be used to create authentication handler
-func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internalGitlabServer, publicGitlabServer, authScope string) (*Auth, error) {
+func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internalGitlabServer, publicGitlabServer, authScope string, authTimeout time.Duration) (*Auth, error) {
 	// generate 3 keys, 2 for the cookie store and 1 for JWT signing
 	keys, err := generateKeys(storeSecret, 3)
 	if err != nil {
@@ -675,7 +675,7 @@ func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internal
 		internalGitlabServer: strings.TrimRight(internalGitlabServer, "/"),
 		publicGitlabServer:   strings.TrimRight(publicGitlabServer, "/"),
 		apiClient: &http.Client{
-			Timeout:   5 * time.Second,
+			Timeout:   authTimeout,
 			Transport: httptransport.DefaultTransport,
 		},
 		store:         sessions.NewCookieStore(keys[0], keys[1]),
