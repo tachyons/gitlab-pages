@@ -1,3 +1,11 @@
+## 1.56.0 (2022-03-15)
+
+### Added (3 changes)
+
+- [feat: allow auth http.Client timeout to be configurable](gitlab-org/gitlab-pages@0a2122d4960ebdca71a21cdb6038696f1746c3f1) by @Osmanilge ([merge request](gitlab-org/gitlab-pages!687))
+- [feat: make server shutdown timeout configurable](gitlab-org/gitlab-pages@f78d8d18b960f66a2a4f4e2044e2159647d375af) by @HuseyinEmreAksoy ([merge request](gitlab-org/gitlab-pages!688))
+- [Add security-harness script](gitlab-org/gitlab-pages@de0b946ff919a2df3e172c569383dec8a4fd3b41) ([merge request](gitlab-org/gitlab-pages!697))
+
 ## 1.55.0 (2022-02-22)
 
 ### Added (1 change)

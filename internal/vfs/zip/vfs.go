@@ -67,9 +67,7 @@ func New(cfg *config.ZipServing) vfs.VFS {
 		cacheCleanupInterval:    cfg.CleanupInterval,
 		openTimeout:             cfg.OpenTimeout,
 		httpClient: &http.Client{
-			// TODO: make this timeout configurable
-			// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/457
-			Timeout: 30 * time.Minute,
+			Timeout: cfg.HTTPClientTimeout,
 			Transport: httptransport.NewMeteredRoundTripper(
 				httptransport.NewTransport(),
 				"zip_vfs",
