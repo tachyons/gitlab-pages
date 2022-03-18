@@ -23,6 +23,7 @@ type Config struct {
 	Listeners       Listeners
 	Log             Log
 	Sentry          Sentry
+	Server          Server
 	TLS             TLS
 	Zip             ZipServing
 
@@ -147,6 +148,13 @@ type ZipServing struct {
 	AllowedPaths       []string
 }
 
+type Server struct {
+	ReadTimeout       time.Duration
+	ReadHeaderTimeout time.Duration
+	WriteTimeout      time.Duration
+	ListenKeepAlive   time.Duration
+}
+
 func internalGitlabServerFromFlags() string {
 	if *internalGitLabServer != "" {
 		return *internalGitLabServer
@@ -243,6 +251,12 @@ func loadConfig() (*Config, error) {
 			RefreshInterval:    *zipCacheRefresh,
 			OpenTimeout:        *zipOpenTimeout,
 			AllowedPaths:       []string{*pagesRoot},
+		},
+		Server: Server{
+			ReadTimeout:       *serverReadTimeout,
+			ReadHeaderTimeout: *serverReadHeaderTimeout,
+			WriteTimeout:      *serverWriteTimeout,
+			ListenKeepAlive:   *serverKeepAlive,
 		},
 
 		// Actual listener pointers will be populated in appMain. We populate the

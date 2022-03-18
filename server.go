@@ -15,6 +15,7 @@ import (
 
 type keepAliveListener struct {
 	net.Listener
+	duration time.Duration
 }
 
 type keepAliveSetter interface {
@@ -38,7 +39,7 @@ func (ln *keepAliveListener) Accept() (net.Conn, error) {
 
 	kc := conn.(keepAliveSetter)
 	kc.SetKeepAlive(true)
-	kc.SetKeepAlivePeriod(3 * time.Minute)
+	kc.SetKeepAlivePeriod(ln.duration)
 
 	return conn, nil
 }
@@ -53,7 +54,12 @@ func (a *theApp) listenAndServe(config listenerConfig) error {
 		server.TLSConfig.NextProtos = append(server.TLSConfig.NextProtos, "h2")
 	}
 
+	server.ReadTimeout = a.config.Server.ReadTimeout
+	server.ReadHeaderTimeout = a.config.Server.ReadHeaderTimeout
+	server.WriteTimeout = a.config.Server.WriteTimeout
+
 	l, err := net.FileListener(os.NewFile(config.fd, "[socket]"))
+
 	if err != nil {
 		return fmt.Errorf("failed to listen on FD %d: %v", config.fd, err)
 	}
@@ -62,7 +68,7 @@ func (a *theApp) listenAndServe(config listenerConfig) error {
 		l = netutil.SharedLimitListener(l, config.limiter)
 	}
 
-	l = &keepAliveListener{l}
+	l = &keepAliveListener{l, a.config.Server.ListenKeepAlive}
 
 	if config.isProxyV2 {
 		l = &proxyproto.Listener{
