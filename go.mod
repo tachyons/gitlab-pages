@@ -9,6 +9,7 @@ go 1.16
 require (
 	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/golang/mock v1.6.0
+	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/securecookie v1.1.1
