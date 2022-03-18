@@ -123,13 +123,17 @@ func (l ListenSpec) proxyV2DialContext() dialContext {
 		}
 
 		header := &proxyproto.Header{
-			Version:            2,
-			Command:            proxyproto.PROXY,
-			TransportProtocol:  proxyproto.TCPv4,
-			SourceAddress:      net.ParseIP("10.1.1.1"),
-			SourcePort:         1000,
-			DestinationAddress: net.ParseIP("20.2.2.2"),
-			DestinationPort:    2000,
+			Version:           2,
+			Command:           proxyproto.PROXY,
+			TransportProtocol: proxyproto.TCPv4,
+			SourceAddr: &net.TCPAddr{
+				IP:   net.ParseIP("10.1.1.1"),
+				Port: 1000,
+			},
+			DestinationAddr: &net.TCPAddr{
+				IP:   net.ParseIP("20.2.2.2"),
+				Port: 2000,
+			},
 		}
 
 		_, err = header.WriteTo(conn)
