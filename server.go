@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 
 	proxyproto "github.com/pires/go-proxyproto"
 	"gitlab.com/gitlab-org/labkit/log"
@@ -37,8 +36,12 @@ func (a *theApp) listenAndServe(server *http.Server, addr string, h http.Handler
 		server.TLSConfig.NextProtos = append(server.TLSConfig.NextProtos, "h2")
 	}
 
+	server.ReadTimeout = a.config.Server.ReadTimeout
+	server.ReadHeaderTimeout = a.config.Server.ReadHeaderTimeout
+	server.WriteTimeout = a.config.Server.WriteTimeout
+
 	lc := net.ListenConfig{
-		KeepAlive: 3 * time.Minute,
+		KeepAlive: a.config.Server.ListenKeepAlive,
 	}
 
 	l, err := lc.Listen(context.Background(), "tcp", addr)
