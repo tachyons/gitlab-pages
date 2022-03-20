@@ -32,4 +32,4 @@ When submitting a merge request for gitlab-pages, CE and EE merge requests for u
 
 [CHANGELOG entry]: https://docs.gitlab.com/ee/development/changelog.html#overview
 
-/label ~security
+/label ~security ~backend ~"Category:Pages"

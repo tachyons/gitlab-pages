@@ -6,7 +6,7 @@
 - [ ] Create an MR for [gitlab-pages project](https://gitlab.com/gitlab-org/gitlab-pages).
     You can use [this MR](https://gitlab.com/gitlab-org/gitlab-pages/merge_requests/217) as an example.
     - [ ] Update `VERSION`, and push your branch
-    - [ ] Update `CHANGELOG` by running `GITLAB_PRIVATE_TOKEN= make changelog`, note that you need to create a personal access token 
+    - [ ] Update `CHANGELOG` by running `GITLAB_PRIVATE_TOKEN= make changelog`, note that you need to create a personal access token
     - [ ] Assign to reviewer
 - [ ] Once `gitlab-pages` is merged create a signed+annotated tag pointing to the **merge commit** on the **stable branch**
     In case of `master` branch:
@@ -42,4 +42,4 @@
     - [ ] Added `Changelog: added` footer to your commit
     - [ ] Assign to a reviewer
 
-/label ~backend ~"Category:Pages" ~"devops::release" ~"group::release" ~"type::maintenance"
+/label ~backend ~"Category:Pages" ~"devops::create" ~"group::editor" ~"type::maintenance"
