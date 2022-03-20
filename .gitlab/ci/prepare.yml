@@ -53,4 +53,3 @@ secret_detection:
   rules:
     # For merge requests, create a pipeline.
     - if: '$CI_MERGE_REQUEST_IID'
-
