@@ -118,7 +118,7 @@ func TestWhenLoginCallbackWithUnencryptedCode(t *testing.T) {
 	}
 
 	// Go to auth page with correct state will cause fetching the token
-	authrsp, err := GetPageFromListenerWithHeaders(t, httpsListener, "projects.gitlab-example.com", "/auth?code=1&state="+
+	authrsp, err := GetPageFromListenerWithHeaders(t, httpsListener, "group.auth.gitlab-example.com", "/auth?code=1&state="+
 		url.Query().Get("state"), header)
 
 	require.NoError(t, err)
@@ -151,60 +151,76 @@ func TestAccessControlUnderCustomDomain(t *testing.T) {
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
+			// visit to custom domain
 			rsp, err := GetRedirectPage(t, httpListener, tt.domain, tt.path)
 			require.NoError(t, err)
 			defer rsp.Body.Close()
 
-			cookie := rsp.Header.Get("Set-Cookie")
+			domainCookie := rsp.Header.Get("Set-Cookie")
 
-			url, err := url.Parse(rsp.Header.Get("Location"))
+			projectProxyURL, err := url.Parse(rsp.Header.Get("Location"))
 			require.NoError(t, err)
 
-			state := url.Query().Get("state")
-			require.Equal(t, "http://"+tt.domain, url.Query().Get("domain"))
+			state := projectProxyURL.Query().Get("state")
+			require.Equal(t, "http://"+tt.domain, projectProxyURL.Query().Get("domain"))
 
-			pagesrsp, err := GetRedirectPage(t, httpListener, url.Host, url.Path+"?"+url.RawQuery)
+			// visit projects.gitlab-example.com?state=something
+			projectsProxyRsp, err := GetRedirectPage(t, httpListener,
+				projectProxyURL.Host, projectProxyURL.Path+"?"+projectProxyURL.RawQuery)
 			require.NoError(t, err)
-			defer pagesrsp.Body.Close()
+			defer projectsProxyRsp.Body.Close()
 
-			pagescookie := pagesrsp.Header.Get("Set-Cookie")
+			projectsCookie := projectsProxyRsp.Header.Get("Set-Cookie")
 
-			// Go to auth page with correct state will cause fetching the token
-			authrsp, err := GetRedirectPageWithCookie(t, httpListener, tt.domain, "/auth?code=1&state="+
-				state, pagescookie)
+			// visit projects.gitlab-example.com?state=something&code=1
+			authRsp, err := GetRedirectPageWithCookie(t, httpListener, projectProxyURL.Host, "/auth?code=1&state="+
+				state, projectsCookie)
 
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			defer authRsp.Body.Close()
 
-			url, err = url.Parse(authrsp.Header.Get("Location"))
+			backDomainURL, err := projectProxyURL.Parse(authRsp.Header.Get("Location"))
 			require.NoError(t, err)
 
 			// Will redirect to custom domain
-			require.Equal(t, tt.domain, url.Host)
-			code := url.Query().Get("code")
+			require.Equal(t, tt.domain, backDomainURL.Host)
+			code := backDomainURL.Query().Get("code")
 			require.NotEqual(t, "1", code)
 
-			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, "/auth?code="+code+"&state="+
-				state, cookie)
+			// visit domain.com/auth?code&state will set the cookie and redirect back to original page
+			selfRedirectRsp, err := GetRedirectPageWithCookie(t, httpListener, tt.domain, "/auth?code="+code+"&state="+
+				state, domainCookie)
 
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
+			defer selfRedirectRsp.Body.Close()
 
 			// Will redirect to the page
-			cookie = authrsp.Header.Get("Set-Cookie")
-			require.Equal(t, http.StatusFound, authrsp.StatusCode)
+			domainCookie = selfRedirectRsp.Header.Get("Set-Cookie")
+			require.Equal(t, http.StatusFound, selfRedirectRsp.StatusCode)
 
-			url, err = url.Parse(authrsp.Header.Get("Location"))
+			selfRedirectURL, err := projectProxyURL.Parse(selfRedirectRsp.Header.Get("Location"))
 			require.NoError(t, err)
 
 			// Will redirect to custom domain
-			require.Equal(t, "http://"+tt.domain+"/"+tt.path, url.String())
+			require.Equal(t, "http://"+tt.domain+"/"+tt.path, selfRedirectURL.String())
 
 			// Fetch page in custom domain
-			authrsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, tt.path, cookie)
+			authRsp, err = GetRedirectPageWithCookie(t, httpListener, tt.domain, tt.path, domainCookie)
 			require.NoError(t, err)
-			defer authrsp.Body.Close()
-			require.Equal(t, http.StatusOK, authrsp.StatusCode)
+			defer authRsp.Body.Close()
+			require.Equal(t, http.StatusOK, authRsp.StatusCode)
+
+			// Try to fetch page from another domain
+			// it should restart the auth process ignoring already existing cookie
+			secondAuthRsp, err := GetRedirectPageWithCookie(t, httpListener, "group.auth.gitlab-example.com", "/private.project/", domainCookie)
+			require.NoError(t, err)
+			defer authRsp.Body.Close()
+
+			secondAuthURL, err := url.Parse(secondAuthRsp.Header.Get("Location"))
+			require.NoError(t, err)
+			require.Equal(t, "projects.gitlab-example.com", secondAuthURL.Host)
+			require.Equal(t, "/auth", secondAuthURL.Path)
+			require.Equal(t, "http://group.auth.gitlab-example.com", secondAuthURL.Query().Get("domain"))
 		})
 	}
 }
