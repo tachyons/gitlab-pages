@@ -14,6 +14,6 @@ fi
 URL="${API_URL}/projects/${NAMESPACE}%2F${PROJECT}/repository/archive.tar.gz?sha=${VERSION}"
 TOKEN="PRIVATE-TOKEN: ${PRIVATE_TOKEN}"
 
-curl --retry 6 -L -H "${TOKEN}" "${URL}" | tar -xz
+curl --retry 6 -fL -H "${TOKEN}" "${URL}" | tar -xz
 echo -n $(find -maxdepth 1 -name ${PROJECT}-* -print | awk -F '-' '{print $NF}' | cut -c -11) > REVISION
 mv ${PROJECT}-* "${PROJECT}-${VERSION}"

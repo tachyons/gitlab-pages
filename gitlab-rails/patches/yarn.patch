@@ -1,5 +1,5 @@
 #!/bin/sh
 
 cd /home/$USER/gitlab/
-curl --retry 6 -s https://gitlab.com/gitlab-org/gitlab-ce/merge_requests/14543.diff | patch && \
+curl --retry 6 -fs https://gitlab.com/gitlab-org/gitlab-ce/merge_requests/14543.diff | patch && \
 echo "Yarn patch applied successfully!"

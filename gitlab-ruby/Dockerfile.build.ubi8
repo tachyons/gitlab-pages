@@ -17,19 +17,19 @@ COPY shared/build-scripts/ /build-scripts
 COPY patches/ /patches
 
 RUN mkdir /assets \
-    && curl --retry 6 -L -so jemalloc.tar.bz2 https://github.com/jemalloc/jemalloc/releases/download/${JEMALLOC_VERSION}/jemalloc-${JEMALLOC_VERSION}.tar.bz2 \
+    && curl --retry 6 -L -sfo jemalloc.tar.bz2 https://github.com/jemalloc/jemalloc/releases/download/${JEMALLOC_VERSION}/jemalloc-${JEMALLOC_VERSION}.tar.bz2 \
     && tar -xjf jemalloc.tar.bz2 \
     && cd jemalloc-${JEMALLOC_VERSION} \
     && ./autogen.sh --prefix=/usr --libdir=${LIBDIR} --enable-prof \
     && make -j "$(nproc)" install \
     && cd .. \
-    && curl --retry 6 https://gitlab.com/gitlab-org/build/omnibus-mirror/exiftool/-/archive/${EXIFTOOL_VERSION}/exiftool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
+    && curl -f --retry 6 https://gitlab.com/gitlab-org/build/omnibus-mirror/exiftool/-/archive/${EXIFTOOL_VERSION}/exiftool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
     && cd exiftool-${EXIFTOOL_VERSION} \
     && patch -p1 < ${BUILD_DIR}/patches/allow-only-tiff-jpeg-exif-strip.patch \
     && perl Makefile.PL \
     && make install \
     && cd .. \
-    && curl --retry 6 -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.gz | tar -xz \
+    && curl -f --retry 6 -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.gz | tar -xz \
     && cd ruby-${RUBY_MINOR_VERSION} \
     && patch -p1 < /patches/thread-memory-allocations-2.7.patch \
     && export LDFLAGS="-Wl,--no-as-needed" \
@@ -38,7 +38,7 @@ RUN mkdir /assets \
     && gem update --no-document --system ${RUBYGEMS_VERSION} \
     && gem install bundler --version ${BUNDLER_VERSION} --force --no-document \
     && cd .. \
-    && curl --retry 6 -sL https://github.com/connoratherton/rb-readline/archive/v${RBREADLINE_VERSION}.tar.gz | tar -xz \
+    && curl --retry 6 -sfL https://github.com/connoratherton/rb-readline/archive/v${RBREADLINE_VERSION}.tar.gz | tar -xz \
     && ruby rb-readline-${RBREADLINE_VERSION}/setup.rb \
     && /build-scripts/cleanup-gems ${LIBDIR}/ruby/gems \
     && cp -R --parents \

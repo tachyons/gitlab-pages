@@ -10,11 +10,11 @@ set -exo pipefail
 
 pushd /build
 # Downloads sources
-curl --retry 6 -LOsS $GM_SOURCE_URL
+curl --retry 6 -fLOsS $GM_SOURCE_URL
 
 # Download & verify signature
 if [ -z $_SIGNATURE_ENFORCE ] && [ -z $_SIGNATURE_KEY ] ; then
-  curl --retry 6 -LOsS $GM_SIGNATURE_URL
+  curl --retry 6 -fLOsS $GM_SIGNATURE_URL
   gpg --recv-key $_SIGNATURE_KEY
   gpg $(basename $GM_SIGNATURE_URL)
 fi

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -exo pipefail
 
-curl --retry 6 -o /target/gomplate -sSL $GOMPLATE_SOURCE_URL
+curl --retry 6 -o /target/gomplate -fsSL $GOMPLATE_SOURCE_URL
 chmod 755 /target/gomplate
 
 echo "${GOMPLATE_SHA256} /target/gomplate" > SHASUM

@@ -93,7 +93,7 @@ ARG CI_API_V4_URL
 ARG CACHE_BUSTER=false
 RUN cd /home/${GITLAB_USER} && \
     echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2F${GITLAB_PROJECT}/repository/archive.tar.bz2?sha=${GITLAB_VERSION}" && \
-    sudo -u ${GITLAB_USER} -H curl --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2F${GITLAB_PROJECT}/repository/archive.tar.bz2?sha=${GITLAB_VERSION}" && \
+    sudo -u ${GITLAB_USER} -H curl -f --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2F${GITLAB_PROJECT}/repository/archive.tar.bz2?sha=${GITLAB_VERSION}" && \
     sudo -u ${GITLAB_USER} -H tar -xjf gitlab.tar.bz2 && \
     REVISION=$(find -maxdepth 1 -name ${GITLAB_PROJECT}-* -print | awk -F '-' '{print $NF}' | cut -c -11) && \
     mv ${GITLAB_PROJECT}-* /srv/gitlab && \

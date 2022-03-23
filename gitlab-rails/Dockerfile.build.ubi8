@@ -30,16 +30,16 @@ RUN mkdir /assets \
     && cp -R /usr/local/postgresql/lib/. ${LIBDIR}/ \
     && cp -R /usr/local/postgresql/include/. /usr/include/ \
     && cp -R /usr/local/postgresql/share/. /usr/share/ \
-    && curl --retry 6 -L https://github.com/google/re2/archive/${LIBRE2_VERSION}.tar.gz | tar -xz \
+    && curl --retry 6 -fL https://github.com/google/re2/archive/${LIBRE2_VERSION}.tar.gz | tar -xz \
     && cd re2-${LIBRE2_VERSION} \
     && make \
     && make install \
     && mkdir -p /libre2/{lib,include} \
     && cp -R /usr/local/lib/{libre2.*,pkgconfig/} /libre2/lib \
     && cp -R /usr/local/include/re2 /libre2/include/ \
-    && curl --retry 6 -L https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz | tar --strip-components 1 -xzC /usr/local/ \
+    && curl --retry 6 -fL https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz | tar --strip-components 1 -xzC /usr/local/ \
     && mkdir /usr/local/yarn \
-    && curl --retry 6 -L https://yarnpkg.com/downloads/${YARN_VERSION}/yarn-v${YARN_VERSION}.tar.gz | tar -xzC /usr/local/yarn --strip 1 \
+    && curl --retry 6 -fL https://yarnpkg.com/downloads/${YARN_VERSION}/yarn-v${YARN_VERSION}.tar.gz | tar -xzC /usr/local/yarn --strip 1 \
     && ln -sf /usr/local/yarn/bin/yarn /usr/local/bin \
     && printf 'install: --no-document\nupdate: --no-document\n' > ~/.gemrc
 

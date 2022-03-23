@@ -21,14 +21,14 @@ cd $WORK_DIR
 # Fetch CHECKSUMS
 echo "Fecthing CHECKSUMS for ${CFSSL_VERSION}"
 CHECKSUM_FILE="cfssl_${CFSSL_VERSION}_checksums.txt"
-curl --retry 6 -JLO "${CFSSL_PKG_URL}/${CHECKSUM_FILE}"
+curl --retry 6 -fJLO "${CFSSL_PKG_URL}/${CHECKSUM_FILE}"
 
 echo "Fetching items: ${CFSSL_ITEMS}"
 for item in ${CFSSL_ITEMS} ; do
   ITEM_PATH="${item}_${CFSSL_VERSION}_${CFSSL_PLATFORM}"
   ITEM_URL="${CFSSL_PKG_URL}/${ITEM_PATH}"
   echo "Fetching '${item}' from '${ITEM_URL}'"
-  curl --retry 6 -JLO  "$ITEM_URL"
+  curl --retry 6 -fJLO  "$ITEM_URL"
   grep ${ITEM_PATH} ${CHECKSUM_FILE} >> checksums.txt
 done
 
@@ -42,7 +42,7 @@ for item in ${CFSSL_ITEMS} ; do
 done
 
 echo "Fetching LICENSE"
-curl -JLo ${CFSSL_BIN}/cfssl.LICENSE "${CFSSL_LICENSE}"
+curl -fJLo ${CFSSL_BIN}/cfssl.LICENSE "${CFSSL_LICENSE}"
 
 cd $CWD
 rm -rf $WORK_DIR
