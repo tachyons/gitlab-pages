@@ -207,7 +207,7 @@ graph LR;
     gitlab-ruby
     gitlab-rails
     git-base
-    alpine[alpine:3.10]:::external;
+    alpine[alpine:3.15]:::external;
     debian[debian:bullseye-slim]:::external;
     gcr.io/distroless/base-debian11
   end
@@ -281,7 +281,7 @@ graph LR;
 
   subgraph External;
     gitlab-assets[registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee]:::external;
-    alpine[alpine:3.10]:::external;
+    alpine[alpine:3.15]:::external;
     scratch[scratch]:::external;
     debian[debian:bullseye-slim]:::external;
     gcr.io/distroless/base-debian11
