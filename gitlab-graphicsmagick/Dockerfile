@@ -1,5 +1,5 @@
 ARG FROM_IMAGE=debian
-ARG TAG=buster-slim
+ARG TAG=bullseye-slim
 
 FROM ${FROM_IMAGE}:${TAG} as compile
 
