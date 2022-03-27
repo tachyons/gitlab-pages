@@ -31,7 +31,31 @@ queue_requests false
 
 # Bind the server to "url". "tcp://", "unix://" and "ssl://" are the only
 # accepted protocols.
-bind "tcp://0.0.0.0:#{ENV['INTERNAL_PORT'] ||= '8080'}"
+
+# We want to provide the ability to enable individually control HTTP (`INTERNAL_PORT`)
+# HTTPS (`SSL_INTERNAL_PORT`):
+#
+# 1. HTTP on, HTTPS on: Since `INTERNAL_PORT` is configured, we listen on it.
+# 2. HTTP on, HTTPS off: If we don't specify either port, we default to HTTP
+#    because SSL requires a certificate and key to work.
+# 3. HTTP off, HTTPS on: `SSL_INTERNAL_PORT` is enabled but
+#   `INTERNAL_PORT` is not set.
+if ENV['INTERNAL_PORT'] || (!ENV['INTERNAL_PORT'] && !ENV['SSL_INTERNAL_PORT'])
+  bind "tcp://0.0.0.0:#{ENV['INTERNAL_PORT'] ||= '8080'}"
+end
+
+if ENV['SSL_INTERNAL_PORT']
+  ssl_params = {
+    cert: ENV['PUMA_SSL_CERT'],
+    key: ENV['PUMA_SSL_KEY'],
+  }
+
+  ssl_params[:ca] = ENV['PUMA_SSL_CLIENT_CERT'] if ENV['PUMA_SSL_CLIENT_CERT']
+  ssl_params[:ssl_cipher_filter] = ENV['PUMA_SSL_CIPHER_FILTER'] if ENV['PUMA_SSL_CIPHER_FILTER']
+  ssl_params[:verify_mode] = ENV['PUMA_SSL_VERIFY_MODE'] || 'none'
+
+  ssl_bind '0.0.0.0', ENV['SSL_INTERNAL_PORT'], ssl_params
+end
 
 workers (ENV['WORKER_PROCESSES'] ||= '3').to_i
 

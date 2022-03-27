@@ -2,5 +2,9 @@
 
 set -e
 
-# Check that both our processes are running on their tcp port
-printf "GET / HTTP/1.1\n\n" > /dev/tcp/127.0.0.1/8080
+if [[ -z "${SSL_INTERNAL_PORT}" ]]; then
+  # Check that both our processes are running on their tcp port
+  printf "GET / HTTP/1.1\n\n" > /dev/tcp/127.0.0.1/${INTERNAL_PORT:-8080}
+else
+  curl -k -s -o /dev/null https://127.0.0.1:${SSL_INTERNAL_PORT}
+fi
