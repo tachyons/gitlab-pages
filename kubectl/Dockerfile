@@ -21,3 +21,5 @@ RUN apt-get update \
 
 # Default to non-root user
 USER 65534:65534
+# kubectl needs a writable HOME (gitlab-org/charts/gitlab#3021)
+ENV HOME=/tmp/kube
