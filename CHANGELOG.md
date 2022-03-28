@@ -1,3 +1,14 @@
+## 1.56.1 (2022-03-28)
+
+### Changed (1 change)
+
+- [Update go-proxyproto to 0.6.2 and fix tests](gitlab-org/security/gitlab-pages@4c8e257183d9fe8684de3b90787176582bcc8298) ([merge request](gitlab-org/security/gitlab-pages!23))
+
+### Security (2 changes)
+
+- [fix: validate that session was issued on the same host](gitlab-org/security/gitlab-pages@e0b2a7070c3398e74aeeba2c4cc249bf0eb689bf) ([merge request](gitlab-org/security/gitlab-pages!29))
+- [Fix weak HTTP server timeouts configuration](gitlab-org/security/gitlab-pages@fc5a652574d0eef03c776a70f3c0678158bc1dbd) ([merge request](gitlab-org/security/gitlab-pages!19))
+
 ## 1.56.0 (2022-03-15)
 
 ### Added (3 changes)
