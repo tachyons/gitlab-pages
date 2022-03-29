@@ -1,6 +1,6 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG="master"
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
+ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
 
 FROM ${FROM_IMAGE}:${TAG}
 
@@ -12,6 +12,7 @@ ARG CI_API_V4_URL
 
 RUN buildDeps=' \
   gcc \
+  git \
   libicu-dev \
   make \
   pkg-config' \

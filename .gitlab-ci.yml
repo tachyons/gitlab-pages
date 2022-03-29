@@ -583,7 +583,7 @@ gitlab-rails-ee:
     - pg_version=$(cat artifacts/container_versions/postgresql_tag.txt)
     - pg_image="${CI_REGISTRY_IMAGE}/postgresql:${pg_version}"
     - gei_dir_version=$(get_version gitlab-elasticsearch-indexer)
-    - gei_version=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$gei_dir_version" | sha1sum))
+    - gei_version=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$go_version$gei_dir_version" | sha1sum))
     - gei_image="${CI_REGISTRY_IMAGE}/gitlab-elasticsearch-indexer:${gei_version}${IMAGE_TAG_EXT}"
     - gm_version=$(cat artifacts/container_versions/gitlab-graphicsmagick_tag.txt)
     - gm_image="${CI_REGISTRY_IMAGE}/gitlab-graphicsmagick:${gm_version}"
@@ -987,17 +987,15 @@ build:gitlab-shell:
   <<: *build-job-base
   stage: prepare:phase-three
   needs:
-    - build:git-base
     - build:gitlab-go
     - build:gitlab-ruby
     - build:gitlab-logger
     - build:gitlab-gomplate
   script:
-    - import_assets artifacts/ubi/{git-base,gitlab-go,gitlab-ruby}.tar.gz
+    - import_assets artifacts/ubi/{gitlab-go,gitlab-ruby}.tar.gz
     - go_dir_version=$(get_version gitlab-go)
-    - git_container=$(cat artifacts/container_versions/build_git-base_tag.txt)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$TARGET_VERSION$GITLAB_SHELL_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$TARGET_VERSION$GITLAB_SHELL_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - build_if_needed --build-arg "VERSION=${GITLAB_SHELL_VERSION}"
                       --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "API_URL=${CI_API_V4_URL}"
@@ -1014,16 +1012,14 @@ gitlab-shell:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - logger_target_version=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
-    - export git_container=$(cat artifacts/container_versions/git-base_tag.txt)
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - export GITLAB_LOGGER_VERSION=($(echo -n "$go_version$logger_target_version$GITLAB_LOGGER_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$git_container$gomplate_version$TARGET_VERSION$GITLAB_SHELL_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$gomplate_version$TARGET_VERSION$GITLAB_SHELL_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
-    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_container${IMAGE_TAG_EXT}"
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:${go_version}${IMAGE_TAG_EXT}"
     - fi
-    - build_if_needed --build-arg "TAG=$git_container${IMAGE_TAG_EXT}"
+    - build_if_needed --build-arg "TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
-                      --build-arg "GIT_TAG=$git_container${IMAGE_TAG_EXT}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_SHELL_VERSION=${GITLAB_SHELL_VERSION}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
@@ -1036,7 +1032,6 @@ gitlab-shell:
     - push_tags $GITLAB_SHELL_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-shell_tag.txt
   needs:
-    - git-base
     - gitlab-gomplate
     - gitlab-logger
     - job: build:gitlab-logger
@@ -1088,14 +1083,12 @@ build:gitlab-elasticsearch-indexer:
   <<: *build-job-base
   stage: prepare:phase-two
   needs:
-    - build:git-base
     - build:gitlab-go
   script:
-    - import_assets artifacts/ubi/{git-base,gitlab-go}.tar.gz
+    - import_assets artifacts/ubi/gitlab-go.tar.gz
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - git_version=$(cat artifacts/container_versions/build_git-base_tag.txt)
-    - export CONTAINER_VERSION=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$go_version$TARGET_VERSION" | sha1sum))
     - build_if_needed --build-arg "VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
                       --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "API_URL=${CI_API_V4_URL}"
@@ -1107,15 +1100,13 @@ gitlab-elasticsearch-indexer:
   <<: *only-ee
   stage: phase-four
   needs:
-    - git-base
+    - gitlab-go
   script:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
-    - export CONTAINER_VERSION=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$git_version$TARGET_VERSION" | sha1sum))
-    - build_if_needed --build-arg "TAG=${git_version}${IMAGE_TAG_EXT}"
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$go_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
-                      --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
@@ -1182,10 +1173,9 @@ build:gitlab-container-registry:
   <<: *build-job-base
   stage: prepare:phase-two
   needs:
-    - build:git-base
     - build:gitlab-go
   script:
-    - import_assets artifacts/ubi/{git-base,gitlab-go}.tar.gz
+    - import_assets artifacts/ubi/gitlab-go.tar.gz
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$TARGET_VERSION" | sha1sum))
@@ -1201,21 +1191,19 @@ gitlab-container-registry:
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$GITLAB_CONTAINER_REGISTRY_VERSION$go_version$gomplate_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
-    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version${IMAGE_TAG_EXT}"
     - fi
-    - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
+    - build_if_needed --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
-                      --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "REGISTRY_VERSION=${GITLAB_CONTAINER_REGISTRY_VERSION}"
                       --build-arg "REGISTRY_NAMESPACE=gitlab-org"
                       --build-arg "DEPENDENCY_PROXY=${DEPENDENCY_PROXY}"
     - push_tags $GITLAB_CONTAINER_REGISTRY_VERSION${IMAGE_TAG_EXT}
   needs:
-    - git-base
+    - gitlab-go
     - gitlab-gomplate
     - job: build:gitlab-container-registry
       optional: true
@@ -1226,11 +1214,10 @@ build:gitlab-workhorse-ee:
   <<: *build-job-base
   stage: prepare:phase-four
   needs:
-    - build:git-base
     - build:gitlab-go
     - build:gitlab-rails-ee
   script:
-    - import_assets artifacts/ubi/{git-base,gitlab-go,gitlab-rails-ee}.tar.gz
+    - import_assets artifacts/ubi/{gitlab-go,gitlab-rails-ee}.tar.gz
     - rails_version=$(get_version gitlab-rails)
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
@@ -1253,15 +1240,13 @@ gitlab-workhorse-ee:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ee_tag.txt)
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
-    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version${IMAGE_TAG_EXT}"
     - fi
-    - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
-                      --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+    - build_if_needed --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=$GITLAB_VERSION"
                       --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
@@ -1270,7 +1255,6 @@ gitlab-workhorse-ee:
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
   needs:
-    - git-base
     - gitlab-rails-ee
     - gitlab-ruby
     - job: build:gitlab-workhorse-ee
@@ -1289,13 +1273,11 @@ gitlab-workhorse-ce:
     - ruby_version=$(get_version gitlab-ruby)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ce_tag.txt)
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
-    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version"
-    - build_if_needed --build-arg "GIT_TAG=${git_version}${IMAGE_TAG_EXT}"
-                      --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+    - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version"
+    - build_if_needed --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=$GITLAB_VERSION"
                       --build-arg "RAILS_VERSION=${rails_container}"
                       --build-arg "RUBY_VERSION=$ruby_version"
@@ -1303,7 +1285,6 @@ gitlab-workhorse-ce:
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
   needs:
-    - git-base
     - gitlab-ruby
     - gitlab-rails-ce
     - gitlab-gomplate

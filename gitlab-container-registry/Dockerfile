@@ -1,13 +1,13 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
-ARG GIT_TAG=2.29.0
+ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
+ARG GO_TAG="master"
 
 ARG GOMPLATE_TAG=
 ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
 
 FROM ${GOMPLATE_IMAGE} as gomplate
 
-FROM ${FROM_IMAGE}:${GIT_TAG} as builder
+FROM ${FROM_IMAGE}:${GO_TAG} as builder
 
 ARG DOCKER_BUILDTAGS="include_oss include_gcs continuous_profiler_stackdriver"
 ARG REGISTRY_VERSION=v3.36.1-gitlab
@@ -18,7 +18,7 @@ ARG REGISTRY_SOURCE_PATH=${GOPATH}/src/github.com/docker/distribution
 ARG DEPENDENCY_PROXY
 
 RUN buildDeps=' \
-  make' \
+  git make' \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && git clone https://gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT}.git \
