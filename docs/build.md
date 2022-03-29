@@ -206,6 +206,7 @@ graph LR;
   subgraph Base
     gitlab-ruby
     gitlab-rails
+    gitlab-go
     git-base
     alpine[alpine:3.15]:::external;
     debian[debian:bullseye-slim]:::external;
@@ -227,7 +228,7 @@ graph LR;
   gitlab-rails==>gitlab-ruby;
   gitlab-workhorse===>gitlab-ruby
 
-  gitlab-shell===>git-base;
+  gitlab-shell===>gitlab-go;
 
   gitaly===>git-base;
   gitlab-container-registry==>debian
@@ -336,13 +337,13 @@ graph LR;
 
   gitlab-mailroom==>gitlab-ruby;
 
-  gitlab-shell==>git-base;
+  gitlab-shell==>gitlab-go;
   gitlab-shell-.->gitlab-logger;
   gitlab-shell-.->gitlab-gomplate;
 
   git-base==>gitlab-go;
 
-  gitlab-elasticsearch-indexer==>git-base;
+  gitlab-elasticsearch-indexer==>gitlab-go;
 
   gitaly==>git-base;
   gitaly-.->gitlab-logger;
@@ -351,11 +352,11 @@ graph LR;
   gitlab-kas==>gcr.io/distroless/base-debian11
 
   gitlab-container-registry==>debian
-  gitlab-container-registry-->git-base
+  gitlab-container-registry-->gitlab-go
   gitlab-container-registry-.->gitlab-gomplate
 
   gitlab-workhorse==>gitlab-ruby
-  gitlab-workhorse-->git-base
+  gitlab-workhorse-->gitlab-go
   gitlab-workhorse-.->gitlab-rails
   gitlab-workhorse-.->gitlab-gomplate
 
