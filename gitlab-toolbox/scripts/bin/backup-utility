@@ -40,7 +40,7 @@ function usage()
      --storage-class CLASSNAME              Pass this storage class to the gcs, s3cmd or aws cli for more cost-efficient
                                             storage of backups.
      --maximum-backups N                    Only keep the most recent N number of backups, deleting others after success.
-                                            Requires s3config credentials to be able to list and delete objects.
+                                            Requires s3config or AWS credentials to be able to list and delete objects.
      --cleanup                              Run the backup cleanup without creating a new backup. Can be used with the
                                             'maximum-backups' option to clean old remote backups.
 HEREDOC
@@ -121,7 +121,7 @@ function get_existing_backups(){
           existing_backups=($(s3cmd ${S3_CMD_BACKUP_OPTION} ls s3://$BACKUP_BUCKET_NAME --rinclude '^\d{10}_\d{4}_\d{2}_\d{2}_.+_gitlab_backup.tar$' | awk '{print $4}' | LC_ALL=C sort))
           ;;
         awscli)
-          existing_backups=($(aws s3 ls "s3://$BACKUP_BUCKET_NAME" | awk '{print $4}' | grep -E '^\d{10}_\d{4}_\d{2}_\d{2}_.+_gitlab_backup.tar$' | LC_ALL=C sort))
+          existing_backups=($(aws s3 ls "s3://$BACKUP_BUCKET_NAME" | awk '{print $4}' | grep -E '^[0-9]{10}_[0-9]{4}_[0-9]{2}_[0-9]{2}_.+_gitlab_backup.tar$' | LC_ALL=C sort))
           ;;
         *)
           echo "Unknown S3 tool: ${S3_TOOL}"
