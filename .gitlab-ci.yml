@@ -269,7 +269,7 @@ build:gitlab-ruby:
   <<: *build-job-base
   stage: prepare:phase-one
   script:
-    - build_if_needed
+    - build_if_needed --build-arg "RUBY_VERSION=$RUBY_VERSION"
     - copy_assets
 
 gitlab-ruby:
@@ -280,7 +280,7 @@ gitlab-ruby:
     - job: build:gitlab-ruby
       optional: true
   script:
-    - build_if_needed
+    - build_if_needed --build-arg "RUBY_VERSION=$RUBY_VERSION"
     - push_tags
 
 build:gitlab-logger:
