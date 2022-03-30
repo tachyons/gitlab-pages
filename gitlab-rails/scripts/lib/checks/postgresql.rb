@@ -37,23 +37,24 @@ module Checks
       ENV['DATABASE_FILE']
     end
 
+    def self.db_schema_target
+      ENV['DB_SCHEMA_TARGET']
+    end
+
     class DatabaseConfig
       def initialize(shard_name)
         @shard_name = shard_name
       end
 
       def check_schema_version
-        ActiveRecord::Base.connected_to(shard: @shard_name, role: :writing) do
-          success = database_schema_version
+        success = database_schema_version
 
-          puts "Database Schema - #{@shard_name} (#{ActiveRecord::Base.connection_db_config.database}) - current: #{@database_version}, codebase: #{codebase_schema_version}"
+        puts "Database Schema - #{@shard_name} (#{ActiveRecord::Base.connection_db_config.database}) - current: #{@database_version}, codebase: #{codebase_schema_version}"
+        puts 'NOTICE: Database has not been initialized yet.' unless @database_version.to_i.positive?
 
-          puts 'NOTICE: Database has not been initialized yet.' unless @database_version.to_i.positive?
+        return true if (ENV['BYPASS_SCHEMA_VERSION'] && success)
 
-          return true if (ENV['BYPASS_SCHEMA_VERSION'] && success)
-
-          (success && @database_version.to_i >= codebase_schema_version)
-        end
+        (success && @database_version.to_i >= codebase_schema_version)
       rescue => e
         puts "Error checking #{@shard_name}: #{e.message}"
         false
@@ -63,14 +64,21 @@ module Checks
 
       def database_schema_version
         begin
-          @database_version = ActiveRecord::Base.connection.migration_context.current_version
+          db_config = ActiveRecord::Base.configurations.configs_for(env_name: 'production', name: @shard_name)
+          connection = ActiveRecord::Base.establish_connection(db_config).connection
+          schema_migrations_table_name = ActiveRecord::Base.schema_migrations_table_name
 
-          # Rails silently eats `ActiveRecord::NoDatabaseError` when calling `current_version`
-          # This stems from https://github.com/rails/rails/blob/v6.0.3.6/activerecord/lib/active_record/connection_adapters/postgresql_adapter.rb#L48-L54
+          if connection.table_exists?(schema_migrations_table_name)
+            @database_version =
+              connection.execute("SELECT MAX(version) AS version FROM #{schema_migrations_table_name}")
+                        .first
+                        .fetch('version')
+          end
+
           puts "WARNING: Problem accessing #{@shard_name} database (#{ActiveRecord::Base.connection_db_config.database})."\
                " Confirm username, password, and permissions." if @database_version.nil?
 
-          # returning false prevents bailing when BYPASS_SCHEMA_VERSION set.
+          # Returning false prevents bailing when BYPASS_SCHEMA_VERSION set.
           !@database_version.nil?
         rescue RuntimeError => e
           puts "Error fetching #{@shard_name} schema: #{e.message}"
@@ -94,19 +102,29 @@ module Checks
         File.join(config_directory, database_file))
     end
 
+    def self.production_databases
+      db_configs = database_configurations.configs_for(
+        env_name: 'production', include_replicas: false)
+
+      db_configs =
+        if db_schema_target == 'geo'
+          # TODO: To be removed in 15.0. See https://gitlab.com/gitlab-org/gitlab/-/issues/351946
+          # The db_config.name is set to primary when config/database_geo.yml exists and uses a legacy syntax.
+          db_configs.find { |db_config| ['primary', 'geo'].include?(db_config.name) }
+        else
+          db_configs.reject { |db_config| db_config.name == 'geo' }
+        end
+
+      Array(db_configs)
+    end
+
     def self.check_all_databases
       ActiveRecord::Base.legacy_connection_handling = false
       ActiveRecord::Base.configurations = database_configurations
 
-      production_databases = database_configurations.configs_for(
-        env_name: 'production', include_replicas: false)
-
       puts "Checking: #{production_databases.map(&:name).join(', ')}"
 
       results = production_databases.map do |db_config|
-        ActiveRecord::Base.connection_handler.establish_connection(
-          db_config, role: :writing, shard: db_config.name)
-
         Thread.new do
           DatabaseConfig.new(db_config.name).check_schema_version
         end
