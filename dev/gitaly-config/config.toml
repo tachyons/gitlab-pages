@@ -3,11 +3,13 @@
 # The directory where Gitaly's executables are stored
 bin_dir = "/usr/local/bin"
 
+# The directory where Gitaly creates files and directories required at runtime.
+# This includes e.g. internal sockets, the Git execution environment or
+# Gitaly's hooks.
+runtime_dir = "/home/git"
+
 # listen on a TCP socket. This is insecure (no authentication)
 listen_addr = "0.0.0.0:8075"
-
-# directory where internal sockets will reside
-internal_socket_dir = "/home/git"
 
 # # Optional: export metrics via Prometheus
 # prometheus_listen_addr = "localhost:9236"
