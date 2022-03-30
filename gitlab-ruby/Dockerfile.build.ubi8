@@ -2,8 +2,7 @@ ARG BUILD_IMAGE=
 
 FROM ${BUILD_IMAGE}
 
-ARG RUBY_MAJOR_VERSION=2.7
-ARG RUBY_MINOR_VERSION=2.7.5
+ARG RUBY_VERSION=2.7.5
 ARG RUBYGEMS_VERSION=3.2.19
 ARG BUNDLER_VERSION=2.3.6
 ARG RBREADLINE_VERSION=0.5.5
@@ -29,9 +28,10 @@ RUN mkdir /assets \
     && perl Makefile.PL \
     && make install \
     && cd .. \
-    && curl -f --retry 6 -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.gz | tar -xz \
-    && cd ruby-${RUBY_MINOR_VERSION} \
-    && patch -p1 < /patches/thread-memory-allocations-2.7.patch \
+    && export RUBY_MAJOR_VERSION="${RUBY_VERSION%.*}" \
+    && curl -f --retry 6 -s https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_VERSION}.tar.gz | tar -xz \
+    && cd ruby-${RUBY_VERSION} \
+    && patch -p1 < /patches/thread-memory-allocations-${RUBY_MAJOR_VERSION}.patch \
     && export LDFLAGS="-Wl,--no-as-needed" \
     && cflags="-fno-omit-frame-pointer" ./configure --prefix=/usr --libdir=${LIBDIR} --with-jemalloc --disable-dtrace --disable-install-doc --disable-install-rdoc --enable-shared --with-out-ext=dbm,readline --without-gmp --without-gdbm --without-tk \
     && make -j "$(nproc)" install \

@@ -1,8 +1,7 @@
 FROM debian:bullseye-slim
 
 ARG BUILD_DIR=/tmp/build
-ARG RUBY_MAJOR_VERSION=2.7
-ARG RUBY_MINOR_VERSION=2.7.5
+ARG RUBY_VERSION=2.7.5
 ARG RUBYGEMS_VERSION=3.2.19
 ARG BUNDLER_VERSION=2.3.6
 ARG JEMALLOC_VERSION=5.2.1
@@ -66,11 +65,12 @@ RUN buildDeps=' \
   && perl Makefile.PL \
   && make install \
   && cd .. \
-  && curl --retry 6 -sfo ruby.tar.xz https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_MINOR_VERSION}.tar.xz \
+  && export RUBY_MAJOR_VERSION="${RUBY_VERSION%.*}" \
+  && curl --retry 6 -sfo ruby.tar.xz https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_VERSION}.tar.xz \
   && tar -xf ruby.tar.xz \
   && rm ruby.tar.xz \
-  && cd ruby-${RUBY_MINOR_VERSION} \
-  && patch -p1 < ${BUILD_DIR}/patches/thread-memory-allocations-2.7.patch \
+  && cd ruby-${RUBY_VERSION} \
+  && patch -p1 < ${BUILD_DIR}/patches/thread-memory-allocations-${RUBY_MAJOR_VERSION}.patch \
   && export LDFLAGS="-Wl,--no-as-needed" \
   && cflags="-fno-omit-frame-pointer" ./configure --prefix=/usr --with-jemalloc --with-out-ext=dbm,readline --enable-shared --disable-install-rdoc --disable-install-doc  --without-gmp --without-gdbm --without-tk --disable-dtrace \
   && make -j "$(nproc)" install \
