@@ -8,8 +8,10 @@ SECURITY_PROJECT_ID='15685887' # gitlab-org/security/gitlab-pages
 if [[ "${SECURITY:-'0'}" == '1' ]]
 then
     PROJECT_ID="$SECURITY_PROJECT_ID"
+    REMOTE="security"
 else
     PROJECT_ID="$PUBLIC_PROJECT_ID"
+    REMOTE="origin"
 fi
 
 MESSAGE="docs: add changelog for version $VERSION"
@@ -28,7 +30,7 @@ echo 'Updating changelog on the remote branch...'
 if generate_changelog
 then
     echo 'Updating local branch...'
-    git pull origin "$BRANCH"
+    git pull "$REMOTE" "$BRANCH"
     echo 'The changelog has been updated'
 else
     echo "Failed to generate the changelog for version $VERSION on branch $BRANCH"
