@@ -1,7 +1,7 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG="master"
 
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
+ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
 ARG GITLAB_LOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
 
 ARG GOMPLATE_TAG=
@@ -17,7 +17,7 @@ ARG CI_API_V4_URL
 
 # install build deps
 RUN buildDeps=' \
-    gcc make' \
+    gcc git make' \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps xtail \
     && rm -rf /var/lib/apt/lists/* \

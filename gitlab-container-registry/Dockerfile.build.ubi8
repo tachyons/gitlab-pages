@@ -3,16 +3,17 @@ ARG BUILD_IMAGE=
 FROM ${BUILD_IMAGE}
 
 ARG DOCKER_BUILDTAGS="include_oss include_gcs continuous_profiler_stackdriver"
-ARG REGISTRY_VERSION=v3.36.1-gitlab
+ARG REGISTRY_VERSION=v3.37.0-gitlab
 ARG REGISTRY_NAMESPACE=gitlab-org
 ARG REGISTRY_PROJECT=container-registry
 ARG GOPATH=/go
 ARG REGISTRY_SOURCE_PATH=${GOPATH}/src/github.com/docker/distribution
+ARG DNF_OPTS
 
-ADD git-base.tar.gz /
 ADD gitlab-go.tar.gz /
 
-RUN mkdir -p /assets/usr/local \
+RUN dnf ${DNF_OPTS} install -by --nodocs git \
+    && mkdir -p /assets/usr/local \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
     && git clone https://gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT}.git \
       --branch ${REGISTRY_VERSION} --single-branch ${REGISTRY_SOURCE_PATH} \

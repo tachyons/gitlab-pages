@@ -1,5 +1,5 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
-ARG GIT_TAG=2.29.0
+ARG GO_TAG="master"
 ARG GITLAB_EDITION=gitlab-rails-ee
 ARG RAILS_VERSION="master"
 ARG RUBY_VERSION="master"
@@ -9,14 +9,14 @@ ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
 FROM ${CI_REGISTRY_IMAGE}/${GITLAB_EDITION}:${RAILS_VERSION} as rails
 FROM ${GOMPLATE_IMAGE} as gomplate
 
-FROM ${CI_REGISTRY_IMAGE}/git-base:${GIT_TAG} as builder
+FROM ${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG} as builder
 
 ARG BUILD_DIR=/tmp/build
 RUN mkdir -p ${BUILD_DIR}
 COPY --from=rails /srv/gitlab/ ${BUILD_DIR}/
 
 RUN buildDeps=' \
-  make' \
+  git make' \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && make -C ${BUILD_DIR}/workhorse install \

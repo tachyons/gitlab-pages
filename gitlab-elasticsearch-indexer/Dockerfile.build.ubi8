@@ -7,13 +7,14 @@ ARG PROJECT=gitlab-elasticsearch-indexer
 ARG VERSION=v1.3.0
 ARG API_URL=
 ARG API_TOKEN=
+ARG DNF_OPTS
 
-ADD git-base.tar.gz /
 ADD gitlab-go.tar.gz /
 
 ENV PRIVATE_TOKEN=${API_TOKEN}
 
-RUN mkdir -p /assets \
+RUN dnf ${DNF_OPTS} install -by --nodocs git \
+    && mkdir -p /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
     && /gitlab-fetch \
         "${API_URL}" \
