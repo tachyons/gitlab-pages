@@ -269,8 +269,10 @@ build:gitlab-ruby:
   <<: *build-job-base
   stage: prepare:phase-one
   script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${RUBY_VERSION}" | sha1sum))
     - build_if_needed --build-arg "RUBY_VERSION=$RUBY_VERSION"
     - copy_assets
+    - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/build_gitlab-ruby_tag.txt
 
 gitlab-ruby:
   <<: *job-base
@@ -280,8 +282,10 @@ gitlab-ruby:
     - job: build:gitlab-ruby
       optional: true
   script:
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${RUBY_VERSION}" | sha1sum))
     - build_if_needed --build-arg "RUBY_VERSION=$RUBY_VERSION"
     - push_tags
+    - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-ruby_tag.txt
 
 build:gitlab-logger:
   <<: *build-job-base
@@ -338,7 +342,7 @@ gitlab-pages:
   stage: phase-four
   script:
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
@@ -522,7 +526,7 @@ gitlab-go:
   stage: phase-two
   script:
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$TARGET_VERSION$GO_VERSION" | sha1sum))
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - build_if_needed --build-arg "GO_VERSION=$GO_VERSION"
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
@@ -540,7 +544,7 @@ build:gitlab-rails-ee:
     - build:gitlab-graphicsmagick
   script:
     - import_assets artifacts/ubi/{gitlab-ruby,postgresql,gitlab-elasticsearch-indexer,gitlab-graphicsmagick}.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/build_gitlab-ruby_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
     - fetch_assets
@@ -574,7 +578,7 @@ gitlab-rails-ee:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
@@ -632,7 +636,7 @@ gitlab-rails-ce:
       optional: true
   script:
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version"
@@ -676,10 +680,11 @@ build:gitlab-toolbox-ee:
   needs:
     - build:gitlab-python
     - build:gitaly
+    - build:gitlab-ruby
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
     - import_assets artifacts/ubi/gitaly.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/build_gitlab-ruby_tag.txt)
     - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - build_if_needed --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
@@ -691,7 +696,7 @@ gitlab-toolbox-ee:
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ee_tag.txt)
     - gitaly_container=$(cat artifacts/container_versions/gitaly_tag.txt)
@@ -724,7 +729,7 @@ gitlab-toolbox-ce:
   <<: *except-ee
   stage: phase-six
   script:
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ce_tag.txt)
     - gitaly_container=$(cat artifacts/container_versions/gitaly_tag.txt)
@@ -749,7 +754,7 @@ gitlab-geo-logcursor:
   <<: *only-ee
   stage: phase-six
   script:
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - rails_version=$(get_version gitlab-rails)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ee_tag.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
@@ -768,9 +773,10 @@ build:gitlab-webservice-ee:
   stage: prepare:phase-two
   needs:
     - build:gitlab-python
+    - build:gitlab-ruby
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/build_gitlab-ruby_tag.txt)
     - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - build_if_needed
@@ -783,7 +789,7 @@ gitlab-webservice-ee:
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
     - import_assets artifacts/ubi/gitlab-logger.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - logger_target_version=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
@@ -820,7 +826,7 @@ gitlab-webservice-ce:
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-logger.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - logger_target_version=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
@@ -848,9 +854,10 @@ build:gitlab-sidekiq-ee:
   stage: prepare:phase-two
   needs:
     - build:gitlab-python
+    - build:gitlab-ruby
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/build_gitlab-ruby_tag.txt)
     - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$rails_container$TARGET_VERSION" | sha1sum))
     - build_if_needed
@@ -863,7 +870,7 @@ gitlab-sidekiq-ee:
   script:
     - import_assets artifacts/ubi/gitlab-python.tar.gz
     - import_assets artifacts/ubi/gitlab-logger.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - logger_target_version=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
@@ -900,7 +907,7 @@ gitlab-sidekiq-ce:
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-logger.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - logger_target_version=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
@@ -929,7 +936,7 @@ build:gitlab-exporter:
     - build:postgresql
   script:
     - import_assets artifacts/ubi/{gitlab-ruby,postgresql}.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/build_gitlab-ruby_tag.txt)
     - ruby_container=($(echo -n "$ruby_version$GITLAB_EXPORTER_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$ruby_container$TARGET_VERSION" | sha1sum))
     - build_if_needed
@@ -940,7 +947,7 @@ gitlab-exporter:
   <<: *except-deps
   stage: phase-two
   script:
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - ruby_container=($(echo -n "$ruby_version$GITLAB_EXPORTER_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$ruby_container$TARGET_VERSION" | sha1sum))
     - build_if_needed --build-arg "GITLAB_EXPORTER_VERSION=$GITLAB_EXPORTER_VERSION"
@@ -970,7 +977,7 @@ gitlab-mailroom:
   <<: *except-deps
   stage: phase-two
   script:
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$MAILROOM_VERSION" | sha1sum))
     - build_if_needed --build-arg "MAILROOM_VERSION=$MAILROOM_VERSION"
                       --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
@@ -1008,7 +1015,7 @@ gitlab-shell:
   stage: phase-four
   script:
     - import_assets artifacts/ubi/{gitlab-logger,gitlab-gomplate}.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - logger_target_version=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
@@ -1065,7 +1072,7 @@ git-base:
     - job: build:git-base
       optional: true
   script:
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GITALY_SERVER_VERSION" | sha1sum))
@@ -1139,7 +1146,7 @@ gitaly:
   stage: phase-five
   script:
     - import_assets artifacts/ubi/gitlab-logger.tar.gz
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
@@ -1219,7 +1226,7 @@ build:gitlab-workhorse-ee:
   script:
     - import_assets artifacts/ubi/{gitlab-go,gitlab-rails-ee}.tar.gz
     - rails_version=$(get_version gitlab-rails)
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/build_gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
@@ -1237,7 +1244,7 @@ gitlab-workhorse-ee:
   script:
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - rails_version=$(get_version gitlab-rails)
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ee_tag.txt)
@@ -1270,7 +1277,7 @@ gitlab-workhorse-ce:
   script:
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - rails_version=$(get_version gitlab-rails)
-    - ruby_version=$(get_version gitlab-ruby)
+    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ce_tag.txt)
