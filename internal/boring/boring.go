@@ -3,8 +3,16 @@
 
 package boring
 
-import "gitlab.com/gitlab-org/labkit/log"
+import (
+	"crypto/boring"
+
+	"gitlab.com/gitlab-org/labkit/log"
+)
 
 func CheckBoring() {
-	log.Info("FIPS mode is enabled. Using BoringSSL.")
+	if boring.Enabled() {
+		log.Info("FIPS mode is enabled. Using BoringSSL.")
+		return
+	}
+	log.Info("GitLab Pages was compiled with FIPS mode but BoringSSL is not enabled.")
 }
