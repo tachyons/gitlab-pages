@@ -85,41 +85,6 @@ type domain interface {
 	ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request)
 }
 
-func (a *Auth) getSessionFromStore(r *http.Request) (*sessions.Session, error) {
-	session, err := a.store.Get(r, "gitlab-pages")
-
-	if session != nil {
-		// Cookie just for this domain
-		session.Options.Path = "/"
-		session.Options.HttpOnly = true
-		session.Options.Secure = request.IsHTTPS(r)
-		session.Options.MaxAge = authSessionMaxAge
-	}
-
-	return session, err
-}
-
-func (a *Auth) checkSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
-	// Create or get session
-	session, errsession := a.getSessionFromStore(r)
-
-	if errsession != nil {
-		// Save cookie again
-		errsave := session.Save(r, w)
-		if errsave != nil {
-			logRequest(r).WithError(errsave).Error(saveSessionErrMsg)
-			errortracking.CaptureErrWithReqAndStackTrace(errsave, r)
-			httperrors.Serve500(w)
-			return nil, errsave
-		}
-
-		http.Redirect(w, r, getRequestAddress(r), http.StatusFound)
-		return nil, errsession
-	}
-
-	return session, nil
-}
-
 // TryAuthenticate tries to authenticate user and fetch access token if request is a callback to /auth?
 func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains source.Source) bool {
 	if a == nil {
@@ -159,7 +124,7 @@ func (a *Auth) TryAuthenticate(w http.ResponseWriter, r *http.Request, domains s
 	return false
 }
 
-func (a *Auth) checkAuthenticationResponse(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
+func (a *Auth) checkAuthenticationResponse(session *hostSession, w http.ResponseWriter, r *http.Request) {
 	if !validateState(r, session) {
 		// State is NOT ok
 		logRequest(r).Warn("Authentication state did not match expected")
@@ -228,7 +193,7 @@ func (a *Auth) domainAllowed(ctx context.Context, name string, domains source.So
 	return (domain != nil && err == nil)
 }
 
-func (a *Auth) handleProxyingAuth(session *sessions.Session, w http.ResponseWriter, r *http.Request, domains source.Source) bool {
+func (a *Auth) handleProxyingAuth(session *hostSession, w http.ResponseWriter, r *http.Request, domains source.Source) bool {
 	// handle auth callback e.g. https://gitlab.io/auth?domain=domain&state=state
 	if shouldProxyAuthToGitlab(r) {
 		domain := r.URL.Query().Get("domain")
@@ -345,11 +310,11 @@ func shouldProxyAuthToGitlab(r *http.Request) bool {
 	return r.URL.Query().Get("domain") != "" && r.URL.Query().Get("state") != ""
 }
 
-func shouldProxyCallbackToCustomDomain(session *sessions.Session) bool {
+func shouldProxyCallbackToCustomDomain(session *hostSession) bool {
 	return session.Values["proxy_auth_domain"] != nil
 }
 
-func validateState(r *http.Request, session *sessions.Session) bool {
+func validateState(r *http.Request, session *hostSession) bool {
 	state := r.URL.Query().Get("state")
 	if state == "" {
 		// No state param
@@ -414,7 +379,7 @@ func (a *Auth) fetchAccessToken(ctx context.Context, code string) (tokenResponse
 	return token, nil
 }
 
-func (a *Auth) checkSessionIsValid(w http.ResponseWriter, r *http.Request) *sessions.Session {
+func (a *Auth) checkSessionIsValid(w http.ResponseWriter, r *http.Request) *hostSession {
 	session, err := a.checkSession(w, r)
 	if err != nil {
 		return nil
@@ -428,7 +393,7 @@ func (a *Auth) checkSessionIsValid(w http.ResponseWriter, r *http.Request) *sess
 	return session
 }
 
-func (a *Auth) checkTokenExists(session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
+func (a *Auth) checkTokenExists(session *hostSession, w http.ResponseWriter, r *http.Request) bool {
 	// If no access token redirect to OAuth login page
 	if session.Values["access_token"] == nil {
 		logRequest(r).Debug("No access token exists, redirecting user to OAuth2 login")
@@ -463,7 +428,7 @@ func (a *Auth) getProxyAddress(r *http.Request, state string) string {
 	return fmt.Sprintf(authorizeProxyTemplate, a.redirectURI, getRequestDomain(r), state)
 }
 
-func destroySession(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
+func destroySession(session *hostSession, w http.ResponseWriter, r *http.Request) {
 	logRequest(r).Debug("Destroying session")
 
 	// Invalidate access token and redirect back for refreshing and re-authenticating
@@ -609,7 +574,7 @@ func (a *Auth) CheckResponseForInvalidToken(w http.ResponseWriter, r *http.Reque
 	return false
 }
 
-func checkResponseForInvalidToken(resp *http.Response, session *sessions.Session, w http.ResponseWriter, r *http.Request) bool {
+func checkResponseForInvalidToken(resp *http.Response, session *hostSession, w http.ResponseWriter, r *http.Request) bool {
 	if resp.StatusCode == http.StatusUnauthorized {
 		errResp := errorResponse{}
 
