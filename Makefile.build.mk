@@ -40,3 +40,10 @@ clean:
 
 gitlab-pages: build
 	$Q cp -f $(BINDIR)/gitlab-pages .
+
+validate-fips-build:
+	go tool nm ./gitlab-pages | grep boringcrypto >/dev/null &&  echo "binary is correctly built in FIPS mode" || (echo "binary is not correctly built in FIPS mode" && exit 1)
+
+gitlab-pages-fips: GO_BUILD_TAGS := $(GO_BUILD_TAGS),boringcrypto
+gitlab-pages-fips: CGO_ENABLED := 1
+gitlab-pages-fips: gitlab-pages validate-fips-build

@@ -10,6 +10,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"gitlab.com/gitlab-org/labkit/log"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/boring"
 	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/validateargs"
@@ -73,6 +74,7 @@ func appMain() {
 	if err := os.Chdir(config.General.RootDir); err != nil {
 		fatal(err, "could not change directory into pagesRoot")
 	}
+	boring.CheckBoring()
 
 	runApp(config)
 }
