@@ -26,7 +26,7 @@ If instead of editing your `/etc/hosts` you'd prefer to use a dns wildcard, you 
 - [`nip.io`](https://nip.io)
 - [`dnsmasq`](https://wiki.debian.org/dnsmasq)
 
-## Configuring gitlab-pages
+## Configuring gitlab-pages without GDK
 
 Create a `gitlab-pages.conf` in the root of the gitlab-pages site, like:
 
@@ -40,7 +40,16 @@ log-verbose=true              # show more information in the logs
 To see more options you can check [`internal/config/flags.go`](https://gitlab.com/gitlab-org/gitlab-pages/blob/master/internal/config/flags.go)
 or run `gitlab-pages --help`.
 
-## Running gitlab-pages with GDK
+### Running gitlab-pages manually
+
+For any changes in the code, you must run `make` to build the app, so it's best to just always run
+it before you start the app. It's quick to build so don't worry!
+
+```sh
+make && ./gitlab-pages -config=gitlab-pages.conf
+```
+
+## Configuring gitlab-pages with GDK
 
 In the following steps, `$GDK_ROOT` is the directory where you cloned GDK.
 
@@ -49,22 +58,16 @@ In the following steps, `$GDK_ROOT` is the directory where you cloned GDK.
 
    ```yaml
    gitlab_pages:
-     enabled: true
-     host: pages.gdk.test
+     enabled: true         # enable gitlab-pages to be managed by gdk
+     port: 3010            # default port is 3010
+     host: pages.gdk.test  # the gitlab-pages domain
+     auto_update: true     # if gdk must update gitlab-pages git
+     verbose: true         # show more information in the logs
    ```
 
-1. Set the gdk related configuration:
+### Running gitlab-runner with GDK
 
-   ```config
-   listen-http=:3010                              # default port
-   gitlab-server=http://gdk.test:3000             # gitlab server
-   artifacts-server=http://gdk.test:3000/api/v4   # gitlab api base url
-   pages-domain=pages.gdk.test                    # gitlab-pages hostname
-   pages-root=$GDK_ROOT/gitlab/shared/pages       # directory where the pages are stored
-   api-secret-key=$GDK_ROOT/gitlab-pages-secret   # GDK access tokens
-   ```
-
-1. Once these configurations are set GDK will manage a gitlab-pages process and you'll have access
+Once these configurations are set GDK will manage a gitlab-pages process and you'll have access
    to it with commands like:
 
    ```sh
@@ -91,13 +94,24 @@ To build in FIPS mode
 $ FIPS_MODE=1 make && ./gitlab-pages -config=gitlab-pages.conf
 ```
 
+### Running gitlab-pages manually
+
+You can also build and start the app independent of GDK processes management.
+
+For any changes in the code, you must run `make` to build the app, so it's best to just always run
+it before you start the app. It's quick to build so don't worry!
+
+```sh
+make && ./gitlab-pages -config=gitlab-pages.conf
+```
+
 ### Creating gitlab-pages site
 
 To build a gitlab-pages site locally you'll have to [configure `gitlab-runner`](https://gitlab.com/gitlab-org/gitlab-development-kit/-/blob/main/doc/howto/runner.md)
 
 Check the [user manual](https://docs.gitlab.com/ee/user/project/pages/).
 
-### Enable access control
+### Enabling access control
 
 gitlab-pages have support to private sites, which means sites that only people who has access to the
 Gitlab's project will have access to its gitlab-pages site.
@@ -130,19 +144,32 @@ gitlab-pages access control is disabled by default. To enable it:
 1. Set the value of your `redirect-uri` to the `pages-domain` authorization endpoint
    - `http://pages.gdk.test:3010/auth`, for example
    - Note that the `redirect-uri` must not contain any gitlab-pages site domain
-1. Add these lines to your `gitlab-pages.conf` file:
+1. Add the auth client configuration:
 
-   ```conf
-   ## the following are only needed if you want to test auth for private projects
-   auth-client-id=$CLIENT_ID                          # the OAuth application id created in http://gdk.test:3000/admin/applications
-   auth-client-secret=$CLIENT_SECRET                  # the OAuth application secret created in http://gdk.test:3000/admin/applications
-   auth-secret=$SOME_RANDOM_STRING                    # should be at least 32 bytes long
-   auth-redirect-uri= http://pages.gdk.test:3010/auth # the authentication callback url for gitlab-pages
-   ```
+   - with GDK, in `gdk.yml`:
 
-1. If running Pages inside the GDK, you can add the `gitlab-pages.conf` file to the
-   `protected_config_files` section under `gdk` in your `gdk.yml` to avoid getting these
-   configuration rewritten by GDK:
+      ```yaml
+      gitlab_pages:
+        enabled: true
+        access_control: true
+        auth_client_id: $CLIENT_ID                         # the OAuth application id created in http://gdk.test:3000/admin/applications
+        auth_client_secret: $CLIENT_SECRET                 # the OAuth application secret created in http://gdk.test:3000/admin/applications
+        auth_secret: $SOME_RANDOM_STRING                   # should be at least 32 bytes long (optional, GDK can generate this value)
+        auth_redirect-uri: http://pages.gdk.test:3010/auth # the authentication callback url for gitlab-pages (optional, GDK can generate this value)
+      ```
+
+   - without GDK, in `gitlab-pages.conf`:
+
+      ```conf
+      ## the following are only needed if you want to test auth for private projects
+      auth-client-id=$CLIENT_ID                         # the OAuth application id created in http://gdk.test:3000/admin/applications
+      auth-client-secret=$CLIENT_SECRET                 # the OAuth application secret created in http://gdk.test:3000/admin/applications
+      auth-secret=$SOME_RANDOM_STRING                   # should be at least 32 bytes long
+      auth-redirect-uri=http://pages.gdk.test:3010/auth # the authentication callback url for gitlab-pages
+      ```
+
+1. If running Pages inside the GDK you can use GDK's `protected_config_files` section under `gdk` in
+   your `gdk.yml` to avoid getting `gitlab-pages.conf` configuration rewritten:
 
    ```yaml
    gdk:
