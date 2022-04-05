@@ -35,7 +35,7 @@ func TestNotHandleArtifactRequestReturnsFalse(t *testing.T) {
 	require.NoError(t, err)
 	r := &http.Request{URL: reqURL}
 
-	require.Equal(t, false, handlers.HandleArtifactRequest("host", result, r))
+	require.False(t, handlers.HandleArtifactRequest("host", result, r))
 }
 
 func TestHandleArtifactRequestedReturnsTrue(t *testing.T) {
@@ -58,7 +58,7 @@ func TestHandleArtifactRequestedReturnsTrue(t *testing.T) {
 	result := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/something", nil)
 
-	require.Equal(t, true, handlers.HandleArtifactRequest("host", result, r))
+	require.True(t, handlers.HandleArtifactRequest("host", result, r))
 }
 
 func TestNotFoundWithTokenIsNotHandled(t *testing.T) {
@@ -186,5 +186,5 @@ func TestHandleArtifactRequestButGetTokenFails(t *testing.T) {
 	result := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/something", nil)
 
-	require.Equal(t, true, handlers.HandleArtifactRequest("host", result, r))
+	require.True(t, handlers.HandleArtifactRequest("host", result, r))
 }

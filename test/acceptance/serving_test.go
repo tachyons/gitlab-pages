@@ -279,7 +279,7 @@ func TestHttpToHttpsRedirectEnabled(t *testing.T) {
 	require.NoError(t, err)
 	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusTemporaryRedirect, rsp.StatusCode)
-	require.Equal(t, 1, len(rsp.Header["Location"]))
+	require.Len(t, rsp.Header["Location"], 1)
 	require.Equal(t, "https://group.gitlab-example.com/project/", rsp.Header.Get("Location"))
 
 	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/")
@@ -455,7 +455,7 @@ func TestQueryStringPersistedInSlashRewrite(t *testing.T) {
 	testhelpers.Close(t, rsp.Body)
 
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
-	require.Equal(t, 1, len(rsp.Header["Location"]))
+	require.Len(t, rsp.Header["Location"], 1)
 	require.Equal(t, "//group.gitlab-example.com/project/?q=test", rsp.Header.Get("Location"))
 
 	rsp, err = GetPageFromListener(t, httpsListener, "group.gitlab-example.com", "project/?q=test")

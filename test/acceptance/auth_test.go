@@ -38,7 +38,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	testhelpers.Close(t, rsp.Body)
 
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
-	require.Equal(t, 1, len(rsp.Header["Location"]))
+	require.Len(t, rsp.Header["Location"], 1)
 	url, err := url.Parse(rsp.Header.Get("Location"))
 	require.NoError(t, err)
 	rsp, err = GetRedirectPage(t, httpsListener, url.Host, url.Path+"?"+url.RawQuery)
@@ -46,7 +46,7 @@ func TestWhenAuthIsEnabledPrivateWillRedirectToAuthorize(t *testing.T) {
 	testhelpers.Close(t, rsp.Body)
 
 	require.Equal(t, http.StatusFound, rsp.StatusCode)
-	require.Equal(t, 1, len(rsp.Header["Location"]))
+	require.Len(t, rsp.Header["Location"], 1)
 
 	url, err = url.Parse(rsp.Header.Get("Location"))
 	require.NoError(t, err)

@@ -131,7 +131,7 @@ func TestNewInvalidConfiguration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewClient(tt.args.baseURL, tt.args.secretKey, tt.args.connectionTimeout, tt.args.jwtTokenExpiry)
 			require.Nil(t, got)
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.wantErrMsg)
 		})
 	}
@@ -225,8 +225,8 @@ func TestGetVirtualDomainAuthenticatedRequest(t *testing.T) {
 
 	lookupPath := lookup.Domain.LookupPaths[0]
 	require.Equal(t, 123, lookupPath.ProjectID)
-	require.Equal(t, false, lookupPath.AccessControl)
-	require.Equal(t, true, lookupPath.HTTPSOnly)
+	require.False(t, lookupPath.AccessControl)
+	require.True(t, lookupPath.HTTPSOnly)
 	require.Equal(t, "/myproject/", lookupPath.Prefix)
 
 	require.Equal(t, "file", lookupPath.Source.Type)

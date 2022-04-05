@@ -104,7 +104,7 @@ type entryConfig struct {
 func TestResolve(t *testing.T) {
 	t.Run("when item is not cached", func(t *testing.T) {
 		withTestCache(resolverConfig{buffered: true}, nil, func(cache *Cache, resolver *clientMock) {
-			require.Equal(t, 0, len(resolver.lookups))
+			require.Empty(t, resolver.lookups)
 			resolver.domain <- "my.gitlab.com"
 
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
@@ -130,7 +130,7 @@ func TestResolve(t *testing.T) {
 			go receiver()
 			go receiver()
 
-			require.Equal(t, 0, len(resolver.lookups))
+			require.Empty(t, resolver.lookups)
 
 			resolver.domain <- "my.gitlab.com"
 			wg.Wait()
@@ -145,7 +145,7 @@ func TestResolve(t *testing.T) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				require.Equal(t, "my.gitlab.com", lookup.Name)
-				require.Equal(t, 0, len(resolver.lookups))
+				require.Empty(t, resolver.lookups)
 			})
 		})
 	})
@@ -159,7 +159,7 @@ func TestResolve(t *testing.T) {
 					lookup <- cache.Resolve(context.Background(), "my.gitlab.com")
 				}()
 
-				require.Equal(t, 0, len(resolver.lookups))
+				require.Empty(t, resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
 				<-lookup
@@ -175,7 +175,7 @@ func TestResolve(t *testing.T) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
 				require.Equal(t, "my.gitlab.com", lookup.Name)
-				require.Equal(t, 0, len(resolver.lookups))
+				require.Empty(t, resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
 
@@ -191,7 +191,7 @@ func TestResolve(t *testing.T) {
 				cache.Resolve(context.Background(), "my.gitlab.com")
 				cache.Resolve(context.Background(), "my.gitlab.com")
 
-				require.Equal(t, 0, len(resolver.lookups))
+				require.Empty(t, resolver.lookups)
 
 				resolver.domain <- "my.gitlab.com"
 
@@ -208,7 +208,7 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{failure: err}, &cc, func(cache *Cache, resolver *clientMock) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			require.Equal(t, 3, len(resolver.lookups))
+			require.Len(t, resolver.lookups, 3)
 			require.EqualError(t, lookup.Error, "500 error")
 		})
 	})
@@ -220,7 +220,7 @@ func TestResolve(t *testing.T) {
 		withTestCache(resolverConfig{}, &cc, func(cache *Cache, resolver *clientMock) {
 			lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
-			require.Equal(t, 0, len(resolver.lookups))
+			require.Empty(t, resolver.lookups)
 			require.ErrorIs(t, lookup.Error, context.DeadlineExceeded)
 		})
 	})
