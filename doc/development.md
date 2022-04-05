@@ -154,9 +154,10 @@ gitlab-pages access control is disabled by default. To enable it:
         access_control: true
         auth_client_id: $CLIENT_ID                         # the OAuth application id created in http://gdk.test:3000/admin/applications
         auth_client_secret: $CLIENT_SECRET                 # the OAuth application secret created in http://gdk.test:3000/admin/applications
-        auth_secret: $SOME_RANDOM_STRING                   # should be at least 32 bytes long (optional, GDK can generate this value)
-        auth_redirect-uri: http://pages.gdk.test:3010/auth # the authentication callback url for gitlab-pages (optional, GDK can generate this value)
       ```
+
+      GDK generates random `auth_secret` and builds the `auth_redirect_uri` based on gitlab-pages
+      host configuration.
 
    - without GDK, in `gitlab-pages.conf`:
 
