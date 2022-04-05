@@ -30,7 +30,11 @@ func (a *Auth) EncryptAndSignCode(domain, code string) (string, error) {
 		return "", errEmptyDomainOrCode
 	}
 
-	nonce := base64.URLEncoding.EncodeToString(securecookie.GenerateRandomKey(16))
+	nonce := securecookie.GenerateRandomKey(12)
+	if nonce == nil {
+		// https://github.com/gorilla/securecookie/blob/f37875ef1fb538320ab97fc6c9927d94c280ed5b/securecookie.go#L513
+		return "", errInvalidNonce
+	}
 
 	aesGcm, err := a.newAesGcmCipher(domain, nonce)
 	if err != nil {
@@ -38,7 +42,7 @@ func (a *Auth) EncryptAndSignCode(domain, code string) (string, error) {
 	}
 
 	// encrypt code with a randomly generated nonce
-	encryptedCode := aesGcm.Seal(nil, []byte(nonce), []byte(code), nil)
+	encryptedCode := aesGcm.Seal(nil, nonce, []byte(code), nil)
 
 	// generate JWT token claims with encrypted code
 	claims := jwt.MapClaims{
@@ -49,7 +53,7 @@ func (a *Auth) EncryptAndSignCode(domain, code string) (string, error) {
 		// custom claims
 		"domain": domain, // pass the domain so we can validate the signed domain matches the requested domain
 		"code":   hex.EncodeToString(encryptedCode),
-		"nonce":  nonce,
+		"nonce":  base64.URLEncoding.EncodeToString(nonce),
 	}
 
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(a.jwtSigningKey)
@@ -64,8 +68,13 @@ func (a *Auth) DecryptCode(jwt, domain string) (string, error) {
 	}
 
 	// get nonce and encryptedCode from the JWT claims
-	nonce, ok := claims["nonce"].(string)
+	encodedNonce, ok := claims["nonce"].(string)
 	if !ok {
+		return "", errInvalidNonce
+	}
+
+	nonce, err := base64.URLEncoding.DecodeString(encodedNonce)
+	if err != nil {
 		return "", errInvalidNonce
 	}
 
@@ -84,7 +93,7 @@ func (a *Auth) DecryptCode(jwt, domain string) (string, error) {
 		return "", err
 	}
 
-	decryptedCode, err := aesGcm.Open(nil, []byte(nonce), cipherText, nil)
+	decryptedCode, err := aesGcm.Open(nil, nonce, cipherText, nil)
 	if err != nil {
 		return "", err
 	}
@@ -126,7 +135,7 @@ func (a *Auth) getSigningKey(token *jwt.Token) (interface{}, error) {
 	return a.jwtSigningKey, nil
 }
 
-func (a *Auth) newAesGcmCipher(domain, nonce string) (cipher.AEAD, error) {
+func (a *Auth) newAesGcmCipher(domain string, nonce []byte) (cipher.AEAD, error) {
 	// get the same key for a domain
 	key, err := a.codeKey(domain)
 	if err != nil {
