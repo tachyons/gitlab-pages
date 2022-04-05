@@ -14,6 +14,7 @@ variables:
   RAILS_CACHE_SUFFIX: 20220118
   DNF_OPTS: '--disableplugin=subscription-manager'
   DOCKER_VERSION: 20.10.3
+  ISSUE_BOT_LABELS_EXTRA: "group::distribution"
 
 stages:
   - prepare
