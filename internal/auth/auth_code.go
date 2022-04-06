@@ -30,6 +30,8 @@ func (a *Auth) EncryptAndSignCode(domain, code string) (string, error) {
 		return "", errEmptyDomainOrCode
 	}
 
+	// for FIPS mode, the nonce size has to be equal to the gcmStandardNonceSize i.e. 12
+	// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/726
 	nonce := securecookie.GenerateRandomKey(12)
 	if nonce == nil {
 		// https://github.com/gorilla/securecookie/blob/f37875ef1fb538320ab97fc6c9927d94c280ed5b/securecookie.go#L513
