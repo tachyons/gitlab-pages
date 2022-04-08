@@ -151,6 +151,11 @@ func (a *Auth) checkAuthenticationResponse(session *hostSession, w http.Response
 	// Fetch access token with authorization code
 	token, err := a.fetchAccessToken(r.Context(), decryptedCode)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			httperrors.Serve404(w)
+			return
+		}
+
 		// Fetching token not OK
 		logRequest(r).WithError(err).WithField(
 			"redirect_uri", redirectURI,
@@ -359,10 +364,6 @@ func (a *Auth) fetchAccessToken(ctx context.Context, code string) (tokenResponse
 	// Request token
 	resp, err := a.apiClient.Do(req)
 	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			return token, nil
-		}
-
 		return token, err
 	}
 
