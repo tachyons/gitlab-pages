@@ -1,6 +1,7 @@
 package artifact_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -274,4 +275,25 @@ func TestBuildURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestContextCanceled(t *testing.T) {
+	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
+	contentType := "text/html; charset=utf-8"
+	testServer := makeArtifactServerStub(t, content, contentType)
+	t.Cleanup(testServer.Close)
+
+	result := httptest.NewRecorder()
+	reqURL, err := url.Parse("/-/subgroup/project/-/jobs/1/artifacts/200.html")
+	require.NoError(t, err)
+	r := &http.Request{URL: reqURL}
+	ctx, cancel := context.WithCancel(context.Background())
+	r = r.WithContext(ctx)
+	// cancel context explictly
+	cancel()
+	art := artifact.New(testServer.URL, 1, "gitlab-example.io")
+
+	require.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r, "", func(resp *http.Response) bool { return false }))
+	require.Equal(t, http.StatusNotFound, result.Code)
+
 }

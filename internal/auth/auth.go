@@ -359,6 +359,10 @@ func (a *Auth) fetchAccessToken(ctx context.Context, code string) (tokenResponse
 	// Request token
 	resp, err := a.apiClient.Do(req)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return token, nil
+		}
+
 		return token, err
 	}
 
@@ -476,6 +480,11 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
 	resp, err := a.apiClient.Do(req)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			httperrors.Serve404(w)
+			return true
+		}
+
 		logRequest(r).WithError(err).Error("Failed to retrieve info with token")
 		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		// call serve404 handler when auth fails
