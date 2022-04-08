@@ -289,11 +289,10 @@ func TestContextCanceled(t *testing.T) {
 	r := &http.Request{URL: reqURL}
 	ctx, cancel := context.WithCancel(context.Background())
 	r = r.WithContext(ctx)
-	// cancel context explictly
+	// cancel context explicitly
 	cancel()
 	art := artifact.New(testServer.URL, 1, "gitlab-example.io")
 
 	require.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r, "", func(resp *http.Response) bool { return false }))
 	require.Equal(t, http.StatusNotFound, result.Code)
-
 }
