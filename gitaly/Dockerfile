@@ -30,8 +30,6 @@ RUN cd ${BUILD_DIR} && \
     rm gitaly.tar.bz2 && \
     cd ruby && \
     bundle install ${BUNDLE_OPTIONS} && \
-    bundle exec gem uninstall --force google-protobuf grpc && \
-    BUNDLE_FORCE_RUBY_PLATFORM=true bundle install ${BUNDLE_OPTIONS} && \
     cd .. && \
     touch .ruby-bundle && \
     make install && \
