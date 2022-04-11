@@ -333,6 +333,10 @@ func LogConfig(config *Config) {
 		"zip-cache-cleanup":             config.Zip.CleanupInterval,
 		"zip-cache-refresh":             config.Zip.RefreshInterval,
 		"zip-open-timeout":              config.Zip.OpenTimeout,
+		"server-read-timeout":           config.Server.ReadTimeout,
+		"server-read-header-timeout":    config.Server.ReadHeaderTimeout,
+		"server-write-timeout":          config.Server.WriteTimeout,
+		"server-keep-alive":             config.Server.ListenKeepAlive,
 	}).Debug("Start Pages with configuration")
 }
 
