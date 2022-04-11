@@ -340,6 +340,10 @@ func LogConfig(config *Config) {
 		"rate-limit-tls-source-ip-burst": config.RateLimit.TLSSourceIPBurst,
 		"rate-limit-tls-domain":          config.RateLimit.TLSDomainLimitPerSecond,
 		"rate-limit-tls-domain-burst":    config.RateLimit.TLSDomainBurst,
+		"server-read-timeout":            config.Server.ReadTimeout,
+		"server-read-header-timeout":     config.Server.ReadHeaderTimeout,
+		"server-write-timeout":           config.Server.WriteTimeout,
+		"server-keep-alive":              config.Server.ListenKeepAlive,
 	}).Debug("Start Pages with configuration")
 }
 
