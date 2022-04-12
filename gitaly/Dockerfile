@@ -1,6 +1,7 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG="master"
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/git-base"
+ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
+ARG RUBY_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby"
 ARG GITLAB_LOGGER_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-logger"
 ARG GITLAB_LOGGER_TAG="${GITLAB_LOGGER_TAG}"
 
@@ -21,9 +22,24 @@ RUN apt-get update \
 
 COPY shared/build-scripts/ /build-scripts
 
-# Download and compile Gitaly
 ARG CACHE_BUSTER=false
-RUN cd ${BUILD_DIR} && \
+
+# Install build dependencies required to build Git, libgit2 and Ruby Gems.
+RUN buildDeps=' \
+    make \
+    cmake \
+    gcc \
+    g++ \
+    git \
+    pkg-config' && \
+    runDeps=' \
+    libicu-dev \
+    libpcre2-dev \
+    libcurl4-gnutls-dev' && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends $buildDeps $runDeps && \
+    mkdir -p ${BUILD_DIR} && \
+    cd ${BUILD_DIR} && \
     echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_SERVER_VERSION}" && \
     curl -f --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitaly.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_SERVER_VERSION}" && \
     tar -xjf gitaly.tar.bz2 --strip-components=1 && \
@@ -32,12 +48,15 @@ RUN cd ${BUILD_DIR} && \
     bundle install ${BUNDLE_OPTIONS} && \
     cd .. && \
     touch .ruby-bundle && \
-    make install && \
+    make install git GIT_PREFIX=/usr/local && \
     rm -rf ${BUILD_DIR}/ruby/spec ${BUILD_DIR}/ruby/features && \
     mv ${BUILD_DIR}/ruby /srv/gitaly-ruby && \
     /build-scripts/cleanup-gems /usr/lib/ruby/gems && \
     mkdir /target && \
     cp -R --parents \
+      /usr/local/bin/git* \
+      /usr/local/share/git-core/ \
+      /usr/local/libexec/git-core/ \
       /usr/local/bin/gitaly* \
       /usr/local/bin/praefect \
       /usr/lib/ruby/gems/ \
@@ -45,7 +64,9 @@ RUN cd ${BUILD_DIR} && \
       /target
 
 # Final image
-FROM ${FROM_IMAGE}:${TAG}
+
+FROM ${RUBY_IMAGE}
+
 
 ARG GITLAB_USER=git
 

@@ -562,7 +562,6 @@ gitlab-rails-ee:
   <<: *only-ee
   stage: phase-five
   needs:
-    - git-base
     - postgresql
     - gitlab-graphicsmagick
     - gitlab-ruby
@@ -578,7 +577,6 @@ gitlab-rails-ee:
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
     - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - export FORCE_IMAGE_BUILDS="${FORCE_IMAGE_BUILDS-${FORCE_RAILS_IMAGE_BUILDS-false}}"
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
@@ -1049,44 +1047,6 @@ gitlab-shell:
     - job: build:gitlab-shell
       optional: true
 
-build:git-base:
-  <<: *build-job-base
-  stage: prepare:phase-one
-  script:
-    - go_dir_version=$(get_version gitlab-go)
-    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GITALY_SERVER_VERSION" | sha1sum))
-    - build_if_needed --build-arg "GITALY_SERVER_VERSION=${GITALY_SERVER_VERSION}"
-                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
-                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
-    - copy_assets
-    - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/build_git-base_tag.txt
-
-git-base:
-  <<: *job-base
-  <<: *except-deps
-  stage: phase-three
-  needs:
-    - gitlab-go
-    - gitlab-ruby
-    - job: build:git-base
-      optional: true
-  script:
-    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
-    - go_dir_version=$(get_version gitlab-go)
-    - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$go_version$GITALY_SERVER_VERSION" | sha1sum))
-    - build_if_needed --build-arg "TAG=$go_version"
-                      --build-arg "GITALY_SERVER_VERSION=${GITALY_SERVER_VERSION}"
-                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
-                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
-                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
-                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
-    - push_tags
-    - push_tags $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
-    - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/git-base_tag.txt
-
 build:gitlab-elasticsearch-indexer:
   <<: *build-job-base
   stage: prepare:phase-two
@@ -1125,16 +1085,14 @@ build:gitaly:
   <<: *build-job-base
   stage: prepare:phase-two
   needs:
-    - build:git-base
     - build:gitlab-go
     - build:gitlab-ruby
   script:
-    - import_assets artifacts/ubi/{git-base,gitlab-go,gitlab-ruby}.tar.gz
+    - import_assets artifacts/ubi/{gitlab-go,gitlab-ruby}.tar.gz
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - git_version=$(cat artifacts/container_versions/build_git-base_tag.txt)
     - export shell_container=($(echo -n "$BASE_VERSION$go_version$TARGET_VERSION$GITLAB_SHELL_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_SERVER_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_SERVER_VERSION$go_version$TARGET_VERSION" | sha1sum))
     - build_if_needed --build-arg "VERSION=${GITALY_SERVER_VERSION}"
                       --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "API_URL=${CI_API_V4_URL}"
@@ -1144,33 +1102,33 @@ build:gitaly:
 gitaly:
   <<: *job-base
   <<: *except-deps
-  stage: phase-five
+  stage: phase-four
   script:
     - import_assets artifacts/ubi/gitlab-logger.tar.gz
     - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
     - go_version=($(echo -n "$BASE_VERSION$go_dir_version$GO_VERSION" | sha1sum))
-    - git_version=$(cat artifacts/container_versions/git-base_tag.txt)
     - gitlab_logger_tag=$(cat artifacts/container_versions/gitlab-logger_tag.txt)
     - export GITLAB_LOGGER_TAG=($(echo -n "$go_version$gitlab_logger_tag$GITLAB_LOGGER_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$GITALY_SERVER_VERSION$git_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$GITALY_SERVER_VERSION$ruby_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
-    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/git-base:$git_version${IMAGE_TAG_EXT}"
+    -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version${IMAGE_TAG_EXT}"
     - fi
     - build_if_needed --build-arg "GITALY_SERVER_VERSION=${GITALY_SERVER_VERSION}"
-                      --build-arg "TAG=${git_version}${IMAGE_TAG_EXT}"
+                      --build-arg "TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "CACHE_BUSTER=$GITALY_SERVER_VERSION$(date -uI)"
-                      --build-arg "GIT_IMAGE=${CI_REGISTRY_IMAGE}/git-base:${git_version}${IMAGE_TAG_EXT}"
+                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_LOGGER_TAG=${GITLAB_LOGGER_TAG}${IMAGE_TAG_EXT}"
     - push_tags $GITALY_SERVER_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitaly_tag.txt
   needs:
-    - git-base
+    - gitlab-ruby
+    - gitlab-go
     - gitlab-logger
     - job: build:gitlab-logger
       optional: true
@@ -1471,7 +1429,6 @@ ubi-assets-release:
     - build:gitlab-python
     - build:gitlab-ruby
     - build:gitlab-go
-    - build:git-base
     - build:gitlab-logger
     - build:gitlab-gomplate
     - build:gitlab-pages

@@ -59,19 +59,16 @@ wait
 # Stage two
 
 DOCKER_OPTS="--build-arg RUBY_IMAGE=$(qualifiedName gitlab-ruby)"
-buildImage git-base &
 buildImage gitlab-exporter &
 buildImage gitlab-mailroom &
 buildImage gitlab-shell &
 buildImage gitlab-rails-ee &
 buildImage gitlab-workhorse-ee &
+buildImage gitaly &
 
 wait
 
 # Stage three
-DOCKER_OPTS="--build-arg GIT_IMAGE=$(qualifiedName git-base)"
-buildImage gitaly &
-
 DOCKER_OPTS="--build-arg RAILS_IMAGE=$(qualifiedName gitlab-rails-ee)"
 buildImage gitlab-geo-logcursor &
 buildImage gitlab-sidekiq-ee &
