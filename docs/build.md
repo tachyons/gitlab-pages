@@ -126,7 +126,6 @@ in one stage can be built concurrently. They do not depend on each other.
   * gitlab-container-registry (final)
 
 **Stage II**
-  * git-base (intermediate)
   * gitlab-exporter (final)
   * gitlab-mailroom (final)
   * gitlab-shell (final)
@@ -207,7 +206,6 @@ graph LR;
     gitlab-ruby
     gitlab-rails
     gitlab-go
-    git-base
     alpine[alpine:3.15]:::external;
     debian[debian:bullseye-slim]:::external;
     gcr.io/distroless/base-debian11
@@ -227,10 +225,10 @@ graph LR;
   gitlab-pages===>gitlab-ruby
   gitlab-rails==>gitlab-ruby;
   gitlab-workhorse===>gitlab-ruby
+  gitaly===>gitlab-ruby;
 
   gitlab-shell===>gitlab-go;
 
-  gitaly===>git-base;
   gitlab-container-registry==>debian
 
   gitlab-kas===>gcr.io/distroless/base-debian11;
@@ -276,7 +274,6 @@ graph LR;
     gitlab-ruby
     gitlab-rails
     gitlab-go
-    git-base
     postgresql
   end
 
@@ -312,7 +309,6 @@ graph LR;
   gitlab-python==>debian;
 
   gitlab-rails==>gitlab-ruby;
-  gitlab-rails-.->git-base;
   gitlab-rails-.->postgresql;
   gitlab-rails-.->gitlab-graphicsmagick;
   gitlab-rails-.->gitlab-elasticsearch-indexer;
@@ -341,11 +337,10 @@ graph LR;
   gitlab-shell-.->gitlab-logger;
   gitlab-shell-.->gitlab-gomplate;
 
-  git-base==>gitlab-go;
-
   gitlab-elasticsearch-indexer==>gitlab-go;
 
-  gitaly==>git-base;
+  gitaly==>gitlab-ruby;
+  gitaly-.->gitlab-go;
   gitaly-.->gitlab-logger;
 
   gitlab-kas-.->gitlab-go;

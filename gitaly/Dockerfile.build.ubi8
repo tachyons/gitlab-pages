@@ -10,7 +10,6 @@ ARG API_TOKEN=
 
 ARG BUNDLE_OPTIONS="--jobs 4"
 
-ADD git-base.tar.gz /
 ADD gitlab-ruby.tar.gz /
 ADD gitlab-go.tar.gz /
 
@@ -19,6 +18,10 @@ ENV PRIVATE_TOKEN=${API_TOKEN}
 ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
 
 COPY shared/build-scripts/ /build-scripts
+
+RUN dnf ${DNF_OPTS} install -by --nodocs git \
+    && dnf clean all \
+    && rm -r /var/cache/dnf
 
 RUN mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
@@ -35,11 +38,14 @@ RUN mkdir /assets \
     && install -D LICENSE /licenses/GitLab.txt \
     && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features \
     && touch .ruby-bundle \
-    && make install \
+    && make install git GIT_PREFIX=/usr/local \
     && /build-scripts/cleanup-gems ${LIBDIR}/ruby/gems \
     && cp -R --parents \
+      /usr/local/bin/git* \
       /usr/local/bin/gitaly* \
       /usr/local/bin/praefect \
+      /usr/local/share/git-core/ \
+      /usr/local/libexec/git-core/ \
       ${LIBDIR}/ruby/gems/ \
       /srv/gitaly-ruby \
       /licenses \
