@@ -17,6 +17,9 @@ workflow:
 include:
   - local: .gitlab/ci/prepare.yml
   - local: .gitlab/ci/test.yml
+  - project: 'gitlab-org/quality/pipeline-common'
+    file:
+      - '/ci/danger-review.yml'
 
 default:
   image: golang:1.18
