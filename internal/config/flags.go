@@ -65,7 +65,7 @@ var (
 	// HTTP server timeouts
 	serverReadTimeout       = flag.Duration("server-read-timeout", 5*time.Second, "ReadTimeout is the maximum duration for reading the entire request, including the body. A zero or negative value means there will be no timeout.")
 	serverReadHeaderTimeout = flag.Duration("server-read-header-timeout", time.Second, "ReadHeaderTimeout is the amount of time allowed to read request headers. A zero or negative value means there will be no timeout.")
-	serverWriteTimeout      = flag.Duration("server-write-timeout", 30*time.Second, "WriteTimeout is the maximum duration before timing out writes of the response. A zero or negative value means there will be no timeout.")
+	serverWriteTimeout      = flag.Duration("server-write-timeout", 5*time.Minute, "WriteTimeout is the maximum duration before timing out writes of the response. A zero or negative value means there will be no timeout.")
 	serverKeepAlive         = flag.Duration("server-keep-alive", 15*time.Second, "KeepAlive specifies the keep-alive period for network connections accepted by this listener. If zero, keep-alives are enabled if supported by the protocol and operating system. If negative, keep-alives are disabled.")
 
 	disableCrossOriginRequests = flag.Bool("disable-cross-origin-requests", false, "Disable cross-origin requests")
