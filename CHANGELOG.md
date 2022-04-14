@@ -1,3 +1,9 @@
+## 1.54.2 (2022-04-13)
+
+### Fixed (1 change)
+
+- [Increase serverWriteTimeout to avoid errors with large files](gitlab-org/gitlab-pages@61dd377fa1b63d3498a7cc9e1c09959a4ca52090) ([merge request](gitlab-org/gitlab-pages!724))
+
 ## 1.54.1 (2022-03-28)
 
 ### Changed (1 change)
