@@ -26,8 +26,8 @@ ARG DATADIR=/var/opt/gitlab
 ARG CPU_COUNT=4
 ARG GITLAB_USER=git
 ARG COMPILE_ASSETS_ENV="RAILS_ENV=production NODE_ENV=production USE_DB=false SKIP_STORAGE_VALIDATION=true NODE_OPTIONS=--max_old_space_size=3584"
-ARG NODE_VERSION=14.15.4
-ARG YARN_VERSION=1.22.5
+ARG NODE_VERSION=16.14.2
+ARG YARN_VERSION=1.22.18
 
 # install runtime deps
 # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=866729
