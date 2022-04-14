@@ -151,6 +151,11 @@ func (a *Auth) checkAuthenticationResponse(session *hostSession, w http.Response
 	// Fetch access token with authorization code
 	token, err := a.fetchAccessToken(r.Context(), decryptedCode)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			httperrors.Serve404(w)
+			return
+		}
+
 		// Fetching token not OK
 		logRequest(r).WithError(err).WithField(
 			"redirect_uri", redirectURI,
@@ -476,6 +481,11 @@ func (a *Auth) checkAuthentication(w http.ResponseWriter, r *http.Request, domai
 	req.Header.Add("Authorization", "Bearer "+session.Values["access_token"].(string))
 	resp, err := a.apiClient.Do(req)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			httperrors.Serve404(w)
+			return true
+		}
+
 		logRequest(r).WithError(err).Error("Failed to retrieve info with token")
 		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		// call serve404 handler when auth fails

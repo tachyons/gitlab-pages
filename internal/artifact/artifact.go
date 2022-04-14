@@ -1,6 +1,7 @@
 package artifact
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -89,6 +90,11 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 	}
 	resp, err := a.client.Do(req)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			httperrors.Serve404(w)
+			return
+		}
+
 		logging.LogRequest(r).WithError(err).Error(artifactRequestErrMsg)
 		errortracking.CaptureErrWithReqAndStackTrace(err, r)
 		httperrors.Serve502(w)

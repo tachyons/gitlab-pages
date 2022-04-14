@@ -270,6 +270,26 @@ func TestCheckAuthenticationWhenAccess(t *testing.T) {
 	require.Equal(t, http.StatusOK, result.Code)
 }
 
+func TestCheckAuthenticationWhenContextCanceled(t *testing.T) {
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }))
+	t.Cleanup(apiServer.Close)
+
+	auth := createTestAuth(t, apiServer.URL, "")
+
+	result := httptest.NewRecorder()
+	r, err := http.NewRequest("Get", "https://example.com/", nil)
+	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(r.Context())
+	r = r.WithContext(ctx)
+	setSessionValues(t, r, auth, map[interface{}]interface{}{"access_token": "abc"})
+
+	// cancel context explicitly and expect not found
+	cancel()
+	contentServed := auth.CheckAuthentication(result, r, &domainMock{projectID: 1000})
+	require.True(t, contentServed)
+	require.Equal(t, http.StatusNotFound, result.Code)
+}
+
 func TestCheckAuthenticationWhenNoAccess(t *testing.T) {
 	apiServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
