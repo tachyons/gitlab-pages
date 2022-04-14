@@ -1,3 +1,40 @@
+## 1.57.0 (2022-04-13)
+
+### Added (2 changes)
+
+- [Add FIPS support](gitlab-org/gitlab-pages@2e4b84b6ac95087b96e346916b3ced662269b15d) ([merge request](gitlab-org/gitlab-pages!716))
+- [add flag to parameterize zip http client timeout](gitlab-org/gitlab-pages@29cb5da295e31d18c29c544a8f43f8006b3e874d) ([merge request](gitlab-org/gitlab-pages!710))
+
+### Fixed (1 change)
+
+- [Increase serverWriteTimeout to avoid errors with large files](gitlab-org/gitlab-pages@f2792ec357dd90dcc4e4df929386c02929450999) ([merge request](gitlab-org/gitlab-pages!722))
+
+### Changed (3 changes)
+
+- [Update nonce to make it of standard size](gitlab-org/gitlab-pages@8e40856d4b14a261246b3bd8d3a2b80dd69a99e7) ([merge request](gitlab-org/gitlab-pages!719))
+- [Update go-cmp](gitlab-org/gitlab-pages@8bb08f8f0b8e0366b2a3b75767d011aec35b265b) ([merge request](gitlab-org/gitlab-pages!713))
+
+### Security (1 change)
+
+- [fix: validate that session was issued on the same host](gitlab-org/gitlab-pages@9dbeb71c8a99ed0517b3ba44950ee63c00eb6cf6)
+
+## 1.56.2 (2022-04-13)
+
+### Fixed (1 change)
+
+- [Increase serverWriteTimeout to avoid errors with large files](gitlab-org/gitlab-pages@34ca1a3c379d98a8e52e52b9ddfc81abb6cbda7e) ([merge request](gitlab-org/gitlab-pages!725))
+
+## 1.56.1 (2022-03-28)
+
+### Changed (1 change)
+
+- [Update go-proxyproto to 0.6.2 and fix tests](gitlab-org/security/gitlab-pages@4c8e257183d9fe8684de3b90787176582bcc8298) ([merge request](gitlab-org/security/gitlab-pages!23))
+
+### Security (2 changes)
+
+- [fix: validate that session was issued on the same host](gitlab-org/security/gitlab-pages@e0b2a7070c3398e74aeeba2c4cc249bf0eb689bf) ([merge request](gitlab-org/security/gitlab-pages!29))
+- [Fix weak HTTP server timeouts configuration](gitlab-org/security/gitlab-pages@fc5a652574d0eef03c776a70f3c0678158bc1dbd) ([merge request](gitlab-org/security/gitlab-pages!19))
+
 ## 1.56.0 (2022-03-15)
 
 ### Added (3 changes)
@@ -15,6 +52,23 @@
 ### Fixed (1 change)
 
 - [fix: do no retry resolving the domain if there's a ctx error](gitlab-org/gitlab-pages@970531c7f80db47d209196921043aabcdf7590ef) by @feistel ([merge request](gitlab-org/gitlab-pages!691))
+
+## 1.54.2 (2022-04-13)
+
+### Fixed (1 change)
+
+- [Increase serverWriteTimeout to avoid errors with large files](gitlab-org/gitlab-pages@61dd377fa1b63d3498a7cc9e1c09959a4ca52090) ([merge request](gitlab-org/gitlab-pages!724))
+
+## 1.54.1 (2022-03-28)
+
+### Changed (1 change)
+
+- [Update go-proxyproto to 0.6.2 and fix tests](gitlab-org/security/gitlab-pages@9154a5e7e98ec5492503f49c3ad28da6cfc3043b) ([merge request](gitlab-org/security/gitlab-pages!25))
+
+### Security (2 changes)
+
+- [fix: validate that session was issued on the same host](gitlab-org/security/gitlab-pages@5806a2d13e7c3354c477162329c21aa6377af70f) ([merge request](gitlab-org/security/gitlab-pages!30))
+- [Fix weak HTTP server timeouts configuration](gitlab-org/security/gitlab-pages@8bd2398e301877a98f8efe3738861a7d96b87d7f) ([merge request](gitlab-org/security/gitlab-pages!20))
 
 ## 1.54.0 (2022-02-10)
 
@@ -46,6 +100,23 @@
 ### Changed (1 change)
 
 - [feat: switch to content negotiation library](gitlab-org/gitlab-pages@3f287da18498c8f98855ba43484b712026685d9c) by @feistel ([merge request](gitlab-org/gitlab-pages!624))
+
+## 1.51.2 (2022-04-13)
+
+### Fixed (1 change)
+
+- [Increase serverWriteTimeout to avoid errors with large files](gitlab-org/gitlab-pages@df9c7c413e35940feb7b1ea3664cb6f6e03814a3) ([merge request](gitlab-org/gitlab-pages!723))
+
+## 1.51.1 (2022-03-28)
+
+### Changed (1 change)
+
+- [Update go-proxyproto to 0.6.2 and fix tests](gitlab-org/security/gitlab-pages@4dc370158507bd8dd64e1ca1f451c870c0fb56e6) ([merge request](gitlab-org/security/gitlab-pages!26))
+
+### Security (2 changes)
+
+- [fix: validate that session was issued on the same host](gitlab-org/security/gitlab-pages@8c7fe1f00874ea94161570c040136c1b1a53d3a2) ([merge request](gitlab-org/security/gitlab-pages!31))
+- [Fix weak HTTP server timeouts configuration](gitlab-org/security/gitlab-pages@80f38361c88eb5d23132528f1d528acd47ab5a18) ([merge request](gitlab-org/security/gitlab-pages!21))
 
 ## 1.51.0 (2022-01-12)
 
