@@ -20,6 +20,8 @@ include:
   - project: 'gitlab-org/quality/pipeline-common'
     file:
       - '/ci/danger-review.yml'
+    rules:
+      - if: '$CI_SERVER_HOST == "gitlab.com"'
 
 default:
   image: golang:1.18
