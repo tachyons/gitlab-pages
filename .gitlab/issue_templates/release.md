@@ -4,7 +4,7 @@
     * Typically if you want to release code from current `master` branch you will update `MINOR` version, e.g. `1.12.0` -> `1.13.0`. In that case you **don't** need to create stable branch
     * If you want to backport some bug fix or security fix you will need to create a stable branch `X-Y-stable` on the [security project](https://gitlab.com/gitlab-org/security/gitlab-pages). You will need maintainer access to create the stable branch.
 - [ ] Create an MR for [gitlab-pages project](https://gitlab.com/gitlab-org/gitlab-pages).
-    You can use [this MR](https://gitlab.com/gitlab-org/gitlab-pages/merge_requests/217) as an example.
+    You can use [this MR](https://gitlab.com/gitlab-org/gitlab-pages/-/merge_requests/711) as an example.
     - [ ] Update `VERSION`, and push your branch
     - [ ] Update `CHANGELOG` by running `GITLAB_PRIVATE_TOKEN= make changelog`, note that you need to create a personal access token
     - [ ] Assign to reviewer
@@ -37,9 +37,9 @@
     git push dev v1.0.0
     ```
 - [ ] Create an MR for [gitlab project](https://gitlab.com/gitlab-org/gitlab).
-    You can use [this MR](https://gitlab.com/gitlab-org/gitlab/merge_requests/23023) as an example.
+    You can use [this MR](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/82901) as an example.
     - [ ] Update `GITLAB_PAGES_VERSION`
     - [ ] Added `Changelog: added` footer to your commit
     - [ ] Assign to a reviewer
 
-/label ~backend ~"Category:Pages" ~"devops::create" ~"group::editor" ~"type::maintenance"
+/label ~backend ~"Category:Pages" ~"section::dev" ~"devops::create" ~"group::editor" ~"type::maintenance"
