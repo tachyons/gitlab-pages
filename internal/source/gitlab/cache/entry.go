@@ -1,7 +1,9 @@
 package cache
 
 import (
+	"context"
 	"errors"
+	"net"
 	"os"
 	"sync"
 	"time"
@@ -45,7 +47,7 @@ func (e *Entry) IsUpToDate() bool {
 	e.mux.RLock()
 	defer e.mux.RUnlock()
 
-	return e.isResolved() && !e.isOutdated()
+	return e.isResolved() && !e.isOutdated() && !e.timedOut()
 }
 
 // NeedsRefresh return true if the entry has been resolved correctly but it has
@@ -54,7 +56,7 @@ func (e *Entry) NeedsRefresh() bool {
 	e.mux.RLock()
 	defer e.mux.RUnlock()
 
-	return e.isResolved() && e.isOutdated()
+	return e.isResolved() && (e.isOutdated() || e.timedOut())
 }
 
 // Lookup returns a retriever Lookup response.
@@ -95,6 +97,16 @@ func (e *Entry) isExpired() bool {
 
 func (e *Entry) domainExists() bool {
 	return !errors.Is(e.response.Error, domain.ErrDomainDoesNotExist)
+}
+
+func (e *Entry) timedOut() bool {
+	err := e.response.Error
+	var neterr net.Error
+	if ok := errors.As(err, &neterr); ok && (neterr.Timeout() || neterr.Temporary()) {
+		return true
+	}
+
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 // hasTemporaryError checks currently refreshed entry for errors after resolving the lookup again

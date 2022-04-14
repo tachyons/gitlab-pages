@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"gitlab.com/gitlab-org/labkit/correlation"
+
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -95,12 +97,21 @@ func (c *Cache) Resolve(ctx context.Context, domain string) *api.Lookup {
 func (c *Cache) retrieve(ctx context.Context, entry *Entry) *api.Lookup {
 	// We run the code within an additional func() to run both `e.setResponse`
 	// and `c.retriever.Retrieve` asynchronously.
-	entry.retrieve.Do(func() { go func() { entry.setResponse(c.retriever.Retrieve(ctx, entry.domain)) }() })
+	// We are using a sync.Once so this assumes that setResponse is always called
+	// the first (and only) time f is called, otherwise future requests will hang.
+	entry.retrieve.Do(func() {
+		correlationID := correlation.ExtractFromContext(ctx)
+
+		go func() {
+			l := c.retriever.Retrieve(correlationID, entry.domain)
+			entry.setResponse(l)
+		}()
+	})
 
 	var lookup *api.Lookup
 	select {
 	case <-ctx.Done():
-		lookup = &api.Lookup{Name: entry.domain, Error: fmt.Errorf("context done: %w", ctx.Err())}
+		lookup = &api.Lookup{Name: entry.domain, Error: fmt.Errorf("original context done: %w", ctx.Err())}
 	case <-entry.retrieved:
 		lookup = entry.Lookup()
 	}

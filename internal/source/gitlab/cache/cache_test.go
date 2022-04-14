@@ -48,16 +48,8 @@ func (c *clientMock) Status() error {
 }
 
 func withTestCache(config resolverConfig, cacheConfig *config.Cache, block func(*Cache, *clientMock)) {
-	var chanSize int
-
-	if config.buffered {
-		chanSize = 1
-	} else {
-		chanSize = 0
-	}
-
 	resolver := &clientMock{
-		domain:  make(chan string, chanSize),
+		domain:  make(chan string, config.bufferSize),
 		lookups: make(chan uint64, 100),
 		failure: config.failure,
 	}
@@ -91,8 +83,8 @@ func (cache *Cache) withTestEntry(config entryConfig, block func(*Entry)) {
 }
 
 type resolverConfig struct {
-	buffered bool
-	failure  error
+	bufferSize int
+	failure    error
 }
 
 type entryConfig struct {
@@ -102,8 +94,36 @@ type entryConfig struct {
 }
 
 func TestResolve(t *testing.T) {
+	t.Run("ctx errors should not be cached", func(t *testing.T) {
+		cc := &config.Cache{
+			CacheExpiry:          10 * time.Minute,
+			CacheCleanupInterval: 10 * time.Minute,
+			EntryRefreshTimeout:  10 * time.Minute,
+			RetrievalTimeout:     1 * time.Second,
+			MaxRetrievalInterval: 50 * time.Millisecond,
+			MaxRetrievalRetries:  3,
+		}
+
+		withTestCache(resolverConfig{bufferSize: 1}, cc, func(cache *Cache, resolver *clientMock) {
+			require.Equal(t, 0, len(resolver.lookups))
+
+			// wait for retrieval timeout to expire
+			lookup := cache.Resolve(context.Background(), "foo.gitlab.com")
+			require.ErrorIs(t, lookup.Error, context.DeadlineExceeded)
+			require.Equal(t, "foo.gitlab.com", lookup.Name)
+
+			// future lookups should succeed once the entry has been refreshed.
+			// refresh happens in a separate goroutine so the first few requests might still fail
+			require.Eventually(t, func() bool {
+				resolver.domain <- "foo.gitlab.com"
+				lookup := cache.Resolve(context.Background(), "foo.gitlab.com")
+				return lookup.Error == nil
+			}, 1*time.Second, 10*time.Millisecond)
+		})
+	})
+
 	t.Run("when item is not cached", func(t *testing.T) {
-		withTestCache(resolverConfig{buffered: true}, nil, func(cache *Cache, resolver *clientMock) {
+		withTestCache(resolverConfig{bufferSize: 1}, nil, func(cache *Cache, resolver *clientMock) {
 			require.Empty(t, resolver.lookups)
 			resolver.domain <- "my.gitlab.com"
 
@@ -170,7 +190,7 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when item is in long cache only", func(t *testing.T) {
-		withTestCache(resolverConfig{buffered: false}, nil, func(cache *Cache, resolver *clientMock) {
+		withTestCache(resolverConfig{}, nil, func(cache *Cache, resolver *clientMock) {
 			cache.withTestEntry(entryConfig{expired: true, retrieved: true}, func(*Entry) {
 				lookup := cache.Resolve(context.Background(), "my.gitlab.com")
 
