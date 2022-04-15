@@ -25,6 +25,7 @@ RUN apt-get update \
   ca-certificates \
   openssl \
   tar \
+  redis-tools \
   && ldconfig \
   && pip3 install --upgrade awscli==${AWSCLI_VERSION} s3cmd==${S3CMD_VERSION} \
   && pip3 install gsutil==${GSUTIL_VERSION} crcmod \
