@@ -40,9 +40,16 @@ queue_requests false
 #    because SSL requires a certificate and key to work.
 # 3. HTTP off, HTTPS on: `SSL_INTERNAL_PORT` is enabled but
 #   `INTERNAL_PORT` is not set.
-if ENV['INTERNAL_PORT'] || (!ENV['INTERNAL_PORT'] && !ENV['SSL_INTERNAL_PORT'])
-  bind "tcp://0.0.0.0:#{ENV['INTERNAL_PORT'] ||= '8080'}"
-end
+http_port = ENV['INTERNAL_PORT'] || '8080'
+http_addr =
+  if ENV['INTERNAL_PORT'] || (!ENV['INTERNAL_PORT'] && !ENV['SSL_INTERNAL_PORT'])
+    "0.0.0.0"
+  else
+    # If HTTP is disabled, we still need to listen to 127.0.0.1 for health checks.
+    "127.0.0.1"
+  end
+
+bind "tcp://#{http_host}:#{http_port}"
 
 if ENV['SSL_INTERNAL_PORT']
   ssl_params = {
