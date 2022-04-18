@@ -18,12 +18,6 @@
 
 - [fix: validate that session was issued on the same host](gitlab-org/gitlab-pages@9dbeb71c8a99ed0517b3ba44950ee63c00eb6cf6)
 
-## 1.56.2 (2022-04-13)
-
-### Fixed (1 change)
-
-- [Increase serverWriteTimeout to avoid errors with large files](gitlab-org/gitlab-pages@34ca1a3c379d98a8e52e52b9ddfc81abb6cbda7e) ([merge request](gitlab-org/gitlab-pages!725))
-
 ## 1.56.1 (2022-03-28)
 
 ### Changed (1 change)
@@ -52,12 +46,6 @@
 ### Fixed (1 change)
 
 - [fix: do no retry resolving the domain if there's a ctx error](gitlab-org/gitlab-pages@970531c7f80db47d209196921043aabcdf7590ef) by @feistel ([merge request](gitlab-org/gitlab-pages!691))
-
-## 1.54.2 (2022-04-13)
-
-### Fixed (1 change)
-
-- [Increase serverWriteTimeout to avoid errors with large files](gitlab-org/gitlab-pages@61dd377fa1b63d3498a7cc9e1c09959a4ca52090) ([merge request](gitlab-org/gitlab-pages!724))
 
 ## 1.54.1 (2022-03-28)
 
@@ -100,12 +88,6 @@
 ### Changed (1 change)
 
 - [feat: switch to content negotiation library](gitlab-org/gitlab-pages@3f287da18498c8f98855ba43484b712026685d9c) by @feistel ([merge request](gitlab-org/gitlab-pages!624))
-
-## 1.51.2 (2022-04-13)
-
-### Fixed (1 change)
-
-- [Increase serverWriteTimeout to avoid errors with large files](gitlab-org/gitlab-pages@df9c7c413e35940feb7b1ea3664cb6f6e03814a3) ([merge request](gitlab-org/gitlab-pages!723))
 
 ## 1.51.1 (2022-03-28)
 
