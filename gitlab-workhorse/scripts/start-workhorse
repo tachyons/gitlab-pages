@@ -14,7 +14,9 @@ if [[ "${GITLAB_WORKHORSE_PROM_LISTEN_ADDR}" =~ ^.+:[0-9][0-9]{0,4}$ ]]; then
    export PROM_LISTEN_ADDR="-prometheusListenAddr ${GITLAB_WORKHORSE_PROM_LISTEN_ADDR}"
 fi
 
-gitlab-workhorse \
+WORKHORSE_EXEC=""
+[ ${GITLAB_WORKHORSE_EXEC+x} ] && WORKHORSE_EXEC="exec"
+${WORKHORSE_EXEC} gitlab-workhorse \
   -logFile ${GITLAB_WORKHORSE_LOG_FILE} \
   -logFormat ${GITLAB_WORKHORSE_LOG_FORMAT} \
   ${GITLAB_WORKHORSE_EXTRA_ARGS} \
