@@ -80,7 +80,7 @@ USER $GITLAB_USER:$GITLAB_USER
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/srv/gitlab-shell
 
-CMD "/scripts/process-wrapper"
+CMD ["/scripts/process-wrapper"]
 
 VOLUME /var/log/gitlab-shell
 
