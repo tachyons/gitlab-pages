@@ -49,7 +49,7 @@ http_addr =
     "127.0.0.1"
   end
 
-bind "tcp://#{http_host}:#{http_port}"
+bind "tcp://#{http_addr}:#{http_port}"
 
 if ENV['SSL_INTERNAL_PORT']
   ssl_params = {
