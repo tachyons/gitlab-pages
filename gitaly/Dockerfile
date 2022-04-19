@@ -113,7 +113,7 @@ USER ${GITLAB_USER}:${GITLAB_USER}
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitaly
 ENV PATH "$PATH:/srv/gitaly-ruby/bin"
 
-CMD "/scripts/process-wrapper"
+CMD ["/scripts/process-wrapper"]
 
 VOLUME /var/log/gitaly
 
