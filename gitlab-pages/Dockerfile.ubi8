@@ -35,7 +35,7 @@ USER ${UID}
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitlab-pages
 
-CMD /scripts/start-pages
+CMD ["/scripts/start-pages"]
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 \
 CMD /scripts/healthcheck
