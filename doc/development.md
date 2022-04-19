@@ -21,6 +21,11 @@ Build and start the app. For any changes, you must run `make` to build the app, 
 make && ./gitlab-pages -config=gitlab-pages.conf
 ```
 
+To build in FIPS mode
+```
+$ FIPS_MODE=1 make && ./gitlab-pages -config=gitlab-pages.conf
+```
+
 Visit http://group.192.168.1.135.nip.io:8090/project/index.html (replace `192.168.1.135` with your IP) and you should see a
 `project-subdir` response
 

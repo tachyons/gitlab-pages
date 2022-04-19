@@ -1,5 +1,10 @@
 BINDIR := $(CURDIR)/bin
 GO_BUILD_TAGS   := continuous_profiler_stackdriver
+FIPS_MODE       ?= 0
+ifeq ($(FIPS_MODE), 1)
+    GO_BUILD_TAGS := $(GO_BUILD_TAGS),boringcrypto
+    CGO_ENABLED := 1
+endif
 
 # To compute a unique and deterministic value for GNU build-id, we build the Go binary a second time.
 # From the first build, we extract its unique and deterministic Go build-id, and use that to derive
@@ -34,16 +39,12 @@ ifndef WITHOUT_BUILD_ID
 	GNU_BUILD_ID=$$( echo $$GO_BUILD_ID | sha1sum | cut -d' ' -f1 ) && \
 	$Q GOBIN=$(BINDIR) go install $(if $V,-v) -ldflags="$(VERSION_FLAGS) -B 0x$$GNU_BUILD_ID" -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
 endif
+ifeq ($(FIPS_MODE), 1)
+	go tool nm $(BINDIR)/gitlab-pages | grep boringcrypto >/dev/null &&  echo "binary is correctly built in FIPS mode" || (echo "binary is not correctly built in FIPS mode" && exit 1)
+endif
 
 clean:
 	$Q GOBIN=$(BINDIR) go clean -i -modcache -x
 
 gitlab-pages: build
 	$Q cp -f $(BINDIR)/gitlab-pages .
-
-validate-fips-build:
-	go tool nm ./gitlab-pages | grep boringcrypto >/dev/null &&  echo "binary is correctly built in FIPS mode" || (echo "binary is not correctly built in FIPS mode" && exit 1)
-
-gitlab-pages-fips: GO_BUILD_TAGS := $(GO_BUILD_TAGS),boringcrypto
-gitlab-pages-fips: CGO_ENABLED := 1
-gitlab-pages-fips: gitlab-pages validate-fips-build
