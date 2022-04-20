@@ -51,7 +51,7 @@ func TestServeAcmeChallengeMalformed(t *testing.T) {
 }
 
 func TestServeAcmeChallengeWhenPresent(t *testing.T) {
-	require.HTTPStatusCode(t, serveAcmeOrNotFound(middleware, domainWithChallenge), http.MethodGet, challengeURL, nil, http.StatusNotFound)
+	require.HTTPStatusCode(t, serveAcmeOrNotFound(middleware, domainWithChallenge), http.MethodGet, challengeURL, nil, http.StatusOK)
 }
 
 func TestServeAcmeChallengeWhenMissing(t *testing.T) {
