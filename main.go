@@ -31,9 +31,9 @@ func initErrorReporting(sentryDSN, sentryEnvironment string) error {
 		errortracking.WithSentryEnvironment(sentryEnvironment))
 }
 
-func appMain() {
+func appMain() error {
 	if err := validateargs.NotAllowed(os.Args[1:]); err != nil {
-		log.WithError(err).Fatal("Using invalid arguments, use -config=gitlab-pages-config file instead")
+		return fmt.Errorf("using invalid arguments, use -config=gitlab-pages-config file instead: %w", err)
 	}
 
 	if err := validateargs.Deprecated(os.Args[1:]); err != nil {
@@ -42,13 +42,13 @@ func appMain() {
 
 	config, err := cfg.LoadConfig()
 	if err != nil {
-		log.WithError(err).Fatal("Failed to load config")
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	printVersion(config.General.ShowVersion, VERSION)
 
 	if err := cfg.Validate(config); err != nil {
-		log.WithError(err).Fatal("invalid config settings")
+		return fmt.Errorf("invalid config settings: %w", err)
 	}
 
 	if config.Sentry.DSN != "" {
@@ -60,7 +60,7 @@ func appMain() {
 
 	err = logging.ConfigureLogging(config.Log.Format, config.Log.Verbose)
 	if err != nil {
-		log.WithError(err).Fatal("Failed to initialize logging")
+		return fmt.Errorf("failed to initialize logging: %w", err)
 	}
 
 	cfg.LogConfig(config)
@@ -72,11 +72,11 @@ func appMain() {
 	log.Info("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
 	if err := os.Chdir(config.General.RootDir); err != nil {
-		fatal(err, "could not change directory into pagesRoot")
+		return fmt.Errorf("could not change directory into pagesRoot: %w", err)
 	}
 	fips.Check()
 
-	runApp(config)
+	return runApp(config)
 }
 
 func printVersion(showVersion bool, version string) {
@@ -93,5 +93,7 @@ func main() {
 
 	metrics.MustRegister()
 
-	appMain()
+	if err := appMain(); err != nil {
+		log.WithError(err).Fatal(err)
+	}
 }

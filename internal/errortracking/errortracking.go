@@ -25,3 +25,13 @@ func CaptureErrWithReqAndStackTrace(err error, r *http.Request, fields ...errort
 
 	errortracking.Capture(err, opts...)
 }
+
+// CaptureErrWithStackTrace calls labkit's errortracking function and attaches the stack trace and any additional fields
+func CaptureErrWithStackTrace(err error, fields ...errortracking.CaptureOption) {
+	opts := append(
+		fields,
+		errortracking.WithStackTrace(),
+	)
+
+	errortracking.Capture(err, opts...)
+}

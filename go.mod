@@ -26,9 +26,10 @@ require (
 	gitlab.com/feistel/go-contentencoding v1.0.0
 	gitlab.com/gitlab-org/go-mimedb v1.45.0
 	gitlab.com/gitlab-org/golang-archive-zip v0.1.1
-	gitlab.com/gitlab-org/labkit v1.14.0
+	gitlab.com/gitlab-org/labkit v1.14.1-0.20220513075046-c39e3ddcade2
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/net v0.0.0-20211008194852-3b03d305991f
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
 )
