@@ -117,12 +117,6 @@ func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.Respons
 }
 
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
-	// Add auto redirect
-	if !https && a.config.General.RedirectHTTP {
-		a.redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
-		return true
-	}
-
 	if a.Handlers.HandleArtifactRequest(host, w, r) {
 		return true
 	}
@@ -181,6 +175,17 @@ func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
 		https := request.IsHTTPS(r)
 
 		if a.tryAuxiliaryHandlers(w, r, https, host, domain) {
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
+func (a *theApp) httpsRedirectMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if a.config.General.RedirectHTTP && !request.IsHTTPS(r) {
+			a.redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -254,6 +259,9 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	// Custom response headers
 	handler = customheaders.NewMiddleware(handler, a.CustomHeaders)
+
+	// Add auto redirect
+	handler = a.httpsRedirectMiddleware(handler)
 
 	// Correlation ID injection middleware
 	var correlationOpts []correlation.InboundHandlerOption
