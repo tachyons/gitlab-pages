@@ -56,7 +56,7 @@ USER $GITLAB_USER:$GITLAB_USER
 
 COPY scripts/ /scripts/
 
-CMD /scripts/start-pages
+CMD ["/scripts/start-pages"]
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 \
 CMD /scripts/healthcheck

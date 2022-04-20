@@ -4,4 +4,4 @@ set -e
 
 export PAGES_CONFIG_FILE="${PAGES_CONFIG_FILE:-$CONFIG_TEMPLATE_DIRECTORY/pages-config}"
 
-gitlab-pages -config="${PAGES_CONFIG_FILE}"
+exec gitlab-pages -config="${PAGES_CONFIG_FILE}"
