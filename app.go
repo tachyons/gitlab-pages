@@ -21,7 +21,6 @@ import (
 	"gitlab.com/gitlab-org/labkit/monitoring"
 	"golang.org/x/sync/errgroup"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/auth"
 	cfg "gitlab.com/gitlab-org/gitlab-pages/internal/config"
@@ -49,14 +48,13 @@ var (
 )
 
 type theApp struct {
-	config         *cfg.Config
-	source         source.Source
-	tlsConfig      *cryptotls.Config
-	Artifact       *artifact.Artifact
-	Auth           *auth.Auth
-	Handlers       *handlers.Handlers
-	AcmeMiddleware *acme.Middleware
-	CustomHeaders  http.Header
+	config        *cfg.Config
+	source        source.Source
+	tlsConfig     *cryptotls.Config
+	Artifact      *artifact.Artifact
+	Auth          *auth.Auth
+	Handlers      *handlers.Handlers
+	CustomHeaders http.Header
 }
 
 func (a *theApp) GetCertificate(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
@@ -145,7 +143,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = a.Auth.AuthorizationMiddleware(handler)
 	handler = handlers.ArtifactMiddleware(handler, a.Handlers)
 	handler = a.Auth.AuthenticationMiddleware(handler, a.source)
-	handler = a.AcmeMiddleware.AcmeMiddleware(handler)
+	handler = handlers.AcmeMiddleware(handler, a.source, a.config.GitLab.PublicServer)
 
 	handler = routing.NewMiddleware(handler, a.source)
 
@@ -373,13 +371,6 @@ func runApp(config *cfg.Config) error {
 	}
 
 	a.Handlers = handlers.New(a.Auth, a.Artifact)
-
-	// TODO: This if was introduced when `gitlab-server` wasn't a required parameter
-	// once we completely remove support for legacy architecture and make it required
-	// we can just remove this if statement https://gitlab.com/gitlab-org/gitlab-pages/-/issues/581
-	if config.GitLab.PublicServer != "" {
-		a.AcmeMiddleware = &acme.Middleware{GitlabURL: config.GitLab.PublicServer}
-	}
 
 	if len(config.General.CustomHeaders) != 0 {
 		customHeaders, err := customheaders.ParseHeaderString(config.General.CustomHeaders)
