@@ -1452,13 +1452,6 @@ ubi-release-for-certification:
   allow_failure: true
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    # Install skopeo
-    - cd /tmp
-    - apt-get -y update && apt-get -y install libgpgme11
-    - curl -f -o skopeo.deb http://ftp.debian.org/debian/pool/main/s/skopeo/skopeo_1.4.1+ds1-1_amd64.deb
-    - curl -f -o golang-github-containers-common.deb http://ftp.debian.org/debian/pool/main/g/golang-github-containers-common/golang-github-containers-common_0.42.1+ds1-2_all.deb
-    - curl -f -o golang-github-containers-image.deb http://ftp.debian.org/debian/pool/main/g/golang-github-containers-image/golang-github-containers-image_5.15.2-2_all.deb
-    - dpkg -i golang-github-containers-image.deb && dpkg -i golang-github-containers-image.deb && dpkg -i skopeo.deb
   script:
     - ruby build-scripts/redhat_certfication.rb "${CI_COMMIT_REF_NAME}"
 
