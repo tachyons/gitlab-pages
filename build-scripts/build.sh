@@ -85,12 +85,25 @@ function build_if_needed(){
     # Skip the build cache if $DISABLE_DOCKER_BUILD_CACHE is set to any value
     if [ -z ${DISABLE_DOCKER_BUILD_CACHE+x} ]; then
       CACHE_IMAGE="$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CI_COMMIT_REF_SLUG${IMAGE_TAG_EXT}"
+      echo "NOTICE: docker cache image enabled, attempting '${CACHE_IMAGE}'"
       if ! $(docker pull $CACHE_IMAGE > /dev/null); then
-        CACHE_IMAGE="$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:master${IMAGE_TAG_EXT}"
-        docker pull $CACHE_IMAGE || true
+        if is_stable || is_tag ; then
+          echo "NOTICE: docker cache image unavailable, disabled for tags and stable branches"
+          CACHE_IMAGE=""
+        else
+          echo "NOTICE: docker cache image unavailable, attempting to use '${CI_DEFAULT_BRANCH}'"
+          CACHE_IMAGE="$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:${CI_DEFAULT_BRANCH}${IMAGE_TAG_EXT}"
+          if ! $(docker pull $CACHE_IMAGE >/dev/null); then
+            echo "NOTICE: docker cache image unavailable, disabling"
+            CACHE_IMAGE=""
+          fi
+        fi
       fi
 
-      DOCKER_ARGS+=(--cache-from $CACHE_IMAGE)
+      if [ -n "${CACHE_IMAGE}" ]; then
+        echo "NOTICE: docker cache image in use"
+        DOCKER_ARGS+=(--cache-from $CACHE_IMAGE)
+      fi
     fi
 
     # Add build image argument for UBI build stage
