@@ -182,17 +182,6 @@ func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
-func (a *theApp) httpsRedirectMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if a.config.General.RedirectHTTP && !request.IsHTTPS(r) {
-			a.redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
-			return
-		}
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
 // serveFileOrNotFoundHandler will serve static content or
 // return a 404 Not Found response
 func (a *theApp) serveFileOrNotFoundHandler() http.Handler {
@@ -252,6 +241,9 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	handler = routing.NewMiddleware(handler, a.source)
 
+	// Add auto redirect
+	handler = handlers.HTTPSRedirectMiddleware(handler, a.config.General.RedirectHTTP)
+
 	handler = handlers.Ratelimiter(handler, &a.config.RateLimit)
 
 	// Health Check
@@ -259,9 +251,6 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	// Custom response headers
 	handler = customheaders.NewMiddleware(handler, a.CustomHeaders)
-
-	// Add auto redirect
-	handler = a.httpsRedirectMiddleware(handler)
 
 	// Correlation ID injection middleware
 	var correlationOpts []correlation.InboundHandlerOption
