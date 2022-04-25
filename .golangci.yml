@@ -22,25 +22,50 @@ run:
   # the dependency descriptions in go.mod.
   modules-download-mode: readonly
 
+  # Define the Go version limit.
+  # Mainly related to generics support in go1.18.
+  # Default: use Go version from the go.mod file, fallback on the env var `GOVERSION`, fallback on 1.17
+  go: '1.17'
+
 output:
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
+  # Make issues output unique by line.
+  # Default: true
+  uniq-by-line: false
 
 linters-settings:
+  gci:
+    # Section configuration to compare against.
+    # Section names are case-insensitive and may contain parameters in ().
+    # Default: ["standard", "default"]
+    sections:
+      - standard                       # Captures all standard packages if they do not match another section.
+      - default                        # Contains all imports that could not be matched to another section type.
+      - prefix(gitlab.com/gitlab-org/gitlab-pages) # Groups all imports with the specified Prefix.
+
+    # Separators that should be present between sections.
+    # Default: ["newLine"]
+    section-separators:
+      - newLine
   gocyclo:
+    # Minimal code complexity to report.
+    # Default: 30 (but we recommend 10-20)
     min-complexity: 10
-  govet:
-    check-shadowing: false
-  goconst:
-    min-len: 3
-    min-occurrences: 3
   goimports:
     local-prefixes: gitlab.com/gitlab-org/gitlab-pages
-  nolintlint:
-    # Disable to ensure that all nolint directives actually have an effect.
+  gosimple:
+    # Select the Go version to target.
+    # Default: 1.13
+    go: "1.17"
+  govet:
+    # Enable all analyzers.
     # Default: false
-    allow-unused: false
+    enable-all: true
+    # Disable analyzers by name.
+    # Run `go tool vet help` to see all analyzers.
+    disable:
+      - shadow
+      - fieldalignment
+  nolintlint:
     # Enable to require an explanation of nonzero length after each nolint directive.
     # Default: false
     require-explanation: true
@@ -50,9 +75,7 @@ linters-settings:
   staticcheck:
     # Select the Go version to target.
     # Default: 1.13
-    go: "1.16"
-    # https://staticcheck.io/docs/options#checks
-    checks: [ "all" ]
+    go: "1.17"
 
 linters:
   disable-all: true
@@ -90,7 +113,7 @@ issues:
         - bodyclose
         - gosec
         - goconst
-    - path: "internal/fixture/fixtures.go"
+    - path: internal/fixture/fixtures\.go
       linters:
         - gosec
 
