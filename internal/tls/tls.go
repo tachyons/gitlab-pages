@@ -81,16 +81,11 @@ func GetTLSConfig(cfg *config.Config, getCertificateByServerName GetCertificateF
 	tlsConfig := &tls.Config{GetCertificate: getCertificate, MinVersion: tls.VersionTLS12}
 
 	if !cfg.General.InsecureCiphers {
-		configureTLSCiphers(tlsConfig)
+		tlsConfig.CipherSuites = preferredCipherSuites
 	}
 
 	tlsConfig.MinVersion = cfg.TLS.MinVersion
 	tlsConfig.MaxVersion = cfg.TLS.MaxVersion
 
 	return tlsConfig, nil
-}
-
-func configureTLSCiphers(tlsConfig *tls.Config) {
-	tlsConfig.PreferServerCipherSuites = true
-	tlsConfig.CipherSuites = preferredCipherSuites
 }

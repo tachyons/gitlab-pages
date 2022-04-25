@@ -47,7 +47,6 @@ func TestInsecureCiphers(t *testing.T) {
 	}
 	tlsConfig, err := GetTLSConfig(cfg, getCertificate)
 	require.NoError(t, err)
-	require.False(t, tlsConfig.PreferServerCipherSuites)
 	require.Empty(t, tlsConfig.CipherSuites)
 }
 
@@ -65,7 +64,6 @@ func TestGetTLSConfig(t *testing.T) {
 	tlsConfig, err := GetTLSConfig(cfg, getCertificate)
 	require.NoError(t, err)
 	require.IsType(t, getCertificate, tlsConfig.GetCertificate)
-	require.True(t, tlsConfig.PreferServerCipherSuites)
 	require.Equal(t, preferredCipherSuites, tlsConfig.CipherSuites)
 	require.Equal(t, uint16(tls.VersionTLS11), tlsConfig.MinVersion)
 	require.Equal(t, uint16(tls.VersionTLS12), tlsConfig.MaxVersion)
