@@ -7,8 +7,12 @@ import (
 )
 
 func HTTPSRedirectMiddleware(handler http.Handler, redirect bool) http.Handler {
+	if !redirect {
+		return handler
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if redirect && !request.IsHTTPS(r) {
+		if !request.IsHTTPS(r) {
 			redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
 			return
 		}
