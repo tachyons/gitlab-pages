@@ -17,6 +17,7 @@ fi
 exec gitlab-workhorse \
   -logFile ${GITLAB_WORKHORSE_LOG_FILE} \
   -logFormat ${GITLAB_WORKHORSE_LOG_FORMAT} \
+  -authBackend ${GITLAB_WORKHORSE_AUTH_BACKEND:-http://localhost:8080} \
   ${GITLAB_WORKHORSE_EXTRA_ARGS} \
   -listenAddr 0.0.0.0:${GITLAB_WORKHORSE_LISTEN_PORT:-8181} \
   -documentRoot "/srv/gitlab/public" \
