@@ -4,8 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestEnabled(t *testing.T) {
@@ -41,7 +39,7 @@ func TestEnabled(t *testing.T) {
 				EnvVariable:    "testFeatureFlag",
 				defaultEnabled: tt.defaultEnabled,
 			}
-			testhelpers.SetEnvironmentVariable(t, feature.EnvVariable, tt.envVal)
+			t.Setenv(feature.EnvVariable, tt.envVal)
 			require.Equal(t, tt.expected, feature.Enabled())
 		})
 	}

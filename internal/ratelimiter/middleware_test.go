@@ -77,7 +77,7 @@ func TestMiddlewareDenyRequestsAfterBurst(t *testing.T) {
 
 	for tn, tc := range tcs {
 		t.Run(tn, func(t *testing.T) {
-			testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, tc.enforce)
+			t.Setenv(feature.EnforceIPRateLimits.EnvVariable, strconv.FormatBool(tc.enforce))
 
 			rl := New(
 				"rate_limiter",

@@ -55,7 +55,7 @@ func BenchmarkRedirectsRewrite_withoutPlaceholders(b *testing.B) {
 }
 
 func BenchmarkRedirectsRewrite_PlaceholdersEnabled(b *testing.B) {
-	enablePlaceholders(b)
+	b.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
 
 	b.Run("10 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 10) })
 	b.Run("100 redirects", func(b *testing.B) { benchmarkRedirectsRewrite(b, 100) })

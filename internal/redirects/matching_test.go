@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	netlifyRedirects "github.com/tj/go-redirects"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 )
 
 type testCaseData struct {
@@ -55,7 +57,7 @@ var testsWithoutPlaceholders = map[string]testCaseData{
 }
 
 func Test_matchesRule(t *testing.T) {
-	enablePlaceholders(t)
+	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
 
 	tests := mergeTestSuites(testsWithoutPlaceholders, map[string]testCaseData{
 		// Note: the following 3 cases behave differently when

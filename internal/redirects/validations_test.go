@@ -6,10 +6,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	netlifyRedirects "github.com/tj/go-redirects"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 )
 
 func TestRedirectsValidateUrl(t *testing.T) {
-	enablePlaceholders(t)
+	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
 
 	tests := map[string]struct {
 		url         string
@@ -84,7 +86,7 @@ func TestRedirectsValidateUrlNoPlaceholders(t *testing.T) {
 }
 
 func TestRedirectsValidateRule(t *testing.T) {
-	enablePlaceholders(t)
+	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
 
 	tests := map[string]struct {
 		rule        string

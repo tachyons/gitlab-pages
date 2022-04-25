@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 var ratelimitedListeners = map[string]struct {
@@ -47,7 +46,7 @@ var ratelimitedListeners = map[string]struct {
 }
 
 func TestIPRateLimits(t *testing.T) {
-	testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, true)
+	t.Setenv(feature.EnforceIPRateLimits.EnvVariable, "true")
 
 	for name, tc := range ratelimitedListeners {
 		t.Run(name, func(t *testing.T) {
@@ -79,7 +78,7 @@ func TestIPRateLimits(t *testing.T) {
 }
 
 func TestDomainRateLimits(t *testing.T) {
-	testhelpers.StubFeatureFlagValue(t, feature.EnforceDomainRateLimits.EnvVariable, true)
+	t.Setenv(feature.EnforceDomainRateLimits.EnvVariable, "true")
 
 	for name, tc := range ratelimitedListeners {
 		t.Run(name, func(t *testing.T) {
@@ -191,7 +190,7 @@ func TestTLSRateLimits(t *testing.T) {
 					withExtraArgument("rate-limit-tls-source-ip-burst", fmt.Sprint(rateLimit)))
 			}
 
-			testhelpers.StubFeatureFlagValue(t, featureName, tt.enforceEnabled)
+			t.Setenv(featureName, strconv.FormatBool(tt.enforceEnabled))
 			logBuf := RunPagesProcess(t, options...)
 
 			// when we start the process we make 1 requests to verify that process is up
