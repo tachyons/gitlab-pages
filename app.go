@@ -117,12 +117,6 @@ func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.Respons
 }
 
 func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
-	// Add auto redirect
-	if !https && a.config.General.RedirectHTTP {
-		a.redirectToHTTPS(w, r, http.StatusTemporaryRedirect)
-		return true
-	}
-
 	if a.Handlers.HandleArtifactRequest(host, w, r) {
 		return true
 	}
@@ -246,6 +240,9 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = a.AcmeMiddleware.AcmeMiddleware(handler)
 
 	handler = routing.NewMiddleware(handler, a.source)
+
+	// Add auto redirect
+	handler = handlers.HTTPSRedirectMiddleware(handler, a.config.General.RedirectHTTP)
 
 	handler = handlers.Ratelimiter(handler, &a.config.RateLimit)
 
