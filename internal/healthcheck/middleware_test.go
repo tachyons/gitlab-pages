@@ -3,7 +3,6 @@ package healthcheck_test
 import (
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,18 +12,15 @@ import (
 )
 
 func TestHealthCheckMiddleware(t *testing.T) {
-	tests := []struct {
-		name string
+	tests := map[string]struct {
 		path string
 		body string
 	}{
-		{
-			name: "Not a healthcheck request",
+		"Not a healthcheck request": {
 			path: "/foo/bar",
 			body: "Hello from inner handler",
 		},
-		{
-			name: "Healthcheck request",
+		"Healthcheck request": {
 			path: "/-/healthcheck",
 			body: "success\n",
 		},
@@ -41,16 +37,14 @@ func TestHealthCheckMiddleware(t *testing.T) {
 		io.WriteString(w, "Hello from inner handler")
 	})
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			r := httptest.NewRequest(http.MethodGet, tc.path, nil)
-			rr := httptest.NewRecorder()
-
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
 			middleware := healthcheck.NewMiddleware(handler, cfg.General.StatusPath)
-			middleware.ServeHTTP(rr, r)
 
-			require.Equal(t, http.StatusOK, rr.Code)
-			require.Equal(t, tc.body, rr.Body.String())
+			u := "https://example.com" + tc.path
+
+			require.HTTPStatusCode(t, middleware.ServeHTTP, http.MethodGet, u, nil, http.StatusOK)
+			require.HTTPBodyContains(t, middleware.ServeHTTP, http.MethodGet, u, nil, tc.body)
 		})
 	}
 }
