@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -75,8 +76,8 @@ func TestRatelimiter(t *testing.T) {
 
 	for name, tc := range tt {
 		t.Run(name, func(t *testing.T) {
-			testhelpers.StubFeatureFlagValue(t, feature.EnforceIPRateLimits.EnvVariable, tc.sourceIPEnforced)
-			testhelpers.StubFeatureFlagValue(t, feature.EnforceDomainRateLimits.EnvVariable, tc.domainEnforced)
+			t.Setenv(feature.EnforceIPRateLimits.EnvVariable, strconv.FormatBool(tc.sourceIPEnforced))
+			t.Setenv(feature.EnforceDomainRateLimits.EnvVariable, strconv.FormatBool(tc.domainEnforced))
 
 			conf := config.RateLimit{
 				SourceIPLimitPerSecond: 0.1,

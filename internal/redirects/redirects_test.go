@@ -16,13 +16,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
-// enablePlaceholders enables redirect placeholders in tests
-func enablePlaceholders(t testing.TB) {
-	testhelpers.StubFeatureFlagValue(t, feature.RedirectsPlaceholders.EnvVariable, true)
-}
-
 func TestRedirectsRewrite(t *testing.T) {
-	enablePlaceholders(t)
+	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
 
 	tests := []struct {
 		name           string

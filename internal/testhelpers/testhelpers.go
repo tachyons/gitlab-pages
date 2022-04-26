@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -61,24 +60,6 @@ func Getwd(t *testing.T) string {
 	require.NoError(t, err)
 
 	return wd
-}
-
-// SetEnvironmentVariable for testing, restoring the original value on t.Cleanup
-func SetEnvironmentVariable(t testing.TB, key, value string) {
-	t.Helper()
-
-	orig := os.Getenv(key)
-
-	err := os.Setenv(key, value)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		require.NoError(t, os.Setenv(key, orig))
-	})
-}
-
-func StubFeatureFlagValue(t testing.TB, envVar string, value bool) {
-	SetEnvironmentVariable(t, envVar, strconv.FormatBool(value))
 }
 
 func PerformRequest(t *testing.T, handler http.Handler, r *http.Request) (int, string) {
