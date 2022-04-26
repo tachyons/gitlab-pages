@@ -7,14 +7,14 @@ echo "Checking Geo database migrations are up-to-date"
 cd /srv/gitlab
 
 # Ask for the current DB schema version, via Rake
-DB_SCHEMA_VERSION=$(/srv/gitlab/bin/bundle exec rake geo:db:version)
+DB_SCHEMA_VERSION=$(/srv/gitlab/bin/bundle exec rake db:version:geo)
 DB_SCHEMA_VERSION=$(echo ${DB_SCHEMA_VERSION} | grep 'Current version: ' | sed -e 's/_//g' -e 's/.* \([[:digit:]]\+\)/\1/')
 
 # If DB_SCHEMA_VERSION is 0, then the database needs initialized
-RAKE_TASK="geo:db:migrate"
+RAKE_TASK="db:migrate:geo"
 if [ "${DB_SCHEMA_VERSION}" == "0" ]; then
   echo "Geo Database appears to need initializing."
-  RAKE_TASK="geo:db:setup"
+  RAKE_TASK="db:setup:geo"
 fi
 
 echo "Performing '${RAKE_TASK}'"
