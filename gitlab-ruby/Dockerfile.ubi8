@@ -18,7 +18,7 @@ ADD gitlab-ruby.tar.gz /
 
 COPY scripts/ /scripts
 
-RUN dnf ${DNF_OPTS} install -by --nodocs ncurses libedit \
+RUN dnf ${DNF_OPTS} install -by --nodocs ncurses libedit diffutils \
     && dnf clean all \
     && rm -rf /var/cache/dnf \
     && chgrp -R 0 /scripts \
