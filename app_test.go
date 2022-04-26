@@ -3,18 +3,14 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
@@ -64,67 +60,6 @@ func newGetRequestWithScheme(t *testing.T, scheme string, withTLS bool) *http.Re
 	}
 
 	return req
-}
-
-func TestHealthCheckMiddleware(t *testing.T) {
-	tests := []struct {
-		name   string
-		path   string
-		status int
-		body   string
-	}{
-		{
-			name:   "Not a healthcheck request",
-			path:   "/foo/bar",
-			status: http.StatusOK,
-			body:   "Hello from inner handler",
-		},
-		{
-			name:   "Healthcheck request",
-			path:   "/-/healthcheck",
-			status: http.StatusOK,
-			body:   "success\n",
-		},
-	}
-
-	validCfg := config.GitLab{
-		InternalServer:     "server",
-		APISecretKey:       []byte("secret"),
-		ClientHTTPTimeout:  time.Second,
-		JWTTokenExpiration: time.Second,
-	}
-
-	source, err := gitlab.New(&validCfg)
-	require.NoError(t, err)
-
-	cfg := config.Config{
-		General: config.General{
-			StatusPath: "/-/healthcheck",
-		},
-	}
-
-	app := theApp{
-		config: &cfg,
-		source: source,
-	}
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "Hello from inner handler")
-	})
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			r := httptest.NewRequest("GET", tc.path, nil)
-			rr := httptest.NewRecorder()
-
-			middleware := app.healthCheckMiddleware(handler)
-			middleware.ServeHTTP(rr, r)
-
-			require.Equal(t, tc.status, rr.Code)
-			require.Equal(t, tc.body, rr.Body.String())
-		})
-	}
 }
 
 func TestHandlePanicMiddleware(t *testing.T) {
