@@ -10,12 +10,6 @@ endif
 
 VERSION_FLAGS :=-X "main.VERSION=$(VERSION)" -X "main.REVISION=$(REVISION)"
 
-_allpackages = $(shell (go list ./... | \
-	grep -v $(addprefix -e ,$(IGNORED_DIRS))))
-
-# memoize allpackages, so that it's executed only once and only if used
-allpackages = $(if $(__allpackages),,$(eval __allpackages := $$(_allpackages)))$(__allpackages)
-
 export GOPATH := $(CURDIR)/.GOPATH
 export GOBIN := $(CURDIR)/bin
 

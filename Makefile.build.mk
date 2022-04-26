@@ -12,7 +12,7 @@ endif
 ## Skip generation of the GNU build ID if set to speed up builds.
 WITHOUT_BUILD_ID ?=
 
-.PHONY: all setup generate-mocks build clean
+.PHONY: all setup cisetup generate-mocks build clean
 
 all: gitlab-pages
 
