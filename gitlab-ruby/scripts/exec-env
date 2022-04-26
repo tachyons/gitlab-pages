@@ -3,7 +3,7 @@
 ENVIRONMENT_DIR=/etc/gitlab/environment
 if [ -d $ENVIRONMENT_DIR ]; then
   # find all the files, export their content under their name.
-  for f in $(find -P $ENVIRONMENT_DIR -maxdepth 1 -type f) ; do
+  for f in $(find -L $ENVIRONMENT_DIR -maxdepth 1 -type f) ; do
     size=$(stat -c%s "$f")
     if [ "$size" -gt 0 ]; then
       export $(basename "$f")=$(cat "$f")
