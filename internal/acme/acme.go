@@ -31,7 +31,7 @@ func (m *Middleware) ServeAcmeChallenges(w http.ResponseWriter, r *http.Request,
 	}
 
 	if domain.ServeFileHTTP(w, r) {
-		return false
+		return true
 	}
 
 	return m.redirectToGitlab(w, r)
