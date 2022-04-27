@@ -7,6 +7,7 @@ import (
 	stdlog "log"
 	"net"
 	"net/http"
+	"path/filepath"
 
 	"github.com/pires/go-proxyproto"
 	"github.com/sirupsen/logrus"
@@ -47,7 +48,7 @@ func (a *theApp) listenAndServe(server *http.Server, addr string, h http.Handler
 		KeepAlive: a.config.Server.ListenKeepAlive,
 	}
 
-	l, err := lc.Listen(context.Background(), "tcp", addr)
+	l, err := listenAddr(context.Background(), &lc, addr)
 	if err != nil {
 		return fmt.Errorf("failed to listen on addr %s: %w", addr, err)
 	}
@@ -75,6 +76,14 @@ func (a *theApp) listenAndServe(server *http.Server, addr string, h http.Handler
 	}).Infof("server listening on: %s", l.Addr())
 
 	return server.Serve(l)
+}
+
+func listenAddr(ctx context.Context, lc *net.ListenConfig, address string) (net.Listener, error) {
+	if filepath.IsAbs(address) {
+		return lc.Listen(ctx, "unix", address)
+	}
+
+	return lc.Listen(ctx, "tcp", address)
 }
 
 type option func(*listenerConfig)
