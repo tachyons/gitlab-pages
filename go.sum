@@ -460,8 +460,8 @@ gitlab.com/gitlab-org/go-mimedb v1.45.0 h1:PO8dx6HEWzPYU6MQTYnCbpQEJzhJLW/Bh43+2
 gitlab.com/gitlab-org/go-mimedb v1.45.0/go.mod h1:wa9y/zOSFKmTXLyBs4clz2FNVhZQmmEQM9TxslPAjZ0=
 gitlab.com/gitlab-org/golang-archive-zip v0.1.1 h1:35k9giivbxwF03+8A05Cm8YoxoakU8FBCj5gysjCTCE=
 gitlab.com/gitlab-org/golang-archive-zip v0.1.1/go.mod h1:ZDtqpWPGPB9qBuZnZDrKQjIdJtkN7ZAoVwhT6H2o2kE=
-gitlab.com/gitlab-org/labkit v1.13.0 h1:db+7T3LPTPkN7i+ngcMSvJnto5BW3FwiTbv9WqgVVk4=
-gitlab.com/gitlab-org/labkit v1.13.0/go.mod h1:uS4O6ORqN47VuEN8P9Dx0PSFc/gsr6fMpe4zJa1+g2Q=
+gitlab.com/gitlab-org/labkit v1.14.0 h1:LSrvHgybidPyH8fHnsy1GBghrLR4kFObFrtZwUfCgAI=
+gitlab.com/gitlab-org/labkit v1.14.0/go.mod h1:bcxc4ZpAC+WyACgyKl7FcvT2XXAbl8CrzN6UY+w8cMc=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=

@@ -26,7 +26,7 @@ require (
 	gitlab.com/feistel/go-contentencoding v1.0.0
 	gitlab.com/gitlab-org/go-mimedb v1.45.0
 	gitlab.com/gitlab-org/golang-archive-zip v0.1.1
-	gitlab.com/gitlab-org/labkit v1.13.0
+	gitlab.com/gitlab-org/labkit v1.14.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/net v0.0.0-20211008194852-3b03d305991f
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
@@ -47,6 +47,7 @@ require (
 	github.com/google/pprof v0.0.0-20210804190019-f964ff605595 // indirect
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/oklog/ulid/v2 v2.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

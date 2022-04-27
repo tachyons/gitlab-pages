@@ -2,7 +2,7 @@ BINDIR := $(CURDIR)/bin
 GO_BUILD_TAGS   := continuous_profiler_stackdriver
 FIPS_MODE       ?= 0
 ifeq ($(FIPS_MODE), 1)
-    GO_BUILD_TAGS := $(GO_BUILD_TAGS),boringcrypto
+    GO_BUILD_TAGS := $(GO_BUILD_TAGS),fips
     CGO_ENABLED := 1
 endif
 
