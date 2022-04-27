@@ -30,6 +30,6 @@ ADD gitlab-mailroom.tar.gz /
 
 USER ${UID}
 
-CMD /usr/bin/mail_room -c /var/opt/gitlab/mail_room.yml --log-exit-as json
+CMD ["/usr/bin/mail_room", "-c", "/var/opt/gitlab/mail_room.yml", "--log-exit-as", "json"]
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck

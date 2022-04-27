@@ -13,4 +13,4 @@ COPY scripts/  /scripts/
 COPY shared/build-scripts/ /build-scripts
 
 RUN MAILROOM_VERSION=${MAILROOM_VERSION} /scripts/install-dependencies && rm /scripts/install-dependencies
-CMD /usr/bin/mail_room -c /var/opt/gitlab/mail_room.yml --log-exit-as json
+CMD ["/usr/bin/mail_room", "-c", "/var/opt/gitlab/mail_room.yml", "--log-exit-as", "json"]
