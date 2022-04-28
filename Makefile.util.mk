@@ -16,7 +16,7 @@ test: .GOPATH/.ok bin/gotestsum gitlab-pages
 	./bin/gotestsum --junitfile junit-test-report.xml --format testname -- ./... ${ARGS}
 
 race: .GOPATH/.ok bin/gotestsum gitlab-pages
-	CGO_ENABLED=1 ./bin/gotestsum --junitfile junit-test-report.xml --format testname -- -race $(if $V,-v) ./... ${ARGS}
+	./bin/gotestsum --junitfile junit-test-report.xml --format testname -- -race $(if $V,-v) ./... ${ARGS}
 
 acceptance: .GOPATH/.ok bin/gotestsum gitlab-pages
 	./bin/gotestsum --junitfile junit-test-report.xml --format testname -- $(if $V,-v) ./test/acceptance ${ARGS}

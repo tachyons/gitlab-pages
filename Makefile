@@ -1,9 +1,6 @@
 IMPORT_PATH := gitlab.com/gitlab-org/gitlab-pages
 V := 1
 
-# GitLab Pages is statically compiled without CGO to help it in chroot mode
-export CGO_ENABLED := 0
-
 include Makefile.build.mk
 include Makefile.util.mk
 include Makefile.internal.mk
