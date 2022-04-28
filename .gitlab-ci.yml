@@ -15,6 +15,8 @@ variables:
   DNF_OPTS: '--disableplugin=subscription-manager'
   DOCKER_VERSION: 20.10.3
   ISSUE_BOT_LABELS_EXTRA: "group::distribution"
+  # Version for all instances of `gitlab-omnibus-builder/ruby_docker`
+  BUILDER_RUBY_DOCKER: "3.1.0"
 
 stages:
   - prepare
@@ -158,7 +160,7 @@ workflow:
     - <<: *if_ubi_branch
 
 .job-base: &job-base
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:3.1.0"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:${BUILDER_RUBY_DOCKER}"
   services:
   - docker:${DOCKER_VERSION}-dind
   needs: []
@@ -192,7 +194,7 @@ workflow:
       - artifacts/
 
 .build-job-base: &build-job-base
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:3.1.0"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:${BUILDER_RUBY_DOCKER}"
   services:
   - docker:${DOCKER_VERSION}-dind
   retry: 1
@@ -228,7 +230,7 @@ workflow:
     - gitlab-ubi-builder
 
 dependency_update:
-  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:3.1.0
+  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:${BUILDER_RUBY_DOCKER}
   stage: prepare
   variables:
     INSTALL_SHA256: "c95a33432192688a08d935fd5f563fce4110610a51281f887ae88db208b720ba"
@@ -1441,7 +1443,7 @@ ubi-assets-release:
     - rm -rf artifacts/*
 
 ubi-release-for-certification:
-  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:3.1.0"
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:${BUILDER_RUBY_DOCKER}"
   services:
     - docker:${DOCKER_VERSION}-dind
   rules:
