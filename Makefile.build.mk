@@ -3,7 +3,6 @@ GO_BUILD_TAGS   := continuous_profiler_stackdriver
 FIPS_MODE       ?= 0
 ifeq ($(FIPS_MODE), 1)
     GO_BUILD_TAGS := $(GO_BUILD_TAGS),fips
-    CGO_ENABLED := 1
 endif
 
 # To compute a unique and deterministic value for GNU build-id, we build the Go binary a second time.
@@ -12,7 +11,7 @@ endif
 ## Skip generation of the GNU build ID if set to speed up builds.
 WITHOUT_BUILD_ID ?=
 
-.PHONY: all setup generate-mocks build clean
+.PHONY: all setup cisetup generate-mocks build clean
 
 all: gitlab-pages
 
