@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 )
 
@@ -126,6 +127,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	if err != nil {
 		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
+			logging.LogRequest(r).WithError(ErrDomainDoesNotExist).Error("unable to find any lookup path for domain while serving file")
 			httperrors.Serve404(w)
 			return true
 		}
@@ -144,6 +146,7 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
+			logging.LogRequest(r).WithError(ErrDomainDoesNotExist).Error("unable to find any lookup path for domain while serving the not found pages")
 			httperrors.Serve404(w)
 			return
 		}
@@ -168,6 +171,7 @@ func (d *Domain) ServeNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
+			logging.LogRequest(r).WithError(ErrDomainDoesNotExist).Error("unable to find any lookup path for domain while finding parent namespace domain for a request that failed authentication")
 			httperrors.Serve404(w)
 			return
 		}

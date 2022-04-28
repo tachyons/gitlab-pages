@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/patrickmn/go-cache"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httpfs"
@@ -208,6 +209,9 @@ func (zfs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 		case archiveCorrupted:
 			// this means that archive is likely changed
 			// we should invalidate it immediately
+			log.WithFields(log.Fields{
+				"archive_key": key,
+			}).Error("archive corrupted")
 			metrics.ZipCacheRequests.WithLabelValues("archive", "corrupted").Inc()
 			archive = nil
 		}
