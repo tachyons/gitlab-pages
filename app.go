@@ -402,11 +402,6 @@ func runApp(config *cfg.Config) {
 
 	a := theApp{config: config, source: source}
 
-	err = logging.ConfigureLogging(a.config.Log.Format, a.config.Log.Verbose)
-	if err != nil {
-		log.WithError(err).Fatal("Failed to initialize logging")
-	}
-
 	if config.ArtifactsServer.URL != "" {
 		a.Artifact = artifact.New(config.ArtifactsServer.URL, config.ArtifactsServer.TimeoutSeconds, config.General.Domain)
 	}
