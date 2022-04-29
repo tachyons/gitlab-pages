@@ -48,7 +48,7 @@ RUN buildDeps=' \
     bundle install ${BUNDLE_OPTIONS} && \
     cd .. && \
     touch .ruby-bundle && \
-    make install git GIT_PREFIX=/usr/local && \
+    make install git GIT_PREFIX=/usr/local GIT_APPEND_BUILD_OPTIONS=INSTALL_SYMLINKS=YesPlease && \
     rm -rf ${BUILD_DIR}/ruby/spec ${BUILD_DIR}/ruby/features && \
     mv ${BUILD_DIR}/ruby /srv/gitaly-ruby && \
     /build-scripts/cleanup-gems /usr/lib/ruby/gems && \
