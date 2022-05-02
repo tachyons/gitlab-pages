@@ -251,7 +251,10 @@ copy_assets() {
     docker create --name assets "${CI_REGISTRY_IMAGE}/${CI_JOB_NAME#build:*}:${CONTAINER_VERSION}${IMAGE_TAG_EXT}"
     docker cp assets:/assets "${ASSETS_DIR}"
     docker rm assets
+    echo "==== Assets Summary ===="
+    du -hd2 "${ASSETS_DIR}/assets"
     tar -czf "${ASSETS_DIR}.tar.gz" -C "${ASSETS_DIR}/assets" .
+    echo $(sha256sum "${ASSETS_DIR}.tar.gz") $(du -h "${ASSETS_DIR}.tar.gz" | awk '{print $1}')
     rm -rf "${ASSETS_DIR}"
   fi
 }
