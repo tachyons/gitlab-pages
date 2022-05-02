@@ -55,7 +55,7 @@ USER ${UID}
 ENV PATH "$PATH:/srv/gitaly-ruby/bin"
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc/gitaly
 
-CMD "/scripts/process-wrapper"
+CMD ["/scripts/process-wrapper"]
 
 VOLUME /var/log/gitaly
 
