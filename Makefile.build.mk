@@ -1,5 +1,6 @@
 BINDIR := $(CURDIR)/bin
 GO_BUILD_TAGS   := continuous_profiler_stackdriver
+MOCKGEN_VERSION=v1.6.0
 FIPS_MODE       ?= 0
 ifeq ($(FIPS_MODE), 1)
     GO_BUILD_TAGS := $(GO_BUILD_TAGS),fips
@@ -11,25 +12,15 @@ endif
 ## Skip generation of the GNU build ID if set to speed up builds.
 WITHOUT_BUILD_ID ?=
 
-.PHONY: all setup cisetup generate-mocks build clean
+.PHONY: all generate-mocks build clean
 
 all: gitlab-pages
 
-setup: .GOPATH/.ok
-	mkdir -p bin/
-	# Installing dev tools defined in go.tools
-	awk '/_/ {print $$2}' ./tools/main.go | xargs -tI % go install ${V:+-v -x} -modfile=tools/go.mod -mod=mod %
-
-cisetup: .GOPATH/.ok
-	mkdir -p bin/
-	# Installing dev tools defined in go.tools
-	awk '/_/ {print $$2}' ./tools/main.go | grep -v -e golangci | xargs -tI % go install ${V:+-v -x} -modfile=tools/go.mod -mod=mod %
-
-generate-mocks: .GOPATH/.ok bin/mockgen
-	$Q bin/mockgen -source=internal/interface.go -destination=internal/handlers/mock/handler_mock.go -package=mock
-	$Q bin/mockgen -source=internal/source/source.go -destination=internal/source/mock/source_mock.go -package=mock
-	$Q bin/mockgen -source=internal/source/gitlab/mock/client_stub.go -destination=internal/source/gitlab/mock/client_mock.go -package=mock
-	$Q bin/mockgen -source=internal/domain/resolver.go -destination=internal/domain/mock/resolver_mock.go -package=mock
+generate-mocks: .GOPATH/.ok
+	$Q go run github.com/golang/mock/mockgen@$(MOCKGEN_VERSION) -source=internal/interface.go -destination=internal/handlers/mock/handler_mock.go -package=mock
+	$Q go run github.com/golang/mock/mockgen@$(MOCKGEN_VERSION) -source=internal/source/source.go -destination=internal/source/mock/source_mock.go -package=mock
+	$Q go run github.com/golang/mock/mockgen@$(MOCKGEN_VERSION) -source=internal/source/gitlab/mock/client_stub.go -destination=internal/source/gitlab/mock/client_mock.go -package=mock
+	$Q go run github.com/golang/mock/mockgen@$(MOCKGEN_VERSION) -source=internal/domain/resolver.go -destination=internal/domain/mock/resolver_mock.go -package=mock
 
 build: .GOPATH/.ok
 	$Q GOBIN=$(BINDIR) go install $(if $V,-v) -ldflags="$(VERSION_FLAGS)" -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)

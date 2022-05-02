@@ -29,8 +29,6 @@ default:
     - gitlab-org
 
 .common:
-  before_script:
-    - make cisetup
   variables:
     GOPATH: $CI_PROJECT_DIR/.GOPATH
   cache:
@@ -41,9 +39,6 @@ default:
 download deps:
   needs: []
   extends: .common
-  before_script:
-    # overwrites the before_script in .common since we don't need to run make cisetup for this job
-    - echo skipping
   script:
     - make deps-download
   cache:

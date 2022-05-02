@@ -189,11 +189,6 @@ This is an example of developing GitLab Pages inside the [GitLab Development Kit
 ## Linting
 
 ```sh
-# Get everything installed and setup (you only need to run this once)
-# If you run into problems running the linting process,
-# you may have to run `make clean` and try this step again
-make setup
-
 # Run the linter locally
 make lint
 ```

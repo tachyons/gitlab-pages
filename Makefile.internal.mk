@@ -17,16 +17,3 @@ Q := $(if $V,,@)
 
 .GOPATH/.ok:
 	mkdir -p .GOPATH
-
-.PHONY: bin/golangci-lint
-bin/golangci-lint: .GOPATH/.ok
-	@test -x $@ || \
-	    { echo "Vendored golangci-lint not found, try running 'make setup'..."; exit 1; }
-
-bin/gotestsum: .GOPATH/.ok
-	@test -x $@ || \
-	    { echo "Vendored gotestsum not found, try running 'make setup'..."; exit 1; }
-
-bin/mockgen: .GOPATH/.ok
-	@test -x $@ || \
-	    { echo "Vendored mockgen not found, try running 'make setup'..."; exit 1; }

@@ -3,23 +3,25 @@
 OUT_FORMAT ?= colored-line-number
 LINT_FLAGS ?=  $(if $V,-v)
 REPORT_FILE ?=
+GOLANGCI_VERSION=v1.44.0
+GOTESTSUM_VERSION=v1.7.0
 COVERAGE_PACKAGES=$(shell (go list ./... | grep -v -e "test/acceptance" | tr "\n", "," | sed 's/\(.*\),/\1 /'))
 
-lint: .GOPATH/.ok bin/golangci-lint
-	$Q ./bin/golangci-lint run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
+lint: .GOPATH/.ok
+	$Q go run github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_VERSION) run ./... --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
 
-format: .GOPATH/.ok bin/golangci-lint
-	$Q ./bin/golangci-lint run ./... --fix --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
+format: .GOPATH/.ok
+	$Q go run github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_VERSION) run ./... --fix --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
 
-test: .GOPATH/.ok bin/gotestsum gitlab-pages
+test: .GOPATH/.ok gitlab-pages
 	rm -f tests.out
-	./bin/gotestsum --junitfile junit-test-report.xml --format testname -- ./... ${ARGS}
+	go run gotest.tools/gotestsum@$(GOTESTSUM_VERSION) --junitfile junit-test-report.xml --format testname -- ./... ${ARGS}
 
-race: .GOPATH/.ok bin/gotestsum gitlab-pages
-	./bin/gotestsum --junitfile junit-test-report.xml --format testname -- -race $(if $V,-v) ./... ${ARGS}
+race: .GOPATH/.ok gitlab-pages
+	go run gotest.tools/gotestsum@$(GOTESTSUM_VERSION) --junitfile junit-test-report.xml --format testname -- -race $(if $V,-v) ./... ${ARGS}
 
-acceptance: .GOPATH/.ok bin/gotestsum gitlab-pages
-	./bin/gotestsum --junitfile junit-test-report.xml --format testname -- $(if $V,-v) ./test/acceptance ${ARGS}
+acceptance: .GOPATH/.ok gitlab-pages
+	go run gotest.tools/gotestsum@$(GOTESTSUM_VERSION) --junitfile junit-test-report.xml --format testname -- $(if $V,-v) ./test/acceptance ${ARGS}
 
 bench: .GOPATH/.ok gitlab-pages
 	go test -bench=. -run=^$$ ./...
