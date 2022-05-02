@@ -150,7 +150,6 @@ func (gc *Client) get(ctx context.Context, path string, params url.Values) (*htt
 		return resp, nil
 	}
 
-	// nolint: errcheck
 	// best effort to discard and close the response body
 	io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
