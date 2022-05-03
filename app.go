@@ -113,11 +113,7 @@ func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.Respons
 	domain.ServeNotFoundAuthFailed(w, r)
 }
 
-func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, host string, domain *domain.Domain) bool {
-	if a.Handlers.HandleArtifactRequest(host, w, r) {
-		return true
-	}
-
+func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, domain *domain.Domain) bool {
 	if _, err := domain.GetLookupPath(r); err != nil {
 		if errors.Is(err, gitlab.ErrDiskDisabled) {
 			errortracking.CaptureErrWithReqAndStackTrace(err, r)
@@ -142,11 +138,10 @@ func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, ht
 // not static-content responses
 func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host := domain.GetHost(r)
 		domain := domain.FromRequest(r)
 		https := request.IsHTTPS(r)
 
-		if a.tryAuxiliaryHandlers(w, r, https, host, domain) {
+		if a.tryAuxiliaryHandlers(w, r, https, domain) {
 			return
 		}
 
@@ -208,6 +203,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	}
 	handler = a.Auth.AuthorizationMiddleware(handler)
 	handler = a.auxiliaryMiddleware(handler)
+	handler = handlers.ArtifactMiddleware(handler, a.Handlers)
 	handler = a.Auth.AuthenticationMiddleware(handler, a.source)
 	handler = a.AcmeMiddleware.AcmeMiddleware(handler)
 

@@ -12,10 +12,6 @@ func TestPanics(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Panics(t, func() {
-		GetHost(r)
-	})
-
-	require.Panics(t, func() {
 		FromRequest(r)
 	})
 }
@@ -42,9 +38,8 @@ func TestWithHostAndDomain(t *testing.T) {
 			r, err := http.NewRequest("GET", "/", nil)
 			require.NoError(t, err)
 
-			r = ReqWithHostAndDomain(r, tt.host, tt.domain)
+			r = ReqWithDomain(r, tt.domain)
 			require.Exactly(t, tt.domain, FromRequest(r))
-			require.Equal(t, tt.host, GetHost(r))
 		})
 	}
 }
