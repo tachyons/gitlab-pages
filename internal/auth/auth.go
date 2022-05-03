@@ -28,9 +28,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
-// nolint: gosec
+// nolint: gosec // auth constants, not credentials
 // gosec: G101: Potential hardcoded credentials
-// auth constants, not credentials
 const (
 	apiURLUserTemplate     = "%s/api/v4/user"
 	apiURLProjectTemplate  = "%s/api/v4/projects/%d/pages_access"
