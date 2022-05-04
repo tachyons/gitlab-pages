@@ -8,6 +8,8 @@ FROM ${FROM_IMAGE}:${TAG}
 ARG GITLAB_USER=git
 ARG GITLAB_EXPORTER_VERSION
 
+COPY scripts/ /scripts/
+
 # create gitlab user
 # openssh daemon does not allow locked user to login, change ! to *
 RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
@@ -29,4 +31,4 @@ RUN mkdir -p ${CONFIG_DIRECTORY}; chown -R $GITLAB_USER ${CONFIG_DIRECTORY}
 
 USER $GITLAB_USER:$GITLAB_USER
 
-CMD /usr/bin/gitlab-exporter web -c ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
+CMD ["/scripts/process-wrapper"]
