@@ -140,7 +140,7 @@ services:
       - ./dev/registry/gitlab-registry.crt:/etc/docker/registry/gitlab-registry.crt
   registry:
     image: ${GITLAB_REGISTRY_IMAGE}
-    command: ["/scripts/wait-for-deps", "registry", "serve", "/etc/docker/registry/config.yml"]
+    command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
       - registry_migrations
     ports:

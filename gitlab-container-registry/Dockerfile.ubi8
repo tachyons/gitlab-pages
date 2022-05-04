@@ -34,6 +34,6 @@ ENV CONFIG_FILENAME=config.yml
 ENV GITLAB_USER=${GITLAB_USER}
 
 ENTRYPOINT ["/scripts/entrypoint-ubi8.sh"]
-CMD /bin/registry serve ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
+CMD ["/scripts/process-wrapper"] 
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
