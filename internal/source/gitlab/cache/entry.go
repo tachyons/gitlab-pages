@@ -101,7 +101,7 @@ func (e *Entry) domainExists() bool {
 func (e *Entry) timedOut() bool {
 	err := e.response.Error
 	var neterr net.Error
-	if ok := errors.As(err, &neterr); ok && (neterr.Timeout() || neterr.Temporary()) {
+	if ok := errors.As(err, &neterr); ok && neterr.Timeout() {
 		return true
 	}
 
