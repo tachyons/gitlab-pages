@@ -49,6 +49,6 @@ USER $GITLAB_USER:$GITLAB_USER
 ENV CONFIG_DIRECTORY=/etc/docker/registry
 ENV CONFIG_FILENAME=config.yml
 
-CMD ["/scripts/process-wrapper"] 
+CMD ["/scripts/process-wrapper"]
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 CMD /scripts/healthcheck
