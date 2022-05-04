@@ -1,7 +1,7 @@
 # ARGS for entire build
 ARG KUBECTL_VERSION="1.18.20"
-ARG FROM_IMAGE="debian"
-FROM ${FROM_IMAGE}:bullseye-slim
+ARG DEBIAN_IMAGE=debian:bullseye-slim
+FROM ${DEBIAN_IMAGE}
 
 # ARG must be redeclared after each FROM
 ARG KUBECTL_VERSION

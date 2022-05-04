@@ -1,0 +1,206 @@
+# Debian / non-UBI
+# included when not a UBI pipeline, branch, tag
+
+## phase zero
+
+alpine-stable:
+  extends: .job-base
+  stage: phase-zero
+  script:
+    - record_stable_image "${DEPENDENCY_PROXY}${ALPINE_IMAGE}"
+
+debian-stable:
+  extends: .job-base
+  stage: phase-zero
+  script:
+    - record_stable_image "${DEPENDENCY_PROXY}${DEBIAN_IMAGE}"
+
+## phase one
+
+alpine-certificates:
+  extends: .alpine-certificates
+  needs:
+    - alpine-stable
+
+cfssl-self-sign:
+  extends: .cfssl-self-sign
+  needs:
+    - alpine-stable
+
+kubectl:
+  extends: .kubectl
+  needs:
+    - debian-stable
+
+gitlab-gomplate:
+  extends: .gitlab-gomplate
+  needs:
+    - debian-stable
+
+gitlab-graphicsmagick:
+  extends: .gitlab-graphicsmagick
+  needs:
+    - debian-stable
+
+gitlab-python:
+  extends: .gitlab-python
+  needs:
+    - debian-stable
+
+gitlab-ruby:
+  extends: .gitlab-ruby
+  needs:
+   - debian-stable
+
+postgresql:
+  extends: .postgresql
+  needs:
+    - debian-stable
+
+## phase two
+
+gitlab-exporter:
+  extends: .gitlab-exporter
+  needs:
+    - gitlab-ruby
+
+gitlab-go:
+  extends: .gitlab-go
+  needs:
+    - gitlab-ruby
+
+gitlab-mailroom:
+  extends: .gitlab-mailroom
+  needs:
+    - gitlab-ruby
+
+## phase three
+
+gitlab-logger:
+  extends: .gitlab-logger
+  needs:
+    - gitlab-go
+
+## phase four
+
+gitaly:
+  extends: .gitaly
+  needs:
+   - gitlab-logger
+   - gitlab-go
+   - gitlab-ruby
+
+gitlab-container-registry:
+  extends: .gitlab-container-registry
+  needs:
+    - debian-stable
+    - gitlab-go
+    - gitlab-gomplate
+
+gitlab-elasticsearch-indexer:
+  extends: .gitlab-elasticsearch-indexer
+  needs:
+    - gitlab-go
+
+gitlab-kas:
+  extends: .gitlab-kas
+  needs:
+  - gitlab-go
+
+gitlab-pages:
+  extends: .gitlab-pages
+  needs:
+    - gitlab-go
+    - gitlab-gomplate
+    - gitlab-ruby
+
+gitlab-shell:
+  extends: .gitlab-shell
+  needs:
+    - gitlab-gomplate
+    - gitlab-logger
+    - gitlab-ruby
+
+## phase five
+
+gitlab-rails-ee:
+  extends: .gitlab-rails-ee
+  needs:
+    - postgresql
+    - gitlab-graphicsmagick
+    - gitlab-ruby
+    - gitlab-elasticsearch-indexer
+    - gitlab-gomplate
+
+gitlab-rails-ce:
+  extends: .gitlab-rails-ce
+  needs:
+    - postgresql
+    - gitlab-graphicsmagick
+    - gitlab-ruby
+    - gitlab-gomplate
+
+## phase six
+
+gitlab-geo-logcursor:
+  extends: .gitlab-geo-logcursor
+  needs:
+    - gitlab-rails-ee
+
+gitlab-sidekiq-ee:
+  extends: .gitlab-sidekiq-ee
+  needs:
+    - gitlab-rails-ee
+    - gitlab-python
+    - gitlab-logger
+
+gitlab-sidekiq-ce:
+  extends: .gitlab-sidekiq-ce
+  needs:
+    - gitlab-rails-ce
+    - gitlab-python
+    - gitlab-logger
+
+gitlab-toolbox-ee:
+  extends: .gitlab-toolbox-ee
+  needs:
+    - gitlab-rails-ee
+    - gitlab-python
+    - gitaly
+
+gitlab-toolbox-ce:
+  extends: .gitlab-toolbox-ce
+  needs:
+    - gitlab-rails-ce
+    - gitlab-python
+    - gitaly
+
+gitlab-webservice-ee:
+  extends: .gitlab-webservice-ee
+  needs:
+    - gitlab-rails-ee
+    - gitlab-python
+    - gitlab-logger
+
+gitlab-webservice-ce:
+  extends: .gitlab-webservice-ce
+  needs:
+    - gitlab-rails-ce
+    - gitlab-python
+    - gitlab-logger
+
+gitlab-workhorse-ee:
+  extends: .gitlab-workhorse-ee
+  needs:
+    - gitlab-ruby
+    - gitlab-go
+    - gitlab-gomplate
+    - gitlab-rails-ee
+
+gitlab-workhorse-ce:
+  extends: .gitlab-workhorse-ce
+  needs:
+    - gitlab-ruby
+    - gitlab-go
+    - gitlab-gomplate
+    - gitlab-rails-ce
