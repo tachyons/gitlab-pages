@@ -10,10 +10,6 @@ endif
 
 VERSION_FLAGS :=-X "main.VERSION=$(VERSION)" -X "main.REVISION=$(REVISION)"
 
-export GOPATH := $(CURDIR)/.GOPATH
 export GOBIN := $(CURDIR)/bin
 
 Q := $(if $V,,@)
-
-.GOPATH/.ok:
-	mkdir -p .GOPATH

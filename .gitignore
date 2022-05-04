@@ -11,4 +11,5 @@ shared/pages/.update
 
 # Used by the makefile
 /.GOPATH
+/.cover
 /bin

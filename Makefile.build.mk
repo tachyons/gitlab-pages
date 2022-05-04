@@ -16,13 +16,13 @@ WITHOUT_BUILD_ID ?=
 
 all: gitlab-pages
 
-generate-mocks: .GOPATH/.ok
+generate-mocks:
 	$Q go run github.com/golang/mock/mockgen@$(MOCKGEN_VERSION) -source=internal/interface.go -destination=internal/handlers/mock/handler_mock.go -package=mock
 	$Q go run github.com/golang/mock/mockgen@$(MOCKGEN_VERSION) -source=internal/source/source.go -destination=internal/source/mock/source_mock.go -package=mock
 	$Q go run github.com/golang/mock/mockgen@$(MOCKGEN_VERSION) -source=internal/source/gitlab/mock/client_stub.go -destination=internal/source/gitlab/mock/client_mock.go -package=mock
 	$Q go run github.com/golang/mock/mockgen@$(MOCKGEN_VERSION) -source=internal/domain/resolver.go -destination=internal/domain/mock/resolver_mock.go -package=mock
 
-build: .GOPATH/.ok
+build:
 	$Q GOBIN=$(BINDIR) go install $(if $V,-v) -ldflags="$(VERSION_FLAGS)" -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
 ifndef WITHOUT_BUILD_ID
 	GO_BUILD_ID=$$( go tool buildid $(BINDIR)/gitlab-pages ) && \
