@@ -1,9 +1,11 @@
-FROM debian:bullseye-slim
+ARG DEBIAN_IMAGE=debian:bullseye-slim
+FROM ${DEBIAN_IMAGE}
 
 ARG BUILD_DIR=/tmp/build
 ARG RUBY_VERSION=2.7.5
 ARG RUBYGEMS_VERSION=3.2.19
 ARG BUNDLER_VERSION=2.3.6
+ARG RBREADLINE_VERSION=0.5.5
 ARG JEMALLOC_VERSION=5.2.1
 ARG EXIFTOOL_VERSION=11.70
 
@@ -79,8 +81,8 @@ RUN buildDeps=' \
   && rm -rf ${BUILD_DIR} \
   && gem update --system "$RUBYGEMS_VERSION" \
   && gem install bundler --version "$BUNDLER_VERSION" --force --no-document \
-  && curl --retry 6 -sf https://codeload.github.com/ConnorAtherton/rb-readline/tar.gz/v0.5.5 | tar -xz \
-  && ruby rb-readline-0.5.5/setup.rb && rm -rf rb-readline-0.5.5 \
+  && curl --retry 6 -sfL https://github.com/connoratherton/rb-readline/archive/v${RBREADLINE_VERSION}.tar.gz | tar -xz \
+  && ruby rb-readline-${RBREADLINE_VERSION}/setup.rb && rm -rf rb-readline-${RBREADLINE_VERSION} \
 	&& rm -rf /root/.gem/ \
 	&& /build-scripts/cleanup-gems /usr/lib/ruby/gems
 

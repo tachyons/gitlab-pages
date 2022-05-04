@@ -1,5 +1,5 @@
-ARG FROM_IMAGE="debian"
-FROM ${FROM_IMAGE}:bullseye-slim
+ARG DEBIAN_IMAGE=debian:bullseye-slim
+FROM ${DEBIAN_IMAGE}
 
 ARG BUILD_DIR=/tmp/build
 ARG PYTHON_VERSION="3.8.12"

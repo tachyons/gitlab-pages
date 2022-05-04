@@ -1,4 +1,10 @@
 variables:
+  # Base distribution
+  DEBIAN_IMAGE: "debian:bullseye-slim"
+  UBI_IMAGE: "registry.access.redhat.com/ubi8/ubi:8.5"
+  ALPINE_IMAGE: "alpine:3.15"
+
+  # GitLab Application Components
   GITLAB_ELASTICSEARCH_INDEXER_VERSION: "main"
   GITLAB_VERSION: "master"
   GITLAB_REF_SLUG: "master"
@@ -9,34 +15,49 @@ variables:
   GITALY_SERVER_VERSION: "master"
   GITLAB_PAGES_VERSION: "master"
   GITLAB_KAS_VERSION: "master"
+  MAILROOM_VERSION: "0.0.20"
+
+  # Runtimes & Tools
   GIT_VERSION: "2.29.0"
+  # Follow the Go upgrade guidelines when changing the Go version
+  # link: https://docs.gitlab.com/ee/development/go_guide/go_upgrade.html
   GO_VERSION: "1.17.6"
+  # Follow the Ruby upgrade guidelines when changing the ruby version
+  # link: https://docs.gitlab.com/ee/development/ruby_upgrade.html
+  RUBY_VERSION: 2.7.5
+  PYTHON_VERSION: "3.8.12"
   KUBECTL_VERSION: "1.18.20"
   PG_VERSION: "14.1"
-  MAILROOM_VERSION: "0.0.20"
-  ALPINE_VERSION: "3.15"
   CA_PKG_VERSION: "20211220-r0"
   CFSSL_VERSION: "1.6.1"
   CFSSL_CHECKSUM_SHA256: "89e600cd5203a025f8b47c6cd5abb9a74b06e3c7f7f7dd3f5b2a00975b15a491"
-  DOCKER_DRIVER: overlay2
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
-  ASSETS_IMAGE_PREFIX: "gitlab-assets"
-  ASSETS_IMAGE_REGISTRY_PREFIX: "registry.gitlab.com/gitlab-org"
-  GITLAB_NAMESPACE: "gitlab-org"
-  CE_PROJECT: "gitlab-foss"
-  EE_PROJECT: "gitlab"
-  COMPILE_ASSETS: "false"
   AWSCLI_VERSION: "1.22.44"
   S3CMD_VERSION: "2.2.0"
-  PYTHON_VERSION: "3.8.12"
   GM_VERSION: "1.3.36"
   GITLAB_LOGGER_VERSION: "v1.3.1"
   GITLAB_LOGGER_SHA256: "1f53389f9efe306d0b98faa7b75c312965baf46831f3d21b94b4e5d7cd133329"
   GOMPLATE_VERSION: "v3.9.0"
   GOMPLATE_SHA256: "7dbabe30095f822ec38f5f70711ff121c26e588227da4cc05208417cfaf929cd"
 
+  # Docker configuration
+  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+
+  # Pipeline config
+  ASSETS_IMAGE_PREFIX: "gitlab-assets"
+  ASSETS_IMAGE_REGISTRY_PREFIX: "registry.gitlab.com/gitlab-org"
+  GITLAB_NAMESPACE: "gitlab-org"
+  CE_PROJECT: "gitlab-foss"
+  EE_PROJECT: "gitlab"
+  COMPILE_ASSETS: "false"
+
 ## Note
 # Variables ASSETS_IMAGE_REGISTRY_PREFIX, GITLAB_NAMESPACE and CE_PROJECT are
 # overridden in the mirror of this project in dev.gitlab.org to match their dev
 # counterpart locations.
+
+## Note
+# Forcing complete rebuilds requires setting two items:
+# FORCE_IMAGE_BUILDS=true
+# DISABLE_DOCKER_BUILD_CACHE=true

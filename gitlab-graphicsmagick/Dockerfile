@@ -1,7 +1,5 @@
-ARG FROM_IMAGE=debian
-ARG TAG=bullseye-slim
-
-FROM ${FROM_IMAGE}:${TAG} as compile
+ARG DEBIAN_IMAGE=debian:bullseye-slim
+FROM ${DEBIAN_IMAGE} as compile
 
 ARG GM_VERSION_MINOR=1.3
 ARG GM_VERSION=1.3.36

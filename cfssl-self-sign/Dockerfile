@@ -4,9 +4,8 @@
 # - Generate self-signed CA
 # - Generate a wild-card SSL certificate, based on that CA.
 # - Expose all of the above through /output
-ARG FROM_IMAGE=alpine
-ARG ALPINE_VERSION=3.15
-FROM $FROM_IMAGE:$ALPINE_VERSION as builder
+ARG ALPINE_IMAGE=alpine:3.15
+FROM $ALPINE_IMAGE as builder
 
 ARG CFSSL_VERSION="1.6.1"
 ARG CFSSL_PLATFORM="linux_amd64"
@@ -17,7 +16,7 @@ COPY scripts/install-cfssl.sh /scripts/install-cfssl.sh
 RUN apk add --no-cache curl
 RUN /scripts/install-cfssl.sh
 
-FROM $FROM_IMAGE:$ALPINE_VERSION
+FROM $ALPINE_IMAGE
 
 ARG CFSSL_BIN=/usr/local/bin
 

@@ -1,0 +1,16 @@
+# Dependency update job
+# included when:
+# - if: '$DEPS_PIPELINE'
+
+dependency_update:
+  image: registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:${BUILDER_RUBY_DOCKER}
+  stage: prepare
+  variables:
+    INSTALL_SHA256: "c95a33432192688a08d935fd5f563fce4110610a51281f887ae88db208b720ba"
+  script:
+    - curl --retry 6 -fO https://deps.app/install.sh
+    - echo "${INSTALL_SHA256}  install.sh" | sha256sum --check
+    - cat install.sh | bash -s -- -b $HOME/bin
+    # Remove the install.sh script otherwise deps gets upset about pending changes when it goes to create new branches
+    - rm install.sh
+    - $HOME/bin/deps ci

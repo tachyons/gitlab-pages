@@ -269,5 +269,75 @@ use_assets() {
 import_assets() {
   if [ "${UBI_PIPELINE}" = 'true' ]; then
     cp $@ $(get_trimmed_job_name)/
+    mock_tags_from_assets
   fi
 }
+
+# mock_tags_from_assets
+# To support UBI having assets versus artifact containers, we checksum
+# the assets tarballs, and use these as the "container_version" content.
+mock_tags_from_assets() {
+  if [ "${UBI_PIPELINE}" = 'true' ]; then
+    trimmed_job_name=$(get_trimmed_job_name)
+    assets="${trimmed_job_name}/*.tar.gz"
+    shopt -s nullglob
+    for asset in $assets; do
+      container=$(basename $asset)
+      false_tag="artifacts/container_versions/${container%.tar.gz}_tag.txt"
+      sha256sum $asset > "${false_tag}"
+    done
+    shopt -u nullglob
+  fi
+}
+
+## record_stable_image
+# pull a base image at a tag, record the tag's digest into container_versions
+record_stable_image() {
+  image=$1
+  name=$(image_root_name ${image})
+  docker pull ${image}
+  # Emulate `skopeo inspect docker://${FULL_IMAGE} | jq -r '.Digest'`
+  image_digest=$(docker inspect --format '{{ join .RepoDigests " , " }}' ${image} | cut -d'@' -f2)
+  echo -n "${image_digest}" > "artifacts/container_versions/${name}.txt"
+}
+
+## image_root_name
+# return the "basename" of an image
+# - docker.io/library/alpine:3.15 => alpine
+# - docker.io/library/debian:bullseye-slim => debian
+image_root_name() {
+  IMAGE=$1
+  IMAGE=${IMAGE##*/} # remove all leading slashes
+  IMAGE=${IMAGE%%:*} # remove longest from end, with :
+  IMAGE=${IMAGE%%@*} # remove longest from end, with @
+  echo -n $IMAGE
+}
+
+## populate_stable_image_vars
+# export the various environment variables surrounding stable-ized distribtion images
+# If distributions have entries in `container_verions`, export those for use by CI
+# and/or scripting
+populate_stable_image_vars() {
+  # update DEBIAN_IMAGE to full origin & digest
+  if [ -f artifacts/container_versions/debian.txt ]; then
+    export DEBIAN_DIGEST=$(cat artifacts/container_versions/debian.txt) ;
+    export DEBIAN_IMAGE="${DEPENDENCY_PROXY}${DEBIAN_IMAGE}@${DEBIAN_DIGEST}" ;
+    export DEBIAN_BUILD_ARGS="--build-arg DEBIAN_IMAGE=${DEBIAN_IMAGE}"
+    echo "DEBIAN_BUILD_ARGS: ${DEBIAN_BUILD_ARGS}"
+  fi
+  # update DEBIAN_IMAGE to full origin & digest
+  if [ -f artifacts/container_versions/ubi.txt ]; then
+    export UBI_DIGEST=$(cat artifacts/container_versions/ubi.txt) ;
+    export UBI_IMAGE="${UBI_IMAGE}@${UBI_DIGEST}" ;
+    export UBI_BUILD_ARGS="--build-arg UBI_IMAGE=${UBI_IMAGE}"
+    echo "UBI_BUILD_ARGS: ${UBI_BUILD_ARGS}"
+  fi
+  # update ALPINE_IMAGE to full origin & digest
+  if [ -f artifacts/container_versions/alpine.txt ]; then
+    export ALPINE_DIGEST=$(cat artifacts/container_versions/alpine.txt) ;
+    export ALPINE_IMAGE="${DEPENDENCY_PROXY}${ALPINE_IMAGE}@${ALPINE_DIGEST}" ;
+    export ALPINE_BUILD_ARGS="--build-arg ALPINE_IMAGE=${ALPINE_IMAGE}"
+    echo "ALPINE_BUILD_ARGS: ${ALPINE_BUILD_ARGS}"
+  fi
+}
+
