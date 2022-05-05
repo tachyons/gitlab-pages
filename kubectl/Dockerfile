@@ -5,7 +5,7 @@ FROM ${DEBIAN_IMAGE}
 
 # ARG must be redeclared after each FROM
 ARG KUBECTL_VERSION
-ARG YQ_VERSION="4.24.5"
+ARG YQ_VERSION="4.25.1"
 
 # Providing to environment, for easy information gathering.
 ENV KUBECTL_VERSION ${KUBECTL_VERSION}
