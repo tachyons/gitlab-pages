@@ -10,9 +10,9 @@ listen_addr = "0.0.0.0:8075"
 # prometheus_listen_addr = "localhost:9236"
 #
 
-# # Git executable settings
-# [git]
-# bin_path = "/usr/bin/git"
+# Git executable settings
+[git]
+use_bundled_binaries = true
 
 [[storage]]
 name = "default"
