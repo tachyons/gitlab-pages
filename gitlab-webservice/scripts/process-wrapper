@@ -24,7 +24,7 @@ fi
 
 if [ "${GITLAB_WEBSERVER^^}" = "PUMA" ]; then
   echo "Starting Puma"
-  /srv/gitlab/bin/bundle exec puma --environment production \
+  exec /srv/gitlab/bin/bundle exec puma --environment production \
     --config /srv/gitlab/config/puma.rb /srv/gitlab/config.ru
 else
   echo "ERROR: Unknown Webserver requested '${GITLAB_WEBSERVER}'. Exiting"
