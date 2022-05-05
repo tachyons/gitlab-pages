@@ -15,7 +15,7 @@ USER $GITLAB_USER:$GITLAB_USER
 
 COPY scripts/ /scripts
 
-CMD /scripts/process-wrapper
+CMD ["/scripts/process-wrapper"]
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 \
 CMD /scripts/healthcheck
