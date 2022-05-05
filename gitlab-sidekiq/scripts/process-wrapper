@@ -39,7 +39,7 @@ cd /srv/gitlab
 #
 # For reasons of simplicity, we therefore start a single-worker "cluster".
 #
-bin/sidekiq-cluster \
+exec bin/sidekiq-cluster \
     -r /srv/gitlab \
     -e production \
     --min-concurrency ${SIDEKIQ_CONCURRENCY_MIN:-$SIDEKIQ_CONCURRENCY} \
