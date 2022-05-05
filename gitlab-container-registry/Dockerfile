@@ -36,7 +36,7 @@ ARG GITLAB_USER=git
 
 # create gitlab user
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates apache2-utils curl \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
   && rm -rf /var/lib/apt/lists/* \
   && adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER}
 
