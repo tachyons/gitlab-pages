@@ -36,7 +36,7 @@ RUN cd /srv/gitlab && \
 
 ENV GITALY_FEATURE_DEFAULT_ON=1
 
-CMD /scripts/process-wrapper
+CMD ["/scripts/process-wrapper"]
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 \
 CMD /scripts/healthcheck
