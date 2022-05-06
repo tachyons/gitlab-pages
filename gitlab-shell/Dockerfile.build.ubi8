@@ -8,6 +8,7 @@ ARG VERSION=master
 ARG API_URL=
 ARG API_TOKEN=
 ARG DNF_OPTS
+ARG FIPS_MODE=0
 
 ADD gitlab-ruby.tar.gz /
 ADD gitlab-go.tar.gz /
@@ -24,7 +25,7 @@ RUN dnf ${DNF_OPTS} install -by --nodocs git \
         "${PROJECT}" \
         "${VERSION}" \
     && cd ${PROJECT}-${VERSION} \
-    && make build \
+    && FIPS_MODE=${FIPS_MODE} make build \
     && rm -rf go/ go_build/ spec/ internal/testhelper/testdata/ \
     && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt \
     && mv ./* /assets/srv/gitlab-shell

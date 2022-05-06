@@ -7,6 +7,7 @@ ARG NAMESPACE=gitlab-org
 ARG PROJECT=gitaly
 ARG API_URL=
 ARG API_TOKEN=
+ARG FIPS_MODE=0
 
 ARG BUNDLE_OPTIONS="--jobs 4"
 
@@ -38,7 +39,7 @@ RUN mkdir /assets \
     && install -D LICENSE /licenses/GitLab.txt \
     && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features \
     && touch .ruby-bundle \
-    && make install WITH_BUNDLED_GIT=YesPlease \
+    && FIPS_MODE=${FIPS_MODE} make install WITH_BUNDLED_GIT=YesPlease \
     && /build-scripts/cleanup-gems ${LIBDIR}/ruby/gems \
     && cp -R --parents \
       /usr/local/bin/gitaly* \

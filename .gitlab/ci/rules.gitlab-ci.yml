@@ -31,6 +31,15 @@
 .if_ubi_branch: &if_ubi_branch
   if: '$CI_COMMIT_REF_NAME =~ /-ubi8$/'
 
+.if_fips_pipeline: &if_fips_pipeline
+  if: '$FIPS_PIPELINE == "true"'
+
+.if_fips_tag: &if_fips_tag
+  if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-fips$/'
+
+.if_fips_branch: &if_fips_branch
+  if: '$CI_COMMIT_REF_NAME =~ /-fips$/'
+
 .if_redhat_certification: &if_redhat_certification
   if: '$REDHAT_CERTIFICATION == "true" '
 
@@ -72,6 +81,8 @@
     - <<: *if_auto_deploy_tag
     - <<: *if_ubi_pipeline
     - <<: *if_ubi_tag
+    - <<: *if_fips_pipeline
+    - <<: *if_fips_tag
 
 .except-ee: &except-ee
   rules:
@@ -94,6 +105,12 @@
     - <<: *if_ubi_tag
       when: never
     - <<: *if_ubi_branch
+      when: never
+    - <<: *if_fips_pipeline
+      when: never
+    - <<: *if_fips_tag
+      when: never
+    - <<: *if_fips_branch
       when: never
     - <<: *if_ce_pipeline
     - <<: *if_gitlab_master

@@ -116,11 +116,23 @@ function build_if_needed(){
       DOCKER_ARGS+=(--build-arg DNF_OPTS="${DNF_OPTS:-}")
     fi
 
+    if [ "${FIPS_PIPELINE}" = 'true' ]; then
+      DOCKER_ARGS+=(--build-arg FIPS_MODE="${FIPS_MODE}")
+    fi
+
     openshift_labels=()
-    if [ -f openshift.metadata ]; then
+    openshift_file_name=
+    if [ "${FIPS_PIPELINE}" = 'true' ] && [ -f openshift.metadata.fips ]; then
+      openshift_file_name=openshift.metadata.fips
+    elif [ "${UBI_PIPELINE}" = 'true' ] && [ -f openshift.metadata.ubi8 ]; then
+      openshift_file_name=openshift.metadata.ubi8
+    else
+      openshift_file_name=openshift.metadata
+    fi
+    if [ -f $openshift_file_name ]; then
       while read -r label; do
         openshift_labels+=(--label "${label}")
-      done < openshift.metadata
+      done < $openshift_file_name
     fi
 
     docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.} "${openshift_labels[@]}"

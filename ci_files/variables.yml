@@ -22,6 +22,8 @@ variables:
   # Follow the Go upgrade guidelines when changing the Go version
   # link: https://docs.gitlab.com/ee/development/go_guide/go_upgrade.html
   GO_VERSION: "1.17.6"
+  GO_FIPS_VERSION: "1.17"
+  GO_FIPS_SHA: "ce3ea483f864e41fead08bccf27f481f9e53c8ae"
   # Follow the Ruby upgrade guidelines when changing the ruby version
   # link: https://docs.gitlab.com/ee/development/ruby_upgrade.html
   RUBY_VERSION: 2.7.5

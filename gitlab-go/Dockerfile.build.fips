@@ -1,0 +1,31 @@
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.5
+
+FROM ${UBI_IMAGE} as builder
+
+ARG GO_VERSION=1.17
+ARG GO_FIPS_SHA=ce3ea483f864e41fead08bccf27f481f9e53c8ae
+
+RUN INSTALL_PKGS="openssl-devel glibc-devel gcc git golang" &&  \
+    dnf update -y && \
+    dnf install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+    dnf clean all -y
+
+RUN git clone \
+    https://github.com/golang-fips/go.git \
+    --branch go${GO_VERSION}-openssl-fips \
+    --single-branch \
+    --depth 1 \
+    /assets/usr/local/go && \
+    cd /assets/usr/local/go && \
+    git checkout ${GO_FIPS_SHA}
+
+RUN cd /assets/usr/local/go/src && \
+    CGO_ENABLED=1 ./make.bash && \
+    rm -rf \
+        /assets/usr/local/go/pkg/*/cmd \
+        /assets/usr/local/go/pkg/bootstrap \
+        /assets/usr/local/go/pkg/obj \
+        /assets/usr/local/go/pkg/tool/*/api \
+        /assets/usr/local/go/pkg/tool/*/go_bootstrap \
+        /assets/usr/local/go/src/cmd/dist/dist \
+        /assets/usr/local/go/.git*

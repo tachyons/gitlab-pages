@@ -2,11 +2,15 @@ include:
   # debian based images
   - local: .gitlab/ci/debian.gitlab-ci.yml
     rules:
-      - if: '$UBI_PIPELINE != "true" && $CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/ && $CI_COMMIT_REF_NAME !~ /-ubi8$/'
+      - if: '$UBI_PIPELINE != "true" && $CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/ && $CI_COMMIT_REF_NAME !~ /-ubi8$/ && $FIPS_PIPELINE != "true" && $CI_COMMIT_TAG !~ /^v\d+\.\d+\.\d+(-rc\d+)?-fips$/ && $CI_COMMIT_REF_NAME !~ /-fips$/'
   # ubi based images
   - local: .gitlab/ci/ubi.gitlab-ci.yml
     rules:
       - if: '$UBI_PIPELINE == "true" || $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-ubi8$/ || $CI_COMMIT_REF_NAME =~ /-ubi8$/'
+  # fips based images
+  - local: .gitlab/ci/fips.gitlab-ci.yml
+    rules:
+      - if: '$FIPS_PIPELINE == "true" || $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-fips$/ || $CI_COMMIT_REF_NAME =~ /-fips$/'
 
 # Common jobs for image pipelines
 
