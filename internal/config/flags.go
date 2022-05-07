@@ -103,10 +103,10 @@ var (
 
 // initFlags will be called from LoadConfig
 func initFlags() {
-	flag.Var(&listenHTTP, "listen-http", "The address(es) to listen on for HTTP requests")
-	flag.Var(&listenHTTPS, "listen-https", "The address(es) to listen on for HTTPS requests")
-	flag.Var(&listenProxy, "listen-proxy", "The address(es) to listen on for proxy requests")
-	flag.Var(&listenHTTPSProxyv2, "listen-https-proxyv2", "The address(es) to listen on for HTTPS PROXYv2 requests (https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt)")
+	flag.Var(&listenHTTP, "listen-http", "The address(es) or unix socket paths to listen on for HTTP requests")
+	flag.Var(&listenHTTPS, "listen-https", "The address(es) or unix socket paths to listen on for HTTPS requests")
+	flag.Var(&listenProxy, "listen-proxy", "The address(es) or unix socket paths to listen on for proxy requests")
+	flag.Var(&listenHTTPSProxyv2, "listen-https-proxyv2", "The address(es) or unix socket paths to listen on for HTTPS PROXYv2 requests (https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt)")
 	flag.Var(&header, "header", "The additional http header(s) that should be send to the client")
 
 	// read from -config=/path/to/gitlab-pages-config
