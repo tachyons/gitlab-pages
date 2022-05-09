@@ -3,5 +3,5 @@
 source 'https://rubygems.org'
 
 group :development, :test, :danger do
-  gem 'gitlab-dangerfiles', '~> 3.0', require: false
+  gem 'gitlab-dangerfiles', '~> 3.1', require: false
 end

@@ -92,10 +92,10 @@ GEM
     unicode-display_width (2.1.0)
 
 PLATFORMS
-  x86_64-darwin-21
+  ruby
 
 DEPENDENCIES
-  gitlab-dangerfiles (~> 3.0)
+  gitlab-dangerfiles (~> 3.1)
 
 BUNDLED WITH
-   2.3.12
+   2.3.13
