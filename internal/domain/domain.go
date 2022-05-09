@@ -127,7 +127,7 @@ func (d *Domain) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
 	if err != nil {
 		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
-			logging.LogRequest(r).WithError(ErrDomainDoesNotExist).Error("unable to find any lookup path for domain while serving file")
+			logging.LogRequest(r).WithError(ErrDomainDoesNotExist).Error("failed to serve the file")
 			httperrors.Serve404(w)
 			return true
 		}
@@ -146,7 +146,7 @@ func (d *Domain) ServeNotFoundHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
-			logging.LogRequest(r).WithError(ErrDomainDoesNotExist).Error("unable to find any lookup path for domain while serving the not found pages")
+			logging.LogRequest(r).WithError(ErrDomainDoesNotExist).Error("failed to serve the not found page")
 			httperrors.Serve404(w)
 			return
 		}
@@ -171,7 +171,7 @@ func (d *Domain) ServeNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		if errors.Is(err, ErrDomainDoesNotExist) {
 			// serve generic 404
-			logging.LogRequest(r).WithError(ErrDomainDoesNotExist).Error("unable to find any lookup path for domain while finding parent namespace domain for a request that failed authentication")
+			logging.LogRequest(r).WithError(ErrDomainDoesNotExist).Error("failed while finding parent namespace domain for a request that failed authentication")
 			httperrors.Serve404(w)
 			return
 		}
