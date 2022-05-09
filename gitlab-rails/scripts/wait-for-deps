@@ -22,7 +22,12 @@ if [ "${DB_SCHEMA_TARGET,,}" == "geo" ]; then
   SCHEMA_FILE=ee/db/geo/structure.sql
   SCHEMA_VERSION_DIR=ee/db/geo/schema_migrations
   SCHEMA_FORMAT=sql
-  DATABASE_FILE=database_geo.yml
+  DATABASE_FILE=database.yml
+
+  # Retain support for older database file if needed
+  if [ -f "config/database_geo.yml" ]; then
+    DATABASE_FILE=database_geo.yml
+  fi
 
   # Retain support for older schema if needed
   if [ ! -f "ee/db/geo/structure.sql" ]; then
