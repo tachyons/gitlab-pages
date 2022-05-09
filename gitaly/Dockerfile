@@ -48,15 +48,12 @@ RUN buildDeps=' \
     bundle install ${BUNDLE_OPTIONS} && \
     cd .. && \
     touch .ruby-bundle && \
-    make install install-bundled-git git GIT_PREFIX=/usr/local GIT_APPEND_BUILD_OPTIONS=INSTALL_SYMLINKS=YesPlease && \
+    make install WITH_BUNDLED_GIT=YesPlease && \
     rm -rf ${BUILD_DIR}/ruby/spec ${BUILD_DIR}/ruby/features && \
     mv ${BUILD_DIR}/ruby /srv/gitaly-ruby && \
     /build-scripts/cleanup-gems /usr/lib/ruby/gems && \
     mkdir /target && \
     cp -R --parents \
-      /usr/local/bin/git* \
-      /usr/local/share/git-core/ \
-      /usr/local/libexec/git-core/ \
       /usr/local/bin/gitaly* \
       /usr/local/bin/praefect \
       /usr/lib/ruby/gems/ \
