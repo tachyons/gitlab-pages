@@ -68,11 +68,16 @@ module Checks
           connection = ActiveRecord::Base.establish_connection(db_config).connection
           schema_migrations_table_name = ActiveRecord::Base.schema_migrations_table_name
 
+          # if connection is bad, we will get an error (rescue below)
+          # if table exists, fetch version.
           if connection.table_exists?(schema_migrations_table_name)
             @database_version =
               connection.execute("SELECT MAX(version) AS version FROM #{schema_migrations_table_name}")
                         .first
                         .fetch('version')
+          # otherwise, set 0
+          else
+            @database_version = 0
           end
 
           puts "WARNING: Problem accessing #{@shard_name} database (#{ActiveRecord::Base.connection_db_config.database})."\
