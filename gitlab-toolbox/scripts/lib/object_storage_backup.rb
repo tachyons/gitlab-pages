@@ -10,6 +10,12 @@ end
 class ObjectStorageBackup
   attr_accessor :name, :local_tar_path, :remote_bucket_name, :tmp_bucket_name, :backend, :s3_tool
 
+  GLOB_EXCLUDE='tmp/builds/*'
+  private_constant :GLOB_EXCLUDE
+
+  REGEXP_EXCLUDE='tmp/builds/.*$'
+  private_constant :REGEXP_EXCLUDE
+
   def initialize(name, local_tar_path, remote_bucket_name, tmp_bucket_name = 'tmp', backend = 's3', s3_tool = 's3cmd')
     @name = name
     @local_tar_path = local_tar_path
@@ -23,14 +29,14 @@ class ObjectStorageBackup
     if @backend == "s3"
       if @s3_tool == "s3cmd"
         check_bucket_cmd = %W(s3cmd --limit=1 ls s3://#{@remote_bucket_name})
-        cmd = %W(s3cmd --stop-on-error --delete-removed sync s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
+        cmd = %W(s3cmd --stop-on-error --delete-removed --exclude #{GLOB_EXCLUDE} sync s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
       elsif @s3_tool == "awscli"
         check_bucket_cmd = %W(aws s3api head-bucket --bucket #{@remote_bucket_name})
-        cmd = %W(aws s3 sync --delete s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
+        cmd = %W(aws s3 sync --delete --exclude #{GLOB_EXCLUDE} s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
       end
     elsif @backend == "gcs"
       check_bucket_cmd = %W(gsutil ls gs://#{@remote_bucket_name})
-      cmd = %W(gsutil -m rsync -r gs://#{@remote_bucket_name} /srv/gitlab/tmp/#{@name})
+      cmd = %W(gsutil -m rsync -x #{REGEXP_EXCLUDE} -r gs://#{@remote_bucket_name} /srv/gitlab/tmp/#{@name})
     end
 
     # Check if the bucket exists
