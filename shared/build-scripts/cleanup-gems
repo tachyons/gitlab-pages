@@ -72,4 +72,3 @@ rm -rf \
   ${ruby_dir}/*/gems/grpc-*/src/ruby/spec
 
 find ${ruby_dir} -name '*.gem' -type f -print -delete
-find ${ruby_dir}/*/gems -name 'doc' -type d -print -exec rm -r {} +
