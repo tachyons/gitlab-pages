@@ -16,8 +16,8 @@ listen_addr = "0.0.0.0:8075"
 #
 
 # # Git executable settings
-# [git]
-# bin_path = "/usr/bin/git"
+[git]
+use_bundled_binaries = true
 
 [[storage]]
 name = "default"
