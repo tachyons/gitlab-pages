@@ -1,13 +1,14 @@
 production:
-  adapter: postgresql
-  encoding: unicode
-  database: gitlabhq_production
-  pool: 10
-  username: gitlab
-  password: meercat
-  host: postgres
-  port: 5432
-  # load_balancing:
-  #   hosts:
-  #     - host1.example.com
-  #     - host2.example.com
+  main:
+    adapter: postgresql
+    encoding: unicode
+    database: gitlabhq_production
+    pool: 10
+    username: gitlab
+    password: meercat
+    host: postgres
+    port: 5432
+    # load_balancing:
+    #   hosts:
+    #     - host1.example.com
+    #     - host2.example.com
