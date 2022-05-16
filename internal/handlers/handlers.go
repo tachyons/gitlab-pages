@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
 // Handlers take care of handling specific requests
@@ -52,7 +53,7 @@ func (a *Handlers) checkIfLoginRequiredOrInvalidToken(w http.ResponseWriter, r *
 }
 
 // HandleArtifactRequest handles all artifact related requests, will return true if request was handled here
-func (a *Handlers) HandleArtifactRequest(host string, w http.ResponseWriter, r *http.Request) bool {
+func (a *Handlers) HandleArtifactRequest(w http.ResponseWriter, r *http.Request) bool {
 	// In the event a host is prefixed with the artifact prefix an artifact
 	// value is created, and an attempt to proxy the request is made
 
@@ -61,6 +62,8 @@ func (a *Handlers) HandleArtifactRequest(host string, w http.ResponseWriter, r *
 	if err != nil {
 		return true
 	}
+
+	host := request.GetHostWithoutPort(r)
 
 	// nolint: bodyclose // false positive
 	// a.checkIfLoginRequiredOrInvalidToken returns a response.Body, closing this body is responsibility

@@ -18,7 +18,7 @@ func NewMiddleware(handler http.Handler, s source.Source) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// if we could not retrieve a domain from domains source we break the
 		// middleware chain and simply respond with 502 after logging this
-		host, d, err := getHostAndDomain(r, s)
+		d, err := getDomain(r, s)
 		if err != nil && !errors.Is(err, domain.ErrDomainDoesNotExist) {
 			metrics.DomainsSourceFailures.Inc()
 			logging.LogRequest(r).WithError(err).Error("could not fetch domain information from a source")
@@ -27,15 +27,13 @@ func NewMiddleware(handler http.Handler, s source.Source) http.Handler {
 			return
 		}
 
-		r = domain.ReqWithHostAndDomain(r, host, d)
+		r = domain.ReqWithDomain(r, d)
 
 		handler.ServeHTTP(w, r)
 	})
 }
 
-func getHostAndDomain(r *http.Request, s source.Source) (string, *domain.Domain, error) {
+func getDomain(r *http.Request, s source.Source) (*domain.Domain, error) {
 	host := request.GetHostWithoutPort(r)
-	domain, err := s.GetDomain(r.Context(), host)
-
-	return host, domain, err
+	return s.GetDomain(r.Context(), host)
 }
