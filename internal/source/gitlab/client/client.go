@@ -13,6 +13,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"gitlab.com/gitlab-org/labkit/correlation"
+	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
@@ -108,6 +109,11 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	}
 
 	if resp == nil {
+		log.WithError(domain.ErrDomainDoesNotExist).WithFields(
+			log.Fields{
+				"correlation_id": correlation.ExtractFromContext(ctx),
+				"host":           host,
+			}).Error("unexpected nil response from gitlab")
 		return api.Lookup{Name: host, Error: domain.ErrDomainDoesNotExist}
 	}
 

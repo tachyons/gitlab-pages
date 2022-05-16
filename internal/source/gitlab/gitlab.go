@@ -12,6 +12,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
@@ -98,6 +99,14 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 				SubPath:    subPath}, nil
 		}
 	}
+
+	logging.LogRequest(r).WithError(domain.ErrDomainDoesNotExist).WithFields(
+		log.Fields{
+			"host":               host,
+			"lookup_paths_count": size,
+			"lookup_paths":       response.Domain.LookupPaths,
+			"url_path":           urlPath,
+		}).Error("could not find project lookup path")
 
 	return nil, domain.ErrDomainDoesNotExist
 }
