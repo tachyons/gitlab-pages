@@ -14,7 +14,7 @@ else
     REMOTE="origin"
 fi
 
-MESSAGE="docs: add changelog for version $VERSION"
+MESSAGE="Docs: add changelog for version $VERSION"
 
 function generate_changelog() {
     curl --header "PRIVATE-TOKEN: $TOKEN" \
