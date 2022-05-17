@@ -1,3 +1,21 @@
+## 1.58.0 (2022-05-17)
+
+### Changed (3 changes)
+
+- [Use labkit for fips check](gitlab-org/gitlab-pages@21cfe26446f7862e2a65c9129ef573a1881f296d) ([merge request](gitlab-org/gitlab-pages!755))
+- [Upgrade labkit to version v1.13.0](gitlab-org/gitlab-pages@6574ad0b413ee7ae5ea5b6459d8bc4523e3f492d) ([merge request](gitlab-org/gitlab-pages!739))
+- [config: Default serverWriteTimeout to 0](gitlab-org/gitlab-pages@790b92165f6e29cc7bada7862cdf3f1928170b23) ([merge request](gitlab-org/gitlab-pages!741))
+
+### Removed (3 changes)
+
+- [Remove deprecated daemon flags](gitlab-org/gitlab-pages@de280760e40d45a05c1c7ccd99d7465ca1fba26e) ([merge request](gitlab-org/gitlab-pages!751))
+- [Remove domain-config-source flag](gitlab-org/gitlab-pages@65f22020f9c1620ee567f71e1fb3a0f095225e45) by @feistel ([merge request](gitlab-org/gitlab-pages!745))
+- [Remove FF_DISABLE_REFRESH_TEMPORARY_ERROR feature flag](gitlab-org/gitlab-pages@2f569aea44ddfbe443031edf9855a7ebae18095c) by @feistel ([merge request](gitlab-org/gitlab-pages!694))
+
+### Other (1 change)
+
+- [Replace make setup with go run and version suffixes](gitlab-org/gitlab-pages@65d0d02887b86661590e74f560cbda0d517b95c2) by @feistel ([merge request](gitlab-org/gitlab-pages!750))
+
 ## 1.57.0 (2022-04-13)
 
 ### Added (2 changes)
