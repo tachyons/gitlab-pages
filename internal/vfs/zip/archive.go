@@ -121,6 +121,9 @@ func (a *zipArchive) readArchive(url string) {
 
 	a.resource, a.err = httprange.NewResource(ctx, url, a.fs.httpClient)
 	if a.err != nil {
+		log.WithFields(log.Fields{
+			"url": url,
+		}).WithError(a.err).Infoln("read zip archive request failed")
 		metrics.ZipOpened.WithLabelValues("error").Inc()
 		return
 	}
@@ -132,6 +135,9 @@ func (a *zipArchive) readArchive(url string) {
 	})
 
 	if a.archive == nil || a.err != nil {
+		log.WithFields(log.Fields{
+			"url": url,
+		}).WithError(a.err).Infoln("loading zip archive files into memory failed")
 		metrics.ZipOpened.WithLabelValues("error").Inc()
 		return
 	}

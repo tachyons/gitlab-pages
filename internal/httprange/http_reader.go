@@ -88,8 +88,13 @@ func (r *Reader) ensureResponse() error {
 		// cleanup body on failure from r.setResponse to avoid memory leak
 		res.Body.Close()
 		logging.LogRequest(req).WithError(err).WithFields(log.Fields{
-			"status":      res.StatusCode,
-			"status_text": res.Status,
+			"range_start":   r.rangeStart,
+			"range_size":    r.rangeSize,
+			"offset":        r.offset,
+			"resource_size": r.Resource.Size,
+			"resource_url":  logging.CleanURL(r.Resource.URL()),
+			"status":        res.StatusCode,
+			"status_text":   res.Status,
 		}).Error(rangeRequestFailedErrMsg)
 	}
 
