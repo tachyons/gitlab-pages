@@ -13,6 +13,9 @@ include:
   - local: .gitlab/ci/images.gitlab-ci.yml
     rules:
       - if: '$DEPS_PIPELINE != "true"'
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+    rules:
+      - if: '$DEPS_PIPELINE != "true"'
 
 variables:
   # Format of the auto-deploy tag for auto-deploy builds.
@@ -28,6 +31,7 @@ variables:
   BUILDER_RUBY_DOCKER: "3.1.0"
 
 stages:
+  - test
   - prepare
   - prepare:phase-one
   - prepare:phase-two
