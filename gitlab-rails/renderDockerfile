@@ -17,5 +17,5 @@ end
 
 puts "Rendering Dockerfile"
 
-template = ERB.new(File.read('Dockerfile.erb'))
+template = ERB.new(File.read('Dockerfile.erb'), trim_mode: '-')
 File.write('Dockerfile', template.result)
