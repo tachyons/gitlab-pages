@@ -110,6 +110,9 @@ RUN cd /srv/gitlab && \
     sudo -u ${GITLAB_USER} -H cp config/secrets.yml.example config/secrets.yml && \
     sudo -u ${GITLAB_USER} -H cp config/database.yml.postgresql config/database.yml && \
     sed --in-place "/host: localhost/d" config/gitlab.yml && \
+<% unless ee? -%>
+    sed --in-place "/geo:/,/^$/d" config/database.yml && \
+<% end -%>
     sed --in-place "/port: 80/d" config/gitlab.yml && \
     sed --in-place "s/# user:.*/user: ${GITLAB_USER}/" config/gitlab.yml && \
     sed --in-place "s:/home/git/repositories:${DATADIR}/repo:" config/gitlab.yml
