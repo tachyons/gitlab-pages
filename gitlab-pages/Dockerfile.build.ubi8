@@ -7,6 +7,7 @@ ARG PROJECT=gitlab-pages
 ARG VERSION=master
 ARG API_URL=
 ARG API_TOKEN=
+ARG FIPS_MODE=0
 
 ADD gitlab-go.tar.gz /
 
@@ -21,6 +22,6 @@ RUN ldconfig \
         "${PROJECT}" \
         "${VERSION}" \
     && cd ${PROJECT}-${VERSION} \
-    && make 'gitlab-pages' \
+    && FIPS_MODE=${FIPS_MODE} make 'gitlab-pages' \
     && install -D -m +x ./gitlab-pages /assets/usr/local/bin/gitlab-pages \
     && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt

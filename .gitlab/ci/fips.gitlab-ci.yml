@@ -1,0 +1,51 @@
+include:
+  # use ubi as base
+  - local: .gitlab/ci/ubi.gitlab-ci.yml
+
+# Build images
+.build-job-base: &build-job-base
+  image: "registry.gitlab.com/gitlab-org/gitlab-omnibus-builder/ruby_docker:${BUILDER_RUBY_DOCKER}"
+  services:
+  - docker:${DOCKER_VERSION}-dind
+  retry: 1
+  before_script:
+    # Always compile assets for auto-deploy builds,
+    # this is done for auto-deploy builds
+    # so that we do not have to wait for the compile assets job
+    # in the gitlab-ee pipeline.
+    - |
+      if [[ $CI_COMMIT_TAG =~ $AUTO_DEPLOY_TAG_REGEX ]]; then
+        echo "Setting COMPILE_ASSETS env variable for auto-deploy"
+        export COMPILE_ASSETS=true
+      fi
+    - mkdir -p artifacts/images artifacts/container_versions
+    - source build-scripts/build.sh
+    - if [[ "${CI_COMMIT_TAG}" == *-fips || "${CI_COMMIT_REF_NAME}" == *-fips ]]; then
+    -   export FIPS_PIPELINE="true"
+    - fi
+    - export UBI_PIPELINE="true"
+    - export FIPS_MODE=1
+    - export GO_VERSION=${GO_FIPS_VERSION}
+    - export DOCKERFILE_EXT='.build.ubi8'
+    - export IMAGE_TAG_EXT='-build-fips'
+    - export UBI_BUILD_IMAGE='true'
+    - export TARGET_VERSION=$(get_target_version)
+    - export CONTAINER_VERSION="${TARGET_VERSION}"
+    - BUILD_IMAGE_VERSION="$(get_version gitlab-ubi-builder)"
+    - export BUILD_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ubi-builder:${BUILD_IMAGE_VERSION}-ubi8"
+    - docker login -u "$CI_DEPENDENCY_PROXY_USER" -p "$CI_DEPENDENCY_PROXY_PASSWORD" "$CI_DEPENDENCY_PROXY_SERVER"
+    - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
+  artifacts:
+    paths:
+      - artifacts/
+  needs:
+    - gitlab-ubi-builder
+
+.build-job-base-fips: &build-job-base-fips
+  extends: .build-job-base
+  before_script:
+    - !reference [.build-job-base, before_script]
+    - export DOCKERFILE_EXT='.build.fips'
+
+build:gitlab-go:
+  extends: .build-job-base-fips

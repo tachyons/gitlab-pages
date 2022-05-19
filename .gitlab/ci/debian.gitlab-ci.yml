@@ -1,5 +1,5 @@
 # Debian / non-UBI
-# included when not a UBI pipeline, branch, tag
+# included when not a UBI/FIPS pipeline, branch, tag
 
 ## phase zero
 
