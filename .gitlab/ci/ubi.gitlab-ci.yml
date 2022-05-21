@@ -546,6 +546,77 @@ ubi-release-for-certification:
   script:
     - ruby build-scripts/redhat_certfication.rb "${CI_COMMIT_REF_NAME}"
 
+.preflight-certification:
+  image: registry.gitlab.com/ghickey/preflight:1.1.0
+  extends:
+    - .redhat_certification # rules
+  stage: container-scanning
+  retry: 1
+  before_script:
+    - podman login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+  script:
+    - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --submit ${CI_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME}
+
+gitlab-rails-ee Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-rails-ee
+
+gitlab-sidekiq-ee Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-sidekiq-ee
+
+gitlab-toolbox-ee Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-toolbox-ee
+
+gitlab-webservice-ee Certfication:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-webservice-ee
+
+gitlab-workhorse-ee Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-workhorse-ee
+
+gitlab-mailroom Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-mailroom
+
+gitlab-shell Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-shell
+
+gitlab-exporter Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-exporter
+
+gitlab-container-registry Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-container-registry
+
+gitaly Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitaly
+
+alpine-certificates Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: alpine-certificates
+
+kubectl Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: kubectl
+
 ## UBI is only released for EE.
 # Skip all CE jobs, used to mock definitions for `final-images-listing`
 .ubi-skipped:
@@ -569,3 +640,4 @@ gitlab-webservice-ce:
 
 gitlab-workhorse-ce:
   extends: .ubi-skipped
+
