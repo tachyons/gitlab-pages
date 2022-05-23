@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -21,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/log"
 	labmetrics "gitlab.com/gitlab-org/labkit/metrics"
 	"gitlab.com/gitlab-org/labkit/monitoring"
+	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/artifact"
@@ -247,9 +246,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 }
 
 // nolint: gocyclo // ignore this
-func (a *theApp) Run() {
-	var wg sync.WaitGroup
-
+func (a *theApp) Run() error {
 	var limiter *netutil.Limiter
 	if a.config.General.MaxConns > 0 {
 		limiter = netutil.NewLimiterWithMetrics(
@@ -264,18 +261,23 @@ func (a *theApp) Run() {
 	// instead of making two nearly identical pipelines
 	commonHandlerPipeline, err := a.buildHandlerPipeline()
 	if err != nil {
-		log.WithError(err).Fatal("Unable to configure pipeline")
+		return fmt.Errorf("unable to configure pipeline: %w", err)
 	}
 
 	proxyHandler := ghandlers.ProxyHeaders(commonHandlerPipeline)
 
 	httpHandler := a.httpInitialMiddleware(commonHandlerPipeline)
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+
+	eg, ctx := errgroup.WithContext(ctx)
 	var servers []*http.Server
 
 	// Listen for HTTP
 	for _, addr := range a.config.ListenHTTPStrings.Split() {
 		s := a.listen(
+			eg,
 			addr,
 			httpHandler,
 			errortracking.WithField("listener", request.SchemeHTTP),
@@ -288,10 +290,11 @@ func (a *theApp) Run() {
 	for _, addr := range a.config.ListenHTTPSStrings.Split() {
 		tlsConfig, err := a.getTLSConfig()
 		if err != nil {
-			log.WithError(err).Fatal("Unable to retrieve tls config")
+			return fmt.Errorf("unable to retrieve tls config: %w", err)
 		}
 
 		s := a.listen(
+			eg,
 			addr,
 			httpHandler,
 			errortracking.WithField("listener", request.SchemeHTTPS),
@@ -304,6 +307,7 @@ func (a *theApp) Run() {
 	// Listen for HTTP proxy requests
 	for _, addr := range a.config.ListenProxyStrings.Split() {
 		s := a.listen(
+			eg,
 			addr,
 			proxyHandler,
 			errortracking.WithField("listener", "http proxy"),
@@ -316,10 +320,11 @@ func (a *theApp) Run() {
 	for _, addr := range a.config.ListenHTTPSProxyv2Strings.Split() {
 		tlsConfig, err := a.getTLSConfig()
 		if err != nil {
-			log.WithError(err).Fatal("Unable to retrieve tls config")
+			return fmt.Errorf("unable to retrieve tls config: %w", err)
 		}
 
 		s := a.listen(
+			eg,
 			addr,
 			httpHandler,
 			errortracking.WithField("listener", "https proxy"),
@@ -332,13 +337,11 @@ func (a *theApp) Run() {
 
 	// Serve metrics for Prometheus
 	if a.config.General.MetricsAddress != "" {
-		a.listenMetrics(&wg, a.config.General.MetricsAddress)
+		s := a.listenMetrics(eg, a.config.General.MetricsAddress)
+		servers = append(servers, s)
 	}
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
-
-	<-sigChan
+	<-ctx.Done()
 
 	var result *multierror.Error
 
@@ -352,57 +355,79 @@ func (a *theApp) Run() {
 		cancel()
 	}
 
-	if result.ErrorOrNil() != nil {
-		capturingFatal(result)
+	if err := eg.Wait(); err != nil {
+		result = multierror.Append(result, err)
 	}
+
+	if result.ErrorOrNil() != nil {
+		errortracking.CaptureErrWithStackTrace(result.ErrorOrNil())
+		return result.ErrorOrNil()
+	}
+
+	return nil
 }
 
-func (a *theApp) listen(addr string, h http.Handler, errTrackingOpt errortracking.CaptureOption, opts ...option) *http.Server {
+func (a *theApp) listen(eg *errgroup.Group, addr string, h http.Handler, errTrackingOpt errortracking.CaptureOption, opts ...option) *http.Server {
 	server := &http.Server{}
-	go func() {
+	eg.Go(func() error {
 		if err := a.listenAndServe(server, addr, h, opts...); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			capturingFatal(err, errTrackingOpt)
+			errortracking.CaptureErrWithStackTrace(err, errTrackingOpt)
+			return err
 		}
-	}()
+
+		return nil
+	})
 
 	return server
 }
 
-func (a *theApp) listenMetrics(wg *sync.WaitGroup, addr string) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
+func (a *theApp) listenMetrics(eg *errgroup.Group, addr string) *http.Server {
+	server := &http.Server{}
+	eg.Go(func() error {
 		l, err := net.Listen("tcp", addr)
 		if err != nil {
-			capturingFatal(fmt.Errorf("failed to listen on addr %s: %w", addr, err), errortracking.WithField("listener", "metrics"))
+			errortracking.CaptureErrWithStackTrace(err, errortracking.WithField("listener", "metrics"))
+			return fmt.Errorf("failed to listen on addr %s: %w", addr, err)
 		}
 
 		monitoringOpts := []monitoring.Option{
 			monitoring.WithBuildInformation(VERSION, ""),
 			monitoring.WithListener(l),
+			monitoring.WithServer(server),
 		}
 
 		err = monitoring.Start(monitoringOpts...)
-		if err != nil {
-			capturingFatal(err, errortracking.WithField("listener", "metrics"))
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errortracking.CaptureErrWithStackTrace(err, errortracking.WithField("listener", "metrics"))
+			return err
 		}
-	}()
+
+		return nil
+	})
+
+	return server
 }
 
-func runApp(config *cfg.Config) {
+func runApp(config *cfg.Config) error {
 	source, err := gitlab.New(&config.GitLab)
 	if err != nil {
-		log.WithError(err).Fatal("could not create domains config source")
+		return fmt.Errorf("could not create domains config source: %w", err)
 	}
 
 	a := theApp{config: config, source: source}
+
+	err = logging.ConfigureLogging(a.config.Log.Format, a.config.Log.Verbose)
+	if err != nil {
+		return fmt.Errorf("failed to initialize logging: %w", err)
+	}
 
 	if config.ArtifactsServer.URL != "" {
 		a.Artifact = artifact.New(config.ArtifactsServer.URL, config.ArtifactsServer.TimeoutSeconds, config.General.Domain)
 	}
 
-	a.setAuth(config)
+	if err := a.setAuth(config); err != nil {
+		return err
+	}
 
 	a.Handlers = handlers.New(a.Auth, a.Artifact)
 
@@ -416,7 +441,7 @@ func runApp(config *cfg.Config) {
 	if len(config.General.CustomHeaders) != 0 {
 		customHeaders, err := customheaders.ParseHeaderString(config.General.CustomHeaders)
 		if err != nil {
-			log.WithError(err).Fatal("Unable to parse header string")
+			return fmt.Errorf("unable to parse header string: %w", err)
 		}
 		a.CustomHeaders = customHeaders
 	}
@@ -428,28 +453,25 @@ func runApp(config *cfg.Config) {
 	// TODO: reconfigure all VFS'
 	//  https://gitlab.com/gitlab-org/gitlab-pages/-/issues/512
 	if err := zip.Instance().Reconfigure(config); err != nil {
-		fatal(err, "failed to reconfigure zip VFS")
+		return fmt.Errorf("failed to reconfigure zip VFS: %w", err)
 	}
 
-	a.Run()
+	return a.Run()
 }
 
-func (a *theApp) setAuth(config *cfg.Config) {
+func (a *theApp) setAuth(config *cfg.Config) error {
 	if config.Authentication.ClientID == "" {
-		return
+		return nil
 	}
 
 	var err error
 	a.Auth, err = auth.New(config.General.Domain, config.Authentication.Secret, config.Authentication.ClientID, config.Authentication.ClientSecret,
 		config.Authentication.RedirectURI, config.GitLab.InternalServer, config.GitLab.PublicServer, config.Authentication.Scope, config.Authentication.Timeout)
 	if err != nil {
-		log.WithError(err).Fatal("could not initialize auth package")
+		return fmt.Errorf("could not initialize auth package: %w", err)
 	}
-}
 
-// fatal will log a fatal error and exit.
-func fatal(err error, message string) {
-	log.WithError(err).Fatal(message)
+	return nil
 }
 
 // handlePanicMiddleware logs and captures the recover() information from any panic
