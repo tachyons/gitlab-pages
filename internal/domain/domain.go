@@ -194,10 +194,7 @@ func (d *Domain) ServeNamespaceNotFound(w http.ResponseWriter, r *http.Request) 
 // 404 page is served.
 func (d *Domain) ServeNotFoundAuthFailed(w http.ResponseWriter, r *http.Request) {
 	lookupPath, err := d.GetLookupPath(r)
-	// Temporarily handle all access controlled pages as a generic 404 to avoid leaking
-	// project existence to everyone. This may trigger https://gitlab.com/gitlab-org/gitlab-pages/-/issues/183 again.
-	// TODO: https://gitlab.com/gitlab-org/gitlab-pages/-/issues/765
-	if err != nil || lookupPath.HasAccessControl {
+	if err != nil {
 		httperrors.Serve404(w)
 		return
 	}
