@@ -104,9 +104,13 @@ func (a *theApp) domain(ctx context.Context, host string) (*domain.Domain, error
 // by behaving the same if user has no access to the project or if project simply does not exists
 func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.ResponseWriter, r *http.Request) {
 	// To avoid user knowing if pages exist, we will force user to login and authorize pages
-	if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
-		return
-	}
+
+	// Temporarily disable auth redirection for domain not found, this may break custom 404 page redirection
+	// for private projects https://gitlab.com/gitlab-org/gitlab-pages/-/issues/183.
+	// TODO: refactor and handle auth properly https://gitlab.com/gitlab-org/gitlab-pages/-/issues/765
+	//if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
+	//	return
+	//}
 
 	// auth succeeded try to serve the correct 404 page
 	domain.ServeNotFoundAuthFailed(w, r)

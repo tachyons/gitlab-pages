@@ -247,13 +247,14 @@ func TestCustomErrorPageWithAuth(t *testing.T) {
 			path:              "/private_project/unknown",
 			expectedErrorPage: "Private custom 404 error page",
 		},
-		{
-			name:   "public_namespace_with_private_unauthorized_project",
-			domain: "group.404.gitlab-example.com",
-			// /private_unauthorized/config.json resolves project ID to 2000 which will cause a 401 from the mock GitLab testServer
-			path:              "/private_unauthorized/unknown",
-			expectedErrorPage: "Custom 404 group page",
-		},
+		// TODO: enable test https://gitlab.com/gitlab-org/gitlab-pages/-/issues/765
+		//{
+		//	name:   "public_namespace_with_private_unauthorized_project",
+		//	domain: "group.404.gitlab-example.com",
+		//	// /private_unauthorized/config.json resolves project ID to 2000 which will cause a 401 from the mock GitLab testServer
+		//	path:              "/private_unauthorized/unknown",
+		//	expectedErrorPage: "Custom 404 group page",
+		//},
 		{
 			name:              "private_namespace_authorized",
 			domain:            "group.auth.gitlab-example.com",
