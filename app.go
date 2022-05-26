@@ -277,8 +277,8 @@ func (a *theApp) Run() error {
 	}
 
 	// Serve metrics for Prometheus
-	if a.config.General.MetricsAddress != "" {
-		s := a.listenMetrics(eg, a.config.General.MetricsAddress)
+	if a.config.Metrics.Address != "" {
+		s := a.listenMetrics(eg, a.config.Metrics)
 		servers = append(servers, s)
 	}
 
@@ -322,13 +322,22 @@ func (a *theApp) listen(eg *errgroup.Group, addr string, h http.Handler, errTrac
 	return server
 }
 
-func (a *theApp) listenMetrics(eg *errgroup.Group, addr string) *http.Server {
+func (a *theApp) listenMetrics(eg *errgroup.Group, config cfg.Metrics) *http.Server {
 	server := &http.Server{}
 	eg.Go(func() error {
-		l, err := net.Listen("tcp", addr)
+		l, err := net.Listen("tcp", config.Address)
 		if err != nil {
 			errortracking.CaptureErrWithStackTrace(err, errortracking.WithField("listener", "metrics"))
-			return fmt.Errorf("failed to listen on addr %s: %w", addr, err)
+			return fmt.Errorf("failed to listen on addr %s: %w", config.Address, err)
+		}
+
+		metricsTLSConfig := &cryptotls.Config{
+			Certificates: []cryptotls.Certificate{config.TLSCertificate},
+			MinVersion:   cryptotls.VersionTLS12,
+		}
+
+		if config.IsHTTPS {
+			l = cryptotls.NewListener(l, metricsTLSConfig)
 		}
 
 		monitoringOpts := []monitoring.Option{

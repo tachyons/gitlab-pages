@@ -1,7 +1,9 @@
 package config
 
 import (
+	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -23,6 +25,7 @@ type Config struct {
 	Server          Server
 	TLS             TLS
 	Zip             ZipServing
+	Metrics         Metrics
 
 	// These fields contain the raw strings passed for listen-http,
 	// listen-https, listen-proxy and listen-https-proxyv2 settings. It is used
@@ -39,7 +42,6 @@ type General struct {
 	Domain                string
 	MaxConns              int
 	MaxURILength          int
-	MetricsAddress        string
 	RedirectHTTP          bool
 	RootCertificate       []byte
 	RootDir               string
@@ -146,6 +148,17 @@ type Server struct {
 	ListenKeepAlive   time.Duration
 }
 
+type Metrics struct {
+	Address        string
+	IsHTTPS        bool
+	TLSCertificate tls.Certificate
+}
+
+var (
+	errMetricsNoCertificate = errors.New("metrics certificate path must not be empty")
+	errMetricsNoKey         = errors.New("metrics private key path must not be empty")
+)
+
 func internalGitlabServerFromFlags() string {
 	if *internalGitLabServer != "" {
 		return *internalGitLabServer
@@ -178,13 +191,42 @@ func setGitLabAPISecretKey(secretFile string, config *Config) error {
 	return nil
 }
 
+func loadMetricsConfig() (metrics Metrics, err error) {
+	// don't validate anything if metrics are disabled
+	if *metricsAddress == "" {
+		return metrics, nil
+	}
+	metrics.Address = *metricsAddress
+
+	// no error when using HTTP
+	if *metricsCertificate == "" && *metricsKey == "" {
+		return metrics, nil
+	}
+
+	if *metricsCertificate == "" {
+		return metrics, errMetricsNoCertificate
+	}
+
+	if *metricsKey == "" {
+		return metrics, errMetricsNoKey
+	}
+
+	metrics.TLSCertificate, err = tls.LoadX509KeyPair(*metricsCertificate, *metricsKey)
+	if err != nil {
+		return metrics, err
+	}
+
+	metrics.IsHTTPS = true
+
+	return metrics, nil
+}
+
 func loadConfig() (*Config, error) {
 	config := &Config{
 		General: General{
 			Domain:                     strings.ToLower(*pagesDomain),
 			MaxConns:                   *maxConns,
 			MaxURILength:               *maxURILength,
-			MetricsAddress:             *metricsAddress,
 			RedirectHTTP:               *redirectHTTP,
 			RootDir:                    *pagesRoot,
 			StatusPath:                 *pagesStatus,
@@ -268,6 +310,11 @@ func loadConfig() (*Config, error) {
 
 	var err error
 
+	// Validating and populating Metrics config
+	if config.Metrics, err = loadMetricsConfig(); err != nil {
+		return nil, err
+	}
+
 	// Populating remaining General settings
 	for _, file := range []struct {
 		contents *[]byte
@@ -309,6 +356,8 @@ func LogConfig(config *Config) {
 		"listen-https-proxyv2":           listenHTTPSProxyv2,
 		"log-format":                     *logFormat,
 		"metrics-address":                *metricsAddress,
+		"metrics-certificate":            *metricsCertificate,
+		"metrics-key":                    *metricsKey,
 		"pages-domain":                   *pagesDomain,
 		"pages-root":                     *pagesRoot,
 		"pages-status":                   *pagesStatus,

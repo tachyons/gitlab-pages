@@ -40,6 +40,8 @@ var (
 	artifactsServerTimeout  = flag.Int("artifacts-server-timeout", 10, "Timeout (in seconds) for a proxied request to the artifacts server")
 	pagesStatus             = flag.String("pages-status", "", "The url path for a status page, e.g., /@status")
 	metricsAddress          = flag.String("metrics-address", "", "The address to listen on for metrics requests")
+	metricsCertificate      = flag.String("metrics-certificate", "", "The default path to file certificate to serve metrics requests")
+	metricsKey              = flag.String("metrics-key", "", "The default path to file private key to serve metrics requests")
 	sentryDSN               = flag.String("sentry-dsn", "", "The address for sending sentry crash reporting to")
 	sentryEnvironment       = flag.String("sentry-environment", "", "The environment for sentry crash reporting")
 	propagateCorrelationID  = flag.Bool("propagate-correlation-id", false, "Reuse existing Correlation-ID from the incoming request header `X-Request-ID` if present")
