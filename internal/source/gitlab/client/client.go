@@ -105,6 +105,7 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 
 	resp, err := gc.get(ctx, "/api/v4/internal/pages", params)
 	if err != nil {
+		metrics.DomainsSourceFailures.Inc()
 		return api.Lookup{Name: host, Error: err}
 	}
 

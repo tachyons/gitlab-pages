@@ -9,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
-	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 // NewMiddleware returns middleware which determine the host and domain for the request, for
@@ -20,7 +19,6 @@ func NewMiddleware(handler http.Handler, s source.Source) http.Handler {
 		// middleware chain and simply respond with 502 after logging this
 		d, err := getDomain(r, s)
 		if err != nil && !errors.Is(err, domain.ErrDomainDoesNotExist) {
-			metrics.DomainsSourceFailures.Inc()
 			logging.LogRequest(r).WithError(err).Error("could not fetch domain information from a source")
 
 			httperrors.Serve502(w)
