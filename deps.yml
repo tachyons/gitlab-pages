@@ -79,3 +79,22 @@ dependencies:
         - filename: gitlab-mailroom/Dockerfile.build.ubi8
           pattern: 'redis:(\S+)'
           tag_prefix: 'v'
+      # GitLab Container Registry
+      https://gitlab.com/gitlab-org/container-registry.git:
+        replace_in_files:
+        - filename: ci_files/variables.yml
+          pattern: 'GITLAB_CONTAINER_REGISTRY_VERSION: "(\S+)"'
+          tag_filter:
+            matching: 'v(\S+)-gitlab'
+            sort_as: '$1'
+        - filename: gitlab-container-registry/Dockerfile
+          pattern: 'ARG REGISTRY_VERSION=(\S+)'
+          tag_filter:
+            matching: 'v(\S+)-gitlab'
+            sort_as: '$1'
+        - filename: gitlab-container-registry/Dockerfile.build.ubi8
+          pattern: 'ARG REGISTRY_VERSION=(\S+)'
+          tag_filter:
+            matching: 'v(\S+)-gitlab'
+            sort_as: '$1'
+
