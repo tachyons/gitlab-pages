@@ -218,7 +218,7 @@ func (a *Auth) handleProxyingAuth(session *hostSession, w http.ResponseWriter, r
 
 		if !a.domainAllowed(r.Context(), host, domains) {
 			logRequest(r).WithField("domain", host).Warn("Domain is not configured")
-			httperrors.Serve401(w)
+			httperrors.Serve404(w)
 			return true
 		}
 
