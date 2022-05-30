@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -63,4 +64,25 @@ func TestMultipleListenersFromEnvironmentVariables(t *testing.T) {
 		rsp.Body.Close()
 		require.Equal(t, http.StatusOK, rsp.StatusCode)
 	}
+}
+
+func TestUnixSocketListener(t *testing.T) {
+	tmp := t.TempDir()
+	sockPath := filepath.Join(tmp, "unix.sock")
+
+	spec := ListenSpec{
+		Type: "unix",
+		Host: sockPath,
+	}
+
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{spec}),
+	)
+	require.NoError(t, spec.WaitUntilRequestSucceeds(nil))
+
+	rsp, err := GetPageFromListener(t, spec, "group.gitlab-example.com", "project/")
+
+	require.NoError(t, err)
+	rsp.Body.Close()
+	require.Equal(t, http.StatusOK, rsp.StatusCode)
 }

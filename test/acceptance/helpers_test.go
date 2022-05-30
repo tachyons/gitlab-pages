@@ -151,9 +151,21 @@ func (l ListenSpec) httpsDialContext() dialContext {
 	}
 }
 
+func (l ListenSpec) unixSocketDialContext() dialContext {
+	return func(ctx context.Context, _, _ string) (net.Conn, error) {
+		var d net.Dialer
+
+		return d.DialContext(ctx, "unix", l.Host)
+	}
+}
+
 func (l ListenSpec) dialContext() dialContext {
 	if l.Type == "https-proxyv2" {
 		return l.proxyV2DialContext()
+	}
+
+	if l.Type == "unix" {
+		return l.unixSocketDialContext()
 	}
 
 	return l.httpsDialContext()
@@ -213,6 +225,15 @@ func (l ListenSpec) WaitUntilRequestSucceeds(done chan struct{}) error {
 }
 
 func (l ListenSpec) JoinHostPort() string {
+	if l.Type == "unix" {
+		// The dialer ignores the addr parameter and uses
+		// the socket path directly.
+		// This is a stub used by ListenSpec#URL()
+		// ListenSpec.Host cannot be used because it is
+		// not a valid hostname.
+		return "unix"
+	}
+
 	return net.JoinHostPort(l.Host, l.Port)
 }
 
@@ -328,6 +349,11 @@ func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraAr
 	args = append(args, "-log-verbose=true")
 
 	for _, spec := range listeners {
+		if spec.Type == "unix" {
+			args = append(args, "-listen-http", spec.Host)
+			continue
+		}
+
 		args = append(args, "-listen-"+spec.Type, spec.JoinHostPort())
 
 		if strings.Contains(spec.Type, request.SchemeHTTPS) {
