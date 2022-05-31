@@ -552,10 +552,14 @@ ubi-release-for-certification:
     - .redhat_certification # rules
   stage: container-scanning
   retry: 1
+  artifacts:
+    paths:
+      - reports/*
   before_script:
     - podman login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+    - '[[ -d reports ]] || mkdir reports'
   script:
-    - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --submit ${CI_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME}
+    - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --submit ${CI_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME} > reports/${IMAGE_NAME}-cert.yaml
 
 gitlab-rails-ee Certification:
   extends: .preflight-certification
