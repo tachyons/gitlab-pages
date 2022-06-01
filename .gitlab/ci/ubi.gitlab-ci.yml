@@ -541,71 +541,78 @@ ubi-assets-release:
   artifacts:
     paths:
       - reports/*
+  dependencies: []
   before_script:
     - podman login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
     - '[[ -d reports ]] || mkdir reports'
   script:
-    - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --submit ${CI_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME} > reports/${IMAGE_NAME}-cert.yaml
-
-gitlab-rails-ee Certification:
-  extends: .preflight-certification
-  variables:
-    IMAGE_NAME: gitlab-rails-ee
+    - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --docker-config ${XDG_RUNTIME_DIR}/containers/auth.json --certification-project-id ${PROJECT_ID} --submit ${CI_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME} > reports/${IMAGE_NAME}-cert.yaml
 
 gitlab-sidekiq-ee Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-sidekiq-ee
+    PROJECT_ID: 5fb60b4a2977e7063dba93cb
 
 gitlab-toolbox-ee Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-toolbox-ee
+    PROJECT_ID: 60fb728cc3450afa1bb969e2
 
 gitlab-webservice-ee Certfication:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-webservice-ee
+    PROJECT_ID: 5fb607e4c65ee7c76a2ad0d4
 
 gitlab-workhorse-ee Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-workhorse-ee
+    PROJECT_ID: 5fb60c7b5e09a3c40183e67b
 
 gitlab-mailroom Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-mailroom
+    PROJECT_ID: 5fb60e0a5e09a3c40183e67d
 
 gitlab-shell Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-shell
+    PROJECT_ID: 5fb57b5d3379deb31cba93e5
 
 gitlab-exporter Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-exporter
+    PROJECT_ID: 5fb60d575e09a3c40183e67c
 
 gitlab-container-registry Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-container-registry
+    PROJECT_ID: 5fb611e7935e0609ade7b2cb
 
 gitaly Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitaly
+    PROJECT_ID: 5fb60ec6c65ee7c76a2ad0d8
 
 alpine-certificates Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: alpine-certificates
+    PROJECT_ID: 5fb615212977e7063dba93d0
 
 kubectl Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: kubectl
+    PROJECT_ID: 5fb611335e09a3c40183e67f
 
 ## UBI is only released for EE.
 # Skip all CE jobs, used to mock definitions for `final-images-listing`
