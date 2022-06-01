@@ -533,7 +533,7 @@ ubi-assets-release:
     - rm -rf artifacts/*
 
 .preflight-certification:
-  image: registry.gitlab.com/ghickey/preflight:1.1.0
+  image: registry.gitlab.com/ghickey/preflight:1.2.1
   extends:
     - .redhat_certification # rules
   stage: container-scanning
@@ -546,9 +546,9 @@ ubi-assets-release:
     - podman login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
     - '[[ -d reports ]] || mkdir reports'
   script:
-    - echo "Certification scan against ${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME}"
-    - ls -l /run/containers/0
+    - 'echo "Scanning image: ${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME}"'
     - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --docker-config /run/containers/0/auth.json --certification-project-id ${PROJECT_ID} --submit ${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME} > reports/${IMAGE_NAME}-cert.yaml
+    - "[[ $(cat reports/${IMAGE_NAME}-cert.yaml | jq .passed) == 'false' ]] && exit 1"
 
 gitlab-sidekiq-ee Certification:
   extends: .preflight-certification
