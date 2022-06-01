@@ -546,9 +546,9 @@ ubi-assets-release:
     - podman login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
     - '[[ -d reports ]] || mkdir reports'
   script:
-    - echo "Certification scan against ${CI_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME}"
+    - echo "Certification scan against ${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME}"
     - ls -l /run/containers/0
-    - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --docker-config /run/containers/0/auth.json --certification-project-id ${PROJECT_ID} --submit ${CI_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME} > reports/${IMAGE_NAME}-cert.yaml
+    - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --docker-config /run/containers/0/auth.json --certification-project-id ${PROJECT_ID} --submit ${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME} > reports/${IMAGE_NAME}-cert.yaml
 
 gitlab-sidekiq-ee Certification:
   extends: .preflight-certification
