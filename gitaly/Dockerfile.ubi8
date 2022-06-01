@@ -21,7 +21,6 @@ ADD gitlab-logger.tar.gz /usr/local/bin
 
 COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
-COPY gitconfig /usr/local/etc/gitconfig
 
 RUN dnf ${DNF_OPTS} install -by --nodocs procps net-tools libicu openssh-clients \
     && dnf clean all \
