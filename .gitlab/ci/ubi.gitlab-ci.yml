@@ -353,6 +353,11 @@ ubi-stable:
     # UBI image can not be used with DEPENDENCY_PROXY
     - record_stable_image "${UBI_IMAGE}"
 
+gitlab-base:
+  extends: .gitlab-base
+  needs:
+    - ubi-stable
+
 ## phase one
 alpine-certificates:
   extends: .alpine-certificates
@@ -374,7 +379,7 @@ kubectl:
 gitlab-ruby:
   extends: .gitlab-ruby
   needs:
-    - ubi-stable
+    - gitlab-base
     - build:gitlab-ruby
 
 ## phase two

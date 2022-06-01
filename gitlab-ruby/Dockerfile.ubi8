@@ -1,6 +1,6 @@
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.5
+ARG GITLAB_BASE_IMAGE=
 
-FROM ${UBI_IMAGE}
+FROM ${GITLAB_BASE_IMAGE}
 
 ARG DNF_OPTS
 ARG GITLAB_USER=git
@@ -16,17 +16,10 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-ruby"
 
 ADD gitlab-ruby.tar.gz /
 
-COPY scripts/ /scripts
-
 RUN dnf ${DNF_OPTS} install -by --nodocs ncurses libedit diffutils \
     && dnf clean all \
     && rm -rf /var/cache/dnf \
     && chgrp -R 0 /scripts \
     && chmod -R g=u /scripts
-
-ENV CONFIG_TEMPLATE_DIRECTORY=/etc
-ENV GITLAB_USER=${GITLAB_USER}
-
-ENTRYPOINT ["/scripts/entrypoint-ubi8.sh"]
 
 CMD [ "irb" ]

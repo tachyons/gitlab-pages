@@ -203,7 +203,8 @@ graph LR;
   end
 
   subgraph Base
-    gitlab-ruby
+    gitlab-base
+    gitlab-ruby==>gitlab-base;
     gitlab-rails
     gitlab-go
     alpine[alpine:3.15]:::external;
@@ -270,6 +271,7 @@ graph LR;
   end
 
   subgraph intermediate
+    gitlab-base
     gitlab-python
     gitlab-ruby
     gitlab-rails
@@ -286,7 +288,8 @@ graph LR;
   end
 
   gitlab-go==>gitlab-ruby;
-  gitlab-ruby==>debian;
+  gitlab-base==>debian;
+  gitlab-ruby==>gitlab-base;
 
   postgresql==>debian;
   kubectl==>debian;

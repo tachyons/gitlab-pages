@@ -35,7 +35,7 @@
     -   export IMAGE_TAG_EXT='-ubi8'
     -   use_assets
     - fi
-    - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-ruby)
+    - export {CONTAINER_VERSION,BASE_VERSION}=$(get_version gitlab-base)
     - export TARGET_VERSION=$(get_target_version)
     - docker login -u "$CI_DEPENDENCY_PROXY_USER" -p "$CI_DEPENDENCY_PROXY_PASSWORD" "$CI_DEPENDENCY_PROXY_SERVER"
     - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
@@ -43,6 +43,16 @@
   artifacts:
     paths:
       - artifacts/
+
+.gitlab-base:
+  extends: .job-base
+  stage: phase-zero
+  script:
+    # set CONTAINER_VERSION to include the distribution base image digests (only ever one present)
+    - export CONTAINER_VERSION=($(echo -n "${TARGET_VERSION}${DEBIAN_DIGEST}${UBI_DIGEST}" | sha1sum))
+    - build_if_needed $DEBIAN_BUILD_ARGS $UBI_BUILD_ARGS
+    - push_tags
+    - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-base_tag.txt
 
 ## phase one
 
@@ -120,8 +130,11 @@
   extends: .job-base
   stage: phase-one
   script:
-    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${RUBY_VERSION}" | sha1sum))
+    - gitlab_base_version=$(cat artifacts/container_versions/gitlab-base_tag.txt)
+    - export GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${gitlab_base_version}${IMAGE_TAG_EXT}"
+    - export CONTAINER_VERSION=($(echo -n "${TARGET_VERSION}${gitlab_base_version}${RUBY_VERSION}" | sha1sum))
     - build_if_needed --build-arg "RUBY_VERSION=$RUBY_VERSION"
+                      --build-arg "GITLAB_BASE_IMAGE=${GITLAB_BASE_IMAGE}"
                       $UBI_BUILD_ARGS $DEBIAN_BUILD_ARGS
     - push_tags
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-ruby_tag.txt
