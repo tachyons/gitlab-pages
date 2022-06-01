@@ -27,8 +27,8 @@ func (a *Auth) AuthenticationMiddleware(handler http.Handler, s source.Source) h
 func (a *Auth) AuthorizationMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		domain := domainCfg.FromRequest(r)
-		lp, err := domain.GetLookupPath(r)
 
+		lp, err := domain.GetLookupPath(r)
 		if err != nil {
 			if errors.Is(err, gitlab.ErrDiskDisabled) {
 				errortracking.CaptureErrWithReqAndStackTrace(err, r)
