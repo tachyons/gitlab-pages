@@ -41,6 +41,8 @@ func (a *Auth) AuthorizationMiddleware(handler http.Handler) http.Handler {
 			return
 		}
 
+		// This is not auth related but there's no point in having
+		// an extra middleware just for this.
 		if lp.IsHTTPSOnly && !request.IsHTTPS(r) {
 			redirectToHTTPS(w, r, http.StatusMovedPermanently)
 			return
