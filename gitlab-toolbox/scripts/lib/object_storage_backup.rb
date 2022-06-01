@@ -36,7 +36,7 @@ class ObjectStorageBackup
       end
     elsif @backend == "gcs"
       check_bucket_cmd = %W(gsutil ls gs://#{@remote_bucket_name})
-      cmd = %W(gsutil -m rsync -x #{REGEXP_EXCLUDE} -r gs://#{@remote_bucket_name} /srv/gitlab/tmp/#{@name})
+      cmd = %W(gsutil -m rsync -d -x #{REGEXP_EXCLUDE} -r gs://#{@remote_bucket_name} /srv/gitlab/tmp/#{@name})
     end
 
     # Check if the bucket exists
