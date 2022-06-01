@@ -331,13 +331,8 @@ func (a *theApp) listenMetrics(eg *errgroup.Group, config cfg.Metrics) *http.Ser
 			return fmt.Errorf("failed to listen on addr %s: %w", config.Address, err)
 		}
 
-		metricsTLSConfig := &cryptotls.Config{
-			Certificates: []cryptotls.Certificate{config.TLSCertificate},
-			MinVersion:   cryptotls.VersionTLS12,
-		}
-
-		if config.IsHTTPS {
-			l = cryptotls.NewListener(l, metricsTLSConfig)
+		if config.IsHTTPS() {
+			l = cryptotls.NewListener(l, config.TLSConfig)
 		}
 
 		monitoringOpts := []monitoring.Option{

@@ -1,7 +1,6 @@
 package acceptance_test
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -9,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestEnvironmentVariablesConfig(t *testing.T) {
@@ -87,29 +85,4 @@ func TestUnixSocketListener(t *testing.T) {
 	require.NoError(t, err)
 	rsp.Body.Close()
 	require.Equal(t, http.StatusOK, rsp.StatusCode)
-}
-
-func TestMetricsHTTPSConfig(t *testing.T) {
-	keyFile, certFile := CreateHTTPSFixtureFiles(t)
-
-	RunPagesProcess(t,
-		withExtraArgument("metrics-address", ":42345"),
-		withExtraArgument("metrics-certificate", certFile),
-		withExtraArgument("metrics-key", keyFile),
-	)
-	require.NoError(t, httpsListener.WaitUntilRequestSucceeds(nil))
-
-	tlsConfig := &tls.Config{InsecureSkipVerify: true}
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-	client := &http.Client{Transport: transport}
-
-	res, err := client.Get("https://127.0.0.1:42345/metrics")
-	require.NoError(t, err)
-	testhelpers.Close(t, res.Body)
-	require.Equal(t, http.StatusOK, res.StatusCode)
-
-	res, err = client.Get("http://127.0.0.1:42345/metrics")
-	require.NoError(t, err)
-	testhelpers.Close(t, res.Body)
-	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
