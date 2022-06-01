@@ -99,7 +99,6 @@ RUN cd /srv/gitaly-ruby && bundle binstubs --all
 # Add scripts
 COPY scripts/ /scripts/
 COPY config.toml /etc/gitaly/config.toml
-COPY gitconfig /usr/local/etc/gitconfig
 
 # ensure explicit permissions on scripts
 RUN chmod -R =rx /scripts/
