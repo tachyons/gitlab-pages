@@ -1,5 +1,6 @@
-ARG DEBIAN_IMAGE=debian:bullseye-slim
-FROM ${DEBIAN_IMAGE}
+ARG GITLAB_BASE_IMAGE=
+
+FROM ${GITLAB_BASE_IMAGE}
 
 ARG BUILD_DIR=/tmp/build
 ARG RUBY_VERSION=2.7.5
@@ -9,26 +10,19 @@ ARG RBREADLINE_VERSION=0.5.5
 ARG JEMALLOC_VERSION=5.2.1
 ARG EXIFTOOL_VERSION=11.70
 
-ENV LANG=C.UTF-8
-
 # install runtime deps
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-  bzip2 \
-  ca-certificates \
-  libffi-dev \
-  libgdbm6 \
-  libssl-dev \
-  libyaml-dev \
-  procps \
-	busybox \
-  zlib1g-dev \
-  coreutils \
-  curl \
-  gnupg2 \
+    bzip2 \
+    libffi-dev \
+    libgdbm6 \
+    libssl-dev \
+    libyaml-dev \
+    zlib1g-dev \
+    coreutils \
+    gnupg2 \
   && rm -rf /var/lib/apt/lists/* \
-  && mkdir -p ${BUILD_DIR} \
-  && ln -s /etc/ssl/certs/ca-certificates.crt /usr/lib/ssl/cert.pem
+  && mkdir -p ${BUILD_DIR}
 
 # skip installing gem documentation
 RUN mkdir -p /usr/etc && \
@@ -85,12 +79,5 @@ RUN buildDeps=' \
   && ruby rb-readline-${RBREADLINE_VERSION}/setup.rb && rm -rf rb-readline-${RBREADLINE_VERSION} \
 	&& rm -rf /root/.gem/ \
 	&& /build-scripts/cleanup-gems /usr/lib/ruby/gems
-
-# Add scripts
-COPY scripts/ /scripts
-
-ENV CONFIG_TEMPLATE_DIRECTORY=/etc
-
-ENTRYPOINT ["/scripts/entrypoint.sh"]
 
 CMD [ "irb" ]

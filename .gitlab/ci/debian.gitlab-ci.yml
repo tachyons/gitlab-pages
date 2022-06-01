@@ -15,6 +15,11 @@ debian-stable:
   script:
     - record_stable_image "${DEPENDENCY_PROXY}${DEBIAN_IMAGE}"
 
+gitlab-base:
+  extends: .gitlab-base
+  needs:
+     - debian-stable
+
 ## phase one
 
 alpine-certificates:
@@ -50,7 +55,7 @@ gitlab-python:
 gitlab-ruby:
   extends: .gitlab-ruby
   needs:
-   - debian-stable
+   - gitlab-base
 
 postgresql:
   extends: .postgresql

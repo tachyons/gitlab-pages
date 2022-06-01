@@ -1,0 +1,31 @@
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.5
+
+FROM ${UBI_IMAGE}
+
+ARG DNF_OPTS
+ARG GITLAB_USER=git
+
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-base" \
+      name="GitLab Base" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="Base container for GitLab application containers." \
+      description="Base container for GitLab application containers."
+
+COPY scripts/ /scripts
+
+RUN dnf ${DNF_OPTS} install --nodocs -yb \
+      findutils \
+      less \
+      procps \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf \
+    && chgrp -R 0 /scripts \
+    && chmod -R g=u /scripts
+
+ENV CONFIG_TEMPLATE_DIRECTORY=/etc
+ENV GITLAB_USER=${GITLAB_USER}
+
+ENTRYPOINT ["/scripts/entrypoint.sh"]
