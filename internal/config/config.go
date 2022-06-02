@@ -150,14 +150,8 @@ type Server struct {
 
 type Metrics struct {
 	Address   string
+	IsHTTPS   bool
 	TLSConfig *tls.Config
-}
-
-func (m *Metrics) IsHTTPS() bool {
-	// disable "G402 (CWE-295): TLS MinVersion too low. (Confidence: HIGH, Severity: HIGH)"
-	// because zero value of tls.Config{} is used for comparison
-	// #nosec G402
-	return m.TLSConfig != &tls.Config{}
 }
 
 var (
@@ -222,6 +216,7 @@ func loadMetricsConfig() (metrics Metrics, err error) {
 		return metrics, err
 	}
 
+	metrics.IsHTTPS = true
 	metrics.TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,

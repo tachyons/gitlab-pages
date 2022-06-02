@@ -10,7 +10,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
 
-func TestLoadMetricsConfig(t *testing.T) {
+func Test_loadMetricsConfig(t *testing.T) {
 	defaultMetricsAdress := ":9325"
 	defaultDir, defaultMetricsKey, defaultMetricsCertificate := setupHTTPSFixture(t)
 
