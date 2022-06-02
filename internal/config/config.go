@@ -159,7 +159,7 @@ func artifactsServerFromFlags() string {
 		return *artifactsServer
 	}
 
-	return *internalGitLabServer + "/api/v4"
+	return internalGitlabServerFromFlags() + "/api/v4"
 }
 
 func setGitLabAPISecretKey(secretFile string, config *Config) error {
