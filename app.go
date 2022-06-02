@@ -86,66 +86,8 @@ func (a *theApp) getTLSConfig() (*cryptotls.Config, error) {
 	return a.tlsConfig, err
 }
 
-func (a *theApp) redirectToHTTPS(w http.ResponseWriter, r *http.Request, statusCode int) {
-	u := *r.URL
-	u.Scheme = request.SchemeHTTPS
-	u.Host = r.Host
-	u.User = nil
-
-	http.Redirect(w, r, u.String(), statusCode)
-}
-
 func (a *theApp) domain(ctx context.Context, host string) (*domain.Domain, error) {
 	return a.source.GetDomain(ctx, host)
-}
-
-// checkAuthAndServeNotFound performs the auth process if domain can't be found
-// the main purpose of this process is to avoid leaking the project existence/not-existence
-// by behaving the same if user has no access to the project or if project simply does not exists
-func (a *theApp) checkAuthAndServeNotFound(domain *domain.Domain, w http.ResponseWriter, r *http.Request) {
-	// To avoid user knowing if pages exist, we will force user to login and authorize pages
-	if a.Auth.CheckAuthenticationWithoutProject(w, r, domain) {
-		return
-	}
-
-	// auth succeeded try to serve the correct 404 page
-	domain.ServeNotFoundAuthFailed(w, r)
-}
-
-func (a *theApp) tryAuxiliaryHandlers(w http.ResponseWriter, r *http.Request, https bool, domain *domain.Domain) bool {
-	if _, err := domain.GetLookupPath(r); err != nil {
-		if errors.Is(err, gitlab.ErrDiskDisabled) {
-			errortracking.CaptureErrWithReqAndStackTrace(err, r)
-			httperrors.Serve500(w)
-			return true
-		}
-
-		// redirect to auth and serve not found
-		a.checkAuthAndServeNotFound(domain, w, r)
-		return true
-	}
-
-	if !https && domain.IsHTTPSOnly(r) {
-		a.redirectToHTTPS(w, r, http.StatusMovedPermanently)
-		return true
-	}
-
-	return false
-}
-
-// auxiliaryMiddleware will handle status updates, not-ready requests and other
-// not static-content responses
-func (a *theApp) auxiliaryMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		domain := domain.FromRequest(r)
-		https := request.IsHTTPS(r)
-
-		if a.tryAuxiliaryHandlers(w, r, https, domain) {
-			return
-		}
-
-		handler.ServeHTTP(w, r)
-	})
 }
 
 // serveFileOrNotFoundHandler will serve static content or
@@ -201,7 +143,6 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		handler = corsHandler.Handler(handler)
 	}
 	handler = a.Auth.AuthorizationMiddleware(handler)
-	handler = a.auxiliaryMiddleware(handler)
 	handler = handlers.ArtifactMiddleware(handler, a.Handlers)
 	handler = a.Auth.AuthenticationMiddleware(handler, a.source)
 	handler = a.AcmeMiddleware.AcmeMiddleware(handler)
