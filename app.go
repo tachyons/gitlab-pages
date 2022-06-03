@@ -362,9 +362,7 @@ func runApp(config *cfg.Config) error {
 		return fmt.Errorf("failed to initialize logging: %w", err)
 	}
 
-	if config.ArtifactsServer.URL != "" {
-		a.Artifact = artifact.New(config.ArtifactsServer.URL, config.ArtifactsServer.TimeoutSeconds, config.General.Domain)
-	}
+	a.Artifact = artifact.New(config.ArtifactsServer.URL, config.ArtifactsServer.TimeoutSeconds, config.General.Domain)
 
 	if err := a.setAuth(config); err != nil {
 		return err

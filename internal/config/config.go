@@ -154,6 +154,14 @@ func internalGitlabServerFromFlags() string {
 	return *publicGitLabServer
 }
 
+func artifactsServerFromFlags() string {
+	if *artifactsServer != "" {
+		return *artifactsServer
+	}
+
+	return internalGitlabServerFromFlags() + "/api/v4"
+}
+
 func setGitLabAPISecretKey(secretFile string, config *Config) error {
 	if secretFile == "" {
 		return nil
@@ -287,6 +295,8 @@ func loadConfig() (*Config, error) {
 	config.GitLab.PublicServer = *publicGitLabServer
 
 	config.GitLab.InternalServer = internalGitlabServerFromFlags()
+
+	config.ArtifactsServer.URL = artifactsServerFromFlags()
 
 	if err = setGitLabAPISecretKey(*gitLabAPISecretKey, config); err != nil {
 		return nil, err
