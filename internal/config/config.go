@@ -150,7 +150,6 @@ type Server struct {
 
 type Metrics struct {
 	Address   string
-	IsHTTPS   bool
 	TLSConfig *tls.Config
 }
 
@@ -216,7 +215,6 @@ func loadMetricsConfig() (metrics Metrics, err error) {
 		return metrics, err
 	}
 
-	metrics.IsHTTPS = true
 	metrics.TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
