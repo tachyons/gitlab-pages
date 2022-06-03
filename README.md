@@ -166,6 +166,8 @@ $ make
 $ ./gitlab-pages -listen-http ":8090" -metrics-address ":9235" -pages-root path/to/gitlab/shared/pages -pages-domain example.com
 ```
 
+Passing the `-metrics-certificate` and `-metrics-key` flags along with `-metrics-address` flag would add TLS to the metrics.
+
 ### Structured logging
 
 You can use the `-log-format json` option to make GitLab Pages output

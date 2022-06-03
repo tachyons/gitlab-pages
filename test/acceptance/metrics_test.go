@@ -1,6 +1,7 @@
 package acceptance_test
 
 import (
+	"crypto/tls"
 	"io"
 	"net/http"
 	"testing"
@@ -57,4 +58,28 @@ func TestPrometheusMetricsCanBeScraped(t *testing.T) {
 	require.Contains(t, string(body), "gitlab_pages_limit_listener_max_conns")
 	require.Contains(t, string(body), "gitlab_pages_limit_listener_concurrent_conns")
 	require.Contains(t, string(body), "gitlab_pages_limit_listener_waiting_conns")
+}
+
+func TestMetricsHTTPSConnection(t *testing.T) {
+	keyFile, certFile := CreateHTTPSFixtureFiles(t)
+
+	RunPagesProcess(t,
+		withExtraArgument("metrics-address", ":42345"),
+		withExtraArgument("metrics-certificate", certFile),
+		withExtraArgument("metrics-key", keyFile),
+	)
+
+	tlsConfig := &tls.Config{InsecureSkipVerify: true}
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+	client := &http.Client{Transport: transport}
+
+	res, err := client.Get("https://127.0.0.1:42345/metrics")
+	require.NoError(t, err)
+	testhelpers.Close(t, res.Body)
+	require.Equal(t, http.StatusOK, res.StatusCode)
+
+	res, err = client.Get("http://127.0.0.1:42345/metrics")
+	require.NoError(t, err)
+	testhelpers.Close(t, res.Body)
+	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
