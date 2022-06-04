@@ -64,7 +64,7 @@ func (a *theApp) GetCertificate(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certi
 		return nil, nil
 	}
 
-	if domain, _ := a.domain(context.Background(), ch.ServerName); domain != nil {
+	if domain, _ := a.source.GetDomain(ch.Context(), ch.ServerName); domain != nil {
 		certificate, _ := domain.EnsureCertificate()
 		return certificate, nil
 	}
@@ -84,10 +84,6 @@ func (a *theApp) getTLSConfig() (*cryptotls.Config, error) {
 	a.tlsConfig, err = tls.GetTLSConfig(a.config, a.GetCertificate)
 
 	return a.tlsConfig, err
-}
-
-func (a *theApp) domain(ctx context.Context, host string) (*domain.Domain, error) {
-	return a.source.GetDomain(ctx, host)
 }
 
 // serveFileOrNotFoundHandler will serve static content or
