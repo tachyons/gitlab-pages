@@ -141,11 +141,11 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		handler = corsHandler.Handler(handler)
 	}
 	handler = a.Auth.AuthorizationMiddleware(handler)
+	handler = routing.NewMiddleware(handler, a.source)
+
 	handler = handlers.ArtifactMiddleware(handler, a.Handlers)
 	handler = a.Auth.AuthenticationMiddleware(handler, a.source)
 	handler = handlers.AcmeMiddleware(handler, a.source, a.config.GitLab.PublicServer)
-
-	handler = routing.NewMiddleware(handler, a.source)
 
 	// Add auto redirect
 	handler = handlers.HTTPSRedirectMiddleware(handler, a.config.General.RedirectHTTP)
