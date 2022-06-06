@@ -10,43 +10,29 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 )
 
-// Middleware handles acme challenges by redirecting them to GitLab instance
-type Middleware struct {
-	GitlabURL string
-}
-
-// Domain interface represent D from domain package
-type Domain interface {
-	ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool
-}
+// FallbackStrategy try to solve the acme challenge before redirecting to GitLab
+type FallbackStrategy func(http.ResponseWriter, *http.Request) bool
 
 // ServeAcmeChallenges identifies if request is acme-challenge and redirects to GitLab in that case
-func (m *Middleware) ServeAcmeChallenges(w http.ResponseWriter, r *http.Request, domain Domain) bool {
-	if m == nil {
-		return false
-	}
-
+func ServeAcmeChallenges(w http.ResponseWriter, r *http.Request, fallback FallbackStrategy, gitlabURL *url.URL) bool {
 	if !isAcmeChallenge(r.URL.Path) {
 		return false
 	}
 
-	if domain.ServeFileHTTP(w, r) {
+	if fallback(w, r) {
 		return true
 	}
 
-	return m.redirectToGitlab(w, r)
+	redirectToGitlab(w, r, gitlabURL)
+	return true
 }
 
 func isAcmeChallenge(path string) bool {
 	return strings.HasPrefix(filepath.Clean(path), "/.well-known/acme-challenge/")
 }
 
-func (m *Middleware) redirectToGitlab(w http.ResponseWriter, r *http.Request) bool {
-	redirectURL, err := url.Parse(m.GitlabURL)
-	if err != nil {
-		logging.LogRequest(r).WithError(err).Error("Can't parse GitLab URL for acme challenge redirect")
-		return false
-	}
+func redirectToGitlab(w http.ResponseWriter, r *http.Request, gitlabURL *url.URL) {
+	redirectURL := *gitlabURL
 
 	redirectURL.Path = "/-/acme-challenge"
 	query := redirectURL.Query()
@@ -57,5 +43,4 @@ func (m *Middleware) redirectToGitlab(w http.ResponseWriter, r *http.Request) bo
 	logging.LogRequest(r).WithField("redirect_url", redirectURL).Debug("Redirecting to GitLab for processing acme challenge")
 
 	http.Redirect(w, r, redirectURL.String(), http.StatusTemporaryRedirect)
-	return true
 }

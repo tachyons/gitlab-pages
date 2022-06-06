@@ -1,33 +1,14 @@
-package acme
+package acme_test
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 )
-
-type domainStub struct {
-	hasAcmeChallenge bool
-}
-
-func (d *domainStub) ServeFileHTTP(w http.ResponseWriter, r *http.Request) bool {
-	if r.URL.Path == "/.well-known/acme-challenge/token" {
-		return d.hasAcmeChallenge
-	}
-
-	return false
-}
-
-func serveAcmeOrNotFound(m *Middleware, domain Domain) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !m.ServeAcmeChallenges(w, r, domain) {
-			http.NotFound(w, r)
-		}
-	}
-}
 
 const (
 	baseURL      = "http://example.com"
@@ -35,31 +16,49 @@ const (
 	challengeURL = baseURL + "/.well-known/acme-challenge/token"
 )
 
-var (
-	domainWithChallenge = &domainStub{hasAcmeChallenge: true}
-	domain              = &domainStub{hasAcmeChallenge: false}
-	middleware          = &Middleware{GitlabURL: "https://gitlab.example.com"}
-	middlewareMalformed = &Middleware{GitlabURL: ":foo"}
-)
+func TestAcmeMiddleware(t *testing.T) {
+	u, err := url.Parse("https://gitlab.example.com")
+	require.NoError(t, err)
 
-func TestServeAcmeChallengesNotConfigured(t *testing.T) {
-	require.HTTPStatusCode(t, serveAcmeOrNotFound(nil, domain), http.MethodGet, challengeURL, nil, http.StatusNotFound)
-}
+	testCases := []struct {
+		name           string
+		f              acme.FallbackStrategy
+		path           string
+		expectedStatus int
+	}{
+		{
+			name:           "not an acme request",
+			path:           indexURL,
+			expectedStatus: http.StatusAccepted,
+		},
+		{
+			name: "acme challenge redirect to gitlab if missing",
+			f: func(w http.ResponseWriter, r *http.Request) bool {
+				return false
+			},
+			path:           challengeURL,
+			expectedStatus: http.StatusTemporaryRedirect,
+		},
+		{
+			name: "acme challenge served from disk if present",
+			f: func(w http.ResponseWriter, r *http.Request) bool {
+				w.WriteHeader(http.StatusOK)
+				return true
+			},
+			path:           challengeURL,
+			expectedStatus: http.StatusOK,
+		},
+	}
 
-func TestServeAcmeChallengeMalformed(t *testing.T) {
-	require.HTTPStatusCode(t, serveAcmeOrNotFound(middlewareMalformed, domain), http.MethodGet, challengeURL, nil, http.StatusNotFound)
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if !acme.ServeAcmeChallenges(w, r, tc.f, u) {
+					w.WriteHeader(http.StatusAccepted)
+				}
+			})
 
-func TestServeAcmeChallengeWhenPresent(t *testing.T) {
-	require.HTTPStatusCode(t, serveAcmeOrNotFound(middleware, domainWithChallenge), http.MethodGet, challengeURL, nil, http.StatusOK)
-}
-
-func TestServeAcmeChallengeWhenMissing(t *testing.T) {
-	testhelpers.AssertRedirectTo(
-		t, serveAcmeOrNotFound(middleware, domain),
-		"GET", challengeURL, nil,
-		"https://gitlab.example.com/-/acme-challenge?domain=example.com&token=token",
-	)
-
-	require.HTTPStatusCode(t, serveAcmeOrNotFound(middleware, domain), http.MethodGet, indexURL, nil, http.StatusNotFound)
+			require.HTTPStatusCode(t, h.ServeHTTP, http.MethodGet, tc.path, nil, tc.expectedStatus)
+		})
+	}
 }
