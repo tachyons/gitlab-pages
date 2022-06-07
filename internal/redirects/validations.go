@@ -43,7 +43,7 @@ func validateURL(urlText string) error {
 		// Limit the number of path segments a rule can contain.
 		// This prevents the matching logic from generating regular
 		// expressions that are too large/complex.
-		if strings.Count(url.Path, "/") > maxPathSegments {
+		if strings.Count(url.Path, "/") > cfg.Redirects.MaxPathSegments {
 			return errTooManyPathSegments
 		}
 	} else {
