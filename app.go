@@ -194,18 +194,20 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
-	handler = metricsMiddleware(handler)
 
-	handler = correlation.InjectCorrelationID(handler, correlationOpts...)
-
-	// These middlewares MUST be added in the end.
-	// Being last means they will be evaluated first
-	// preventing any operation on bogus requests.
-	handler = urilimiter.NewMiddleware(handler, a.config.General.MaxURILength)
-	handler = rejectmethods.NewMiddleware(handler)
-
-	router := NewServer()
+	router := NewServer(
+		rejectmethods.NewMiddleware,
+		func(next http.Handler) http.Handler {
+			return urilimiter.NewMiddleware(next, a.config.General.MaxURILength)
+		},
+		func(next http.Handler) http.Handler {
+			return correlation.InjectCorrelationID(next, correlationOpts...)
+		},
+		func(next http.Handler) http.Handler {
+			metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
+			return metricsMiddleware(handler)
+		},
+	)
 
 	router.Handle("/", handler)
 
