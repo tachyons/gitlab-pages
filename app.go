@@ -133,6 +133,30 @@ func setRequestScheme(r *http.Request) *http.Request {
 	return r
 }
 
+type Middleware func(http.Handler) http.Handler
+
+type Server struct {
+	Handler            *http.ServeMux
+	defaultMiddlewares []Middleware
+}
+
+func NewServer(middlewares ...Middleware) Server {
+	return Server{
+		Handler:            http.NewServeMux(),
+		defaultMiddlewares: middlewares,
+	}
+}
+
+func (s Server) Handle(route string, handler http.Handler, middlewares ...Middleware) {
+	ms := append(s.defaultMiddlewares, middlewares...)
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		handler = ms[i](handler)
+	}
+
+	s.Handler.Handle(route, handler)
+}
+
 // TODO: move the pipeline configuration to internal/pipeline https://gitlab.com/gitlab-org/gitlab-pages/-/issues/670
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
@@ -181,7 +205,11 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = urilimiter.NewMiddleware(handler, a.config.General.MaxURILength)
 	handler = rejectmethods.NewMiddleware(handler)
 
-	return handler, nil
+	router := NewServer()
+
+	router.Handle("/", handler)
+
+	return router.Handler, nil
 }
 
 // nolint: gocyclo // ignore this
