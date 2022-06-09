@@ -153,9 +153,6 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 
 	handler = handlers.Ratelimiter(handler, &a.config.RateLimit)
 
-	// Health Check
-	handler = health.NewMiddleware(handler, a.config.General.StatusPath)
-
 	metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
 	var correlationOpts []correlation.InboundHandlerOption
 	if a.config.General.PropagateCorrelationID {
@@ -187,6 +184,9 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		},
 	)
 
+	if a.config.General.StatusPath != "" {
+		router.Handle(a.config.General.StatusPath, health.Handler())
+	}
 	router.Handle("/", handler)
 
 	return router, nil
