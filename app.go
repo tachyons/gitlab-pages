@@ -34,6 +34,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
+	server_router "gitlab.com/gitlab-org/gitlab-pages/internal/router"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/routing"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
@@ -133,30 +134,6 @@ func setRequestScheme(r *http.Request) *http.Request {
 	return r
 }
 
-type Middleware func(http.Handler) http.Handler
-
-type Server struct {
-	Handler            *http.ServeMux
-	defaultMiddlewares []Middleware
-}
-
-func NewServer(middlewares ...Middleware) Server {
-	return Server{
-		Handler:            http.NewServeMux(),
-		defaultMiddlewares: middlewares,
-	}
-}
-
-func (s Server) Handle(route string, handler http.Handler, middlewares ...Middleware) {
-	ms := append(s.defaultMiddlewares, middlewares...)
-
-	for i := len(ms) - 1; i >= 0; i-- {
-		handler = ms[i](handler)
-	}
-
-	s.Handler.Handle(route, handler)
-}
-
 // TODO: move the pipeline configuration to internal/pipeline https://gitlab.com/gitlab-org/gitlab-pages/-/issues/670
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
@@ -195,7 +172,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		return nil, err
 	}
 
-	router := NewServer(
+	router := server_router.NewRouter(
 		rejectmethods.NewMiddleware,
 		func(next http.Handler) http.Handler {
 			return urilimiter.NewMiddleware(next, a.config.General.MaxURILength)
@@ -205,13 +182,13 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		},
 		func(next http.Handler) http.Handler {
 			metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
-			return metricsMiddleware(handler)
+			return metricsMiddleware(next)
 		},
 	)
 
 	router.Handle("/", handler)
 
-	return router.Handler, nil
+	return router, nil
 }
 
 // nolint: gocyclo // ignore this
