@@ -156,20 +156,10 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Health Check
 	handler = health.NewMiddleware(handler, a.config.General.StatusPath)
 
-	// Custom response headers
-	handler = customheaders.NewMiddleware(handler, a.CustomHeaders)
-
-	// Correlation ID injection middleware
+	metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
 	var correlationOpts []correlation.InboundHandlerOption
 	if a.config.General.PropagateCorrelationID {
 		correlationOpts = append(correlationOpts, correlation.WithPropagation())
-	}
-	handler = handlePanicMiddleware(handler)
-
-	// Access logs and metrics
-	handler, err := logging.BasicAccessLogger(handler, a.config.Log.Format)
-	if err != nil {
-		return nil, err
 	}
 
 	router := app_router.NewRouter(
@@ -181,8 +171,19 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 			return correlation.InjectCorrelationID(next, correlationOpts...)
 		},
 		func(next http.Handler) http.Handler {
-			metricsMiddleware := labmetrics.NewHandlerFactory(labmetrics.WithNamespace("gitlab_pages"))
 			return metricsMiddleware(next)
+		},
+		func(next http.Handler) http.Handler {
+			logHandler, err := logging.BasicAccessLogger(next, a.config.Log.Format)
+			if err != nil {
+				return next
+			}
+
+			return logHandler
+		},
+		handlePanicMiddleware,
+		func(next http.Handler) http.Handler {
+			return customheaders.NewMiddleware(next, a.CustomHeaders)
 		},
 	)
 
