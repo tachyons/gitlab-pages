@@ -159,6 +159,12 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		correlationOpts = append(correlationOpts, correlation.WithPropagation())
 	}
 
+	// TODO: ideally, this should not be here. Instead, this check should be done before creating the routes.
+	accessLogger, err := logging.GetAccessLogger(a.config.Log.Format)
+	if err != nil {
+		return nil, err
+	}
+
 	router := app_router.NewRouter(
 		rejectmethods.NewMiddleware,
 		func(next http.Handler) http.Handler {
@@ -171,12 +177,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 			return metricsMiddleware(next)
 		},
 		func(next http.Handler) http.Handler {
-			logHandler, err := logging.BasicAccessLogger(next, a.config.Log.Format)
-			if err != nil {
-				return next
-			}
-
-			return logHandler
+			return logging.BasicAccessLogger(next, accessLogger)
 		},
 		handlePanicMiddleware,
 		func(next http.Handler) http.Handler {

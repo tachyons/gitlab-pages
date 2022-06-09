@@ -34,7 +34,7 @@ func ConfigureLogging(format string, verbose bool) error {
 // getAccessLogger will return the default logger, except when
 // the log format is text, in which case a combined HTTP access
 // logger will be configured. This behaviour matches Workhorse
-func getAccessLogger(format string) (*logrus.Logger, error) {
+func GetAccessLogger(format string) (*logrus.Logger, error) {
 	if format != "text" && format != "" {
 		return logrus.StandardLogger(), nil
 	}
@@ -52,17 +52,13 @@ func getAccessLogger(format string) (*logrus.Logger, error) {
 }
 
 // BasicAccessLogger configures the GitLab pages basic HTTP access logger middleware
-func BasicAccessLogger(handler http.Handler, format string) (http.Handler, error) {
-	accessLogger, err := getAccessLogger(format)
-	if err != nil {
-		return nil, err
-	}
-
-	return log.AccessLogger(handler,
+func BasicAccessLogger(handler http.Handler, accessLogger *logrus.Logger) http.Handler {
+	return log.AccessLogger(
+		handler,
 		log.WithExtraFields(extraFields),
 		log.WithAccessLogger(accessLogger),
 		log.WithXFFAllowed(func(sip string) bool { return false }),
-	), nil
+	)
 }
 
 func extraFields(r *http.Request) log.Fields {
