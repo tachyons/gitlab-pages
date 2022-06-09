@@ -2,17 +2,18 @@ package router
 
 import "net/http"
 
+// middleware alias to avoid the long function description internally
 type middleware = func(http.Handler) http.Handler
 
 type Router struct {
-	server             *http.ServeMux
+	*http.ServeMux
 	defaultMiddlewares []middleware
 }
 
 // NewRouter creates a new Server. The given middlewares are be executed in the given order.
 func NewRouter(middlewares ...middleware) Router {
 	return Router{
-		server:             http.NewServeMux(),
+		ServeMux:           http.NewServeMux(),
 		defaultMiddlewares: middlewares,
 	}
 }
@@ -26,9 +27,5 @@ func (s Router) Handle(route string, handler http.Handler, middlewares ...middle
 		handler = ms[i](handler)
 	}
 
-	s.server.Handle(route, handler)
-}
-
-func (s Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.server.ServeHTTP(w, r)
+	s.ServeMux.Handle(route, handler)
 }
