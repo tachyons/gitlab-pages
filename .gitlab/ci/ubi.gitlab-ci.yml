@@ -548,7 +548,9 @@ ubi-assets-release:
   script:
     - 'echo "Scanning image: ${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME}"'
     - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --docker-config /run/containers/0/auth.json --certification-project-id ${PROJECT_ID} --submit ${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME} > reports/${IMAGE_NAME}-cert.yaml
-    - "[[ $(cat reports/${IMAGE_NAME}-cert.yaml | jq .passed) == 'false' ]] && exit 1"
+    - if [[ $(cat reports/${IMAGE_NAME}-cert.yaml | jq .passed) == 'false']]; then
+        exit 1;
+      fi
 
 gitlab-sidekiq-ee Certification:
   extends: .preflight-certification
