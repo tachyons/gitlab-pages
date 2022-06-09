@@ -26,8 +26,7 @@ const (
 )
 
 var (
-	// hack, todo: properly pass config context to internals
-	cfg, _ = config.LoadConfig()
+	cfg = config.Redirects{}
 	// ErrNoRedirect is the error thrown when a no redirect rule matches while trying to Rewrite URL.
 	// This means that no redirect applies to the URL and you can fallback to serving actual content instead.
 	ErrNoRedirect                      = errors.New("no redirect found")
@@ -44,9 +43,13 @@ var (
 	errNoParams                        = errors.New("params not supported")
 	errUnsupportedStatus               = errors.New("status not supported")
 	errNoForce                         = errors.New("force! not supported")
-	errTooManyPathSegments             = fmt.Errorf("url path cannot contain more than %d forward slashes", cfg.Redirects.MaxConfigSize)
+	errTooManyPathSegments             = fmt.Errorf("url path cannot contain more than %d forward slashes", cfg.MaxConfigSize)
 	regexpPlaceholder                  = regexp.MustCompile(`(?i)/:[a-z]+`)
 )
+
+func SetConfig(redirectsConfig config.Redirects) {
+	cfg = redirectsConfig
+}
 
 type Redirects struct {
 	rules []netlifyRedirects.Rule
@@ -63,13 +66,13 @@ func (r *Redirects) Status() string {
 	messages = append(messages, fmt.Sprintf("%d rules", len(r.rules)))
 
 	for i, rule := range r.rules {
-		if i >= cfg.Redirects.MaxConfigSize {
+		if i >= cfg.MaxConfigSize {
 			messages = append([]string{
 				fmt.Sprintf(
 					"The _redirects file contains (%d) rules, more than the maximum of %d rules. Only the first %d rules will be processed.",
 					len(r.rules),
-					cfg.Redirects.MaxRuleCount,
-					cfg.Redirects.MaxRuleCount,
+					cfg.MaxRuleCount,
+					cfg.MaxRuleCount,
 				)},
 				messages...,
 			)
@@ -120,7 +123,7 @@ func ParseRedirects(ctx context.Context, root vfs.Root) *Redirects {
 		return &Redirects{error: errNeedRegularFile}
 	}
 
-	if int(fi.Size()) > cfg.Redirects.MaxConfigSize {
+	if int(fi.Size()) > cfg.MaxConfigSize {
 		return &Redirects{error: errFileTooLarge}
 	}
 
