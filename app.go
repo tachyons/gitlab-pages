@@ -34,7 +34,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
-	server_router "gitlab.com/gitlab-org/gitlab-pages/internal/router"
+	app_router "gitlab.com/gitlab-org/gitlab-pages/internal/router"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/routing"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/zip"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
@@ -172,7 +172,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 		return nil, err
 	}
 
-	router := server_router.NewRouter(
+	router := app_router.NewRouter(
 		rejectmethods.NewMiddleware,
 		func(next http.Handler) http.Handler {
 			return urilimiter.NewMiddleware(next, a.config.General.MaxURILength)
