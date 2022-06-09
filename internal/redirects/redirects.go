@@ -123,7 +123,7 @@ func ParseRedirects(ctx context.Context, root vfs.Root) *Redirects {
 		return &Redirects{error: errNeedRegularFile}
 	}
 
-	if int(fi.Size()) > cfg.MaxConfigSize {
+	if fi.Size() > int64(cfg.MaxConfigSize) {
 		return &Redirects{error: errFileTooLarge}
 	}
 
