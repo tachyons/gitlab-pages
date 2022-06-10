@@ -43,7 +43,7 @@ var (
 	errNoParams                        = errors.New("params not supported")
 	errUnsupportedStatus               = errors.New("status not supported")
 	errNoForce                         = errors.New("force! not supported")
-	errTooManyPathSegments             = fmt.Errorf("url path cannot contain more than %d forward slashes", cfg.MaxConfigSize)
+	errTooManyPathSegments             = errors.New("url path contains more forward slashes than the configured maximum")
 	regexpPlaceholder                  = regexp.MustCompile(`(?i)/:[a-z]+`)
 )
 
