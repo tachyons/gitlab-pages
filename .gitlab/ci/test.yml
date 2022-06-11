@@ -17,7 +17,7 @@ tests:
   extends: .tests-matrix
   script:
     - echo "Running all unit tests..."
-    - make test ARGS='-short'
+    - make unit-test
 
 tests-acceptance:
   extends: .tests-matrix
