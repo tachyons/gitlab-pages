@@ -42,6 +42,9 @@ download deps:
   script:
     - make deps-download
   cache:
+    key:
+      files:
+        - go.mod
     paths:
       - .GOPATH/pkg/mod/
     policy: push
