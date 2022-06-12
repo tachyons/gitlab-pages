@@ -51,6 +51,7 @@ code_quality:
   script:
     - golangci-lint run ./... --out-format ${OUT_FORMAT} ${LINT_FLAGS} | tee ${REPORT_FILE}
   timeout: 15 minutes
+  cache: []
   artifacts:
     reports:
       codequality: ${REPORT_FILE}
@@ -67,6 +68,7 @@ check deps:
 
 check mocks:
   extends: .tests-common
+  cache: []
   script:
     - make mocks-check
 
