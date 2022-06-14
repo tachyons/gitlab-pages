@@ -1,3 +1,10 @@
+## 1.59.0 (2022-06-13)
+
+### Added (2 changes)
+
+- [Add support for tls for metrics](gitlab-org/gitlab-pages@8488ef56611256c1761f93de5f8df23e07b86af4) ([merge request](gitlab-org/gitlab-pages!772))
+- [Add support for socket listeners](gitlab-org/gitlab-pages@60e9cfb7e61fe9eb7141cc9e7d6e95495048bb37) by @feistel ([merge request](gitlab-org/gitlab-pages!758))
+
 ## 1.58.0 (2022-05-17)
 
 ### Changed (3 changes)
