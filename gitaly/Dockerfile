@@ -13,7 +13,7 @@ ARG BUILD_DIR=/tmp/build
 ARG GITLAB_NAMESPACE="gitlab-org"
 ARG FETCH_ARTIFACTS_PAT
 ARG CI_API_V4_URL
-ARG BUNDLE_OPTIONS="--jobs 4 --without development test"
+ARG BUNDLE_OPTIONS="--jobs 4"
 
 # install runtime deps. openssh-client is required so that SSH client binaries
 # are present for repository mirroring.
@@ -45,13 +45,15 @@ RUN buildDeps=' \
     tar -xjf gitaly.tar.bz2 --strip-components=1 && \
     rm gitaly.tar.bz2 && \
     cd ruby && \
+    bundle config set --local deployment 'true' && \
+    bundle config set --local without 'development test' && \
     bundle install ${BUNDLE_OPTIONS} && \
     cd .. && \
     touch .ruby-bundle && \
     make install WITH_BUNDLED_GIT=YesPlease && \
     rm -rf ${BUILD_DIR}/ruby/spec ${BUILD_DIR}/ruby/features && \
     mv ${BUILD_DIR}/ruby /srv/gitaly-ruby && \
-    /build-scripts/cleanup-gems /usr/lib/ruby/gems && \
+    /build-scripts/cleanup-gems /srv/gitaly-ruby/vendor/bundle/ruby && \
     mkdir /target && \
     cp -R --parents \
       /usr/local/bin/gitaly* \

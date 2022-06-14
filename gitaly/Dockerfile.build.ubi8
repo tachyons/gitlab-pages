@@ -32,6 +32,7 @@ RUN mkdir /assets \
         "${PROJECT}" \
         "${VERSION}" \
     && cd ${PROJECT}-${VERSION}/ruby \
+    && bundle config set --local deployment 'true' \
     && bundle config set --local without 'development test' \
     && bundle install ${BUNDLE_OPTIONS} \
     && cd .. \
@@ -40,7 +41,7 @@ RUN mkdir /assets \
     && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features \
     && touch .ruby-bundle \
     && FIPS_MODE=${FIPS_MODE} make install WITH_BUNDLED_GIT=YesPlease \
-    && /build-scripts/cleanup-gems ${LIBDIR}/ruby/gems \
+    && /build-scripts/cleanup-gems /srv/gitaly-ruby/vendor/bundle/ruby \
     && cp -R --parents \
       /usr/local/bin/gitaly* \
       /usr/local/bin/praefect \
