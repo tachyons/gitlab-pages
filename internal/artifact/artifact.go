@@ -17,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
 const (
@@ -61,10 +62,12 @@ func New(server string, timeoutSeconds int, pagesDomain string) *Artifact {
 // http.ResponseWriter, ultimately returning a bool that indicates if the
 // http.ResponseWriter has been written to in any capacity. Additional handler func
 // may be given which should return true if it did handle the response.
-func (a *Artifact) TryMakeRequest(host string, w http.ResponseWriter, r *http.Request, token string, additionalHandler func(*http.Response) bool) bool {
-	if a == nil || a.server == "" || host == "" {
+func (a *Artifact) TryMakeRequest(w http.ResponseWriter, r *http.Request, token string, additionalHandler func(*http.Response) bool) bool {
+	if a == nil || a.server == "" {
 		return false
 	}
+
+	host := request.GetHostWithoutPort(r)
 
 	reqURL, ok := a.BuildURL(host, r.URL.Path)
 	if !ok {

@@ -35,17 +35,17 @@ func (m *MockArtifact) EXPECT() *MockArtifactMockRecorder {
 }
 
 // TryMakeRequest mocks base method.
-func (m *MockArtifact) TryMakeRequest(host string, w http.ResponseWriter, r *http.Request, token string, responseHandler func(*http.Response) bool) bool {
+func (m *MockArtifact) TryMakeRequest(w http.ResponseWriter, r *http.Request, token string, responseHandler func(*http.Response) bool) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TryMakeRequest", host, w, r, token, responseHandler)
+	ret := m.ctrl.Call(m, "TryMakeRequest", w, r, token, responseHandler)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // TryMakeRequest indicates an expected call of TryMakeRequest.
-func (mr *MockArtifactMockRecorder) TryMakeRequest(host, w, r, token, responseHandler interface{}) *gomock.Call {
+func (mr *MockArtifactMockRecorder) TryMakeRequest(w, r, token, responseHandler interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TryMakeRequest", reflect.TypeOf((*MockArtifact)(nil).TryMakeRequest), host, w, r, token, responseHandler)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TryMakeRequest", reflect.TypeOf((*MockArtifact)(nil).TryMakeRequest), w, r, token, responseHandler)
 }
 
 // MockAuth is a mock of Auth interface.

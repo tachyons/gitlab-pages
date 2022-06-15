@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
 // Handlers take care of handling specific requests
@@ -63,10 +62,8 @@ func (a *Handlers) HandleArtifactRequest(w http.ResponseWriter, r *http.Request)
 		return true
 	}
 
-	host := request.GetHostWithoutPort(r)
-
 	// nolint: bodyclose // false positive
 	// a.checkIfLoginRequiredOrInvalidToken returns a response.Body, closing this body is responsibility
 	// of the TryMakeRequest implementation
-	return a.Artifact.TryMakeRequest(host, w, r, token, a.checkIfLoginRequiredOrInvalidToken(w, r, token))
+	return a.Artifact.TryMakeRequest(w, r, token, a.checkIfLoginRequiredOrInvalidToken(w, r, token))
 }

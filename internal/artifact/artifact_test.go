@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -74,12 +73,12 @@ func TestTryMakeRequest(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.Description, func(t *testing.T) {
 			result := httptest.NewRecorder()
-			reqURL, err := url.Parse("/-/subgroup/project/-/jobs/1/artifacts" + c.Path)
+			url := "https://group.gitlab-example.io/-/subgroup/project/-/jobs/1/artifacts" + c.Path
+			r, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
-			r := &http.Request{URL: reqURL}
 			art := artifact.New(testServer.URL, 1, "gitlab-example.io")
 
-			require.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r, c.Token, func(resp *http.Response) bool { return false }))
+			require.True(t, art.TryMakeRequest(result, r, c.Token, func(resp *http.Response) bool { return false }))
 			require.Equal(t, c.Status, result.Code)
 			require.Equal(t, c.ContentType, result.Header().Get("Content-Type"))
 			require.Equal(t, c.Length, result.Header().Get("Content-Length"))
@@ -284,15 +283,16 @@ func TestContextCanceled(t *testing.T) {
 	t.Cleanup(testServer.Close)
 
 	result := httptest.NewRecorder()
-	reqURL, err := url.Parse("/-/subgroup/project/-/jobs/1/artifacts/200.html")
+	url := "https://group.gitlab-example.io/-/subgroup/project/-/jobs/1/artifacts/200.html"
+	r, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
-	r := &http.Request{URL: reqURL}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	r = r.WithContext(ctx)
 	// cancel context explicitly
 	cancel()
 	art := artifact.New(testServer.URL, 1, "gitlab-example.io")
 
-	require.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r, "", func(resp *http.Response) bool { return false }))
+	require.True(t, art.TryMakeRequest(result, r, "", func(resp *http.Response) bool { return false }))
 	require.Equal(t, http.StatusNotFound, result.Code)
 }
