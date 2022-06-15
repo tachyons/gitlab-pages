@@ -1,4 +1,4 @@
-.PHONY: lint format test race acceptance bench cover deps-check mocks-check deps-download changelog zip
+.PHONY: lint format test unit-test race acceptance bench cover deps-check mocks-check deps-download changelog zip
 
 OUT_FORMAT ?= colored-line-number
 LINT_FLAGS ?=  $(if $V,-v)
@@ -14,8 +14,10 @@ format:
 	$Q go run github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_VERSION) run ./... --fix --out-format $(OUT_FORMAT) $(LINT_FLAGS) | tee ${REPORT_FILE}
 
 test: gitlab-pages
-	rm -f tests.out
 	go run gotest.tools/gotestsum@$(GOTESTSUM_VERSION) --junitfile junit-test-report.xml --format testname -- ./... ${ARGS}
+
+unit-test:
+	go run gotest.tools/gotestsum@$(GOTESTSUM_VERSION) --junitfile junit-test-report.xml --format testname -- -short ./... ${ARGS}
 
 race: gitlab-pages
 	go run gotest.tools/gotestsum@$(GOTESTSUM_VERSION) --junitfile junit-test-report.xml --format testname -- -race $(if $V,-v) ./... ${ARGS}
