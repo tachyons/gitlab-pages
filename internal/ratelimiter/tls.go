@@ -3,7 +3,6 @@ package ratelimiter
 import (
 	"crypto/tls"
 	"errors"
-	"strconv"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/labkit/log"
@@ -26,11 +25,7 @@ func (rl *RateLimiter) GetCertificateMiddleware(getCertificate GetCertificateFun
 		rl.logRateLimitedTLS(info)
 
 		if rl.blockedCount != nil {
-			rl.blockedCount.WithLabelValues(rl.name, strconv.FormatBool(rl.enforce)).Inc()
-		}
-
-		if !rl.enforce {
-			return getCertificate(info)
+			rl.blockedCount.WithLabelValues(rl.name).Inc()
 		}
 
 		return nil, ErrTLSRateLimited
@@ -44,6 +39,5 @@ func (rl *RateLimiter) logRateLimitedTLS(info *tls.ClientHelloInfo) {
 		"req_host":                      info.ServerName,
 		"rate_limiter_limit_per_second": rl.limitPerSecond,
 		"rate_limiter_burst_size":       rl.burstSize,
-		"enforced":                      rl.enforce,
 	}).Info("TLS connection rate-limited")
 }

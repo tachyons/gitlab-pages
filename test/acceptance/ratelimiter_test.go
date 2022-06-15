@@ -3,13 +3,10 @@ package acceptance_test
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 )
 
 var ratelimitedListeners = map[string]struct {
@@ -40,8 +37,6 @@ var ratelimitedListeners = map[string]struct {
 }
 
 func TestIPRateLimits(t *testing.T) {
-	t.Setenv(feature.EnforceIPRateLimits.EnvVariable, "true")
-
 	for name, tc := range ratelimitedListeners {
 		t.Run(name, func(t *testing.T) {
 			rateLimit := 5
@@ -68,8 +63,6 @@ func TestIPRateLimits(t *testing.T) {
 }
 
 func TestDomainRateLimits(t *testing.T) {
-	t.Setenv(feature.EnforceDomainRateLimits.EnvVariable, "true")
-
 	for name, tc := range ratelimitedListeners {
 		t.Run(name, func(t *testing.T) {
 			rateLimit := 5
@@ -104,54 +97,27 @@ func TestDomainRateLimits(t *testing.T) {
 
 func TestTLSRateLimits(t *testing.T) {
 	tests := map[string]struct {
-		spec           ListenSpec
-		domainLimit    bool
-		sourceIP       string
-		enforceEnabled bool
+		spec        ListenSpec
+		domainLimit bool
+		sourceIP    string
 	}{
 		"https_with_domain_limit": {
-			spec:           httpsListener,
-			domainLimit:    true,
-			sourceIP:       "127.0.0.1",
-			enforceEnabled: true,
-		},
-		"https_with_domain_limit_not_enforced": {
-			spec:           httpsListener,
-			domainLimit:    true,
-			sourceIP:       "127.0.0.1",
-			enforceEnabled: false,
+			spec:        httpsListener,
+			domainLimit: true,
+			sourceIP:    "127.0.0.1",
 		},
 		"https_with_ip_limit": {
-			spec:           httpsListener,
-			sourceIP:       "127.0.0.1",
-			enforceEnabled: true,
-		},
-		"https_with_ip_limit_not_enforced": {
-			spec:           httpsListener,
-			sourceIP:       "127.0.0.1",
-			enforceEnabled: false,
+			spec:     httpsListener,
+			sourceIP: "127.0.0.1",
 		},
 		"proxyv2_with_domain_limit": {
-			spec:           httpsProxyv2Listener,
-			domainLimit:    true,
-			sourceIP:       "10.1.1.1",
-			enforceEnabled: true,
-		},
-		"proxyv2_with_domain_limit_not_enforced": {
-			spec:           httpsProxyv2Listener,
-			domainLimit:    true,
-			sourceIP:       "10.1.1.1",
-			enforceEnabled: false,
+			spec:        httpsProxyv2Listener,
+			domainLimit: true,
+			sourceIP:    "10.1.1.1",
 		},
 		"proxyv2_with_ip_limit": {
-			spec:           httpsProxyv2Listener,
-			sourceIP:       "10.1.1.1",
-			enforceEnabled: true,
-		},
-		"proxyv2_with_ip_limit_not_enforced": {
-			spec:           httpsProxyv2Listener,
-			sourceIP:       "10.1.1.1",
-			enforceEnabled: false,
+			spec:     httpsProxyv2Listener,
+			sourceIP: "10.1.1.1",
 		},
 	}
 
@@ -164,7 +130,6 @@ func TestTLSRateLimits(t *testing.T) {
 				withExtraArgument("metrics-address", ":42345"),
 			}
 
-			featureName := feature.EnforceIPTLSRateLimits.EnvVariable
 			limitName := "tls_connections_by_source_ip"
 
 			if tt.domainLimit {
@@ -172,7 +137,6 @@ func TestTLSRateLimits(t *testing.T) {
 					withExtraArgument("rate-limit-tls-domain", fmt.Sprint(rateLimit)),
 					withExtraArgument("rate-limit-tls-domain-burst", fmt.Sprint(rateLimit)))
 
-				featureName = feature.EnforceDomainTLSRateLimits.EnvVariable
 				limitName = "tls_connections_by_domain"
 			} else {
 				options = append(options,
@@ -180,7 +144,6 @@ func TestTLSRateLimits(t *testing.T) {
 					withExtraArgument("rate-limit-tls-source-ip-burst", fmt.Sprint(rateLimit)))
 			}
 
-			t.Setenv(featureName, strconv.FormatBool(tt.enforceEnabled))
 			logBuf := RunPagesProcess(t, options...)
 
 			// when we start the process we make 1 requests to verify that process is up
@@ -196,13 +159,10 @@ func TestTLSRateLimits(t *testing.T) {
 					assertLogFound(t, logBuf, []string{
 						"TLS connection rate-limited",
 						"\"req_host\":\"group.gitlab-example.com\"",
-						fmt.Sprintf("\"source_ip\":\"%s\"", tt.sourceIP),
-						"\"enforced\":" + strconv.FormatBool(tt.enforceEnabled)})
+						fmt.Sprintf("\"source_ip\":\"%s\"", tt.sourceIP)})
 
-					if tt.enforceEnabled {
-						require.Error(t, err)
-						require.Contains(t, err.Error(), "remote error: tls: internal error")
-					}
+					require.Error(t, err)
+					require.Contains(t, err.Error(), "remote error: tls: internal error")
 
 					continue
 				}
@@ -212,8 +172,8 @@ func TestTLSRateLimits(t *testing.T) {
 				require.Equal(t, http.StatusOK, rsp.StatusCode, "request: %d failed", i)
 			}
 			expectedMetric := fmt.Sprintf(
-				"gitlab_pages_rate_limit_blocked_count{enforced=\"%t\",limit_name=\"%s\"} %v",
-				tt.enforceEnabled, limitName, 10-rateLimit)
+				"gitlab_pages_rate_limit_blocked_count{limit_name=\"%s\"} %v",
+				limitName, 10-rateLimit)
 
 			RequireMetricEqual(t, "127.0.0.1:42345", expectedMetric)
 		})

@@ -3,13 +3,11 @@ package handlers
 import (
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
@@ -23,8 +21,6 @@ func TestRatelimiter(t *testing.T) {
 		firstTarget        string
 		secondRemoteAddr   string
 		secondTarget       string
-		sourceIPEnforced   bool
-		domainEnforced     bool
 		expectedSecondCode int
 	}{
 		"rejected_by_ip": {
@@ -32,8 +28,6 @@ func TestRatelimiter(t *testing.T) {
 			firstTarget:        "https://domain.gitlab.io",
 			secondRemoteAddr:   "10.0.0.1",
 			secondTarget:       "https://different.gitlab.io",
-			sourceIPEnforced:   true,
-			domainEnforced:     true,
 			expectedSecondCode: http.StatusTooManyRequests,
 		},
 		"rejected_by_domain": {
@@ -41,44 +35,19 @@ func TestRatelimiter(t *testing.T) {
 			firstTarget:        "https://domain.gitlab.io",
 			secondRemoteAddr:   "10.0.0.2",
 			secondTarget:       "https://domain.gitlab.io",
-			sourceIPEnforced:   true,
-			domainEnforced:     true,
 			expectedSecondCode: http.StatusTooManyRequests,
-		},
-		"ip_rate_limiter_disabled": {
-			firstRemoteAddr:    "10.0.0.1",
-			firstTarget:        "https://domain.gitlab.io",
-			secondRemoteAddr:   "10.0.0.1",
-			secondTarget:       "https://different.gitlab.io",
-			sourceIPEnforced:   false,
-			domainEnforced:     true,
-			expectedSecondCode: http.StatusNoContent,
-		},
-		"domain_rate_limiter_disabled": {
-			firstRemoteAddr:    "10.0.0.1",
-			firstTarget:        "https://domain.gitlab.io",
-			secondRemoteAddr:   "10.0.0.2",
-			secondTarget:       "https://domain.gitlab.io",
-			sourceIPEnforced:   true,
-			domainEnforced:     false,
-			expectedSecondCode: http.StatusNoContent,
 		},
 		"different_ip_and_domain_passes": {
 			firstRemoteAddr:    "10.0.0.1",
 			firstTarget:        "https://domain.gitlab.io",
 			secondRemoteAddr:   "10.0.0.2",
 			secondTarget:       "https://different.gitlab.io",
-			sourceIPEnforced:   true,
-			domainEnforced:     true,
 			expectedSecondCode: http.StatusNoContent,
 		},
 	}
 
 	for name, tc := range tt {
 		t.Run(name, func(t *testing.T) {
-			t.Setenv(feature.EnforceIPRateLimits.EnvVariable, strconv.FormatBool(tc.sourceIPEnforced))
-			t.Setenv(feature.EnforceDomainRateLimits.EnvVariable, strconv.FormatBool(tc.domainEnforced))
-
 			conf := config.RateLimit{
 				SourceIPLimitPerSecond: 0.1,
 				SourceIPBurst:          1,

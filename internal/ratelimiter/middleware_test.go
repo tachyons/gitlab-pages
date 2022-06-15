@@ -3,7 +3,6 @@ package ratelimiter
 import (
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,7 +10,6 @@ import (
 	testlog "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
@@ -34,7 +32,6 @@ func TestMiddlewareWithDifferentLimits(t *testing.T) {
 				WithNow(mockNow),
 				WithLimitPerSecond(tc.limit),
 				WithBurstSize(tc.burstSize),
-				WithEnforce(true),
 			)
 
 			handler := rl.Middleware(next)
@@ -62,23 +59,15 @@ func TestMiddlewareDenyRequestsAfterBurst(t *testing.T) {
 	blocked, cachedEntries, cacheReqs := newTestMetrics(t)
 
 	tcs := map[string]struct {
-		enforce        bool
 		expectedStatus int
 	}{
-		"disabled_rate_limit_http": {
-			enforce:        false,
-			expectedStatus: http.StatusNoContent,
-		},
 		"enabled_rate_limit_http_blocks": {
-			enforce:        true,
 			expectedStatus: http.StatusTooManyRequests,
 		},
 	}
 
 	for tn, tc := range tcs {
 		t.Run(tn, func(t *testing.T) {
-			t.Setenv(feature.EnforceIPRateLimits.EnvVariable, strconv.FormatBool(tc.enforce))
-
 			rl := New(
 				"rate_limiter",
 				WithCachedEntriesMetric(cachedEntries),
@@ -87,7 +76,6 @@ func TestMiddlewareDenyRequestsAfterBurst(t *testing.T) {
 				WithNow(mockNow),
 				WithLimitPerSecond(1),
 				WithBurstSize(1),
-				WithEnforce(tc.enforce),
 			)
 
 			// middleware is evaluated in reverse order
@@ -107,7 +95,7 @@ func TestMiddlewareDenyRequestsAfterBurst(t *testing.T) {
 				assertSourceIPLog(t, remoteAddr, hook)
 			}
 
-			blockedCount := testutil.ToFloat64(blocked.WithLabelValues("rate_limiter", strconv.FormatBool(tc.enforce)))
+			blockedCount := testutil.ToFloat64(blocked.WithLabelValues("rate_limiter"))
 			require.Equal(t, float64(4), blockedCount, "blocked count")
 			blocked.Reset()
 
@@ -191,7 +179,6 @@ func TestKeyFunc(t *testing.T) {
 				WithLimitPerSecond(1),
 				WithBurstSize(1),
 				WithKeyFunc(tc.keyFunc),
-				WithEnforce(true),
 			).Middleware(next)
 
 			r1 := httptest.NewRequest(http.MethodGet, tc.firstTarget, nil)
@@ -226,7 +213,7 @@ func newTestMetrics(t *testing.T) (*prometheus.GaugeVec, *prometheus.GaugeVec, *
 		prometheus.GaugeOpts{
 			Name: t.Name(),
 		},
-		[]string{"limit_name", "enforced"},
+		[]string{"limit_name"},
 	)
 
 	cachedEntries := prometheus.NewGaugeVec(prometheus.GaugeOpts{

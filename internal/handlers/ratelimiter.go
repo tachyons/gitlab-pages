@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
@@ -21,7 +20,6 @@ func Ratelimiter(handler http.Handler, config *config.RateLimit) http.Handler {
 		ratelimiter.WithBlockedCountMetric(metrics.RateLimitBlockedCount),
 		ratelimiter.WithLimitPerSecond(config.SourceIPLimitPerSecond),
 		ratelimiter.WithBurstSize(config.SourceIPBurst),
-		ratelimiter.WithEnforce(feature.EnforceIPRateLimits.Enabled()),
 	)
 
 	handler = sourceIPLimiter.Middleware(handler)
@@ -35,7 +33,6 @@ func Ratelimiter(handler http.Handler, config *config.RateLimit) http.Handler {
 		ratelimiter.WithBlockedCountMetric(metrics.RateLimitBlockedCount),
 		ratelimiter.WithLimitPerSecond(config.DomainLimitPerSecond),
 		ratelimiter.WithBurstSize(config.DomainBurst),
-		ratelimiter.WithEnforce(feature.EnforceDomainRateLimits.Enabled()),
 	)
 
 	return domainLimiter.Middleware(handler)

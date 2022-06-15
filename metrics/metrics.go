@@ -217,7 +217,7 @@ var (
 			Name: "gitlab_pages_rate_limit_blocked_count",
 			Help: "The number of requests/connections that have been blocked by rate limiter",
 		},
-		[]string{"limit_name", "enforced"},
+		[]string{"limit_name"},
 	)
 )
 
