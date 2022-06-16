@@ -547,6 +547,7 @@ ubi-assets-release:
     - '[[ -d reports ]] || mkdir reports'
   script:
     - 'echo "Scanning image: ${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME}"'
+    - '[[ -z "${PROJECT_ID}" ]] && PROJECT_ID=$(yq .${IMAGE_NAME}.pid redhat-projects.yaml)'
     - preflight check container --pyxis-api-token=${REDHAT_API_TOKEN} --docker-config /run/containers/0/auth.json --certification-project-id ${PROJECT_ID} --submit ${CI_REGISTRY_IMAGE}/${IMAGE_NAME}:${CI_COMMIT_REF_NAME} > reports/${IMAGE_NAME}-cert.yaml
     - if [[ $(cat reports/${IMAGE_NAME}-cert.yaml | jq .passed) == 'false' ]]; then
         exit 1;
@@ -556,7 +557,6 @@ gitlab-sidekiq-ee Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-sidekiq-ee
-    PROJECT_ID: 5fb60b4a2977e7063dba93cb
   needs:
     - gitlab-sidekiq-ee
 
@@ -564,7 +564,6 @@ gitlab-toolbox-ee Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-toolbox-ee
-    PROJECT_ID: 60fb728cc3450afa1bb969e2
   needs:
     - gitlab-toolbox-ee
 
@@ -572,7 +571,6 @@ gitlab-webservice-ee Certfication:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-webservice-ee
-    PROJECT_ID: 5fb607e4c65ee7c76a2ad0d4
   needs:
     - gitlab-webservice-ee
 
@@ -580,7 +578,6 @@ gitlab-workhorse-ee Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-workhorse-ee
-    PROJECT_ID: 5fb60c7b5e09a3c40183e67b
   needs:
     - gitlab-workhorse-ee
 
@@ -588,7 +585,6 @@ gitlab-mailroom Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-mailroom
-    PROJECT_ID: 5fb60e0a5e09a3c40183e67d
   needs:
     - gitlab-mailroom
 
@@ -596,7 +592,6 @@ gitlab-shell Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-shell
-    PROJECT_ID: 5fb57b5d3379deb31cba93e5
   needs:
     - gitlab-shell
 
@@ -604,7 +599,6 @@ gitlab-exporter Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-exporter
-    PROJECT_ID: 5fb60d575e09a3c40183e67c
   needs:
     - gitlab-exporter
 
@@ -612,7 +606,6 @@ gitlab-container-registry Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitlab-container-registry
-    PROJECT_ID: 5fb611e7935e0609ade7b2cb
   needs:
     - gitlab-container-registry
 
@@ -620,7 +613,6 @@ gitaly Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: gitaly
-    PROJECT_ID: 5fb60ec6c65ee7c76a2ad0d8
   needs:
     - gitaly
 
@@ -628,7 +620,6 @@ alpine-certificates Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: alpine-certificates
-    PROJECT_ID: 5fb615212977e7063dba93d0
   needs:
     - alpine-certificates
 
@@ -636,7 +627,6 @@ kubectl Certification:
   extends: .preflight-certification
   variables:
     IMAGE_NAME: kubectl
-    PROJECT_ID: 5fb611335e09a3c40183e67f
   needs:
     - kubectl
 
