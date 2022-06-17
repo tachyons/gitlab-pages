@@ -78,7 +78,7 @@ $ ./gitlab-pages -listen-https ":9090" -root-cert=path/to/example.com.crt -root-
 
 ### Getting started with development
 
-See [doc/development.md](doc/development.md)
+See the [contributing documentation](https://docs.gitlab.com/ee/development/pages/)
 
 ### Listen on multiple ports
 
