@@ -28,7 +28,8 @@ func validateURL(urlText string) error {
 	// No support for domain-level redirects to outside sites:
 	// - `https://google.com`
 	// - `//google.com`
-	if url.Host != "" || url.Scheme != "" {
+	// - `/\google.com`
+	if url.Host != "" || url.Scheme != "" || strings.HasPrefix(url.Path, "/\\") {
 		return errNoDomainLevelRedirects
 	}
 

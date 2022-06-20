@@ -24,6 +24,10 @@ func TestRedirectsValidateUrl(t *testing.T) {
 			url:         "https://GitLab.com",
 			expectedErr: errNoDomainLevelRedirects,
 		},
+		"no_special_characters_escape_domain_level_redirects": {
+			url:         "/\\GitLab.com",
+			expectedErr: errNoDomainLevelRedirects,
+		},
 		"no_schemaless_url_domain_level_redirects": {
 			url:         "//GitLab.com/pages.html",
 			expectedErr: errNoDomainLevelRedirects,
