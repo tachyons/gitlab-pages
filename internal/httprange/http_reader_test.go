@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
 func TestSeekAndRead(t *testing.T) {
@@ -73,7 +75,7 @@ func TestSeekAndRead(t *testing.T) {
 			readSize:        testDataLen,
 			seekOffset:      int64(testDataLen),
 			seekWhence:      io.SeekStart,
-			expectedReadErr: ErrInvalidRange,
+			expectedReadErr: vfs.NewReadError(ErrInvalidRange),
 		},
 		// io.SeekCurrent ...
 		"read_all_from_seek_current": {
@@ -170,7 +172,7 @@ func TestSeekAndRead(t *testing.T) {
 		"invalid_range_reading_from_end": {
 			readSize:        testDataLen / 3,
 			seekWhence:      io.SeekEnd,
-			expectedReadErr: ErrInvalidRange,
+			expectedReadErr: vfs.NewReadError(ErrInvalidRange),
 		},
 	}
 	for name, tt := range tests {

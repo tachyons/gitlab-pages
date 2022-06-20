@@ -23,6 +23,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httprange"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
 var (
@@ -143,7 +144,7 @@ func TestOpenCached(t *testing.T) {
 			filePath:         "index.html",
 			expectedRequests: 1,
 			// we receive an error on `read` as `open` offset is already cached
-			expectedReadErr:       httprange.ErrRangeRequestsNotSupported,
+			expectedReadErr:       vfs.NewReadError(httprange.ErrRangeRequestsNotSupported),
 			expectedArchiveStatus: archiveCorrupted,
 		},
 		{
@@ -161,7 +162,7 @@ func TestOpenCached(t *testing.T) {
 			filePath:         "subdir/hello.html",
 			expectedRequests: 1,
 			// we receive an error on `read` as `open` offset is already cached
-			expectedOpenErr:       httprange.ErrRangeRequestsNotSupported,
+			expectedOpenErr:       vfs.NewReadError(httprange.ErrRangeRequestsNotSupported),
 			expectedArchiveStatus: archiveCorrupted,
 		},
 	}

@@ -190,7 +190,7 @@ func (r *Reader) Read(buf []byte) (int, error) {
 	}
 
 	if err := r.ensureResponse(); err != nil {
-		return 0, err
+		return 0, vfs.NewReadError(err)
 	}
 
 	n, err := r.res.Body.Read(buf)

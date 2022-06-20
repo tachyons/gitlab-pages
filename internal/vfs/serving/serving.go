@@ -5,6 +5,7 @@
 package serving
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
@@ -47,10 +49,23 @@ func serveContent(w http.ResponseWriter, r *http.Request, modtime time.Time, con
 		return
 	}
 
-	w.WriteHeader(code)
+	if r.Method == http.MethodHead {
+		w.WriteHeader(code)
+		return
+	}
 
-	if r.Method != http.MethodHead {
-		io.Copy(w, content)
+	if _, err := io.Copy(w, content); err != nil {
+		if errors.Is(err, &vfs.ReadError{}) {
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+				return
+			}
+			logging.LogRequest(r).WithField("handle_read_errors", feature.HandleReadErrors.Enabled()).WithError(err).Error("error reading content")
+			if feature.HandleReadErrors.Enabled() {
+				errortracking.CaptureErrWithReqAndStackTrace(err, r)
+				logging.LogRequest(r).WithError(err).Error("error reading content")
+				httperrors.Serve500(w)
+			}
+		}
 	}
 }
 
