@@ -148,6 +148,13 @@ func (a *zipArchive) readArchive(url string) {
 			continue
 		}
 
+		// Each Modified timestamp contains a pointer to a unique timezone
+		// object. This wastes a lot of memory. By setting the timezone to UTC on
+		// each timestamp, we allow the unique timezone objects to be
+		// garbage-collected. Also see
+		// https://gitlab.com/gitlab-org/gitlab-pages/-/issues/702.
+		file.Modified = file.Modified.UTC()
+
 		if file.Mode().IsDir() {
 			a.directories[file.Name] = &file.FileHeader
 		} else {
