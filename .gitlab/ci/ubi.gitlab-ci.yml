@@ -538,6 +538,7 @@ ubi-assets-release:
     - .redhat_certification # rules
   stage: container-scanning
   retry: 1
+  allow_failure: true
   artifacts:
     paths:
       - reports/*
