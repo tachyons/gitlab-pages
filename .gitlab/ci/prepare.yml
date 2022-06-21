@@ -5,7 +5,7 @@ include:
   - template: Security/Secret-Detection.gitlab-ci.yml
 
 variables:
-  SAST_EXCLUDED_ANALYZERS: "eslint"
+  SAST_EXCLUDED_ANALYZERS: "brakeman,eslint,gosec"
 
 # workflow rules are not extended by scanner jobs, need to override them manually
 # TODO: remove when https://gitlab.com/gitlab-org/gitlab/-/issues/218444 is done
@@ -30,7 +30,7 @@ license_scanning:
 gemnasium-dependency_scanning:
   <<: *rules-for-scanners
 
-gosec-sast:
+semgrep-sast:
   <<: *rules-for-scanners
 
 secret_detection:
