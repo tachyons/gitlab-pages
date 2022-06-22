@@ -1,6 +1,7 @@
 package redirects
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -44,7 +45,7 @@ func validateURL(urlText string) error {
 		// This prevents the matching logic from generating regular
 		// expressions that are too large/complex.
 		if strings.Count(url.Path, "/") > cfg.MaxPathSegments {
-			return errTooManyPathSegments
+			return fmt.Errorf("url path cannot contain more than %d forward slashes", cfg.MaxPathSegments)
 		}
 	} else {
 		// No support for splats, https://docs.netlify.com/routing/redirects/redirect-options/#splats

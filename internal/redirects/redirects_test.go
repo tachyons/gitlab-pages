@@ -17,12 +17,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
-const (
-	defaultMaxConfigSize   = 64 * 1024
-	defaultMaxPathSegments = 25
-	defaultMaxRuleCount    = 1000
-)
-
 func TestRedirectsRewrite(t *testing.T) {
 	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
 	setupRedirectsConfig()

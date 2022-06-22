@@ -23,6 +23,15 @@ const (
 	//  - https://docs.netlify.com/routing/redirects/
 	//  - https://docs.netlify.com/routing/redirects/redirect-options/
 	ConfigFile = "_redirects"
+
+	// Check https://gitlab.com/gitlab-org/gitlab-pages/-/issues/472 before increasing this value
+	defaultMaxConfigSize = 64 * 1024
+
+	// maxPathSegments is used to limit the number of path segments allowed in rules URLs
+	defaultMaxPathSegments = 25
+
+	// maxRuleCount is used to limit the total number of rules allowed in _redirects
+	defaultMaxRuleCount = 1000
 )
 
 var (
@@ -43,7 +52,6 @@ var (
 	errNoParams                        = errors.New("params not supported")
 	errUnsupportedStatus               = errors.New("status not supported")
 	errNoForce                         = errors.New("force! not supported")
-	errTooManyPathSegments             = errors.New("url path contains more forward slashes than the configured maximum")
 	regexpPlaceholder                  = regexp.MustCompile(`(?i)/:[a-z]+`)
 )
 
@@ -66,7 +74,7 @@ func (r *Redirects) Status() string {
 	messages = append(messages, fmt.Sprintf("%d rules", len(r.rules)))
 
 	for i, rule := range r.rules {
-		if i >= cfg.MaxConfigSize {
+		if i >= cfg.MaxRuleCount {
 			messages = append([]string{
 				fmt.Sprintf(
 					"The _redirects file contains (%d) rules, more than the maximum of %d rules. Only the first %d rules will be processed.",
