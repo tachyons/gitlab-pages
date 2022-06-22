@@ -9,6 +9,7 @@ ARG PROJECT=gitlab
 ARG VERSION=v12.0.2-ee
 ARG API_URL=
 ARG API_TOKEN=
+ARG FIPS_MODE=
 
 ARG NODE_VERSION=16.14.2
 ARG YARN_VERSION=1.22.18
@@ -66,6 +67,7 @@ RUN /gitlab-fetch \
     && bundle config set --local deployment 'true' \
     && bundle config set --local without 'development test mysql aws' \
     && bundle install --jobs $(nproc) --retry 5 \
+    && FIPS_MODE=${FIPS_MODE} /build-scripts/reinstall-grpc-if-fips /build-scripts/patches \
     && yarn install --production --pure-lockfile \
     && rm -rf node_modules/ tmp/ spec/ ee/spec/ \
     && rm -rf qa/ rubocop/ tooling/ .gitlab/ .github/ docker/ \

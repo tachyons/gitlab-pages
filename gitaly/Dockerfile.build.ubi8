@@ -35,6 +35,7 @@ RUN mkdir /assets \
     && bundle config set --local deployment 'true' \
     && bundle config set --local without 'development test' \
     && bundle install ${BUNDLE_OPTIONS} \
+    && FIPS_MODE=${FIPS_MODE} /build-scripts/reinstall-grpc-if-fips /build-scripts/patches \
     && cd .. \
     && cp -R ./ruby /srv/gitaly-ruby \
     && install -D LICENSE /licenses/GitLab.txt \
