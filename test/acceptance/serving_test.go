@@ -569,7 +569,7 @@ func TestSlowRequests(t *testing.T) {
 	defer cancel()
 
 	url := httpListener.URL("/index.html")
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	require.NoError(t, err)
 
 	req.Host = "group.gitlab-example.com"

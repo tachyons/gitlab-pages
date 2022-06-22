@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -20,6 +21,11 @@ func NewMiddleware(handler http.Handler, s source.Source) http.Handler {
 		d, err := getDomain(r, s)
 		if err != nil && !errors.Is(err, domain.ErrDomainDoesNotExist) {
 			logging.LogRequest(r).WithError(err).Error("could not fetch domain information from a source")
+
+			if errors.Is(err, context.Canceled) {
+				httperrors.Serve404(w)
+				return
+			}
 
 			httperrors.Serve502(w)
 			return
