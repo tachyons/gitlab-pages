@@ -234,13 +234,6 @@ environment variable). Directives are specified in `key=value` format, like:
 pages-domain=example.com
 ```
 
-
-
-### Testing and linting
-
-See [doc/development.md](doc/development.md)
-
-
 ### License
 
 MIT
