@@ -16,19 +16,14 @@ var ratelimitedListeners = map[string]struct {
 	listener ListenSpec
 	header   http.Header
 	clientIP string
-	// We perform requests to server while we're waiting for it to boot up,
-	// successful request gets counted in IP rate limit
-	includeWaitRequest bool
 }{
 	"http_listener": {
-		listener:           httpListener,
-		clientIP:           "127.0.0.1",
-		includeWaitRequest: true,
+		listener: httpListener,
+		clientIP: "127.0.0.1",
 	},
 	"https_listener": {
-		listener:           httpsListener,
-		clientIP:           "127.0.0.1",
-		includeWaitRequest: true,
+		listener: httpsListener,
+		clientIP: "127.0.0.1",
 	},
 	"proxy_listener": {
 		listener: proxyListener,
@@ -39,9 +34,8 @@ var ratelimitedListeners = map[string]struct {
 		clientIP: "172.16.123.1",
 	},
 	"proxyv2_listener": {
-		listener:           httpsProxyv2Listener,
-		clientIP:           "10.1.1.1",
-		includeWaitRequest: true,
+		listener: httpsProxyv2Listener,
+		clientIP: "10.1.1.1",
 	},
 }
 
@@ -56,10 +50,6 @@ func TestIPRateLimits(t *testing.T) {
 				withExtraArgument("rate-limit-source-ip", fmt.Sprint(rateLimit)),
 				withExtraArgument("rate-limit-source-ip-burst", fmt.Sprint(rateLimit)),
 			)
-
-			if tc.includeWaitRequest {
-				rateLimit-- // we've already used one of requests while checking if server is up
-			}
 
 			for i := 0; i < 10; i++ {
 				rsp, err := GetPageFromListenerWithHeaders(t, tc.listener, "group.gitlab-example.com", "project/", tc.header)

@@ -12,10 +12,9 @@ import (
 func TestStatusPage(t *testing.T) {
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
-		withExtraArgument("pages-status", "/@statuscheck"),
 	)
 
-	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@statuscheck")
+	rsp, err := GetPageFromListener(t, httpListener, "group.gitlab-example.com", "@healthcheck")
 	require.NoError(t, err)
 	testhelpers.Close(t, rsp.Body)
 	require.Equal(t, http.StatusOK, rsp.StatusCode)

@@ -190,33 +190,36 @@ func (l ListenSpec) QuickTimeoutClient() *http.Client {
 // Returns only once this spec points at a working TCP server
 func (l ListenSpec) WaitUntilRequestSucceeds(done chan struct{}) error {
 	timeout := 5 * time.Second
-	for start := time.Now(); time.Since(start) < timeout; {
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
 		select {
 		case <-done:
 			return fmt.Errorf("server has shut down already")
-		default:
-		}
+		case <-ctx.Done():
+			return fmt.Errorf("ctx done: %w for listener %v", ctx.Err(), l)
+		case <-ticker.C:
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, l.URL("/@healthcheck"), nil)
+			if err != nil {
+				return err
+			}
 
-		req, err := http.NewRequest("GET", l.URL("/"), nil)
-		if err != nil {
-			return err
-		}
+			response, err := l.QuickTimeoutClient().Transport.RoundTrip(req)
 
-		response, err := l.QuickTimeoutClient().Transport.RoundTrip(req)
-		if err != nil {
-			time.Sleep(100 * time.Millisecond)
-			continue
-		}
-		response.Body.Close()
+			if err == nil {
+				response.Body.Close()
 
-		if code := response.StatusCode; code >= 200 && code < 500 {
-			return nil
+				if code := response.StatusCode; code >= 200 && code < 500 {
+					return nil
+				}
+			}
 		}
-
-		time.Sleep(100 * time.Millisecond)
 	}
-
-	return fmt.Errorf("timed out after %v waiting for listener %v", timeout, l)
 }
 
 func (l ListenSpec) JoinHostPort() string {
@@ -339,6 +342,7 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 func getPagesArgs(t *testing.T, listeners []ListenSpec, promPort string, extraArgs []string) (args []string) {
 	var hasHTTPS bool
 	args = append(args, "-log-verbose=true")
+	args = append(args, "-pages-status=/@healthcheck")
 
 	for _, spec := range listeners {
 		if spec.Type == "unix" {
