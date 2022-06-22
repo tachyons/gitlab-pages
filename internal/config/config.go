@@ -356,7 +356,7 @@ func loadConfig() (*Config, error) {
 
 func LogConfig(config *Config) {
 	log.WithFields(log.Fields{
-		"artifacts-server":               *artifactsServer,
+		"artifacts-server":               config.ArtifactsServer.URL,
 		"artifacts-server-timeout":       *artifactsServerTimeout,
 		"default-config-filename":        flag.DefaultConfigFlagname,
 		"disable-cross-origin-requests":  *disableCrossOriginRequests,
