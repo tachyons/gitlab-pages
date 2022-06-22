@@ -67,8 +67,12 @@ rm -rf \
   ${ruby_dir}/*/gems/*/script \
   ${ruby_dir}/*/gems/*/t
 
-# Exclude additional test files from specific gems
+# Exclude additional files from specific gems
 rm -rf \
-  ${ruby_dir}/*/gems/grpc-*/src/ruby/spec
+  ${ruby_dir}/*/gems/grpc-*/include \
+  ${ruby_dir}/*/gems/grpc-*/src/core \
+  ${ruby_dir}/*/gems/grpc-*/src/ruby/ext \
+  ${ruby_dir}/*/gems/grpc-*/src/ruby/spec \
+  ${ruby_dir}/*/gems/grpc-*/third_party
 
 find ${ruby_dir} -name '*.gem' -type f -print -delete
