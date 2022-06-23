@@ -12,7 +12,7 @@ ENV INCLUDEDIR=/usr/include
 RUN dnf ${DNF_OPTS} install -by --nodocs \
         autoconf cmake gcc gcc-c++ make patch perl \
         bzip2 libedit ncurses uuid libarchive \
-        curl-devel libicu-devel libffi-devel libuuid-devel openssl-devel ncurses-devel pcre2-devel zlib-devel \
+        curl-devel libicu-devel libffi-devel libuuid-devel openssl-devel ncurses-devel pcre2-devel zlib-devel libstdc++-static \
     && mkdir -p ${BUILD_DIR} \
     && cd ${BUILD_DIR} \
     # Adding libedit development headers from source.
