@@ -370,6 +370,7 @@ func TestDomainResolverError(t *testing.T) {
 		},
 		"timeout": {
 			timeout: 100 * time.Millisecond,
+			status:  http.StatusTeapot,
 		},
 		"server_fails": {
 			panic: true,
