@@ -48,13 +48,12 @@ var (
 )
 
 type theApp struct {
-	config        *cfg.Config
-	source        source.Source
-	tlsConfig     *cryptotls.Config
-	Artifact      *artifact.Artifact
-	Auth          *auth.Auth
-	Handlers      *handlers.Handlers
-	CustomHeaders http.Header
+	config    *cfg.Config
+	source    source.Source
+	tlsConfig *cryptotls.Config
+	Artifact  *artifact.Artifact
+	Auth      *auth.Auth
+	Handlers  *handlers.Handlers
 }
 
 func (a *theApp) GetCertificate(ch *cryptotls.ClientHelloInfo) (*cryptotls.Certificate, error) {
@@ -153,7 +152,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	handler = health.NewMiddleware(handler, a.config.General.StatusPath)
 
 	// Custom response headers
-	handler = customheaders.NewMiddleware(handler, a.CustomHeaders)
+	handler = customheaders.NewMiddleware(handler, a.config.General.CustomHeaders)
 
 	// Correlation ID injection middleware
 	var correlationOpts []correlation.InboundHandlerOption
@@ -368,14 +367,6 @@ func runApp(config *cfg.Config) error {
 	}
 
 	a.Handlers = handlers.New(a.Auth, a.Artifact)
-
-	if len(config.General.CustomHeaders) != 0 {
-		customHeaders, err := customheaders.ParseHeaderString(config.General.CustomHeaders)
-		if err != nil {
-			return fmt.Errorf("unable to parse header string: %w", err)
-		}
-		a.CustomHeaders = customHeaders
-	}
 
 	if err := mimedb.LoadTypes(); err != nil {
 		log.WithError(err).Warn("Loading extended MIME database failed")

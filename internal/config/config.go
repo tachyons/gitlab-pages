@@ -1,14 +1,18 @@
 package config
 
 import (
+	"bufio"
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/textproto"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/namsral/flag"
 	"gitlab.com/gitlab-org/labkit/log"
 )
@@ -55,7 +59,7 @@ type General struct {
 
 	ShowVersion bool
 
-	CustomHeaders []string
+	CustomHeaders http.Header
 }
 
 // RateLimit config struct
@@ -154,8 +158,10 @@ type Metrics struct {
 }
 
 var (
-	errMetricsNoCertificate = errors.New("metrics certificate path must not be empty")
-	errMetricsNoKey         = errors.New("metrics private key path must not be empty")
+	errDuplicateHeader        = errors.New("duplicate header")
+	errInvalidHeaderParameter = errors.New("invalid syntax specified as header parameter")
+	errMetricsNoCertificate   = errors.New("metrics certificate path must not be empty")
+	errMetricsNoKey           = errors.New("metrics private key path must not be empty")
 )
 
 func internalGitlabServerFromFlags() string {
@@ -231,6 +237,35 @@ func loadMetricsConfig() (metrics Metrics, err error) {
 	return metrics, nil
 }
 
+func parseHeaderString(customHeaders []string) (http.Header, error) {
+	headers := make(http.Header, len(customHeaders))
+
+	var result *multierror.Error
+	for _, h := range customHeaders {
+		h = h + "\n\n"
+		tp := textproto.NewReader(bufio.NewReader(strings.NewReader(h)))
+
+		mimeHeader, err := tp.ReadMIMEHeader()
+		if err != nil {
+			result = multierror.Append(result, fmt.Errorf("parsing error %s: %w", h, errInvalidHeaderParameter))
+		}
+
+		for key, value := range mimeHeader {
+			if _, ok := headers[key]; ok {
+				result = multierror.Append(result, fmt.Errorf("%s already specified with value '%s': %w", key, value, errDuplicateHeader))
+			}
+
+			headers[key] = value
+		}
+	}
+
+	if result.ErrorOrNil() != nil {
+		return nil, result
+	}
+
+	return headers, nil
+}
+
 func loadConfig() (*Config, error) {
 	config := &Config{
 		General: General{
@@ -244,7 +279,6 @@ func loadConfig() (*Config, error) {
 			DisableCrossOriginRequests: *disableCrossOriginRequests,
 			InsecureCiphers:            *insecureCiphers,
 			PropagateCorrelationID:     *propagateCorrelationID,
-			CustomHeaders:              header.Split(),
 			ShowVersion:                *showVersion,
 		},
 		RateLimit: RateLimit{
@@ -339,6 +373,13 @@ func loadConfig() (*Config, error) {
 			}
 		}
 	}
+
+	customHeaders, err := parseHeaderString(header.Split())
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse header string: %w", err)
+	}
+
+	config.General.CustomHeaders = customHeaders
 
 	// Populating remaining GitLab settings
 	config.GitLab.PublicServer = *publicGitLabServer
