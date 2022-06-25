@@ -11,11 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
+	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
 func TestZip_ServeFileHTTP(t *testing.T) {
@@ -33,25 +35,32 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 		path           string
 		expectedStatus int
 		expectedBody   string
-		extraHeaders   http.Header
+		// Used to assert there are no zip requests if we don't
+		// need to open or read from the file, making sure the
+		// lazyFile is working as intended.
+		expectedOpen bool
+		extraHeaders http.Header
 	}{
 		"accessing /index.html": {
 			vfsPath:        httpURL,
 			path:           "/index.html",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
+			expectedOpen:   true,
 		},
 		"accessing /index.html from disk": {
 			vfsPath:        fileURL,
 			path:           "/index.html",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
+			expectedOpen:   true,
 		},
 		"accessing /": {
 			vfsPath:        httpURL,
 			path:           "/",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
+			expectedOpen:   true,
 		},
 		"accessing / If-Modified-Since": {
 			vfsPath:        httpURL,
@@ -66,6 +75,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			path:           "/",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
+			expectedOpen:   true,
 			extraHeaders: http.Header{
 				"If-Modified-Since": {time.Now().AddDate(-10, 0, 0).Format(http.TimeFormat)},
 			},
@@ -82,6 +92,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			vfsPath:        httpURL,
 			path:           "/",
 			expectedStatus: http.StatusOK,
+			expectedOpen:   true,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 			extraHeaders: http.Header{
 				"If-Unmodified-Since": {time.Now().Format(http.TimeFormat)},
@@ -91,6 +102,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			vfsPath:        fileURL,
 			path:           "/",
 			expectedStatus: http.StatusOK,
+			expectedOpen:   true,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 		},
 		"accessing without /": {
@@ -133,6 +145,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			vfsPath:        httpURL,
 			path:           "/",
 			expectedStatus: http.StatusOK,
+			expectedOpen:   true,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 			extraHeaders: http.Header{
 				"If-None-Match": {fmt.Sprintf("%q", "badetag")},
@@ -142,6 +155,7 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			vfsPath:        httpURL,
 			path:           "/",
 			expectedStatus: http.StatusOK,
+			expectedOpen:   true,
 			expectedBody:   "zip.gitlab.io/project/index.html\n",
 			extraHeaders: http.Header{
 				"If-Match": {fmt.Sprintf("%q", sha(httpURL))},
@@ -189,6 +203,8 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 				r.Header = test.extraHeaders
 			}
 
+			zipRequestsCountBefore := zipCacheRequests()
+
 			handler := serving.Handler{
 				Writer:  w,
 				Request: r,
@@ -223,8 +239,23 @@ func TestZip_ServeFileHTTP(t *testing.T) {
 			if test.expectedStatus != http.StatusInternalServerError {
 				require.Equal(t, test.expectedBody, string(body))
 			}
+
+			zipRequestsCountAfter := zipCacheRequests()
+
+			if !test.expectedOpen {
+				require.Equal(t, zipRequestsCountBefore, zipRequestsCountAfter)
+			} else {
+				require.NotEqual(t, zipRequestsCountBefore, zipRequestsCountAfter)
+			}
 		})
 	}
+}
+
+func zipCacheRequests() float64 {
+	zipMetricHit := metrics.ZipCacheRequests.WithLabelValues("data-offset", "hit")
+	zipMetricMiss := metrics.ZipCacheRequests.WithLabelValues("data-offset", "miss")
+
+	return testutil.ToFloat64(zipMetricHit) + testutil.ToFloat64(zipMetricMiss)
 }
 
 func sha(path string) string {
