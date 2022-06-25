@@ -165,7 +165,7 @@ func (a *zipArchive) readArchive(url string) {
 	}
 
 	// recycle memory
-	a.archive.File = nil
+	a.archive = nil
 
 	fileCount := float64(len(a.files))
 	metrics.ZipOpened.WithLabelValues("ok").Inc()
