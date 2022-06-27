@@ -578,7 +578,6 @@ func TestSlowRequests(t *testing.T) {
 	require.Error(t, err, "cancelling the context should trigger this error")
 
 	require.Eventually(t, func() bool {
-		require.Contains(t, logBuf.String(), "context done: context canceled", "error mismatch")
 		require.Contains(t, logBuf.String(), "\"status\":404", "status mismatch")
 		return true
 	}, time.Second, time.Millisecond)
