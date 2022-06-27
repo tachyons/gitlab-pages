@@ -71,8 +71,10 @@ func appMain() error {
 	}).Info("GitLab Pages")
 	log.Info("URL: https://gitlab.com/gitlab-org/gitlab-pages")
 
-	if err := os.Chdir(config.General.RootDir); err != nil {
-		return fmt.Errorf("could not change directory into pagesRoot: %w", err)
+	if config.GitLab.EnableDisk {
+		if err := os.Chdir(config.General.RootDir); err != nil {
+			return fmt.Errorf("could not change directory into pagesRoot: %w", err)
+		}
 	}
 	fips.Check()
 
