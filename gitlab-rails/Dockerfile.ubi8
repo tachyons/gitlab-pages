@@ -39,11 +39,12 @@ RUN chown -R ${UID}:0 /scripts /srv/gitlab /home/${GITLAB_USER} \
     && ln -s /var/log/gitlab /srv/gitlab/log \
     && cd /srv/gitlab \
     && mkdir -p public/uploads \
+    && chown -R ${UID}:0 public/uploads \
+    && chmod 0700 public/uploads \
     && chmod o-rwx config/database.yml \
     && chmod 0600 config/secrets.yml \
     && chmod -R u+rwX builds/ shared/artifacts/ \
     && chmod -R ug+rwX shared/pages/ \
-    && chmod 0700 public/uploads \
     && mkdir /home/git/gitlab-shell \
     && chown ${UID}:0 /home/git/gitlab-shell \
     && chmod -R g=u /home/git/gitlab-shell \
