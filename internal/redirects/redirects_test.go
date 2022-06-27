@@ -12,14 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 	netlifyRedirects "github.com/tj/go-redirects"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestRedirectsRewrite(t *testing.T) {
 	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
-	setupRedirectsConfig()
 
 	tests := []struct {
 		name           string
@@ -140,7 +138,6 @@ func TestRedirectsRewrite(t *testing.T) {
 
 func TestRedirectsParseRedirects(t *testing.T) {
 	ctx := context.Background()
-	setupRedirectsConfig()
 
 	root, tmpDir := testhelpers.TmpDir(t)
 
@@ -199,7 +196,6 @@ func TestRedirectsParseRedirects(t *testing.T) {
 
 func TestMaxRuleCount(t *testing.T) {
 	root, tmpDir := testhelpers.TmpDir(t)
-	setupRedirectsConfig()
 
 	err := os.WriteFile(path.Join(tmpDir, ConfigFile), []byte(strings.Repeat("/goto.html /target.html 301\n", cfg.MaxRuleCount-1)+
 		"/1000.html /target1000 301\n"+
@@ -229,12 +225,4 @@ func TestMaxRuleCount(t *testing.T) {
 
 	t.Run("maxRuleCount matches", testFn("/1000.html", "/target1000", http.StatusMovedPermanently, nil))
 	t.Run("maxRuleCount+1 does not match", testFn("/1001.html", "", 0, ErrNoRedirect))
-}
-
-func setupRedirectsConfig() {
-	SetConfig(config.Redirects{
-		MaxConfigSize:   defaultMaxConfigSize,
-		MaxPathSegments: defaultMaxPathSegments,
-		MaxRuleCount:    defaultMaxRuleCount,
-	})
 }

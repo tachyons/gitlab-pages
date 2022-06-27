@@ -35,7 +35,12 @@ const (
 )
 
 var (
-	cfg = config.Redirects{}
+	cfg = config.Redirects{
+		MaxConfigSize:   defaultMaxConfigSize,
+		MaxPathSegments: defaultMaxPathSegments,
+		MaxRuleCount:    defaultMaxRuleCount,
+	}
+
 	// ErrNoRedirect is the error thrown when a no redirect rule matches while trying to Rewrite URL.
 	// This means that no redirect applies to the URL and you can fallback to serving actual content instead.
 	ErrNoRedirect                      = errors.New("no redirect found")
