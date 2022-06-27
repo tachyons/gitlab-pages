@@ -60,8 +60,7 @@ func TestRedirectsValidateUrl(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			err := validateURL(tt.url)
 			if tt.expectedErr != nil {
-				require.Error(t, err)
-				require.Equal(t, err, tt.expectedErr)
+				require.EqualError(t, err, tt.expectedErr.Error())
 				return
 			}
 
