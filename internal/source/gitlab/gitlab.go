@@ -102,10 +102,8 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 
 	logging.LogRequest(r).WithError(domain.ErrDomainDoesNotExist).WithFields(
 		log.Fields{
-			"host":               host,
 			"lookup_paths_count": size,
 			"lookup_paths":       response.Domain.LookupPaths,
-			"url_path":           urlPath,
 		}).Error("could not find project lookup path")
 
 	return nil, domain.ErrDomainDoesNotExist

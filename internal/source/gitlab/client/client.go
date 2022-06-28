@@ -113,7 +113,7 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 		log.WithError(domain.ErrDomainDoesNotExist).WithFields(
 			log.Fields{
 				"correlation_id": correlation.ExtractFromContext(ctx),
-				"host":           host,
+				"lookup_name":    host,
 			}).Error("unexpected nil response from gitlab")
 		return api.Lookup{Name: host, Error: domain.ErrDomainDoesNotExist}
 	}
