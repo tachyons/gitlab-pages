@@ -21,6 +21,7 @@ type Config struct {
 	Authentication  Auth
 	GitLab          GitLab
 	Log             Log
+	Redirects       Redirects
 	Sentry          Sentry
 	Server          Server
 	TLS             TLS
@@ -117,6 +118,13 @@ type GitLab struct {
 type Log struct {
 	Format  string
 	Verbose bool
+}
+
+// Redirects groups settings related to configuring _redirects limits
+type Redirects struct {
+	MaxConfigSize   int
+	MaxPathSegments int
+	MaxRuleCount    int
 }
 
 // Sentry groups settings related to configuring Sentry
@@ -287,6 +295,11 @@ func loadConfig() (*Config, error) {
 			Format:  *logFormat,
 			Verbose: *logVerbose,
 		},
+		Redirects: Redirects{
+			MaxConfigSize:   *redirectsMaxConfigSize,
+			MaxPathSegments: *redirectsMaxPathSegments,
+			MaxRuleCount:    *redirectsMaxRuleCount,
+		},
 		Sentry: Sentry{
 			DSN:         *sentryDSN,
 			Environment: *sentryEnvironment,
@@ -401,6 +414,9 @@ func LogConfig(config *Config) {
 		"rate-limit-tls-source-ip-burst": config.RateLimit.TLSSourceIPBurst,
 		"rate-limit-tls-domain":          config.RateLimit.TLSDomainLimitPerSecond,
 		"rate-limit-tls-domain-burst":    config.RateLimit.TLSDomainBurst,
+		"redirects-max-config-size":      config.Redirects.MaxConfigSize,
+		"redirects-max-path-segments":    config.Redirects.MaxPathSegments,
+		"redirects-max-rule-count":       config.Redirects.MaxRuleCount,
 		"server-read-timeout":            config.Server.ReadTimeout,
 		"server-read-header-timeout":     config.Server.ReadHeaderTimeout,
 		"server-write-timeout":           config.Server.WriteTimeout,

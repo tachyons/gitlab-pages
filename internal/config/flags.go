@@ -61,6 +61,11 @@ var (
 	gitlabRetrievalInterval = flag.Duration("gitlab-retrieval-interval", time.Second, "The interval to wait before retrying to resolve a domain's configuration via the GitLab API")
 	gitlabRetrievalRetries  = flag.Int("gitlab-retrieval-retries", 3, "The maximum number of times to retry to resolve a domain's configuration via the API")
 
+	// Check https://gitlab.com/gitlab-org/gitlab-pages/-/issues/472 before increasing default redirectsMaxConfigSize value
+	redirectsMaxConfigSize   = flag.Int("redirects-max-config-size", 64*1024, "The maximum size of the _redirects file, in bytes")
+	redirectsMaxPathSegments = flag.Int("redirects-max-path-segments", 25, "The maximum number of path segments allowed in _redirects rules URLs")
+	redirectsMaxRuleCount    = flag.Int("redirects-max-rule-count", 1000, "The maximum number of rules allowed in _redirects")
+
 	enableDisk = flag.Bool("enable-disk", true, "Enable disk access, shall be disabled in environments where shared disk storage isn't available")
 
 	clientID             = flag.String("auth-client-id", "", "GitLab application Client ID")

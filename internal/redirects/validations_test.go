@@ -1,6 +1,7 @@
 package redirects
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -42,7 +43,7 @@ func TestRedirectsValidateUrl(t *testing.T) {
 		},
 		"too_many_slashes": {
 			url:         strings.Repeat("/a", 26),
-			expectedErr: errTooManyPathSegments,
+			expectedErr: fmt.Errorf("url path cannot contain more than %d forward slashes", defaultMaxPathSegments),
 		},
 		"placeholders": {
 			url: "/news/:year/:month/:date/:slug",
@@ -58,7 +59,12 @@ func TestRedirectsValidateUrl(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			err := validateURL(tt.url)
-			require.ErrorIs(t, err, tt.expectedErr)
+			if tt.expectedErr != nil {
+				require.EqualError(t, err, tt.expectedErr.Error())
+				return
+			}
+
+			require.NoError(t, err)
 		})
 	}
 }

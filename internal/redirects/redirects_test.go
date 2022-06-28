@@ -165,7 +165,7 @@ func TestRedirectsParseRedirects(t *testing.T) {
 		},
 		{
 			name:          "Config file too big",
-			redirectsFile: strings.Repeat("a", 2*maxConfigSize),
+			redirectsFile: strings.Repeat("a", 2*cfg.MaxConfigSize),
 			expectedRules: 0,
 			expectedErr:   errFileTooLarge,
 		},
@@ -197,7 +197,7 @@ func TestRedirectsParseRedirects(t *testing.T) {
 func TestMaxRuleCount(t *testing.T) {
 	root, tmpDir := testhelpers.TmpDir(t)
 
-	err := os.WriteFile(path.Join(tmpDir, ConfigFile), []byte(strings.Repeat("/goto.html /target.html 301\n", maxRuleCount-1)+
+	err := os.WriteFile(path.Join(tmpDir, ConfigFile), []byte(strings.Repeat("/goto.html /target.html 301\n", cfg.MaxRuleCount-1)+
 		"/1000.html /target1000 301\n"+
 		"/1001.html /target1001 301\n",
 	), 0600)

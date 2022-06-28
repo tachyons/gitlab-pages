@@ -32,6 +32,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/netutil"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/rejectmethods"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/routing"
@@ -349,6 +350,8 @@ func (a *theApp) listenMetrics(eg *errgroup.Group, config cfg.Metrics) *http.Ser
 }
 
 func runApp(config *cfg.Config) error {
+	redirects.SetConfig(config.Redirects)
+
 	source, err := gitlab.New(&config.GitLab)
 	if err != nil {
 		return fmt.Errorf("could not create domains config source: %w", err)

@@ -13,6 +13,7 @@ import (
 	netlifyRedirects "github.com/tj/go-redirects"
 	"gitlab.com/gitlab-org/labkit/log"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
@@ -24,16 +25,22 @@ const (
 	ConfigFile = "_redirects"
 
 	// Check https://gitlab.com/gitlab-org/gitlab-pages/-/issues/472 before increasing this value
-	maxConfigSize = 64 * 1024
+	defaultMaxConfigSize = 64 * 1024
 
 	// maxPathSegments is used to limit the number of path segments allowed in rules URLs
-	maxPathSegments = 25
+	defaultMaxPathSegments = 25
 
 	// maxRuleCount is used to limit the total number of rules allowed in _redirects
-	maxRuleCount = 1000
+	defaultMaxRuleCount = 1000
 )
 
 var (
+	cfg = config.Redirects{
+		MaxConfigSize:   defaultMaxConfigSize,
+		MaxPathSegments: defaultMaxPathSegments,
+		MaxRuleCount:    defaultMaxRuleCount,
+	}
+
 	// ErrNoRedirect is the error thrown when a no redirect rule matches while trying to Rewrite URL.
 	// This means that no redirect applies to the URL and you can fallback to serving actual content instead.
 	ErrNoRedirect                      = errors.New("no redirect found")
@@ -50,9 +57,12 @@ var (
 	errNoParams                        = errors.New("params not supported")
 	errUnsupportedStatus               = errors.New("status not supported")
 	errNoForce                         = errors.New("force! not supported")
-	errTooManyPathSegments             = fmt.Errorf("url path cannot contain more than %d forward slashes", maxPathSegments)
 	regexpPlaceholder                  = regexp.MustCompile(`(?i)/:[a-z]+`)
 )
+
+func SetConfig(redirectsConfig config.Redirects) {
+	cfg = redirectsConfig
+}
 
 type Redirects struct {
 	rules []netlifyRedirects.Rule
@@ -69,13 +79,13 @@ func (r *Redirects) Status() string {
 	messages = append(messages, fmt.Sprintf("%d rules", len(r.rules)))
 
 	for i, rule := range r.rules {
-		if i >= maxRuleCount {
+		if i >= cfg.MaxRuleCount {
 			messages = append([]string{
 				fmt.Sprintf(
 					"The _redirects file contains (%d) rules, more than the maximum of %d rules. Only the first %d rules will be processed.",
 					len(r.rules),
-					maxRuleCount,
-					maxRuleCount,
+					cfg.MaxRuleCount,
+					cfg.MaxRuleCount,
 				)},
 				messages...,
 			)
@@ -126,7 +136,7 @@ func ParseRedirects(ctx context.Context, root vfs.Root) *Redirects {
 		return &Redirects{error: errNeedRegularFile}
 	}
 
-	if fi.Size() > maxConfigSize {
+	if fi.Size() > int64(cfg.MaxConfigSize) {
 		return &Redirects{error: errFileTooLarge}
 	}
 

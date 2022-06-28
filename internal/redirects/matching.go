@@ -103,7 +103,7 @@ func matchesRule(rule *netlifyRedirects.Rule, path string) (bool, string) {
 // If no rule matches, this function returns `nil` and an empty string
 func (r *Redirects) match(path string) (*netlifyRedirects.Rule, string) {
 	for i := range r.rules {
-		if i >= maxRuleCount {
+		if i >= cfg.MaxRuleCount {
 			// do not process any more rules
 			return nil, ""
 		}
