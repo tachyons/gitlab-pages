@@ -5,10 +5,9 @@ import (
 	"strconv"
 
 	"github.com/sirupsen/logrus"
-	"gitlab.com/gitlab-org/labkit/correlation"
-	"gitlab.com/gitlab-org/labkit/log"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
@@ -46,13 +45,9 @@ func (rl *RateLimiter) Middleware(handler http.Handler) http.Handler {
 }
 
 func (rl *RateLimiter) logRateLimitedRequest(r *http.Request) {
-	log.WithFields(logrus.Fields{
+	logging.LogRequest(r).WithFields(logrus.Fields{
 		"rate_limiter_name":             rl.name,
-		"correlation_id":                correlation.ExtractFromContext(r.Context()),
-		"req_scheme":                    r.URL.Scheme,
-		"req_host":                      r.Host,
-		"req_path":                      r.URL.Path,
-		"pages_domain":                  request.GetHostWithoutPort(r),
+		"scheme":                        r.URL.Scheme,
 		"remote_addr":                   r.RemoteAddr,
 		"source_ip":                     request.GetRemoteAddrWithoutPort(r),
 		"x_forwarded_proto":             r.Header.Get(headerXForwardedProto),

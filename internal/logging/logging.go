@@ -67,9 +67,7 @@ func BasicAccessLogger(handler http.Handler, format string) (http.Handler, error
 
 func extraFields(r *http.Request) log.Fields {
 	return log.Fields{
-		"correlation_id": correlation.ExtractFromContext(r.Context()),
-		"pages_https":    request.IsHTTPS(r),
-		"pages_host":     r.Host,
+		"pages_https": request.IsHTTPS(r),
 	}
 }
 

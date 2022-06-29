@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitlab.com/gitlab-org/labkit/correlation"
-	"gitlab.com/gitlab-org/labkit/log"
-
 	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 )
 
 type content struct {
@@ -210,11 +208,7 @@ func Serve500(w http.ResponseWriter) {
 
 // Serve500WithRequest returns a 500 error response / HTML page to the http.ResponseWriter
 func Serve500WithRequest(w http.ResponseWriter, r *http.Request, reason string, err error) {
-	log.WithFields(log.Fields{
-		"correlation_id": correlation.ExtractFromContext(r.Context()),
-		"host":           r.Host,
-		"path":           r.URL.Path,
-	}).WithError(err).Error(reason)
+	logging.LogRequest(r).WithError(err).Error(reason)
 	errortracking.CaptureErrWithReqAndStackTrace(err, r)
 	serveErrorPage(w, content500)
 }

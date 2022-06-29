@@ -205,8 +205,8 @@ func (a *Auth) handleProxyingAuth(session *hostSession, w http.ResponseWriter, r
 
 		proxyurl, err := url.Parse(domain)
 		if err != nil {
-			logRequest(r).WithField("domain", domain).Error(queryParameterErrMsg)
-			errortracking.CaptureErrWithReqAndStackTrace(err, r, errortracking.WithField("domain", domain))
+			logRequest(r).WithField("domain_query", domain).Error(queryParameterErrMsg)
+			errortracking.CaptureErrWithReqAndStackTrace(err, r, errortracking.WithField("domain_query", domain))
 
 			httperrors.Serve500(w)
 			return true
@@ -217,12 +217,15 @@ func (a *Auth) handleProxyingAuth(session *hostSession, w http.ResponseWriter, r
 		}
 
 		if !a.domainAllowed(r.Context(), host, domains) {
-			logRequest(r).WithField("domain", host).Warn("Domain is not configured")
+			logRequest(r).WithFields(logrus.Fields{
+				"domain_query": domain,
+				"domain_host":  host,
+			}).Warn("Domain is not configured")
 			httperrors.Serve401(w)
 			return true
 		}
 
-		logRequest(r).WithField("domain", domain).Info("User is authenticating via domain")
+		logRequest(r).WithField("domain_query", domain).Info("User is authenticating via domain")
 
 		session.Values["proxy_auth_domain"] = domain
 
@@ -239,7 +242,7 @@ func (a *Auth) handleProxyingAuth(session *hostSession, w http.ResponseWriter, r
 
 		logRequest(r).WithFields(logrus.Fields{
 			"public_gitlab_server": a.publicGitlabServer,
-			"pages_domain":         domain,
+			"domain_query":         domain,
 		}).Info("Redirecting user to gitlab for oauth")
 
 		http.Redirect(w, r, url, http.StatusFound)
@@ -253,7 +256,7 @@ func (a *Auth) handleProxyingAuth(session *hostSession, w http.ResponseWriter, r
 		// Get domain started auth process
 		proxyDomain := session.Values["proxy_auth_domain"].(string)
 
-		logRequest(r).WithField("domain", proxyDomain).Info("Redirecting auth callback to custom domain")
+		logRequest(r).WithField("proxy_auth_domain", proxyDomain).Info("Redirecting auth callback to custom domain")
 
 		// Clear proxying from session
 		delete(session.Values, "proxy_auth_domain")
