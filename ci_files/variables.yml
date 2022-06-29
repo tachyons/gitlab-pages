@@ -1,7 +1,7 @@
 variables:
   # Base distribution
   DEBIAN_IMAGE: "debian:bullseye-slim"
-  UBI_IMAGE: "registry.access.redhat.com/ubi8/ubi:8.5"
+  UBI_IMAGE: "registry.access.redhat.com/ubi8/ubi:8.6"
   ALPINE_IMAGE: "alpine:3.15"
 
   # GitLab Application Components
