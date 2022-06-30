@@ -1,0 +1,53 @@
+#!/bin/sh
+
+set -e
+
+patch_dir=${1:-"/build-scripts/patches"}
+
+if [ ! "${FIPS_MODE}" = "1" ]; then
+  exit 0
+fi
+
+patch_filename=${patch_dir}/grpc-system-ssl.patch
+
+if [ ! -f $patch_filename ]; then
+  echo "Unable to find $patch_filename"
+  exit 1
+fi
+
+gem_patch_version=0.1.6
+
+# We need to use `bundle exec` since a custom bundle path is
+# used. Otherwise it would appear as though `grpc` were not installed.
+grpc_versions=`bundle exec ruby -e "puts Gem::Specification.select { |x| x.name == 'grpc' }.map(&:version).uniq.map(&:to_s)"`
+platform=`ruby -e "puts RUBY_PLATFORM"`
+gem_path=`bundle exec ruby -e "puts Gem.path"`
+
+if [ -z $grpc_versions ]; then
+  echo "No grpc gems installed"
+  exit 1
+fi
+
+gem install gem-patch -v $gem_patch_version
+# Due to https://github.com/rubygems/rubygems/issues/1656, we can't selectively
+# uninstall platform-specific gems, so we have to remove all versions.
+bundle exec gem uninstall --force --all grpc
+
+for version in $grpc_versions; do
+  echo "Patching $version"
+  gem_package="grpc-$version.gem"
+  rm -f $gem_package
+  gem fetch grpc -v $version --platform ruby
+  gem patch -p1 $gem_package $patch_filename
+  # `bundle exec` will fail since it will be looking for grpc, which has been uninstalled.
+  # `bundle install` will just reinstall the native gem, unless we modify
+  # Gemfile and unfreeze any changes in Gemfile.lock.
+  #
+  # Instead, we can use `gem install` here and make sure that the gem is
+  # installed for the vendored path (--install-dir). We also need to
+  # make sure the .gemspec is installed there as well (--no-user-install).
+  gem install --install-dir $gem_path --no-user-install --platform ruby --no-document $gem_package
+  rm -f $gem_package
+done
+
+gem uninstall gem-patch
