@@ -379,7 +379,7 @@ func TestDomainResolverError(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			called := false
+			called := make(chan struct{})
 
 			// handler setup
 			pagesHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -388,7 +388,7 @@ func TestDomainResolverError(t *testing.T) {
 					return
 				}
 
-				called = true
+				close(called)
 
 				if test.panic {
 					panic("server failed")
@@ -414,7 +414,11 @@ func TestDomainResolverError(t *testing.T) {
 			require.NoError(t, err)
 			testhelpers.Close(t, response.Body)
 
-			require.True(t, called, "api must have been called")
+			select {
+			case <-called:
+			case <-time.After(2 * time.Second):
+				t.Fatal("timed out waiting for the pages handler")
+			}
 
 			require.Equal(t, http.StatusBadGateway, response.StatusCode)
 
