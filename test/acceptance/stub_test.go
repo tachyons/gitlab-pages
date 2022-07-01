@@ -27,6 +27,7 @@ type processConfig struct {
 	envs           []string
 	extraArgs      []string
 	gitlabStubOpts []gitlabstub.Option
+	publicServer   bool
 }
 
 type processOption func(*processConfig)
@@ -52,10 +53,15 @@ func withExtraArgument(key, value string) processOption {
 		config.extraArgs = append(config.extraArgs, fmt.Sprintf("-%s=%s", key, value))
 	}
 }
+
 func withArguments(args []string) processOption {
 	return func(config *processConfig) {
 		config.extraArgs = append(config.extraArgs, args...)
 	}
+}
+
+func withPublicServer(config *processConfig) {
+	config.publicServer = true
 }
 
 func withStubOptions(opts ...gitlabstub.Option) processOption {
