@@ -312,6 +312,9 @@ func Test_matchesRule(t *testing.T) {
 // feature flag is not enabled. These tests can be removed when the
 // `FF_ENABLE_PLACEHOLDERS` flag is removed.
 func Test_matchesRule_NoPlaceholders(t *testing.T) {
+	// disable placeholders on purpose
+	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "false")
+
 	tests := mergeTestSuites(testsWithoutPlaceholders, map[string]testCaseData{
 		// Note: the following 3 case behaves differently when
 		// placeholders are enabled. See the similar test cases above.
