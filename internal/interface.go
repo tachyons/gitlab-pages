@@ -6,7 +6,7 @@ import (
 
 // Artifact allows to handle artifact related requests
 type Artifact interface {
-	TryMakeRequest(host string, w http.ResponseWriter, r *http.Request, token string, responseHandler func(*http.Response) bool) bool
+	TryMakeRequest(w http.ResponseWriter, r *http.Request, token string, responseHandler func(*http.Response) bool) bool
 }
 
 // Auth handles the authentication logic

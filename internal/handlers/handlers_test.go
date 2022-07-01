@@ -18,7 +18,7 @@ func TestNotHandleArtifactRequestReturnsFalse(t *testing.T) {
 
 	mockArtifact := mock.NewMockArtifact(mockCtrl)
 	mockArtifact.EXPECT().
-		TryMakeRequest(gomock.Any(), gomock.Any(), gomock.Any(), "", gomock.Any()).
+		TryMakeRequest(gomock.Any(), gomock.Any(), "", gomock.Any()).
 		Return(false).
 		Times(1)
 
@@ -43,7 +43,7 @@ func TestHandleArtifactRequestedReturnsTrue(t *testing.T) {
 
 	mockArtifact := mock.NewMockArtifact(mockCtrl)
 	mockArtifact.EXPECT().
-		TryMakeRequest(gomock.Any(), gomock.Any(), gomock.Any(), "", gomock.Any()).
+		TryMakeRequest(gomock.Any(), gomock.Any(), "", gomock.Any()).
 		Return(true).
 		Times(1)
 
@@ -175,7 +175,7 @@ func TestHandleArtifactRequestButGetTokenFails(t *testing.T) {
 
 	mockArtifact := mock.NewMockArtifact(mockCtrl)
 	mockArtifact.EXPECT().
-		TryMakeRequest(gomock.Any(), gomock.Any(), gomock.Any(), "", gomock.Any()).
+		TryMakeRequest(gomock.Any(), gomock.Any(), "", gomock.Any()).
 		Times(0)
 
 	mockAuth := mock.NewMockAuth(mockCtrl)
