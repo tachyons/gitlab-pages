@@ -88,6 +88,11 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 	if token != "" {
 		req.Header.Add("Authorization", "Bearer "+token)
 	}
+
+	if r.RemoteAddr != "" {
+		req.Header.Add("X-Forwarded-For", r.RemoteAddr)
+	}
+
 	resp, err := a.client.Do(req)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
