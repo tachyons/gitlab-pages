@@ -269,7 +269,7 @@ func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 		processCfg.extraArgs = append(processCfg.extraArgs, "-gitlab-server", source.URL)
 	}
 
-	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, processCfg.extraArgs...)
+	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.extraArgs...)
 
 	t.Cleanup(func() {
 		source.Close()
@@ -281,18 +281,21 @@ func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 }
 
 func RunPagesProcessWithSSLCertFile(t *testing.T, listeners []ListenSpec, sslCertFile string) {
+	t.Setenv("SSL_CERT_FILE", sslCertFile)
+
 	RunPagesProcess(t,
 		withListeners(listeners),
 		withArguments([]string{
 			"-config=" + defaultAuthConfig(t),
 		}),
-		withEnv([]string{"SSL_CERT_FILE=" + sslCertFile}),
 	)
 }
 
 func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCertFile string) {
 	// Create temporary cert dir
 	sslCertDir := t.TempDir()
+
+	t.Setenv("SSL_CERT_DIR", sslCertDir)
 
 	// Copy sslCertFile into temp cert dir
 	err := copyFile(sslCertDir+"/"+path.Base(sslCertFile), sslCertFile)
@@ -303,11 +306,10 @@ func RunPagesProcessWithSSLCertDir(t *testing.T, listeners []ListenSpec, sslCert
 		withArguments([]string{
 			"-config=" + defaultAuthConfig(t),
 		}),
-		withEnv([]string{"SSL_CERT_DIR=" + sslCertDir}),
 	)
 }
 
-func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraEnv []string, extraArgs ...string) (*LogCaptureBuffer, func()) {
+func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []ListenSpec, promPort string, extraArgs ...string) (*LogCaptureBuffer, func()) {
 	t.Helper()
 
 	_, err := os.Stat(pagesBinary)
@@ -318,7 +320,6 @@ func runPagesProcess(t *testing.T, wait bool, pagesBinary string, listeners []Li
 
 	args := getPagesArgs(t, listeners, promPort, extraArgs)
 	cmd := exec.Command(pagesBinary, args...)
-	cmd.Env = append(os.Environ(), extraEnv...)
 	cmd.Stdout = out
 	cmd.Stderr = out
 	require.NoError(t, cmd.Start())

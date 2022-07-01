@@ -15,7 +15,6 @@ var defaultProcessConfig = processConfig{
 	wait:           true,
 	pagesBinary:    *pagesBinary,
 	listeners:      supportedListeners(),
-	envs:           []string{},
 	extraArgs:      []string{},
 	gitlabStubOpts: []gitlabstub.Option{},
 }
@@ -24,7 +23,6 @@ type processConfig struct {
 	wait           bool
 	pagesBinary    string
 	listeners      []ListenSpec
-	envs           []string
 	extraArgs      []string
 	gitlabStubOpts []gitlabstub.Option
 	publicServer   bool
@@ -39,12 +37,6 @@ func withoutWait(config *processConfig) {
 func withListeners(listeners []ListenSpec) processOption {
 	return func(config *processConfig) {
 		config.listeners = listeners
-	}
-}
-
-func withEnv(envs []string) processOption {
-	return func(config *processConfig) {
-		config.envs = append(config.envs, envs...)
 	}
 }
 

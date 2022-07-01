@@ -486,11 +486,14 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		testFn := func(envArgs, headerArgs []string) func(*testing.T) {
+		testFn := func(headerEnv string, headerArgs []string) func(*testing.T) {
 			return func(t *testing.T) {
+				if headerEnv != "" {
+					t.Setenv("HEADER", headerEnv)
+				}
+
 				RunPagesProcess(t,
 					withListeners([]ListenSpec{httpListener}),
-					withEnv(envArgs),
 					withArguments(headerArgs),
 				)
 
@@ -509,7 +512,7 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 
 		t.Run(name+"/from_single_flag", func(t *testing.T) {
 			args := []string{"-header", strings.Join(test.flags, ";;")}
-			testFn([]string{}, args)
+			testFn("", args)
 		})
 
 		t.Run(name+"/from_multiple_flags", func(t *testing.T) {
@@ -518,18 +521,17 @@ func TestServerRepliesWithHeaders(t *testing.T) {
 				args = append(args, "-header", arg)
 			}
 
-			testFn([]string{}, args)
+			testFn("", args)
 		})
 
 		t.Run(name+"/from_config_file", func(t *testing.T) {
 			file := newConfigFile(t, "-header="+strings.Join(test.flags, ";;"))
 
-			testFn([]string{}, []string{"-config", file})
+			testFn("", []string{"-config", file})
 		})
 
 		t.Run(name+"/from_env", func(t *testing.T) {
-			args := []string{"header", strings.Join(test.flags, ";;")}
-			testFn(args, []string{})
+			testFn(strings.Join(test.flags, ";;"), []string{})
 		})
 	}
 }
