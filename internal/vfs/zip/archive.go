@@ -165,6 +165,11 @@ func (a *zipArchive) readArchive(url string) {
 		a.addPathDirectory(file.Name)
 	}
 
+	// Each file stores a pointer to the zip.reader.
+	// The file slice is not used so we null it out
+	// to reduce memory consumption.
+	archive.File = nil
+
 	fileCount := float64(len(a.files))
 	metrics.ZipOpened.WithLabelValues("ok").Inc()
 	metrics.ZipOpenedEntriesCount.Add(fileCount)
