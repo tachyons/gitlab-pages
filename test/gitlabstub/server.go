@@ -39,5 +39,8 @@ func NewUnstartedServer(opts ...Option) (*httptest.Server, error) {
 
 	router.PathPrefix("/").HandlerFunc(handleAccessControlArtifactRequests)
 
-	return httptest.NewUnstartedServer(router), nil
+	s := httptest.NewUnstartedServer(router)
+	s.TLS = conf.tlsConfig
+
+	return s, nil
 }

@@ -250,7 +250,12 @@ func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 
 	source, err := gitlabstub.NewUnstartedServer(processCfg.gitlabStubOpts...)
 	require.NoError(t, err)
-	source.Start()
+
+	if source.TLS != nil {
+		source.StartTLS()
+	} else {
+		source.Start()
+	}
 
 	gitLabAPISecretKey := CreateGitLabAPISecretKeyFixtureFile(t)
 	processCfg.extraArgs = append(
@@ -259,6 +264,10 @@ func RunPagesProcess(t *testing.T, opts ...processOption) *LogCaptureBuffer {
 		"-internal-gitlab-server", source.URL,
 		"-api-secret-key", gitLabAPISecretKey,
 	)
+
+	if processCfg.publicServer {
+		processCfg.extraArgs = append(processCfg.extraArgs, "-gitlab-server", source.URL)
+	}
 
 	logBuf, cleanup := runPagesProcess(t, processCfg.wait, processCfg.pagesBinary, processCfg.listeners, "", processCfg.envs, processCfg.extraArgs...)
 

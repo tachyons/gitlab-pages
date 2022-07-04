@@ -150,20 +150,6 @@ func TestArtifactProxyRequest(t *testing.T) {
 }
 
 func TestPrivateArtifactProxyRequest(t *testing.T) {
-	testServer, err := gitlabstub.NewUnstartedServer()
-	require.NoError(t, err)
-
-	keyFile, certFile := CreateHTTPSFixtureFiles(t)
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	require.NoError(t, err)
-
-	testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
-	testServer.StartTLS()
-
-	t.Cleanup(func() {
-		testServer.Close()
-	})
-
 	tests := []struct {
 		name   string
 		host   string
@@ -202,23 +188,22 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 		},
 	}
 
-	// Ensure the IP address is used in the URL, as we're relying on IP SANs to
-	// validate
-	artifactServerURL := testServer.URL + "/api/v4"
-	t.Log("Artifact server URL", artifactServerURL)
+	configFile := defaultConfigFileWith(t)
 
-	configFile := defaultConfigFileWith(t,
-		"gitlab-server="+testServer.URL,
-		"artifacts-server="+artifactServerURL,
-		"auth-redirect-uri=https://projects.gitlab-example.com/auth",
-		"artifacts-server-timeout=1")
+	keyFile, certFile := CreateHTTPSFixtureFiles(t)
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	require.NoError(t, err)
 
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsListener}),
 		withArguments([]string{
 			"-config=" + configFile,
 		}),
+		withPublicServer,
+		withExtraArgument("auth-redirect-uri", "https://projects.gitlab-example.com/auth"),
+		withExtraArgument("artifacts-server-timeout", "1"),
 		withEnv([]string{"SSL_CERT_FILE=" + certFile}),
+		withStubOptions(gitlabstub.WithCertificate(cert)),
 	)
 
 	for _, tt := range tests {
