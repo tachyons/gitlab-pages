@@ -107,6 +107,11 @@ gitlab-elasticsearch-indexer:
   needs:
     - gitlab-go
 
+gitlab-metrics-exporter:
+  extends: .gitlab-metrics-exporter
+  needs:
+    - gitlab-go
+
 gitlab-kas:
   extends: .gitlab-kas
   needs:
@@ -135,6 +140,7 @@ gitlab-rails-ee:
     - gitlab-graphicsmagick
     - gitlab-ruby
     - gitlab-elasticsearch-indexer
+    - gitlab-metrics-exporter
     - gitlab-gomplate
 
 gitlab-rails-ce:
@@ -143,6 +149,7 @@ gitlab-rails-ce:
     - postgresql
     - gitlab-graphicsmagick
     - gitlab-ruby
+    - gitlab-metrics-exporter
     - gitlab-gomplate
 
 ## phase six

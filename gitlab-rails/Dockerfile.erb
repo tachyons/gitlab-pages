@@ -5,6 +5,7 @@ ARG PG_VERSION="14.1"
 ARG PG_IMAGE="$CI_REGISTRY_IMAGE/postgresql:${PG_VERSION}"
 ARG GM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-graphicsmagick:${GM_VERSION}"
 ARG GEI_IMAGE="$CI_REGISTRY_IMAGE/gitlab-elasticsearch-indexer:1.0.0"
+ARG GME_IMAGE="$CI_REGISTRY_IMAGE/gitlab-metrics-exporter:main"
 ARG GITLAB_VERSION=v10.7.0-ee
 ARG ASSETS_IMAGE="registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee:${GITLAB_VERSION}"
 ARG GOMPLATE_TAG=
@@ -14,6 +15,7 @@ ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
 FROM ${ASSETS_IMAGE} as assets
 <% end %>
 FROM ${PG_IMAGE} as pg_image
+FROM ${GME_IMAGE} as gme_image
 FROM ${GM_IMAGE} as graphicsmagick_image
 FROM ${GOMPLATE_IMAGE} as gomplate
 <% if ee? %>
@@ -189,6 +191,9 @@ RUN mkdir -p /usr/share/man/man7 \
 # Include the gitlab-elasticsearch-indexer
 COPY --from=gei_image /usr/local/bin/gitlab-elasticsearch-indexer /usr/bin/
 <% end %>
+
+# Include the gitlab-metrics-exporter binary
+COPY --from=gme_image /usr/local/bin/gitlab-metrics-exporter /usr/bin/
 
 # Include postgres client tools
 COPY --from=pg_image /usr/local/psql/bin/pg_* /usr/bin/

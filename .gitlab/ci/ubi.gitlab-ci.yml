@@ -157,6 +157,21 @@ build:gitlab-elasticsearch-indexer:
                       --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
     - copy_assets
 
+build:gitlab-metrics-exporter:
+  extends: .build-job-base
+  stage: prepare:phase-two
+  needs:
+    - build:gitlab-go
+  script:
+    - import_assets artifacts/ubi/gitlab-go.tar.gz
+    - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_METRICS_EXPORTER_VERSION$go_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "VERSION=${GITLAB_METRICS_EXPORTER_VERSION}"
+                      --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "API_URL=${CI_API_V4_URL}"
+                      --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
+    - copy_assets
+
 build:gitlab-pages:
   extends: .build-job-base
   stage: prepare:phase-two
@@ -272,9 +287,10 @@ build:gitlab-rails-ee:
     - build:gitlab-ruby
     - build:postgresql
     - build:gitlab-elasticsearch-indexer
+    - build:gitlab-metrics-exporter
     - build:gitlab-graphicsmagick
   script:
-    - import_assets artifacts/ubi/{gitlab-ruby,postgresql,gitlab-elasticsearch-indexer,gitlab-graphicsmagick}.tar.gz
+    - import_assets artifacts/ubi/{gitlab-ruby,postgresql,gitlab-elasticsearch-indexer,gitlab-metrics-exporter,gitlab-graphicsmagick}.tar.gz
     - ruby_version=$(cat artifacts/container_versions/build_gitlab-ruby_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"

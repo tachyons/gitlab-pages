@@ -265,6 +265,7 @@ graph LR;
 
   subgraph components
     gitlab-elasticsearch-indexer
+    gitlab-metrics-exporter
     gitlab-logger
     gitlab-gomplate
     gitlab-graphicsmagick
@@ -315,6 +316,7 @@ graph LR;
   gitlab-rails-.->postgresql;
   gitlab-rails-.->gitlab-graphicsmagick;
   gitlab-rails-.->gitlab-elasticsearch-indexer;
+  gitlab-rails-.->gitlab-metrics-exporter;
   gitlab-rails-.->gitlab-gomplate;
   gitlab-rails-.->gitlab-assets;
 
@@ -341,6 +343,7 @@ graph LR;
   gitlab-shell-.->gitlab-gomplate;
 
   gitlab-elasticsearch-indexer==>gitlab-go;
+  gitlab-metrics-exporter==>gitlab-go;
 
   gitaly==>gitlab-ruby;
   gitaly-.->gitlab-go;
