@@ -19,6 +19,7 @@ ARG GITLAB_USER=git
 ADD gitlab-ruby.tar.gz /
 ADD postgresql.tar.gz /
 ADD gitlab-elasticsearch-indexer.tar.gz /
+ADD gitlab-metrics-exporter.tar.gz /
 ADD gitlab-graphicsmagick.tar.gz /
 
 ENV PRIVATE_TOKEN=${API_TOKEN}
@@ -79,6 +80,7 @@ COPY --from=assets assets /srv/gitlab/public/assets/
 
 RUN mkdir -p /assets/usr/{bin,lib} /assets${LIBDIR} \
     && cp /usr/local/bin/gitlab-elasticsearch-indexer /assets/usr/bin/ \
+    && cp /usr/local/bin/gitlab-metrics-exporter /assets/usr/bin/ \
     && install /usr/local/postgresql/bin/* /assets/usr/bin/ \
     && cp -R /usr/local/postgresql/lib/. /assets${LIBDIR}/ \
     && cp -R --parents \

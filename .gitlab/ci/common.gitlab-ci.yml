@@ -272,6 +272,20 @@
                       --build-arg "GITLAB_ELASTICSEARCH_INDEXER_VERSION=${GITLAB_ELASTICSEARCH_INDEXER_VERSION}"
     - push_tags "$GITLAB_ELASTICSEARCH_INDEXER_VERSION${IMAGE_TAG_EXT}"
 
+.gitlab-metrics-exporter:
+  extends: .job-base
+  stage: phase-four
+  script:
+    - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
+    - export CONTAINER_VERSION=($(echo -n "$GITLAB_METRICS_EXPORTER_VERSION$go_version$TARGET_VERSION" | sha1sum))
+    - build_if_needed --build-arg "TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
+                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
+                      --build-arg "VERSION=${GITLAB_METRICS_EXPORTER_VERSION}"
+    - push_tags "$GITLAB_METRICS_EXPORTER_VERSION${IMAGE_TAG_EXT}"
+    - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-metrics-exporter_tag.txt
 
 .gitlab-kas:
   extends: .job-base
@@ -364,6 +378,8 @@
     - gei_dir_version=$(get_version gitlab-elasticsearch-indexer)
     - gei_version=($(echo -n "$GITLAB_ELASTICSEARCH_INDEXER_VERSION$go_version$gei_dir_version" | sha1sum))
     - gei_image="${CI_REGISTRY_IMAGE}/gitlab-elasticsearch-indexer:${gei_version}${IMAGE_TAG_EXT}"
+    - gme_version=$(cat artifacts/container_versions/gitlab-metrics-exporter_tag.txt)
+    - gme_image="${CI_REGISTRY_IMAGE}/gitlab-metrics-exporter:${gme_version}${IMAGE_TAG_EXT}"
     - gm_version=$(cat artifacts/container_versions/gitlab-graphicsmagick_tag.txt)
     - gm_image="${CI_REGISTRY_IMAGE}/gitlab-graphicsmagick:${gm_version}"
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
@@ -379,6 +395,7 @@
                       --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "PG_IMAGE=$pg_image"
                       --build-arg "GEI_IMAGE=${gei_image}"
+                      --build-arg "GME_IMAGE=${gme_image}"
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GM_IMAGE=${gm_image}"
@@ -412,6 +429,8 @@
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:$ruby_version"
     - pg_version=$(cat artifacts/container_versions/postgresql_tag.txt)
     - pg_image="${CI_REGISTRY_IMAGE}/postgresql:${pg_version}"
+    - gme_version=$(cat artifacts/container_versions/gitlab-metrics-exporter_tag.txt)
+    - gme_image="${CI_REGISTRY_IMAGE}/gitlab-metrics-exporter:${gme_version}${IMAGE_TAG_EXT}"
     - gm_version=$(cat artifacts/container_versions/gitlab-graphicsmagick_tag.txt)
     - gm_image="${CI_REGISTRY_IMAGE}/gitlab-graphicsmagick:${gm_version}"
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
@@ -426,6 +445,7 @@
                       --build-arg "CACHE_BUSTER=$GITLAB_VERSION$(date -uI)"
                       --build-arg "TAG=$ruby_version"
                       --build-arg "PG_IMAGE=$pg_image"
+                      --build-arg "GME_IMAGE=${gme_image}"
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
                       --build-arg "GM_IMAGE=${gm_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"

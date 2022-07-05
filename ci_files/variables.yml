@@ -6,6 +6,7 @@ variables:
 
   # GitLab Application Components
   GITLAB_ELASTICSEARCH_INDEXER_VERSION: "main"
+  GITLAB_METRICS_EXPORTER_VERSION: "main"
   GITLAB_VERSION: "master"
   GITLAB_REF_SLUG: "master"
   GITLAB_ASSETS_TAG: "master"
