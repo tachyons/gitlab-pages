@@ -73,6 +73,9 @@ func TestRedirectsValidateUrl(t *testing.T) {
 // feature flag is not enabled. These tests can be removed when the
 // `FF_ENABLE_PLACEHOLDERS` flag is removed.
 func TestRedirectsValidateUrlNoPlaceholders(t *testing.T) {
+	// disable placeholders on purpose
+	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "false")
+
 	tests := map[string]struct {
 		url         string
 		expectedErr error

@@ -34,7 +34,8 @@ var EnforceIPTLSRateLimits = Feature{
 // RedirectsPlaceholders enables support for placeholders in redirects file
 // TODO: remove https://gitlab.com/gitlab-org/gitlab-pages/-/issues/620
 var RedirectsPlaceholders = Feature{
-	EnvVariable: "FF_ENABLE_PLACEHOLDERS",
+	EnvVariable:    "FF_ENABLE_PLACEHOLDERS",
+	defaultEnabled: true,
 }
 
 // HandleReadErrors reports vfs.ReadErrors to sentry and enable error handling
