@@ -120,10 +120,11 @@ func TestArtifactProxyRequest(t *testing.T) {
 
 	args := []string{"-artifacts-server=" + artifactServerURL, "-artifacts-server-timeout=1"}
 
+	t.Setenv("SSL_CERT_FILE", certFile)
+
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
 		withArguments(args),
-		withEnv([]string{"SSL_CERT_FILE=" + certFile}),
 	)
 
 	for _, tt := range tests {
@@ -194,6 +195,8 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	require.NoError(t, err)
 
+	t.Setenv("SSL_CERT_FILE", certFile)
+
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpsListener}),
 		withArguments([]string{
@@ -202,7 +205,6 @@ func TestPrivateArtifactProxyRequest(t *testing.T) {
 		withPublicServer,
 		withExtraArgument("auth-redirect-uri", "https://projects.gitlab-example.com/auth"),
 		withExtraArgument("artifacts-server-timeout", "1"),
-		withEnv([]string{"SSL_CERT_FILE=" + certFile}),
 		withStubOptions(gitlabstub.WithCertificate(cert)),
 	)
 

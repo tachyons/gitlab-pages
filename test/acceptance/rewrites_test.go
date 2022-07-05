@@ -12,9 +12,10 @@ import (
 )
 
 func TestRewrites(t *testing.T) {
+	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
+
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
-		withEnv([]string{feature.RedirectsPlaceholders.EnvVariable + "=true"}),
 	)
 
 	tests := map[string]struct {

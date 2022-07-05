@@ -13,9 +13,10 @@ import (
 )
 
 func TestRedirectStatusPage(t *testing.T) {
+	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
+
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
-		withEnv([]string{feature.RedirectsPlaceholders.EnvVariable + "=true"}),
 	)
 
 	rsp, err := GetPageFromListener(t, httpListener, "group.redirects.gitlab-example.com", "/project-redirects/_redirects")
@@ -30,9 +31,10 @@ func TestRedirectStatusPage(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
+	t.Setenv(feature.RedirectsPlaceholders.EnvVariable, "true")
+
 	RunPagesProcess(t,
 		withListeners([]ListenSpec{httpListener}),
-		withEnv([]string{feature.RedirectsPlaceholders.EnvVariable + "=true"}),
 	)
 
 	// Test that serving a file still works with redirects enabled
