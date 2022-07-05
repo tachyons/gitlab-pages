@@ -56,7 +56,6 @@ type zipArchive struct {
 
 	resource *httprange.Resource
 	reader   *httprange.RangedReader
-	archive  *zip.Reader
 	err      error
 
 	files       map[string]*zip.File
@@ -128,13 +127,15 @@ func (a *zipArchive) readArchive(url string) {
 		return
 	}
 
+	var archive *zip.Reader
+
 	// load all archive files into memory using a cached ranged reader
 	a.reader = httprange.NewRangedReader(a.resource)
 	a.reader.WithCachedReader(ctx, func() {
-		a.archive, a.err = zip.NewReader(a.reader, a.resource.Size)
+		archive, a.err = zip.NewReader(a.reader, a.resource.Size)
 	})
 
-	if a.archive == nil || a.err != nil {
+	if archive == nil || a.err != nil {
 		log.WithFields(log.Fields{
 			"archive_url": url,
 		}).WithError(a.err).Infoln("loading zip archive files into memory failed")
@@ -143,7 +144,7 @@ func (a *zipArchive) readArchive(url string) {
 	}
 
 	// TODO: Improve preprocessing of zip archives https://gitlab.com/gitlab-org/gitlab-pages/-/issues/432
-	for _, file := range a.archive.File {
+	for _, file := range archive.File {
 		if !strings.HasPrefix(file.Name, dirPrefix) {
 			continue
 		}
@@ -164,8 +165,10 @@ func (a *zipArchive) readArchive(url string) {
 		a.addPathDirectory(file.Name)
 	}
 
-	// recycle memory
-	a.archive.File = nil
+	// Each file stores a pointer to the zip.reader.
+	// The file slice is not used so we null it out
+	// to reduce memory consumption.
+	archive.File = nil
 
 	fileCount := float64(len(a.files))
 	metrics.ZipOpened.WithLabelValues("ok").Inc()
