@@ -2,7 +2,6 @@ package ratelimiter
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/sirupsen/logrus"
 
@@ -32,15 +31,10 @@ func (rl *RateLimiter) Middleware(handler http.Handler) http.Handler {
 		rl.logRateLimitedRequest(r)
 
 		if rl.blockedCount != nil {
-			rl.blockedCount.WithLabelValues(rl.name, strconv.FormatBool(rl.enforce)).Inc()
+			rl.blockedCount.WithLabelValues(rl.name).Inc()
 		}
 
-		if rl.enforce {
-			httperrors.Serve429(w)
-			return
-		}
-
-		handler.ServeHTTP(w, r)
+		httperrors.Serve429(w)
 	})
 }
 
@@ -53,7 +47,6 @@ func (rl *RateLimiter) logRateLimitedRequest(r *http.Request) {
 		"x_forwarded_proto":             r.Header.Get(headerXForwardedProto),
 		"x_forwarded_for":               r.Header.Get(headerXForwardedFor),
 		"gitlab_real_ip":                r.Header.Get(headerGitLabRealIP),
-		"enforced":                      rl.enforce,
 		"rate_limiter_limit_per_second": rl.limitPerSecond,
 		"rate_limiter_burst_size":       rl.burstSize,
 	}). // TODO: change to Debug with https://gitlab.com/gitlab-org/gitlab-pages/-/issues/629

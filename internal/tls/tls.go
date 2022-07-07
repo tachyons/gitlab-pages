@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/feature"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/ratelimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -59,7 +58,6 @@ func GetTLSConfig(cfg *config.Config, getCertificateByServerName GetCertificateF
 		ratelimiter.WithBlockedCountMetric(metrics.RateLimitBlockedCount),
 		ratelimiter.WithLimitPerSecond(cfg.RateLimit.TLSDomainLimitPerSecond),
 		ratelimiter.WithBurstSize(cfg.RateLimit.TLSDomainBurst),
-		ratelimiter.WithEnforce(feature.EnforceDomainTLSRateLimits.Enabled()),
 	)
 
 	TLSSourceIPRateLimiter := ratelimiter.New(
@@ -71,7 +69,6 @@ func GetTLSConfig(cfg *config.Config, getCertificateByServerName GetCertificateF
 		ratelimiter.WithBlockedCountMetric(metrics.RateLimitBlockedCount),
 		ratelimiter.WithLimitPerSecond(cfg.RateLimit.TLSSourceIPLimitPerSecond),
 		ratelimiter.WithBurstSize(cfg.RateLimit.TLSSourceIPBurst),
-		ratelimiter.WithEnforce(feature.EnforceIPTLSRateLimits.Enabled()),
 	)
 
 	getCertificate = TLSDomainRateLimiter.GetCertificateMiddleware(getCertificate)

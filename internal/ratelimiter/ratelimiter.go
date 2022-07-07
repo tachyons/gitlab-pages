@@ -45,7 +45,6 @@ type RateLimiter struct {
 	burstSize      int
 	blockedCount   *prometheus.GaugeVec
 	cache          *lru.Cache
-	enforce        bool
 
 	cacheOptions []lru.Option
 }
@@ -143,13 +142,6 @@ func TLSClientIPKey(info *tls.ClientHelloInfo) string {
 func WithTLSKeyFunc(keyFunc TLSKeyFunc) Option {
 	return func(rl *RateLimiter) {
 		rl.tlsKeyFunc = keyFunc
-	}
-}
-
-// WithEnforce configures if requests are actually rejected, or we just report them as rejected in metrics
-func WithEnforce(enforce bool) Option {
-	return func(rl *RateLimiter) {
-		rl.enforce = enforce
 	}
 }
 

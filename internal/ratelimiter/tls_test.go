@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"net"
-	"strconv"
 	"testing"
 	"time"
 
@@ -48,42 +47,30 @@ func TestTLSClientIPKey(t *testing.T) {
 func TestGetCertificateMiddleware(t *testing.T) {
 	tests := map[string]struct {
 		useHostnameAsKey bool
-		enforced         bool
 		limitPerSecond   float64
 		burst            int
 		successfulReqCnt int
 	}{
 		"ip_limiter": {
 			useHostnameAsKey: false,
-			enforced:         true,
 			limitPerSecond:   0.1,
 			burst:            5,
 			successfulReqCnt: 5,
 		},
 		"hostname_limiter": {
 			useHostnameAsKey: true,
-			enforced:         true,
-			limitPerSecond:   0.1,
-			burst:            5,
-			successfulReqCnt: 5,
-		},
-		"not_enforced": {
-			useHostnameAsKey: false,
-			enforced:         false,
 			limitPerSecond:   0.1,
 			burst:            5,
 			successfulReqCnt: 5,
 		},
 		"disabled": {
 			useHostnameAsKey: false,
-			enforced:         true,
 			limitPerSecond:   0,
 			burst:            5,
 			successfulReqCnt: 10,
 		},
 		"slowly_approach_limit": {
 			useHostnameAsKey: false,
-			enforced:         true,
 			limitPerSecond:   0.2,
 			burst:            5,
 			successfulReqCnt: 6, // 5 * 0.2 gives another 1 request
@@ -114,7 +101,6 @@ func TestGetCertificateMiddleware(t *testing.T) {
 				WithNow(stubNow()),
 				WithLimitPerSecond(tt.limitPerSecond),
 				WithBurstSize(tt.burst),
-				WithEnforce(tt.enforced),
 				WithTLSKeyFunc(keyFunc))
 
 			middlewareGetCert := rl.GetCertificateMiddleware(getCertificate)
@@ -136,13 +122,8 @@ func TestGetCertificateMiddleware(t *testing.T) {
 			}
 
 			cert, err := middlewareGetCert(info)
-			if tt.enforced {
-				require.Nil(t, cert)
-				require.Equal(t, err, ErrTLSRateLimited)
-			} else {
-				require.Equal(t, expectedCert, cert)
-				require.Equal(t, expectedErr, err)
-			}
+			require.Nil(t, cert)
+			require.Equal(t, err, ErrTLSRateLimited)
 
 			require.NotNil(t, hook.LastEntry())
 			require.Equal(t, "TLS connection rate-limited", hook.LastEntry().Message)
@@ -152,7 +133,6 @@ func TestGetCertificateMiddleware(t *testing.T) {
 				"req_host":                      "group.gitlab.io",
 				"rate_limiter_limit_per_second": tt.limitPerSecond,
 				"rate_limiter_burst_size":       tt.burst,
-				"enforced":                      tt.enforced,
 			}
 			require.Equal(t, expectedFields, hook.LastEntry().Data)
 
@@ -170,7 +150,7 @@ func TestGetCertificateMiddleware(t *testing.T) {
 			require.Equal(t, expectedCert, cert)
 			require.Equal(t, expectedErr, err)
 
-			blockedCount := testutil.ToFloat64(blocked.WithLabelValues("limit_name", strconv.FormatBool(tt.enforced)))
+			blockedCount := testutil.ToFloat64(blocked.WithLabelValues("limit_name"))
 			require.Equal(t, float64(1), blockedCount, "blocked count")
 
 			cachedCount := testutil.ToFloat64(cachedEntries.WithLabelValues("limit_name"))
