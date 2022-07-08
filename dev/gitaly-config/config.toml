@@ -65,7 +65,6 @@ url = "http://webservice:8080/"
 # password = somepass
 # ca_file = /etc/ssl/cert.pem
 # ca_path = /etc/pki/tls/certs
-self_signed_cert = false
 
 [hooks]
 # directory containing custom hooks
