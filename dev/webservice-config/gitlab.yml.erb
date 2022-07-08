@@ -98,6 +98,10 @@ production: &base
   monitoring:
     ip_whitelist:
       - 127.0.0.0/8
+    web_exporter:
+      enabled: true
+      address: 0.0.0.0
+      port: 8082
     sidekiq_exporter:
   extra:
   rack_attack:
