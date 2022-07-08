@@ -43,6 +43,7 @@ services:
       - "KAS_INTERNAL_API_PORT=${KAS_INTERNAL_API_PORT}"
       - "KAS_EXTERNAL_API_PORT=${KAS_EXTERNAL_API_PORT}"
       - "KAS_KUBERNETES_API_PORT=${KAS_KUBERNETES_API_PORT}"
+      - "prometheus_multiproc_dir=/metrics"
     command: ["/scripts/wait-for-deps", "/scripts/process-wrapper"]
     depends_on:
       - postgres
@@ -59,6 +60,7 @@ services:
       - shared-dir:/srv/gitlab/shared
       - pages:/srv/gitlab/shared/pages
       - ./dev/registry/gitlab-registry.key:/etc/gitlab/registry/gitlab-registry.key
+      - metrics-dir:/metrics
   workhorse:
     image: ${GITLAB_WORKHORSE_IMAGE}
     environment:
@@ -198,3 +200,9 @@ volumes:
     driver_opts:
       type: tmpfs
       device: tmpfs
+  metrics-dir:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=20M"
