@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -eu
 
 touch /var/log/gitlab/workhorse.log
 
@@ -10,8 +10,26 @@ mkdir -p -m 3770 $TMPDIR
 
 export GITLAB_WORKHORSE_LOG_FILE=${GITLAB_WORKHORSE_LOG_FILE:-stdout}
 export GITLAB_WORKHORSE_LOG_FORMAT=${GITLAB_WORKHORSE_LOG_FORMAT:-json}
-if [[ "${GITLAB_WORKHORSE_PROM_LISTEN_ADDR}" =~ ^.+:[0-9][0-9]{0,4}$ ]]; then
-   export PROM_LISTEN_ADDR="-prometheusListenAddr ${GITLAB_WORKHORSE_PROM_LISTEN_ADDR}"
+
+GITLAB_WORKHORSE_CONFIG_FILE='/srv/gitlab/config/workhorse-config.toml'
+
+# If listeners are configured in the config file then the boot configuration
+# from command line argument uses Unix socket to avoid collision with config
+# file. 
+#
+# This can be removed after https://gitlab.com/gitlab-org/charts/gitlab/-/merge_requests/2628
+# is merged and Workhorse fixes its default listeners support to better account
+# for the config file.
+if grep -q -s '^\[\[listeners\]\]$' "${GITLAB_WORKHORSE_CONFIG_FILE}"; then
+  export GITLAB_WORKHORSE_NET_ARGS="-listenNetwork unix -listenAddr /tmp/gitlab/workhorse.sock"
+else
+  export GITLAB_WORKHORSE_NET_ARGS="-listenAddr 0.0.0.0:${GITLAB_WORKHORSE_LISTEN_PORT:-8181}"
+fi
+
+if ! grep -q -s '^\[metrics_listener\]$' "${GITLAB_WORKHORSE_CONFIG_FILE}"; then
+  if [[ "${GITLAB_WORKHORSE_PROM_LISTEN_ADDR}" =~ ^.+:[0-9][0-9]{0,4}$ ]]; then
+    export PROMETHEUS_LISTEN_ADDR="-prometheusListenAddr ${GITLAB_WORKHORSE_PROM_LISTEN_ADDR}"
+  fi
 fi
 
 exec gitlab-workhorse \
@@ -19,9 +37,9 @@ exec gitlab-workhorse \
   -logFormat ${GITLAB_WORKHORSE_LOG_FORMAT} \
   -authBackend ${GITLAB_WORKHORSE_AUTH_BACKEND:-http://localhost:8080} \
   ${GITLAB_WORKHORSE_EXTRA_ARGS} \
-  -listenAddr 0.0.0.0:${GITLAB_WORKHORSE_LISTEN_PORT:-8181} \
+  ${GITLAB_WORKHORSE_NET_ARGS} \
+  ${PROMETHEUS_LISTEN_ADDR} \
   -documentRoot "/srv/gitlab/public" \
   -secretPath "/etc/gitlab/gitlab-workhorse/secret" \
-  -config "/srv/gitlab/config/workhorse-config.toml" \
-  ${PROM_LISTEN_ADDR} \
+  -config "${GITLAB_WORKHORSE_CONFIG_FILE}" \
   2>&1
