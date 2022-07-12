@@ -16,6 +16,7 @@ type Root interface {
 	Lstat(ctx context.Context, name string) (os.FileInfo, error)
 	Readlink(ctx context.Context, name string) (string, error)
 	Open(ctx context.Context, name string) (File, error)
+	IsCompressed(name string) (bool, error)
 }
 
 type instrumentedRoot struct {
@@ -67,4 +68,8 @@ func (i *instrumentedRoot) Open(ctx context.Context, name string) (File, error) 
 		Traceln("Open call")
 
 	return f, err
+}
+
+func (i *instrumentedRoot) IsCompressed(name string) (bool, error) {
+	return i.root.IsCompressed(name)
 }

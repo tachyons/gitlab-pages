@@ -105,3 +105,7 @@ func (r *Root) Open(ctx context.Context, name string) (vfs.File, error) {
 
 	return file, nil
 }
+
+func (r *Root) IsCompressed(_ string) (bool, error) {
+	return false, nil
+}
