@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httptransport"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/request"
 )
 
 const (
@@ -87,6 +88,11 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 	if token != "" {
 		req.Header.Add("Authorization", "Bearer "+token)
 	}
+
+	// The GitLab API expects this value for Group IP restriction to work properly
+	// on requests coming through Pages.
+	req.Header.Set("X-Forwarded-For", request.GetRemoteAddrWithoutPort(r))
+
 	resp, err := a.client.Do(req)
 	if err != nil {
 		logging.LogRequest(r).WithError(err).Error(artifactRequestErrMsg)
