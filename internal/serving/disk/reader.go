@@ -199,6 +199,14 @@ func (reader *Reader) resolvePath(ctx context.Context, root vfs.Root, subPath ..
 func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, origPath, sha string, accessControl bool) bool {
 	fullPath := reader.handleContentEncoding(ctx, w, r, root, origPath)
 
+	file, err := root.Open(ctx, fullPath)
+	if err != nil {
+		httperrors.Serve500WithRequest(w, r, "root.Open", err)
+		return true
+	}
+
+	defer file.Close()
+
 	fi, err := root.Lstat(ctx, fullPath)
 	if err != nil {
 		httperrors.Serve500WithRequest(w, r, "root.Lstat", err)
@@ -224,20 +232,12 @@ func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *h
 
 	reader.fileSizeMetric.WithLabelValues(reader.vfs.Name()).Observe(float64(fi.Size()))
 
-	compressed, err := root.IsCompressed(fullPath)
-	if err != nil {
-		httperrors.Serve500WithRequest(w, r, "root.IsCompressed", err)
-		return true
-	}
-
-	lf := lazyOpen(ctx, root, fullPath)
-	defer lf.Close()
-
-	if compressed {
-		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
-		vfsServing.ServeCompressedFile(w, r, fi.ModTime(), lf)
+	// Support vfs.SeekableFile if available (uncompressed files)
+	if rs, ok := file.(vfs.SeekableFile); ok {
+		http.ServeContent(w, r, origPath, fi.ModTime(), rs)
 	} else {
-		http.ServeContent(w, r, origPath, fi.ModTime(), lf)
+		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
+		vfsServing.ServeCompressedFile(w, r, fi.ModTime(), file)
 	}
 
 	return true
