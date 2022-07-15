@@ -239,25 +239,6 @@ func (a *zipArchive) Open(ctx context.Context, name string) (vfs.File, error) {
 	}
 }
 
-// IsCompressed finds the file by name and checks its compression method. If the method is
-// zip.Store it means it's not compressed.
-// Returns errNotFile for directories or non-regular files.
-func (a *zipArchive) IsCompressed(name string) (bool, error) {
-	file := a.findFile(name)
-	if file == nil {
-		if a.findDirectory(name) != nil {
-			return false, errNotFile
-		}
-		return false, os.ErrNotExist
-	}
-
-	if !file.Mode().IsRegular() {
-		return false, errNotFile
-	}
-
-	return file.Method != zip.Store, nil
-}
-
 // Lstat finds the file by name inside the zipArchive and returns its FileInfo
 func (a *zipArchive) Lstat(ctx context.Context, name string) (os.FileInfo, error) {
 	file := a.findFile(name)
