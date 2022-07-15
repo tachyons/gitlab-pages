@@ -1,3 +1,34 @@
+## 1.61.0 (2022-07-15)
+
+### Fixed (1 change)
+
+- [Revert: open files lazily when serving content](gitlab-org/gitlab-pages@805858da777ee070d661be3a93171932bf06d951) ([merge request](gitlab-org/gitlab-pages!816))
+
+## 1.60.0 (2022-07-13)
+
+### Added (3 changes)
+
+- [Enable FF_ENABLE_PLACEHOLDERS by default](gitlab-org/gitlab-pages@8011c2899bb31ca316eed7fec1321fae2016863d) ([merge request](gitlab-org/gitlab-pages!807))
+- [Make _redirects limits configurable](gitlab-org/gitlab-pages@31b7783c26879de6f170e40777c799dfd797213b) by @nejc ([merge request](gitlab-org/gitlab-pages!778))
+- [Properly handle io.copy errors](gitlab-org/gitlab-pages@d5f9712f65decb2a0fe2b09d126017243b8c03cc) by @feistel ([merge request](gitlab-org/gitlab-pages!683))
+
+### Fixed (1 change)
+
+- [Fix domain level redirects](gitlab-org/gitlab-pages@ca6db0ba6ba8b85d064b4bc3fe89795e78496df8) ([merge request](gitlab-org/gitlab-pages!790))
+
+### Changed (2 changes)
+
+- [Remove outdated link from README](gitlab-org/gitlab-pages@7ebb65fc6f1fa9e34fe804ffcff9891497e49a60) ([merge request](gitlab-org/gitlab-pages!792))
+- [Update the contributing documentation link on README](gitlab-org/gitlab-pages@f2b998ad62c33e9f5ea997026e596db18ae1eef4) ([merge request](gitlab-org/gitlab-pages!789))
+
+### Removed (1 change)
+
+- [Remove rate limits feature flags](gitlab-org/gitlab-pages@68a1d6a18d37061598bf7d74bec4bda8422f0cd2) by @feistel ([merge request](gitlab-org/gitlab-pages!788))
+
+### Performance (1 change)
+
+- [Open files lazily when serving content](gitlab-org/gitlab-pages@57195a5ae472878c19dae4b6a65bc37a76e992e4) by @feistel ([merge request](gitlab-org/gitlab-pages!803))
+
 ## 1.59.0 (2022-06-13)
 
 ### Added (2 changes)
