@@ -1,6 +1,21 @@
 ARG RUBY_IMAGE=
 
-FROM ${RUBY_IMAGE}
+FROM ${RUBY_IMAGE} as build
+
+ARG GITLAB_USER=git
+ARG UID=1000
+
+ADD gitlab-workhorse-ee.tar.gz /assets
+ADD gitlab-gomplate.tar.gz /assets
+
+COPY scripts/ /assets/scripts/
+
+RUN install -d -o ${UID} -g 0 -m 0770 /assets/var/log/gitlab \
+    install -d -o ${UID} -g 0 -m 0770 /assets/srv/gitlab/config \
+    && chown -R ${UID}:0 /assets/srv/gitlab \
+    && chmod -R g=u /assets
+
+FROM ${RUBY_IMAGE} as final
 
 ARG GITLAB_VERSION=v13.8.0
 ARG GITLAB_USER=git
@@ -19,27 +34,14 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-workh
 
 ENV LANG=C.UTF-8
 
-ADD gitlab-workhorse-ee.tar.gz /
-ADD gitlab-gomplate.tar.gz /
-
-COPY scripts/ /scripts/
+COPY --from=build /assets/ /
 
 RUN dnf ${DNF_OPTS} install -by --nodocs perl \
     && dnf clean all \
     && rm -r /var/cache/dnf \
-    && adduser -m ${GITLAB_USER} -u ${UID} \
-    && mkdir -p /var/log/gitlab /srv/gitlab/config ${GITLAB_DATA} \
-    && chown -R ${UID}:0 \
-        /srv/gitlab \
-        /var/log/gitlab \
-        ${GITLAB_DATA} \
-        /home/${GITLAB_USER} \
-    && chmod -R g=u \
-        /srv/gitlab \
-        /var/log/gitlab \
-        ${GITLAB_DATA} \
-        /home/${GITLAB_USER} \
-        /scripts
+    && install -d -o ${UID} -g 0 -m 0770 /home/${GITLAB_USER} \
+    && install -d -o ${UID} -g 0 -m 0770 ${GITLAB_DATA} \
+    && adduser -M -d /home/${GITLAB_USER} -u ${UID} ${GITLAB_USER}
 
 USER ${UID}
 
