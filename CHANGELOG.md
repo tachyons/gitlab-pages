@@ -1,3 +1,9 @@
+## 1.61.1 (2022-07-19)
+
+### Security (1 change)
+
+- [Include remote address through X-Forwarded-For in job artifact request](gitlab-org/security/gitlab-pages@199e843c6c877396a6ee29deb24e1b65c5d6242a) ([merge request](gitlab-org/security/gitlab-pages!46))
+
 ## 1.61.0 (2022-07-15)
 
 ### Fixed (1 change)
