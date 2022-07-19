@@ -206,10 +206,9 @@ graph LR;
     gitlab-base
     gitlab-ruby==>gitlab-base;
     gitlab-rails
-    gitlab-go
     alpine[alpine:3.15]:::external;
     debian[debian:bullseye-slim]:::external;
-    gcr.io/distroless/base-debian11
+    gcr.io/distroless/base-debian11:::external;
   end
 
   kubectl==>debian;
@@ -228,7 +227,7 @@ graph LR;
   gitlab-workhorse===>gitlab-ruby
   gitaly===>gitlab-ruby;
 
-  gitlab-shell===>gitlab-go;
+  gitlab-shell===>gitlab-base;
 
   gitlab-container-registry==>debian
 
@@ -338,7 +337,8 @@ graph LR;
 
   gitlab-mailroom==>gitlab-ruby;
 
-  gitlab-shell==>gitlab-go;
+  gitlab-shell==>gitlab-base;
+  gitlab-shell-->gitlab-go;
   gitlab-shell-.->gitlab-logger;
   gitlab-shell-.->gitlab-gomplate;
 
