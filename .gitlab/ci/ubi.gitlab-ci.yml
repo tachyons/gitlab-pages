@@ -442,7 +442,7 @@ gitlab-pages:
 gitlab-shell:
   extends: .gitlab-shell
   needs:
-    - gitlab-base
+    - gitlab-ruby
     - build:gitlab-logger
     - build:gitlab-gomplate
     - build:gitlab-shell
