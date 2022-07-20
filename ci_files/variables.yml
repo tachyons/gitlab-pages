@@ -49,6 +49,7 @@ variables:
   # Pipeline config
   ASSETS_IMAGE_PREFIX: "gitlab-assets"
   ASSETS_IMAGE_REGISTRY_PREFIX: "registry.gitlab.com/gitlab-org"
+  PREFLIGHT_IMAGE_PREFIX: "cloud-native"
   PREFLIGHT_IMAGE_REGISTRY_PREFIX: "registry.gitlab.com/gitlab-org"
   GITLAB_NAMESPACE: "gitlab-org"
   CE_PROJECT: "gitlab-foss"
