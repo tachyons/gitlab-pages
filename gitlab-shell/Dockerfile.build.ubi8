@@ -28,11 +28,4 @@ RUN dnf ${DNF_OPTS} install -by --nodocs git \
     && FIPS_MODE=${FIPS_MODE} make build \
     && rm -rf go/ go_build/ spec/ internal/testhelper/testdata/ \
     && mkdir /assets/licenses && cp LICENSE /assets/licenses/GitLab.txt \
-    && export PREFIX=/assets/srv/gitlab-shell \
-    && mkdir -p ${PREFIX}/bin \
-    && install -m755 bin/check ${PREFIX}/bin/check \
-    && install -m755 bin/gitlab-shell ${PREFIX}/bin/gitlab-shell \
-    && install -m755 bin/gitlab-shell-authorized-keys-check ${PREFIX}/bin/gitlab-shell-authorized-keys-check \
-    && install -m755 bin/gitlab-shell-authorized-principals-check ${PREFIX}/bin/gitlab-shell-authorized-principals-check \
-    && install -m755 bin/gitlab-sshd ${PREFIX}/bin/gitlab-sshd \
-    && cp LICENSE VERSION ${PREFIX}/
+    && mv ./* /assets/srv/gitlab-shell

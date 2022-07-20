@@ -129,8 +129,7 @@ gitlab-shell:
   needs:
     - gitlab-gomplate
     - gitlab-logger
-    - gitlab-base
-    - gitlab-go
+    - gitlab-ruby
 
 ## phase five
 
