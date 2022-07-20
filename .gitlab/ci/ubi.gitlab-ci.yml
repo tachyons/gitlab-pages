@@ -533,7 +533,7 @@ ubi-assets-release:
     - rm -rf artifacts/*
 
 .preflight-certification:
-  image: ${ASSETS_IMAGE_REGISTRY_PREFIX}/cloud-native/preflight:1.2.1
+  image: ${PREFLIGHT_IMAGE_REGISTRY_PREFIX}/cloud-native/preflight:1.2.1
   extends:
     - .redhat_certification # rules
   stage: container-scanning
