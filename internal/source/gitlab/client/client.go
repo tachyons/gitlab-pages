@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -128,7 +127,7 @@ func (gc *Client) GetLookup(ctx context.Context, host string) api.Lookup {
 	}()
 
 	lookup := api.Lookup{Name: host}
-	lookup.Error = json.NewDecoder(resp.Body).Decode(&lookup.Domain)
+	lookup.ParseDomain(resp.Body)
 
 	return lookup
 }

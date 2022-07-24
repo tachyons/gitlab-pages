@@ -2,20 +2,41 @@ package gitlab
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/mock"
 )
+
+var testCacheConfig = config.Cache{
+	CacheExpiry:          time.Second,
+	CacheCleanupInterval: time.Second / 2,
+	EntryRefreshTimeout:  time.Second / 2,
+	RetrievalTimeout:     time.Second,
+	MaxRetrievalInterval: time.Second / 3,
+	MaxRetrievalRetries:  3,
+}
+
+type lookupPathTest struct {
+	file                string
+	target              string
+	expectedPrefix      string
+	expectedPath        string
+	expectedSubPath     string
+	expectedIsNamespace bool
+}
 
 func TestGetDomain(t *testing.T) {
 	tests := map[string]struct {
@@ -42,7 +63,7 @@ func TestGetDomain(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			mockClient := NewMockClient(t, tc.file, tc.mockLookup)
+			mockClient := NewMockClient(t, tc.file, tc.mockLookup, false)
 			source := Gitlab{client: mockClient}
 
 			domain, err := source.GetDomain(context.Background(), tc.domain)
@@ -109,7 +130,7 @@ func TestResolve(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			mockClient := NewMockClient(t, tc.file, nil)
+			mockClient := NewMockClient(t, tc.file, nil, false)
 			source := Gitlab{client: mockClient, enableDisk: true}
 
 			request := httptest.NewRequest(http.MethodGet, tc.target, nil)
@@ -125,16 +146,9 @@ func TestResolve(t *testing.T) {
 	}
 }
 
-// Test proves fix for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/576
-func TestResolveLookupPathsOrderDoesNotMatter(t *testing.T) {
-	tests := map[string]struct {
-		file                string
-		target              string
-		expectedPrefix      string
-		expectedPath        string
-		expectedSubPath     string
-		expectedIsNamespace bool
-	}{
+// Test validates https://gitlab.com/gitlab-org/gitlab-pages/-/issues/646 with go test -race
+func TestResolveLookupPathsConcurrentNetRequests(t *testing.T) {
+	tests := map[string]lookupPathTest{
 		"when requesting the group root project with root path": {
 			file:                "client/testdata/group-first.gitlab.io.json",
 			target:              "https://group-first.gitlab.io:443/",
@@ -155,8 +169,46 @@ func TestResolveLookupPathsOrderDoesNotMatter(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			mockClient := NewMockClient(t, test.file, nil)
-			source := Gitlab{client: mockClient, enableDisk: true}
+			wg := &sync.WaitGroup{}
+			mockClient := NewMockClient(t, test.file, nil, true)
+			cache := cache.NewCache(mockClient, &testCacheConfig)
+
+			for i := 0; i < 3; i++ {
+				go sendResolveRequest(t, wg, cache, test)
+				wg.Add(1)
+			}
+
+			wg.Wait()
+		})
+	}
+}
+
+// Test proves fix for https://gitlab.com/gitlab-org/gitlab-pages/-/issues/576
+func TestResolveLookupPathsOrderDoesNotMatter(t *testing.T) {
+	tests := map[string]lookupPathTest{
+		"when requesting the group root project with root path": {
+			file:                "client/testdata/group-first.gitlab.io.json",
+			target:              "https://group-first.gitlab.io:443/",
+			expectedPrefix:      "/",
+			expectedPath:        "some/path/group/",
+			expectedSubPath:     "",
+			expectedIsNamespace: true,
+		},
+		"when requesting another project with path": {
+			file:                "client/testdata/group-first.gitlab.io.json",
+			target:              "https://group-first.gitlab.io:443/my/second-project/index.html",
+			expectedPrefix:      "/my/second-project/",
+			expectedPath:        "some/path/to/project-2/",
+			expectedSubPath:     "index.html",
+			expectedIsNamespace: false,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mockClient := NewMockClient(t, test.file, nil, true)
+			cache := cache.NewCache(mockClient, &testCacheConfig)
+			source := Gitlab{client: cache, enableDisk: true}
 
 			request := httptest.NewRequest(http.MethodGet, test.target, nil)
 
@@ -171,17 +223,19 @@ func TestResolveLookupPathsOrderDoesNotMatter(t *testing.T) {
 	}
 }
 
-func NewMockClient(t *testing.T, file string, mockedLookup *api.Lookup) *mock.MockClientStub {
+func NewMockClient(t *testing.T, file string, mockedLookup *api.Lookup, useCache bool) *mock.MockClientStub {
 	mockCtrl := gomock.NewController(t)
 
 	mockClient := mock.NewMockClientStub(mockCtrl)
-	mockClient.EXPECT().
-		Resolve(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, domain string) *api.Lookup {
-			lookup := mockClient.GetLookup(ctx, domain)
-			return &lookup
-		}).
-		Times(1)
+	if !useCache {
+		mockClient.EXPECT().
+			Resolve(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, domain string) *api.Lookup {
+				lookup := mockClient.GetLookup(ctx, domain)
+				return &lookup
+			}).
+			Times(1)
+	}
 
 	mockClient.EXPECT().
 		GetLookup(gomock.Any(), gomock.Any()).
@@ -199,11 +253,27 @@ func NewMockClient(t *testing.T, file string, mockedLookup *api.Lookup) *mock.Mo
 			}
 			defer f.Close()
 
-			lookup.Error = json.NewDecoder(f).Decode(&lookup.Domain)
+			lookup.ParseDomain(f)
 
 			return lookup
 		}).
 		Times(1)
 
 	return mockClient
+}
+
+func sendResolveRequest(t *testing.T, wg *sync.WaitGroup, resolver api.Resolver, test lookupPathTest) {
+	request := httptest.NewRequest(http.MethodGet, test.target, nil)
+
+	source := Gitlab{client: resolver, enableDisk: true}
+
+	response, err := source.Resolve(request)
+	require.NoError(t, err)
+
+	require.Equal(t, test.expectedPrefix, response.LookupPath.Prefix)
+	require.Equal(t, test.expectedPath, response.LookupPath.Path)
+	require.Equal(t, test.expectedSubPath, response.SubPath)
+	require.Equal(t, test.expectedIsNamespace, response.LookupPath.IsNamespaceProject)
+
+	wg.Done()
 }
