@@ -8,10 +8,22 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 )
+
+var CacheConfig = config.Cache{
+	CacheExpiry:          time.Second,
+	CacheCleanupInterval: time.Second / 2,
+	EntryRefreshTimeout:  time.Second / 2,
+	RetrievalTimeout:     time.Second,
+	MaxRetrievalInterval: time.Second / 3,
+	MaxRetrievalRetries:  3,
+}
 
 // AssertRedirectTo asserts that handler redirects to particular URL
 func AssertRedirectTo(t *testing.T, handler http.HandlerFunc, method string,
