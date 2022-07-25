@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"path"
-	"sort"
 	"strings"
 
 	"gitlab.com/gitlab-org/labkit/log"
@@ -76,8 +75,6 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 	urlPath := path.Clean(r.URL.Path)
 	size := len(response.Domain.LookupPaths)
 
-	sortLookupsByPrefixLengthDesc(response.Domain.LookupPaths)
-
 	for _, lookup := range response.Domain.LookupPaths {
 		isSubPath := strings.HasPrefix(urlPath, lookup.Prefix)
 		isRootPath := urlPath == path.Clean(lookup.Prefix)
@@ -107,13 +104,4 @@ func (g *Gitlab) Resolve(r *http.Request) (*serving.Request, error) {
 		}).Error("could not find project lookup path")
 
 	return nil, domain.ErrDomainDoesNotExist
-}
-
-// Ensure lookupPaths are sorted by prefix length to ensure the group level
-// domain with prefix "/" is the last one to be checked.
-// See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/576
-func sortLookupsByPrefixLengthDesc(lookups []api.LookupPath) {
-	sort.SliceStable(lookups, func(i, j int) bool {
-		return len(lookups[i].Prefix) > len(lookups[j].Prefix)
-	})
 }
