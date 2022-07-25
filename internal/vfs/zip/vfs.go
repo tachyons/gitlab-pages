@@ -188,7 +188,7 @@ func (zfs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 
 	archive, expiry, found := zfs.cache.GetWithExpiration(key)
 	if found {
-		status, _ := archive.(*zipArchive).openStatus()
+		status, zipErr := archive.(*zipArchive).openStatus()
 		switch status {
 		case archiveOpening:
 			metrics.ZipCacheRequests.WithLabelValues("archive", "hit-opening").Inc()
@@ -209,7 +209,7 @@ func (zfs *zipVFS) findOrCreateArchive(key string) (*zipArchive, error) {
 		case archiveCorrupted:
 			// this means that archive is likely changed
 			// we should invalidate it immediately
-			log.WithFields(log.Fields{
+			log.WithError(zipErr).WithFields(log.Fields{
 				"archive_key": key,
 			}).Error("archive corrupted")
 			metrics.ZipCacheRequests.WithLabelValues("archive", "corrupted").Inc()
