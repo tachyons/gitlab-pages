@@ -12,16 +12,8 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
-
-var testCacheConfig = config.Cache{
-	CacheExpiry:          time.Second,
-	CacheCleanupInterval: time.Second / 2,
-	EntryRefreshTimeout:  time.Second / 2,
-	RetrievalTimeout:     time.Second,
-	MaxRetrievalInterval: time.Second / 3,
-	MaxRetrievalRetries:  3,
-}
 
 type clientMock struct {
 	counter uint64
@@ -54,7 +46,7 @@ func withTestCache(config resolverConfig, cacheConfig *config.Cache, block func(
 		failure: config.failure,
 	}
 	if cacheConfig == nil {
-		cacheConfig = &testCacheConfig
+		cacheConfig = &testhelpers.CacheConfig
 	}
 
 	cache := NewCache(resolver, cacheConfig)
@@ -221,7 +213,7 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when retrieval failed with an error", func(t *testing.T) {
-		cc := testCacheConfig
+		cc := testhelpers.CacheConfig
 		cc.MaxRetrievalInterval = 0
 		err := errors.New("500 error")
 
@@ -234,7 +226,7 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("when retrieval failed because of an internal retriever context timeout", func(t *testing.T) {
-		cc := testCacheConfig
+		cc := testhelpers.CacheConfig
 		cc.RetrievalTimeout = 0
 
 		withTestCache(resolverConfig{}, &cc, func(cache *Cache, resolver *clientMock) {

@@ -8,26 +8,16 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/cache"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/client"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/mock"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
-
-var testCacheConfig = config.Cache{
-	CacheExpiry:          time.Second,
-	CacheCleanupInterval: time.Second / 2,
-	EntryRefreshTimeout:  time.Second / 2,
-	RetrievalTimeout:     time.Second,
-	MaxRetrievalInterval: time.Second / 3,
-	MaxRetrievalRetries:  3,
-}
 
 type lookupPathTest struct {
 	file                string
@@ -171,7 +161,7 @@ func TestResolveLookupPathsConcurrentNetRequests(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			wg := &sync.WaitGroup{}
 			mockClient := NewMockClient(t, test.file, nil, true)
-			cache := cache.NewCache(mockClient, &testCacheConfig)
+			cache := cache.NewCache(mockClient, &testhelpers.CacheConfig)
 
 			for i := 0; i < 3; i++ {
 				go sendResolveRequest(t, wg, cache, test)
@@ -207,7 +197,7 @@ func TestResolveLookupPathsOrderDoesNotMatter(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			mockClient := NewMockClient(t, test.file, nil, true)
-			cache := cache.NewCache(mockClient, &testCacheConfig)
+			cache := cache.NewCache(mockClient, &testhelpers.CacheConfig)
 			source := Gitlab{client: cache, enableDisk: true}
 
 			request := httptest.NewRequest(http.MethodGet, test.target, nil)

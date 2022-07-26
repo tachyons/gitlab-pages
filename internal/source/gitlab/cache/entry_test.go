@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/domain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 func TestIsUpToDateAndNeedsRefresh(t *testing.T) {
@@ -54,7 +55,7 @@ func TestIsUpToDateAndNeedsRefresh(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entry := newCacheEntry("my.gitlab.com", testCacheConfig.EntryRefreshTimeout, testCacheConfig.CacheExpiry)
+			entry := newCacheEntry("my.gitlab.com", testhelpers.CacheConfig.EntryRefreshTimeout, testhelpers.CacheConfig.CacheExpiry)
 			if tt.resolved {
 				entry.response = &api.Lookup{}
 			}
