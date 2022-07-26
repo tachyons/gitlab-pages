@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/testhelpers"
 )
 
 const (
@@ -94,6 +96,58 @@ func TestAcmeChallengesWhenItIsConfigured(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, redirectURL.String(), test.expectedLocation)
+		})
+	}
+}
+
+func TestAcmeChallengesNoRedirection(t *testing.T) {
+	RunPagesProcess(t,
+		withListeners([]ListenSpec{httpListener}),
+		withExtraArgument("gitlab-server", "https://gitlab-acme.com"),
+	)
+
+	tests := map[string]struct {
+		path             string
+		expectedStatus   int
+		expectedContent  string
+		expectedLocation string
+	}{
+		"wildcard redirect should not redirect acme challenge": {
+			path:            existingAcmeTokenPath,
+			expectedStatus:  http.StatusOK,
+			expectedContent: "this is token\n",
+		},
+		"non-acme paths should be redirected": {
+			path: "/example",
+			// rule inside _redirects is a 200 rewrite of /index.html
+			expectedStatus:  http.StatusOK,
+			expectedContent: "acme-challenge-project\n",
+		},
+		"When domain folder doesn't contain requested acme challenge it redirects to GitLab": {
+			path:             notExistingAcmeTokenPath,
+			expectedStatus:   http.StatusTemporaryRedirect,
+			expectedContent:  "",
+			expectedLocation: "https://gitlab-acme.com/-/acme-challenge?domain=acmewithredirects.domain.com&token=notexistingtoken",
+		},
+	}
+
+	for tn, tt := range tests {
+		t.Run(tn, func(t *testing.T) {
+			rsp, err := GetRedirectPage(t, httpListener, "acmewithredirects.domain.com", tt.path)
+			require.NoError(t, err)
+			testhelpers.Close(t, rsp.Body)
+
+			require.Equal(t, tt.expectedStatus, rsp.StatusCode)
+			body, err := io.ReadAll(rsp.Body)
+			require.NoError(t, rsp.Body.Close())
+			require.NoError(t, err)
+
+			require.Contains(t, string(body), tt.expectedContent)
+
+			redirectURL, err := url.Parse(rsp.Header.Get("Location"))
+			require.NoError(t, err)
+
+			require.Equal(t, redirectURL.String(), tt.expectedLocation)
 		})
 	}
 }

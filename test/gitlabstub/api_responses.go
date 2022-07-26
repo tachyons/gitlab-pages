@@ -110,6 +110,10 @@ var domainResponses = map[string]responseFn{
 		accessControl: true,
 		pathOnDisk:    "group.auth/private.project",
 	}),
+	"acmewithredirects.domain.com": customDomain(projectConfig{
+		projectID:  1008,
+		pathOnDisk: "group.acme/with.redirects",
+	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving
 	// make zip PROJECT_SUBDIR=group/project2

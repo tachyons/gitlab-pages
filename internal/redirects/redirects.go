@@ -13,6 +13,7 @@ import (
 	netlifyRedirects "github.com/tj/go-redirects"
 	"gitlab.com/gitlab-org/labkit/log"
 
+	"gitlab.com/gitlab-org/gitlab-pages/internal/acme"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
@@ -106,6 +107,10 @@ func (r *Redirects) Status() string {
 // Rewrite takes in a URL and uses the parsed Netlify rules to rewrite
 // the URL to the new location if it matches any rule
 func (r *Redirects) Rewrite(originalURL *url.URL) (*url.URL, int, error) {
+	if acme.IsAcmeChallenge(originalURL.Path) {
+		return nil, 0, ErrNoRedirect
+	}
+
 	rule, newPath := r.match(originalURL.Path)
 	if rule == nil {
 		return nil, 0, ErrNoRedirect
