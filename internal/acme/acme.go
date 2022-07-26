@@ -15,7 +15,7 @@ type FallbackStrategy func(http.ResponseWriter, *http.Request) bool
 
 // ServeAcmeChallenges identifies if request is acme-challenge and redirects to GitLab in that case
 func ServeAcmeChallenges(w http.ResponseWriter, r *http.Request, fallback FallbackStrategy, gitlabURL *url.URL) bool {
-	if !isAcmeChallenge(r.URL.Path) {
+	if !IsAcmeChallenge(r.URL.Path) {
 		return false
 	}
 
@@ -27,7 +27,7 @@ func ServeAcmeChallenges(w http.ResponseWriter, r *http.Request, fallback Fallba
 	return true
 }
 
-func isAcmeChallenge(path string) bool {
+func IsAcmeChallenge(path string) bool {
 	return strings.HasPrefix(filepath.Clean(path), "/.well-known/acme-challenge/")
 }
 

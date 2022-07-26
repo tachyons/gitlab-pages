@@ -107,6 +107,14 @@ func TestRedirectsRewrite(t *testing.T) {
 			expectedURL:    "/the/cake/is/a/lie",
 			expectedStatus: http.StatusOK,
 		},
+		{
+			name:           "does_not_redirect_acme_challenges",
+			url:            "/.well-known/acme-challenge/token",
+			rule:           "/* /to/path 200",
+			expectedURL:    "",
+			expectedStatus: 0,
+			expectedErr:    ErrNoRedirect,
+		},
 	}
 
 	for _, tt := range tests {
