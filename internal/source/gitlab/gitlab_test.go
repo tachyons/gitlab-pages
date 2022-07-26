@@ -164,8 +164,8 @@ func TestResolveLookupPathsConcurrentNetRequests(t *testing.T) {
 			cache := cache.NewCache(mockClient, &testhelpers.CacheConfig)
 
 			for i := 0; i < 3; i++ {
-				go sendResolveRequest(t, wg, cache, test)
 				wg.Add(1)
+				go sendResolveRequest(t, wg, cache, test)
 			}
 
 			wg.Wait()
