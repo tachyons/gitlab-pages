@@ -4,6 +4,9 @@
 
 ## TODO
 
+- [Feature flag](https://docs.gitlab.com/ee/development/pages/#feature-flags)
+  - [ ] Added feature flag: <!-- Add the Feature flag tracking issue link here -->
+  - [ ] This feature does not require a feature flag
 - [ ] I added the [`Changelog` trailer](https://docs.gitlab.com/ee/development/changelog.html) to the commits that need to be included in the changelog (e.g. `Changelog: added`)
 - [ ] I added unit tests or they are not required
 - [ ] I added acceptance tests or they are not required
