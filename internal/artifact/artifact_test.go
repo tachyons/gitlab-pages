@@ -16,8 +16,6 @@ import (
 func TestTryMakeRequest(t *testing.T) {
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
 	contentType := "text/html; charset=utf-8"
-	testServer := makeArtifactServerStub(t, content, contentType)
-	defer testServer.Close()
 
 	cases := []struct {
 		Path         string
@@ -28,6 +26,8 @@ func TestTryMakeRequest(t *testing.T) {
 		CacheControl string
 		ContentType  string
 		Description  string
+		RemoteAddr   string
+		ForwardedIP  string
 	}{
 		{
 			"/200.html",
@@ -38,6 +38,8 @@ func TestTryMakeRequest(t *testing.T) {
 			"max-age=3600",
 			"text/html; charset=utf-8",
 			"basic successful request",
+			"1.2.3.4:8000",
+			"1.2.3.4",
 		},
 		{
 			"/200.html",
@@ -48,6 +50,8 @@ func TestTryMakeRequest(t *testing.T) {
 			"",
 			"text/html; charset=utf-8",
 			"basic successful request",
+			"1.2.3.4",
+			"1.2.3.4",
 		},
 		{
 			"/max-caching.html",
@@ -58,6 +62,8 @@ func TestTryMakeRequest(t *testing.T) {
 			"max-age=3600",
 			"text/html; charset=utf-8",
 			"max caching request",
+			"1.2.3.4",
+			"1.2.3.4",
 		},
 		{
 			"/non-caching.html",
@@ -68,16 +74,23 @@ func TestTryMakeRequest(t *testing.T) {
 			"",
 			"text/html; charset=utf-8",
 			"no caching request",
+			"1.2.3.4",
+			"1.2.3.4",
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.Description, func(t *testing.T) {
-			result := httptest.NewRecorder()
+			testServer := makeArtifactServerStub(t, content, contentType, c.ForwardedIP)
+			defer testServer.Close()
+
 			reqURL, err := url.Parse("/-/subgroup/project/-/jobs/1/artifacts" + c.Path)
 			require.NoError(t, err)
 			r := &http.Request{URL: reqURL}
+			r.RemoteAddr = c.RemoteAddr
 			art := artifact.New(testServer.URL, 1, "gitlab-example.io")
+
+			result := httptest.NewRecorder()
 
 			require.True(t, art.TryMakeRequest("group.gitlab-example.io", result, r, c.Token, func(resp *http.Response) bool { return false }))
 			require.Equal(t, c.Status, result.Code)
@@ -90,8 +103,10 @@ func TestTryMakeRequest(t *testing.T) {
 }
 
 // provide stub for testing different artifact responses
-func makeArtifactServerStub(t *testing.T, content string, contentType string) *httptest.Server {
+func makeArtifactServerStub(t *testing.T, content string, contentType string, expectedForwardedIP string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, expectedForwardedIP, r.Header.Get("X-Forwarded-For"))
+
 		w.Header().Set("Content-Type", contentType)
 		switch r.URL.RawPath {
 		case "/projects/group%2Fsubgroup%2Fproject/jobs/1/artifacts/200.html":
@@ -280,7 +295,7 @@ func TestBuildURL(t *testing.T) {
 func TestContextCanceled(t *testing.T) {
 	content := "<!DOCTYPE html><html><head><title>Title of the document</title></head><body></body></html>"
 	contentType := "text/html; charset=utf-8"
-	testServer := makeArtifactServerStub(t, content, contentType)
+	testServer := makeArtifactServerStub(t, content, contentType, "")
 	t.Cleanup(testServer.Close)
 
 	result := httptest.NewRecorder()
