@@ -91,6 +91,11 @@ func (a *Artifact) makeRequest(w http.ResponseWriter, r *http.Request, reqURL *u
 	if token != "" {
 		req.Header.Add("Authorization", "Bearer "+token)
 	}
+
+	// The GitLab API expects this value for Group IP restriction to work properly
+	// on requests coming through Pages.
+	req.Header.Set("X-Forwarded-For", request.GetRemoteAddrWithoutPort(r))
+
 	resp, err := a.client.Do(req)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
