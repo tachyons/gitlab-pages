@@ -7,12 +7,8 @@
 
 ### Changed (2 changes)
 
-- [Chore: log ZIP archive corruption error](gitlab-org/gitlab-pages@e34ed022accdff134d7464de03069670c0e18aaf) ([merge request](gitlab-org/gitlab-pages!821))
+- [Log ZIP archive corruption error](gitlab-org/gitlab-pages@e34ed022accdff134d7464de03069670c0e18aaf) ([merge request](gitlab-org/gitlab-pages!821))
 - [Update LabKit library to v1.16.0](gitlab-org/gitlab-pages@77220ca923e02ba0c4b464421b421df0a8cd7f06) ([merge request](gitlab-org/gitlab-pages!813))
-
-### Security (1 change)
-
-- [Include remote address through X-Forwarded-For in job artifact request](gitlab-org/gitlab-pages@3224eb6418fcc0fcb0fa5bd3203c0c0c25b4704b)
 
 ## 1.61.1 (2022-07-19)
 
