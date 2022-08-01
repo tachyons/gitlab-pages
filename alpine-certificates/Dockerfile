@@ -6,7 +6,7 @@
 ARG ALPINE_IMAGE=alpine:3.15
 FROM $ALPINE_IMAGE
 
-ARG CA_PKG_VERSION=20211220-r0
+ARG CA_PKG_VERSION=20220614-r0
 RUN apk --update-cache --no-cache add ca-certificates=${CA_PKG_VERSION}
 
 COPY scripts/bundle-certificates /scripts/
