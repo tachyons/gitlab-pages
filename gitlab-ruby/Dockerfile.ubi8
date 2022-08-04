@@ -2,6 +2,7 @@ ARG GITLAB_BASE_IMAGE=
 
 FROM ${GITLAB_BASE_IMAGE}
 
+ARG RUBY_VERSION
 ARG DNF_OPTS
 ARG GITLAB_USER=git
 
@@ -9,8 +10,8 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-ruby"
       name="GitLab Ruby" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \
-      version=${GITLAB_VERSION} \
-      release=${GITLAB_VERSION} \
+      version=${RUBY_VERSION} \
+      release=${RUBY_VERSION} \
       summary="Base container for building GitLab application containers." \
       description="Base container for building GitLab application containers."
 
