@@ -7,21 +7,15 @@ SSH_DAEMON="${SSH_DAEMON:-openssh}"
 
 if ls $KEYS_DIRECTORY/ssh_host_* 1> /dev/null 2>&1; then
   echo "Using existing Host Keys"
-
+  # copy from KEYS_DIRECTORY to /etc/ssh as needed
   if [ "$KEYS_DIRECTORY" != "/etc/ssh" ]; then
     cp $KEYS_DIRECTORY/ssh_host_* "/etc/ssh/"
   fi
 else
   echo "Generating Host Keys"
-
+  # generate host keys, placed into `/etc/ssh`
   ssh-keygen -A
-
-  if [ "$KEYS_DIRECTORY" != "/etc/ssh" ]; then
-    mkdir -p $KEYS_DIRECTORY
-    cp /etc/ssh/ssh_host_* "$KEYS_DIRECTORY/"
-  fi
 fi
-
 
 if [ "${SSH_DAEMON}" == "gitlab-sshd" ]; then
   exec /srv/gitlab-shell/bin/gitlab-sshd -config-dir /srv/gitlab-shell

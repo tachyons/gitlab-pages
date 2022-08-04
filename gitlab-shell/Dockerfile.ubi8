@@ -1,10 +1,27 @@
-ARG RUBY_IMAGE=
+ARG GITLAB_BASE_IMAGE=
 
-FROM ${RUBY_IMAGE}
+FROM ${GITLAB_BASE_IMAGE} as build
 
-ARG GITLAB_SHELL_VERSION
 ARG GITLAB_USER=git
 ARG UID=1000
+
+ADD gitlab-shell.tar.gz /assets/
+ADD gitlab-logger.tar.gz /assets/usr/local/bin
+ADD gitlab-gomplate.tar.gz /assets/
+
+COPY scripts/ /assets/scripts/
+COPY sshd_config /assets/etc/ssh/
+
+RUN mkdir -p /assets/srv/sshd /assets/var/log/gitlab-shell \
+    && touch /assets/var/log/gitlab-shell/gitlab-shell.log \
+    && chmod -R g=u /assets/srv/sshd /assets/srv/gitlab-shell /assets/var/log/gitlab-shell /assets/etc/ssh /assets/scripts
+
+FROM ${GITLAB_BASE_IMAGE}
+
+ARG GITLAB_USER=git
+ARG UID=1000
+
+ARG GITLAB_SHELL_VERSION
 ARG DNF_OPTS
 
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-shell" \
@@ -16,24 +33,19 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-shell
       summary="SSH access and repository management app for GitLab." \
       description="SSH access and repository management app for GitLab."
 
-ADD gitlab-shell.tar.gz /
-ADD gitlab-logger.tar.gz /usr/local/bin
-ADD gitlab-gomplate.tar.gz /
+# IMPORTANT: --chown UID:0, or all will be 0:0
+COPY --from=build --chown=${UID}:0 /assets/ /
 
-COPY scripts/ /scripts/
-COPY sshd_config /etc/ssh/
-
+# install runtime deps, remove files overwritten in runtime, add user
 RUN dnf ${DNF_OPTS} install -by --nodocs procps fipscheck-lib openssh openssh-server \
     && dnf clean all \
     && rm -r /var/cache/dnf \
     && rm -r /usr/local/tmp /usr/libexec/openssh/ssh-keysign \
-    && adduser -m ${GITLAB_USER} -u ${UID} \
-    && mkdir -p /srv/sshd /var/log/gitlab-shell \
-    && touch /var/log/gitlab-shell/gitlab-shell.log \
-    && mv /scripts/authorized_keys /authorized_keys \
-    && chown -R ${UID}:0 /srv/sshd /srv/gitlab-shell /var/log/gitlab-shell /etc/ssh /scripts /home/${GITLAB_USER} \
-    && chmod -R g=u /srv/sshd /srv/gitlab-shell /var/log/gitlab-shell /etc/ssh /scripts /home/${GITLAB_USER} \
-    && chmod 0755 /authorized_keys
+    && rm -rf /etc/ssh/ssh_host_* /etc/ssh/sshd_config.* \
+    && chown ${UID}:0 /etc/ssh \
+    && install -o 0 -g 0 -m 0755 /scripts/authorized_keys /authorized_keys \
+    && install -d -o ${UID} -g 0 -m 770 /home/${GITLAB_USER} \
+    && adduser -M -d /home/${GITLAB_USER} -u ${UID} ${GITLAB_USER}
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/srv/gitlab-shell
 
