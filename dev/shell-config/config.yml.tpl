@@ -1,3 +1,4 @@
+{%- $daemon := env.Getenv "SSH_DAEMON" -%}
 # This file is managed by gitlab-ctl. Manual changes will be
 # erased! To change the contents below, edit /etc/gitlab/gitlab.rb
 # and run `sudo gitlab-ctl reconfigure`.
@@ -15,11 +16,11 @@ auth_file: "/home/git/.ssh/authorized_keys"
 
 # Log file.
 # Default is gitlab-shell.log in the root directory.
-<% if ENV['SSH_DAEMON'] == 'gitlab-sshd' %>
+{% if eq $daemon "gitlab-sshd" %}
 log_file: "/dev/stdout"
-<% else %>
+{% else %}
 log_file: "/var/log/gitlab-shell/gitlab-shell.log"
-<% end %>
+{% end %}
 
 
 # Log level. INFO by default
@@ -30,7 +31,7 @@ log_level: INFO
 # incurs an extra API call on every gitlab-shell command.
 audit_usernames: false
 
-<% if ENV['SSH_DAEMON'] == 'gitlab-sshd' %>
+{% if eq $daemon "gitlab-sshd" %}
 # This section configures the built-in SSH server. Ignored when running on OpenSSH.
 sshd:
 +  # Address which the SSH server listens on. Defaults to [::]:2222.
@@ -41,13 +42,15 @@ sshd:
   concurrent_sessions_limit: 100
   # SSH host key files.
   host_key_files:
-  <% Dir["/etc/ssh/ssh_host_*_key"].each do |file| %>
-  <%= "- #{file}" %>
-  <% end %>
-<% end %>
+  {%- range file.Walk "/etc/ssh" %}
+    {%- if filepath.Match "/etc/ssh/ssh_host_*_key" . %}
+    - {%.%}
+    {%- end %}
+  {%- end %}
+{% end %}
 
-<% if ENV['CUSTOM_HOOKS_DIR'] %>
+{% if env.Getenv "CUSTOM_HOOKS_DIR" %}
 # Parent directory for global custom hook directories (pre-receive.d, update.d, post-receive.d)
 # Default is hooks in the gitlab-shell directory.
-custom_hooks_dir: "<%= ENV['CUSTOM_HOOKS_DIR'] %>"
-<% end %>
+custom_hooks_dir: "{% env.Getenv "CUSTOM_HOOKS_DIR" %}"
+{% end %}

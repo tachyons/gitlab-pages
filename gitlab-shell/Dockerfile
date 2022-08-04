@@ -1,16 +1,21 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG="master"
 
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
+ARG GO_TAG="${TAG}"
+ARG GO_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:${GO_TAG}"
 ARG GITLAB_LOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
+
+ARG GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${TAG}"
 
 ARG GOMPLATE_TAG=
 ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
 
-FROM ${FROM_IMAGE}:${TAG} as builder
+FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
+FROM ${GOMPLATE_IMAGE} as gomplate
 
-ARG BUILD_DIR=/tmp/build
-ARG GITLAB_SHELL_VERSION=master
+FROM ${GO_IMAGE} as build
+
+ARG GITLAB_SHELL_VERSION=main
 ARG GITLAB_NAMESPACE="gitlab-org"
 ARG FETCH_ARTIFACTS_PAT
 ARG CI_API_V4_URL
@@ -21,23 +26,42 @@ RUN buildDeps=' \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps xtail \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p ${BUILD_DIR}
+    && mkdir -p /assets
 
 # Download and compile GitLab Shell
 ARG CACHE_BUSTER=false
-RUN mkdir /srv/gitlab-shell && \
-    cd /srv/gitlab-shell && \
+RUN export PREFIX=/assets/srv/gitlab-shell && \
+    mkdir /source && \
+    cd /source && \
     echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-shell/repository/archive.tar.bz2?sha=${GITLAB_SHELL_VERSION}" && \
     curl -f --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab-shell.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-shell/repository/archive.tar.bz2?sha=${GITLAB_SHELL_VERSION}" && \
     tar -xjf gitlab-shell.tar.bz2 --strip-components=1 && \
     rm gitlab-shell.tar.bz2 && \
     make build && \
-    rm -rf go go_build internal/testhelper/testdata
+    rm -rf go go_build internal/testhelper/testdata && \
+    mkdir -p ${PREFIX}/bin && \
+    install -m755 bin/check ${PREFIX}/bin/check && \
+    install -m755 bin/gitlab-shell ${PREFIX}/bin/gitlab-shell && \
+    install -m755 bin/gitlab-shell-authorized-keys-check ${PREFIX}/bin/gitlab-shell-authorized-keys-check && \
+    install -m755 bin/gitlab-shell-authorized-principals-check ${PREFIX}/bin/gitlab-shell-authorized-principals-check && \
+    install -m755 bin/gitlab-sshd ${PREFIX}/bin/gitlab-sshd && \
+    cp LICENSE VERSION ${PREFIX}/
 
-FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
-FROM ${GOMPLATE_IMAGE} as gomplate
+# Setup working directories and logs
+RUN install -d /assets/srv/sshd && \
+    install -d /assets/etc/ssh && \
+    install -d /assets/var/log/gitlab-shell && \
+    touch /assets/var/log/gitlab-shell/gitlab-shell.log
 
-FROM ${FROM_IMAGE}:${TAG}
+# COPY in external items
+COPY --from=gitlab-logger /gitlab-logger /assets/usr/local/bin/gitlab-logger
+COPY --from=gomplate /gomplate /assets/usr/local/bin/gomplate
+COPY sshd_config /assets/etc/ssh/
+
+# Set final chmods
+RUN chmod -R g=u /assets
+
+FROM ${GITLAB_BASE_IMAGE} as final
 
 ARG GITLAB_USER=git
 
@@ -46,35 +70,18 @@ ARG GITLAB_USER=git
 RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} && \
     sed -i "s/${GITLAB_USER}:!/${GITLAB_USER}:*/" /etc/shadow
 
-# install runtime deps
+# install runtime deps, remove files overwritten in runtime
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssh-server \
-  && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends openssh-server \
+    && rm -Rf /var/lib/apt/lists/* \
+    && rm -Rf /var/cache/debconf/templates.dat* \
+    && rm -Rf /etc/ssh/ssh_host_* /etc/ssh/sshd_config.*
 
-# Create a run environment for SSHD
-RUN mkdir /srv/sshd && chown ${GITLAB_USER}:${GITLAB_USER} /srv/sshd
-
-# Prepare logging directory
-RUN mkdir -p /var/log/gitlab-shell && \
-    touch /var/log/gitlab-shell/gitlab-shell.log && \
-    chown -R ${GITLAB_USER}:${GITLAB_USER} /var/log/gitlab-shell
-
-# Pull in final executables and configuration
-COPY --from=builder /srv/gitlab-shell/ /srv/gitlab-shell/
-COPY scripts/  /scripts/
-COPY sshd_config /etc/ssh/
-
-
-# Pull in gitlab-logger
-COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
-
-# Pull in gomplate
-COPY --from=gomplate /gomplate /usr/local/bin/gomplate
-
+COPY --from=build --chown=${GITLAB_USER}:${GITLAB_USER} /assets/ /
+# /scripts should be owned by root
+COPY scripts/ /scripts
 # AuthorizedKeysCommand must be owned by root, and have all parent paths owned as root
 RUN mv /scripts/authorized_keys /authorized_keys && chmod 0755 /authorized_keys
-
-RUN chown -R $GITLAB_USER:$GITLAB_USER /srv/gitlab-shell /scripts /etc/ssh
 
 USER $GITLAB_USER:$GITLAB_USER
 
