@@ -2,12 +2,14 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:8.5
 
 FROM ${UBI_IMAGE}
 
+ARG CFSSL_VERSION
+
 LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/cfssl-self-sign" \
       name="cfssl-self-sign" \
       maintainer="GitLab Distribution Team" \
       vendor="GitLab" \
-      version=${GITLAB_VERSION} \
-      release=${GITLAB_VERSION} \
+      version=${CFSSL_VERSION} \
+      release=${CFSSL_VERSION} \
       summary="cfssl-self-sign generates self-signed CA and wildcard certificates certificates" \
       description="cfssl-self-sign generates self-signed CA and wildcard certificates certificates"
 

@@ -17,7 +17,7 @@ RUN install -d -o ${UID} -g 0 -m 0770 /assets/var/log/gitlab \
 
 FROM ${RUBY_IMAGE} as final
 
-ARG GITLAB_VERSION=v13.8.0
+ARG GITLAB_VERSION
 ARG GITLAB_USER=git
 ARG UID=1000
 ARG GITLAB_DATA=/var/opt/gitlab

@@ -50,7 +50,8 @@
   script:
     # set CONTAINER_VERSION to include the distribution base image digests (only ever one present)
     - export CONTAINER_VERSION=($(echo -n "${TARGET_VERSION}${DEBIAN_DIGEST}${UBI_DIGEST}" | sha1sum))
-    - build_if_needed $DEBIAN_BUILD_ARGS $UBI_BUILD_ARGS
+    - build_if_needed --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+                      $DEBIAN_BUILD_ARGS $UBI_BUILD_ARGS
     - push_tags
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-base_tag.txt
 
@@ -62,6 +63,7 @@
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$CA_PKG_VERSION" | sha1sum))
     - build_if_needed --build-arg "CA_PKG_VERSION=${CA_PKG_VERSION}"
+                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       $ALPINE_BUILD_ARGS $UBI_BUILD_ARGS
     - push_tags
     - push_tags ${CA_PKG_VERSION}${IMAGE_TAG_EXT}
@@ -70,7 +72,6 @@
   extends: .job-base
   stage: phase-one
   script:
-    - export DOCKERFILE_EXT=
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$CFSSL_VERSION" | sha1sum))
     - build_if_needed --build-arg "CFSSL_VERSION=$CFSSL_VERSION"
                       --build-arg "CFSSL_CHECKSUM_SHA256=$CFSSL_CHECKSUM_SHA256"
