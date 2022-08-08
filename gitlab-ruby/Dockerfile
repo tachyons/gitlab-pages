@@ -55,12 +55,6 @@ RUN buildDeps=' \
   && ./autogen.sh --prefix=/usr --enable-prof \
   && make -j "$(nproc)" install \
   && cd .. \
-  && curl -f --retry 6 https://gitlab.com/gitlab-org/build/omnibus-mirror/exiftool/-/archive/${EXIFTOOL_VERSION}/exiftool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
-  && cd exiftool-${EXIFTOOL_VERSION} \
-  && patch -p1 < ${BUILD_DIR}/patches/allow-only-tiff-jpeg-exif-strip.patch \
-  && perl Makefile.PL \
-  && make install \
-  && cd .. \
   && export RUBY_MAJOR_VERSION="${RUBY_VERSION%.*}" \
   && curl --retry 6 -sfo ruby.tar.xz https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR_VERSION}/ruby-${RUBY_VERSION}.tar.xz \
   && tar -xf ruby.tar.xz \

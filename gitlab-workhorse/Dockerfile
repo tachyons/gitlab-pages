@@ -3,10 +3,12 @@ ARG GO_TAG="master"
 ARG GITLAB_EDITION=gitlab-rails-ee
 ARG RAILS_VERSION="master"
 ARG RUBY_VERSION="master"
+ARG EXIFTOOL_IMAGE="$CI_REGISTRY_IMAGE/gitlab-exiftool:${EXIFTOOL_VERSION}"
 ARG GOMPLATE_TAG=
 ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
 
 FROM ${CI_REGISTRY_IMAGE}/${GITLAB_EDITION}:${RAILS_VERSION} as rails
+FROM ${EXIFTOOL_IMAGE} as exiftool_image
 FROM ${GOMPLATE_IMAGE} as gomplate
 
 FROM ${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG} as builder
@@ -22,6 +24,8 @@ RUN buildDeps=' \
   && make -C ${BUILD_DIR}/workhorse install \
   && rm -rf ${BUILD_DIR} \
   && apt-get purge -y --auto-remove $buildDeps \
+  # install perl for exiftool requirement
+  && apt-get install -y --no-install-recommends perl \
   && rm -rf /var/lib/apt/lists/*
 
 FROM ${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_VERSION}
@@ -43,6 +47,8 @@ COPY --from=rails --chown=git /srv/gitlab/public/ /srv/gitlab/public/
 COPY --from=rails --chown=git /srv/gitlab/doc/ /srv/gitlab/doc/
 
 COPY --from=gomplate /gomplate /usr/local/bin/gomplate
+
+COPY --from=exiftool_image / /
 
 USER $GITLAB_USER:$GITLAB_USER
 

@@ -116,6 +116,21 @@
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-graphicsmagick_tag.txt
 
 # debian only
+.gitlab-exiftool:
+  extends: .job-base
+  stage: phase-one
+  script:
+    - gitlab_base_version=$(cat artifacts/container_versions/gitlab-base_tag.txt)
+    - export GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${gitlab_base_version}${IMAGE_TAG_EXT}"
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${gitlab_base_version}${EXIFTOOL_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "EXIFTOOL_VERSION=$EXIFTOOL_VERSION"
+                      --build-arg "GITLAB_BASE_IMAGE=${GITLAB_BASE_IMAGE}"
+                      $DEBIAN_BUILD_ARGS
+    - push_tags
+    - push_tags $EXIFTOOL_VERSION${IMAGE_TAG_EXT}
+    - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-exiftool_tag.txt
+
+# debian only
 .gitlab-python:
   extends: .job-base
   stage: phase-one
@@ -368,6 +383,7 @@
   variables:
     RAILS_EE: "true"
   script:
+    - import_assets artifacts/ubi/gitlab-exiftool.tar.gz
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
     - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
@@ -385,6 +401,8 @@
     - gme_image="${CI_REGISTRY_IMAGE}/gitlab-metrics-exporter:${gme_version}${IMAGE_TAG_EXT}"
     - gm_version=$(cat artifacts/container_versions/gitlab-graphicsmagick_tag.txt)
     - gm_image="${CI_REGISTRY_IMAGE}/gitlab-graphicsmagick:${gm_version}"
+    - exiftool_version=$(cat artifacts/container_versions/gitlab-exiftool_tag.txt)
+    - exiftool_image="${CI_REGISTRY_IMAGE}/gitlab-exiftool:${exiftool_version}"
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
@@ -402,6 +420,7 @@
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GM_IMAGE=${gm_image}"
+                      --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
@@ -436,6 +455,8 @@
     - gme_image="${CI_REGISTRY_IMAGE}/gitlab-metrics-exporter:${gme_version}${IMAGE_TAG_EXT}"
     - gm_version=$(cat artifacts/container_versions/gitlab-graphicsmagick_tag.txt)
     - gm_image="${CI_REGISTRY_IMAGE}/gitlab-graphicsmagick:${gm_version}"
+    - exiftool_version=$(cat artifacts/container_versions/gitlab-exiftool_tag.txt)
+    - exiftool_image="${CI_REGISTRY_IMAGE}/gitlab-exiftool:${exiftool_version}"
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - docker pull $pg_image > /dev/null || true
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${CE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ce:${GITLAB_ASSETS_TAG}"
@@ -452,6 +473,7 @@
                       --build-arg "ASSETS_IMAGE=${ASSETS_IMAGE}"
                       --build-arg "GM_IMAGE=${gm_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
+                      --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
     - push_tags $GITLAB_REF_SLUG
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(cat artifacts/images/$CI_JOB_NAME.txt)
@@ -649,6 +671,8 @@
     - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ce_tag.txt)
+    - exiftool_version=$(cat artifacts/container_versions/gitlab-exiftool_tag.txt)
+    - exiftool_image="${CI_REGISTRY_IMAGE}/gitlab-exiftool:${exiftool_version}"
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version"
@@ -657,6 +681,7 @@
                       --build-arg "RAILS_VERSION=${rails_container}"
                       --build-arg "RUBY_VERSION=$ruby_version"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ce"
+                      --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG
 
@@ -666,11 +691,14 @@
     - .only-ee
   stage: phase-six
   script:
+    - import_assets artifacts/ubi/gitlab-exiftool.tar.gz
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
     - rails_version=$(get_version gitlab-rails)
     - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ee_tag.txt)
+    - exiftool_version=$(cat artifacts/container_versions/gitlab-exiftool_tag.txt)
+    - exiftool_image="${CI_REGISTRY_IMAGE}/gitlab-exiftool:${exiftool_version}"
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
@@ -682,5 +710,6 @@
                       --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
                       --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
+                      --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}

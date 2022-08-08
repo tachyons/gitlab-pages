@@ -30,6 +30,7 @@ RUN dnf ${DNF_OPTS} install -by --nodocs \
 
 ADD gitlab-rails-ee.tar.gz /
 ADD gitlab-gomplate.tar.gz /
+ADD gitlab-exiftool.tar.gz /
 
 COPY scripts/ /scripts
 
