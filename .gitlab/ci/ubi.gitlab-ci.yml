@@ -85,6 +85,14 @@ build:gitlab-graphicsmagick:
     - build_if_needed --build-arg "GM_VERSION=$GM_VERSION"
     - copy_assets
 
+build:gitlab-exiftool:
+  extends: .build-job-base
+  stage: prepare:phase-one
+  script:
+    - export CONTAINER_VERSION=($(echo -n "${TARGET_VERSION}${EXIFTOOL_VERSION}" | sha1sum))
+    - build_if_needed --build-arg "EXIFTOOL_VERSION=$EXIFTOOL_VERSION"
+    - copy_assets
+
 build:gitlab-ruby:
   extends: .build-job-base
   stage: prepare:phase-one
@@ -289,8 +297,9 @@ build:gitlab-rails-ee:
     - build:gitlab-elasticsearch-indexer
     - build:gitlab-metrics-exporter
     - build:gitlab-graphicsmagick
+    - build:gitlab-exiftool
   script:
-    - import_assets artifacts/ubi/{gitlab-ruby,postgresql,gitlab-elasticsearch-indexer,gitlab-metrics-exporter,gitlab-graphicsmagick}.tar.gz
+    - import_assets artifacts/ubi/{gitlab-ruby,postgresql,gitlab-elasticsearch-indexer,gitlab-metrics-exporter,gitlab-graphicsmagick,gitlab-exiftool}.tar.gz
     - ruby_version=$(cat artifacts/container_versions/build_gitlab-ruby_tag.txt)
     - export CONTAINER_VERSION=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - export ASSETS_IMAGE="${ASSETS_IMAGE_REGISTRY_PREFIX}/${EE_PROJECT}/${ASSETS_IMAGE_PREFIX}-ee:${GITLAB_ASSETS_TAG}"
@@ -345,9 +354,10 @@ build:gitlab-workhorse-ee:
   stage: prepare:phase-four
   needs:
     - build:gitlab-go
+    - build:gitlab-exiftool
     - build:gitlab-rails-ee
   script:
-    - import_assets artifacts/ubi/{gitlab-go,gitlab-rails-ee}.tar.gz
+    - import_assets artifacts/ubi/{gitlab-go,gitlab-rails-ee,gitlab-exiftool}.tar.gz
     - rails_version=$(get_version gitlab-rails)
     - ruby_version=$(cat artifacts/container_versions/build_gitlab-ruby_tag.txt)
     - go_dir_version=$(get_version gitlab-go)
@@ -463,6 +473,7 @@ gitlab-rails-ee:
     - build:gitlab-rails-ee
     - build:postgresql
     - build:gitlab-graphicsmagick
+    - build:gitlab-exiftool
     - build:gitlab-elasticsearch-indexer
     - build:gitlab-gomplate
 
@@ -503,6 +514,7 @@ gitlab-workhorse-ee:
   needs:
     - gitlab-ruby
     - gitlab-rails-ee
+    - build:gitlab-exiftool
     - build:gitlab-gomplate
     - build:gitlab-workhorse-ee
 

@@ -47,6 +47,11 @@ gitlab-graphicsmagick:
   needs:
     - debian-stable
 
+gitlab-exiftool:
+  extends: .gitlab-exiftool
+  needs:
+    - gitlab-base
+
 gitlab-python:
   extends: .gitlab-python
   needs:
@@ -139,6 +144,7 @@ gitlab-rails-ee:
   needs:
     - postgresql
     - gitlab-graphicsmagick
+    - gitlab-exiftool
     - gitlab-ruby
     - gitlab-elasticsearch-indexer
     - gitlab-metrics-exporter
@@ -149,6 +155,7 @@ gitlab-rails-ce:
   needs:
     - postgresql
     - gitlab-graphicsmagick
+    - gitlab-exiftool
     - gitlab-ruby
     - gitlab-metrics-exporter
     - gitlab-gomplate
@@ -207,6 +214,7 @@ gitlab-workhorse-ee:
   needs:
     - gitlab-ruby
     - gitlab-go
+    - gitlab-exiftool
     - gitlab-gomplate
     - gitlab-rails-ee
 
@@ -215,5 +223,6 @@ gitlab-workhorse-ce:
   needs:
     - gitlab-ruby
     - gitlab-go
+    - gitlab-exiftool
     - gitlab-gomplate
     - gitlab-rails-ce

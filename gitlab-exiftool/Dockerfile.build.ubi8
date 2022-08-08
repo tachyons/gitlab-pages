@@ -1,0 +1,16 @@
+ARG BUILD_IMAGE=
+
+FROM ${BUILD_IMAGE}
+
+ARG BUILD_DIR=/tmp/build
+ARG EXIFTOOL_VERSION=11.70
+
+COPY patches/ ${BUILD_DIR}/patches
+
+RUN curl -f --retry 6 https://gitlab.com/gitlab-org/build/omnibus-mirror/exiftool/-/archive/${EXIFTOOL_VERSION}/exiftool-${EXIFTOOL_VERSION}.tar.gz | tar -xz \
+    && cd exiftool-${EXIFTOOL_VERSION} \
+    && patch -p1 < ${BUILD_DIR}/patches/allow-only-tiff-jpeg-exif-strip.patch \
+    && perl Makefile.PL \
+    && mkdir -p /assets \
+    && make DESTDIR=/assets install \
+    && rm -Rf /assets/usr/local/share/man

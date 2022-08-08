@@ -4,6 +4,7 @@ ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby"
 ARG PG_VERSION="14.1"
 ARG PG_IMAGE="$CI_REGISTRY_IMAGE/postgresql:${PG_VERSION}"
 ARG GM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-graphicsmagick:${GM_VERSION}"
+ARG EXIFTOOL_IMAGE="$CI_REGISTRY_IMAGE/gitlab-exiftool:${EXIFTOOL_VERSION}"
 ARG GEI_IMAGE="$CI_REGISTRY_IMAGE/gitlab-elasticsearch-indexer:1.0.0"
 ARG GME_IMAGE="$CI_REGISTRY_IMAGE/gitlab-metrics-exporter:main"
 ARG GITLAB_VERSION=v10.7.0-ee
@@ -17,6 +18,7 @@ FROM ${ASSETS_IMAGE} as assets
 FROM ${PG_IMAGE} as pg_image
 FROM ${GME_IMAGE} as gme_image
 FROM ${GM_IMAGE} as graphicsmagick_image
+FROM ${EXIFTOOL_IMAGE} as exiftool_image
 FROM ${GOMPLATE_IMAGE} as gomplate
 <% if ee? %>
 FROM ${GEI_IMAGE} as gei_image
@@ -185,6 +187,8 @@ RUN mkdir -p /usr/share/man/man7 \
     && apt-get install -q -y --no-install-recommends \
          libicu67 libre2-9 tzdata xtail \
          libpng16-16 libtiff5 libturbojpeg0 zlib1g \
+         # required for exiftool
+         perl \
     && rm -rf /var/lib/apt/lists/*
 
 <% if ee? %>
@@ -203,7 +207,10 @@ COPY --from=pg_image /usr/local/psql/lib/libpq.so* /usr/lib/
 # Include GraphicsMagick (binary and license)
 COPY --from=graphicsmagick_image /usr/local /usr/local
 
+COPY --from=exiftool_image / /
+
 COPY --from=gomplate /gomplate /usr/local/bin/gomplate
+
 
 RUN buildDeps=' \
     libicu-dev \
