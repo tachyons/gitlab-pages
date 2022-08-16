@@ -1,6 +1,7 @@
 .final_images: &final_images
   - job: alpine-certificates
   - job: cfssl-self-sign
+  - job: gitlab-base
   - job: gitaly
   - job: gitlab-container-registry
   - job: gitlab-exporter
