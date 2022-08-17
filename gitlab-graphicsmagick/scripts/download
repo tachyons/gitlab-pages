@@ -3,6 +3,7 @@
 # Items from environment:
 # - GM_SOURCE_URL - complete URL of the source tarball
 # - GM_SIGNATURE_URL - complete URL of the detatched signature
+# - GM_CHECKSUM_SHA256 - sha256 of the source tarball to verify
 # - _SIGNATURE_KEY - The key fingerprint to have created the signature
 # - _SIGNATURE_ENFORCE - Enable tarball signature verification
 
@@ -10,15 +11,21 @@ set -exo pipefail
 
 pushd /build
 # Downloads sources
-curl --retry 6 -fLOsS $GM_SOURCE_URL
+curl --retry 6 -fLsS -o graphicsmagick.tarball $GM_SOURCE_URL
 
-# Download & verify signature
-if [ -z $_SIGNATURE_ENFORCE ] && [ -z $_SIGNATURE_KEY ] ; then
-  curl --retry 6 -fLOsS $GM_SIGNATURE_URL
-  gpg --recv-key $_SIGNATURE_KEY
-  gpg $(basename $GM_SIGNATURE_URL)
+# Verify checksum
+if [ "$GM_CHECKSUM_SHA256" ]; then
+  echo "${GM_CHECKSUM_SHA256} ./graphicsmagick.tarball" > SHASUM
+  sha256sum -c SHASUM
 fi
 
-tar xf $(basename $GM_SOURCE_URL)
+# Download & verify signature
+if [ -z "$_SIGNATURE_ENFORCE" ] && [ -z "$_SIGNATURE_KEY" ] ; then
+  curl --retry 6 -fLsS -o graphicsmagick.tarball.sig $GM_SIGNATURE_URL
+  gpg --recv-key $_SIGNATURE_KEY
+  gpg graphicsmagick.tarball.sig
+fi
+
+tar xf graphicsmagick.tarball
 
 popd # from /build

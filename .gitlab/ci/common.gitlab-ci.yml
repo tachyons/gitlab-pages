@@ -110,6 +110,7 @@
     - export GM_VERSION_MINOR=$(expr match $GM_VERSION '\(^[0-9]\+.[0-9]\+\)')
     - build_if_needed --build-arg "GM_VERSION=$GM_VERSION"
                       --build-arg "GM_VERSION_MINOR=$GM_VERSION_MINOR"
+                      --build-arg "GM_CHECKSUM_SHA256=$GM_CHECKSUM_SHA256"
                       $DEBIAN_BUILD_ARGS
     - push_tags
     - push_tags $GM_VERSION${IMAGE_TAG_EXT}
