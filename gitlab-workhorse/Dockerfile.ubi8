@@ -1,6 +1,6 @@
-ARG RUBY_IMAGE=
+ARG GITLAB_BASE_IMAGE=
 
-FROM ${RUBY_IMAGE} as build
+FROM ${GITLAB_BASE_IMAGE} as build
 
 ARG GITLAB_USER=git
 ARG UID=1000
@@ -16,7 +16,7 @@ RUN install -d -o ${UID} -g 0 -m 0770 /assets/var/log/gitlab \
     && chown -R ${UID}:0 /assets/srv/gitlab \
     && chmod -R g=u /assets
 
-FROM ${RUBY_IMAGE} as final
+FROM ${GITLAB_BASE_IMAGE} as final
 
 ARG GITLAB_VERSION
 ARG GITLAB_USER=git

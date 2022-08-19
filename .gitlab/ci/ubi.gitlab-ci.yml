@@ -363,7 +363,7 @@ build:gitlab-workhorse-ee:
     - go_dir_version=$(get_version gitlab-go)
     - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
     - rails_container=($(echo -n "$ruby_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
-    - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - build_if_needed --build-arg "VERSION=$GITLAB_VERSION"
                       --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "API_URL=${CI_API_V4_URL}"
@@ -512,7 +512,6 @@ gitlab-webservice-ee:
 gitlab-workhorse-ee:
   extends: .gitlab-workhorse-ee
   needs:
-    - gitlab-ruby
     - gitlab-rails-ee
     - build:gitlab-exiftool
     - build:gitlab-gomplate
