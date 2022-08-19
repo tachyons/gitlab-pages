@@ -1,8 +1,12 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
+ARG TAG="master"
+
 ARG GO_TAG="master"
 ARG GITLAB_EDITION=gitlab-rails-ee
 ARG RAILS_VERSION="master"
-ARG RUBY_VERSION="master"
+
+ARG GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${TAG}"
+
 ARG EXIFTOOL_IMAGE="$CI_REGISTRY_IMAGE/gitlab-exiftool:${EXIFTOOL_VERSION}"
 ARG GOMPLATE_TAG=
 ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
@@ -28,7 +32,7 @@ RUN buildDeps=' \
   && apt-get install -y --no-install-recommends perl \
   && rm -rf /var/lib/apt/lists/*
 
-FROM ${CI_REGISTRY_IMAGE}/gitlab-ruby:${RUBY_VERSION}
+FROM ${GITLAB_BASE_IMAGE} as final
 
 ARG DATADIR=/var/opt/gitlab
 ARG CONFIG=/srv/gitlab/config

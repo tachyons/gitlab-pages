@@ -668,8 +668,9 @@
   stage: phase-six
   script:
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
+    - gitlab_base_version=$(cat artifacts/container_versions/gitlab-base_tag.txt)
+    - export GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${gitlab_base_version}${IMAGE_TAG_EXT}"
     - rails_version=$(get_version gitlab-rails)
-    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ce_tag.txt)
     - exiftool_version=$(cat artifacts/container_versions/gitlab-exiftool_tag.txt)
@@ -678,12 +679,13 @@
     - export CONTAINER_VERSION=($(echo -n "$rails_container$go_version$TARGET_VERSION" | sha1sum))
     - export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version"
     - build_if_needed --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "TAG=${gitlab_base_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=$GITLAB_VERSION"
                       --build-arg "RAILS_VERSION=${rails_container}"
-                      --build-arg "RUBY_VERSION=$ruby_version"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ce"
                       --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_BASE_IMAGE=${GITLAB_BASE_IMAGE}"
     - push_tags $GITLAB_REF_SLUG
 
 .gitlab-workhorse-ee:
@@ -694,8 +696,9 @@
   script:
     - import_assets artifacts/ubi/gitlab-exiftool.tar.gz
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
+    - gitlab_base_version=$(cat artifacts/container_versions/gitlab-base_tag.txt)
+    - export GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${gitlab_base_version}${IMAGE_TAG_EXT}"
     - rails_version=$(get_version gitlab-rails)
-    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
     - rails_container=$(cat artifacts/container_versions/gitlab-rails-ee_tag.txt)
     - exiftool_version=$(cat artifacts/container_versions/gitlab-exiftool_tag.txt)
@@ -706,11 +709,11 @@
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version${IMAGE_TAG_EXT}"
     - fi
     - build_if_needed --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
+                      --build-arg "TAG=${gitlab_base_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=$GITLAB_VERSION"
                       --build-arg "RAILS_VERSION=$rails_container${IMAGE_TAG_EXT}"
-                      --build-arg "RUBY_VERSION=$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_EDITION=gitlab-rails-ee"
-                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
+                      --build-arg "GITLAB_BASE_IMAGE=${GITLAB_BASE_IMAGE}"
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}

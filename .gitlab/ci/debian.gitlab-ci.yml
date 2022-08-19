@@ -212,7 +212,6 @@ gitlab-webservice-ce:
 gitlab-workhorse-ee:
   extends: .gitlab-workhorse-ee
   needs:
-    - gitlab-ruby
     - gitlab-go
     - gitlab-exiftool
     - gitlab-gomplate
@@ -221,7 +220,6 @@ gitlab-workhorse-ee:
 gitlab-workhorse-ce:
   extends: .gitlab-workhorse-ce
   needs:
-    - gitlab-ruby
     - gitlab-go
     - gitlab-exiftool
     - gitlab-gomplate
