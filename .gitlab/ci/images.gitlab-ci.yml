@@ -37,10 +37,10 @@ final-images-listing:
   script:
     - for i in artifacts/final/* ; do echo "${i} - $(cat ${i})" ; done
   needs: !reference [.final_images]
-  rules: # NOTE: never runs for auto-deploy branches. See `workflow:rules` above.
-    - !reference [.tagless-versionless, rules]
-      # Run on any Branch pipeline
-    - if: '$CI_COMMIT_BRANCH' # Available in branch pipelines. Not available in MR (detached) or Tag pipelines.
+  rules:
+    # Skipped for auto-deploy branches via workflow:rules
+    # Skip on deps pipeline as the final image listing is useless there
+    - !reference [.except-deps, rules]
   artifacts:
     paths:
       - artifacts/final/

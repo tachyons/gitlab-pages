@@ -234,28 +234,29 @@ function push_tags(){
       edition=$(trim_edition $edition)
     fi
 
-    tag_and_push $edition $mirror_image_name
-
-    # Once a SemVer tag is used, that gets precedence over CONTAINER_VERSION.
-    # So we overwrite the recorded information.
-    echo "${CI_JOB_NAME#build:*}:$edition" > "artifacts/images/${CI_JOB_NAME#build:*}.txt"
+    version_to_tag=$edition
   elif is_regular_tag; then
     # If no version is specified, but on a non-auto-deploy tag pipeline, we use
     # the trimmed tag.
     trimmed_tag=$(trim_edition $CI_COMMIT_TAG)
 
-    tag_and_push $trimmed_tag $mirror_image_name
+    version_to_tag=$trimmed_tag
   else
     # If a version was specified but on a branch or auto-deploy tag,
     # OR
     # if no version was specified at all,
     # we use the slug.
-    tag_and_push ${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT} ${mirror_image_name}
+    version_to_tag=${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT}
+  fi
 
-    # if this is a final image, record it.
-    if is_final_image; then
-      echo "${CI_JOB_NAME#build:*}:${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT}" > "artifacts/final/${CI_JOB_NAME#build:*}.txt"
-    fi
+  tag_and_push $version_to_tag $mirror_image_name
+
+  # Append the newly pushed tags also to the artifact list
+  echo "${CI_JOB_NAME#build:*}:${version_to_tag}" >> "artifacts/images/${CI_JOB_NAME#build:*}.txt"
+
+  # if this is a final image, record it separately.
+  if is_final_image; then
+    echo "${CI_JOB_NAME#build:*}:${version_to_tag}" > "artifacts/final/${CI_JOB_NAME#build:*}.txt"
   fi
 }
 
