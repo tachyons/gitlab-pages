@@ -34,6 +34,9 @@
 .if_fips_pipeline: &if_fips_pipeline
   if: '$FIPS_PIPELINE == "true"'
 
+.if_scheduled_fips_pipeline: &if_scheduled_fips_pipeline
+  if: '$FIPS_PIPELINE == "true" && $CI_PIPELINE_SOURCE == "schedule"'
+
 .if_fips_tag: &if_fips_tag
   if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?-fips$/'
 

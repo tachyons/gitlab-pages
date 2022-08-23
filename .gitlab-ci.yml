@@ -45,8 +45,8 @@ stages:
   - phase-five
   - phase-six
   - final-list
-  - container-scanning
   - release
+  - container-scanning
   - report
 
 workflow:
