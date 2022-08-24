@@ -7,8 +7,7 @@ ARG GITLAB_NAMESPACE=gitlab-org
 ARG BUILD_DIR=/tmp/build-gitlab-kas
 ARG DNF_OPTS
 ARG FETCH_ARTIFACTS_PAT
-ARG CI_SERVER_HOST
-ARG CI_SERVER_PORT
+ARG CI_API_V4_URL
 
 ADD gitlab-go.tar.gz /
 
@@ -20,11 +19,15 @@ RUN ln -sf /usr/local/go/bin/* /usr/local/bin \
     && go install github.com/bazelbuild/bazelisk@${BAZELISK_VERSION} \
     && ln -s /root/go/bin/bazelisk /root/go/bin/bazel
 ENV PATH="${PATH}:/root/go/bin"
+ENV GIT_COMMIT="${GITLAB_KAS_VERSION}"
+ENV GIT_TAG="${GITLAB_KAS_VERSION}"
 
 # install kas
-RUN echo "Downloading source code" \
-    && git clone "https://gitlab-token:${FETCH_ARTIFACTS_PAT}@gitlab.com:${CI_SERVER_PORT}/${GITLAB_NAMESPACE}/cluster-integration/gitlab-agent.git" --branch "${GITLAB_KAS_VERSION}" --single-branch "${BUILD_DIR}" \
-    && cd ${BUILD_DIR} \
-    && echo "Building kas binary" \
-    && mkdir -p /assets/usr/bin \
+RUN mkdir -p /assets/usr/bin \
+    && PRIVATE_TOKEN="${FETCH_ARTIFACTS_PAT}" /gitlab-fetch \
+        "${CI_API_V4_URL}" \
+        "${GITLAB_NAMESPACE}%2Fcluster-integration" \
+        "gitlab-agent" \
+        "${GITLAB_KAS_VERSION}" \
+    && cd "gitlab-agent-${GITLAB_KAS_VERSION}" \
     && bazel run //cmd/kas:extract_kas -- /assets/usr/bin
