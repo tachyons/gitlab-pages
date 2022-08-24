@@ -322,8 +322,8 @@
                       --build-arg "TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_NAMESPACE=gitlab-org"
                       --build-arg "GITLAB_KAS_VERSION=${GITLAB_KAS_VERSION}"
-                      --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
-                      --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
+                      --build-arg "CI_SERVER_HOST=${CI_SERVER_HOST}"
+                      --build-arg "CI_SERVER_PORT=${CI_SERVER_PORT}"
     - push_tags
     - push_tags "$GITLAB_KAS_VERSION${IMAGE_TAG_EXT}"
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-kas_tag.txt
