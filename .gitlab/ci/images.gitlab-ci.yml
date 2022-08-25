@@ -100,7 +100,7 @@ container-scanning:
   needs: ["final-images-listing"]
   allow_failure: true
   script:
-    - images=$(cat artifacts/final/* | xargs printf 'dev.gitlab.org:5005/gitlab/charts/components/images/%s,')
+    - images=$(cat artifacts/final/* | xargs printf "$CI_REGISTRY_IMAGE/%s,")
     - curl -fS
         --request POST
         --form ref=master
