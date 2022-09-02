@@ -21,6 +21,7 @@ RUN buildDeps='build-essential' && \
     apt-get install -y --no-install-recommends $buildDeps libpq-dev && \
     rm -rf /var/lib/apt/lists/* && \
     gem install gitlab-exporter -v ${GITLAB_EXPORTER_VERSION} && \
+    /build-scripts/cleanup-gems /usr/lib/ruby/gems && \
     SUDO_FORCE_REMOVE=yes apt-get purge -y --auto-remove $buildDeps
 
 ENV CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab-exporter/templates
