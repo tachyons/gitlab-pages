@@ -9,8 +9,8 @@ dependencies:
     # Assign to maintainers
     gitlab_assignee_ids:
       - 597578 # WarheadsSE (jplum)
-      - 42196  # twk3 (dmountney)
       - 4849   # balasankarc (balu)
+      - 2602134 # rmarshall (*)
     gitlab_labels:
       - group::distribution
       - devops::enablement
