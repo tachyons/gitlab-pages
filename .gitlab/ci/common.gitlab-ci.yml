@@ -324,6 +324,7 @@
                       --build-arg "GITLAB_KAS_VERSION=${GITLAB_KAS_VERSION}"
                       --build-arg "CI_SERVER_HOST=${CI_SERVER_HOST}"
                       --build-arg "CI_SERVER_PORT=${CI_SERVER_PORT}"
+                      $UBI_BUILD_ARGS
     - push_tags
     - push_tags "$GITLAB_KAS_VERSION${IMAGE_TAG_EXT}"
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-kas_tag.txt
