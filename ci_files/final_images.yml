@@ -2,6 +2,7 @@
   - job: alpine-certificates
   - job: cfssl-self-sign
   - job: gitlab-base
+  - job: gitlab-ruby
   - job: gitaly
   - job: gitlab-container-registry
   - job: gitlab-exporter
