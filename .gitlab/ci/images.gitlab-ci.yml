@@ -35,6 +35,9 @@ final-images-listing:
   extends: .job-base
   stage: final-list
   script:
+    - '[ -f artifacts/container_versions/debian.txt ] && echo "debian.txt - ${DEBIAN_IMAGE}"'
+    - '[ -f artifacts/container_versions/alpine.txt ] && echo "alpine.txt - ${ALPINE_IMAGE}"'
+    - '[ -f artifacts/container_versions/ubi.txt ] && echo "UBI.txt - ${UBI_IMAGE}"'
     - for i in artifacts/final/* ; do echo "${i} - $(cat ${i})" ; done
   needs: !reference [.final_images]
   rules:
@@ -101,10 +104,19 @@ container-scanning:
   allow_failure: true
   script:
     - images=$(cat artifacts/final/* | xargs printf "$CI_REGISTRY_IMAGE/%s,")
+    - if [ "${UBI_PIPELINE}" == "true" ]; then
+        images="${images},${UBI_IMAGE}";
+        dedupe_model=cng/ubi.yaml;
+      else
+        images="${images},${DEBIAN_IMAGE}";
+        images="${images},${ALPINE_IMAGE}";
+        dedupe_model=cng/debian.yaml;
+      fi
     - curl -fS
         --request POST
         --form ref=master
         --form "variables[IMAGES]=$images"
+        --form "variables[CONTAINER_DEDUPE_MODEL]=$dedupe_model"
         --form "token=${SCANNING_TRIGGER_TOKEN}"
         https://gitlab.com/api/v4/projects/16505542/trigger/pipeline
   rules:
