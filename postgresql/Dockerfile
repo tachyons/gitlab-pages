@@ -1,5 +1,5 @@
 ARG DEBIAN_IMAGE=debian:bullseye-slim
-FROM ${DEBIAN_IMAGE}
+FROM ${DEBIAN_IMAGE} as build
 
 ARG BUILD_DIR=/tmp/build
 ARG PG_VERSION=14.1
@@ -8,7 +8,7 @@ ENV LANG=C.UTF-8
 
 # install runtime deps
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends \
+  && apt-get install -y --no-install-recommends \
   bzip2 \
   ca-certificates \
   libffi-dev \
@@ -45,8 +45,13 @@ RUN buildDeps=' \
   && rm postgresql.tar.gz \
   && cd postgresql-${PG_VERSION} \
   && ./configure --prefix=/usr/local/psql --with-libedit-preferred --disable-rpath --with-openssl --with-uuid=ossp \
-  && make -j "$(nproc)" world \
-  && make -j "$(nproc)" install-world \
+  && make -j "$(nproc)" -C src/bin install \
+  && make -j "$(nproc)" -C src/include install \
+  && make -j "$(nproc)" -C src/interfaces install \
+  && rm -Rf /usr/local/psql/share \
   && cd \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf ${BUILD_DIR}
+
+FROM scratch
+COPY --from=build /usr/local/psql /usr/local/psql
