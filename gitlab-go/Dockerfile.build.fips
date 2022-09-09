@@ -3,7 +3,7 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.5
 FROM ${UBI_IMAGE} as builder
 
 ARG GO_VERSION=1.17
-ARG GO_FIPS_TAG=1.17.10-1-openssl-fips
+ARG GO_FIPS_TAG=1.17.12-1-openssl-fips
 
 RUN INSTALL_PKGS="openssl-devel glibc-devel gcc git golang" &&  \
     dnf update -y && \
