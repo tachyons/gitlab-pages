@@ -77,7 +77,7 @@
                       --build-arg "CFSSL_CHECKSUM_SHA256=$CFSSL_CHECKSUM_SHA256"
                       $ALPINE_BUILD_ARGS $UBI_BUILD_ARGS
     - push_tags
-    - push_tags "$CFSSL_VERSION"
+    - push_tags "${CFSSL_VERSION}${IMAGE_TAG_EXT}"
 
 .kubectl:
   extends: .job-base

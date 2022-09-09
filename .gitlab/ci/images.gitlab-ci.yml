@@ -104,7 +104,7 @@ container-scanning:
   allow_failure: true
   script:
     - images=$(cat artifacts/final/* | xargs printf "$CI_REGISTRY_IMAGE/%s,")
-    - if [ "${UBI_PIPELINE}" == "true" ]; then
+    - if [ "${UBI_PIPELINE}" == "true" -o "${FIPS_PIPELINE}" == "true" ]; then
         images="${images},${UBI_IMAGE}";
         dedupe_model=cng/ubi.yaml;
       else
