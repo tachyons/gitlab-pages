@@ -28,12 +28,15 @@ Dir.glob("#{secrets_dir}/*").each do |app_path|
     secret = File.read(File.join(app_path, 'appsecret')).strip
     redirecturi = File.read(File.join(app_path, 'redirecturi')).strip
 
-    Doorkeeper::Application.where({ redirect_uri: redirecturi, name: app, uid: uid, secret: secret }).first_or_create
+    oauth_app = Doorkeeper::Application.where({ redirect_uri: redirecturi, name: app }).by_uid_and_secret(uid, secret)
+    unless oauth_app
+      Doorkeeper::Application.where({ redirect_uri: redirecturi, name: app, uid: uid, secret: secret }).create!
+    end
     puts "Successfully registered #{app}."
   rescue Errno::ENOENT
     puts "Necessary secrets not found. Skipping registration of #{app}"
     next
-  rescue RuntimeError
+  rescue RuntimeError, ActiveRecord::RecordInvalid
     puts "Failed to register #{app}."
     next
   end
