@@ -1,11 +1,13 @@
 # ARGS for entire build
-ARG KUBECTL_VERSION="1.18.20"
 ARG DEBIAN_IMAGE=debian:bullseye-slim
+ARG KUBECTL_VERSION="1.23.10"
+ARG YQ_VERSION="4.27.5"
+
 FROM ${DEBIAN_IMAGE}
 
 # ARG must be redeclared after each FROM
 ARG KUBECTL_VERSION
-ARG YQ_VERSION="4.27.5"
+ARG YQ_VERSION
 
 # Providing to environment, for easy information gathering.
 ENV KUBECTL_VERSION ${KUBECTL_VERSION}

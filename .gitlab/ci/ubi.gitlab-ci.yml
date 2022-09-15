@@ -213,8 +213,9 @@ build:kubectl:
   extends: .build-job-base
   stage: prepare:phase-one
   script:
-    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}${YQ_VERSION}" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"
+                      --build-arg "YQ_VERSION=${YQ_VERSION}"
     - copy_assets
 
 build:gitlab-webservice-ee:
