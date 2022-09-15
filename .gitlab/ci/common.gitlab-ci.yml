@@ -85,6 +85,7 @@
   script:
     - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${KUBECTL_VERSION}" | sha1sum))
     - build_if_needed --build-arg "KUBECTL_VERSION=${KUBECTL_VERSION}"
+                      --build-arg "YQ_VERSION=${YQ_VERSION}"
                       $DEBIAN_BUILD_ARGS $UBI_BUILD_ARGS
     - push_tags
     - push_tags $KUBECTL_VERSION${IMAGE_TAG_EXT}
