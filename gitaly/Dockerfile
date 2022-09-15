@@ -1,12 +1,29 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
-ARG TAG="master"
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
-ARG RUBY_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby"
+ARG GO_TAG="master"
+ARG GO_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
+ARG RUBY_TAG="master"
+ARG RUBY_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:${RUBY_TAG}"
 ARG GITLAB_LOGGER_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-logger"
 ARG GITLAB_LOGGER_TAG="${GITLAB_LOGGER_TAG}"
 
+FROM ${GO_IMAGE}:${GO_TAG} as golang
+
+ARG RUBY_IMAGE
+ARG RUBY_TAG
+ARG GITLAB_LOGGER_IMAGE
+ARG GITLAB_LOGGER_TAG
+
 FROM ${GITLAB_LOGGER_IMAGE}:${GITLAB_LOGGER_TAG} as logger
-FROM ${FROM_IMAGE}:${TAG} as builder
+
+ARG RUBY_IMAGE
+ARG RUBY_TAG
+
+FROM ${RUBY_IMAGE} as builder
+
+ARG RUBY_IMAGE
+ARG RUBY_TAG
+
+COPY --from=golang /usr/local/go /usr/local/go
 
 ARG GITALY_SERVER_VERSION=v1.83.0
 ARG BUILD_DIR=/tmp/build
@@ -38,6 +55,7 @@ RUN buildDeps=' \
     libcurl4-gnutls-dev' && \
     apt-get update && \
     apt-get install -y --no-install-recommends $buildDeps $runDeps && \
+    ln -sf /usr/local/go/bin/go /usr/local/go/bin/gofmt /usr/local/go/bin/godoc /usr/local/bin/ && \
     mkdir -p ${BUILD_DIR} && \
     cd ${BUILD_DIR} && \
     echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitaly/repository/archive.tar.bz2?sha=${GITALY_SERVER_VERSION}" && \

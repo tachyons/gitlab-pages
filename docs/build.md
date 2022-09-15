@@ -287,7 +287,7 @@ graph LR;
     gcr.io/distroless/base-debian11
   end
 
-  gitlab-go==>gitlab-ruby;
+  gitlab-go==>debian;
   gitlab-base==>debian;
   gitlab-ruby==>gitlab-base;
 

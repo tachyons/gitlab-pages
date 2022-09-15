@@ -187,13 +187,11 @@
 # debian only
 .gitlab-go:
   extends: .job-base
-  stage: phase-two
+  stage: phase-zero
   script:
-    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
-    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$TARGET_VERSION$ruby_version$GO_VERSION" | sha1sum))
+    - export CONTAINER_VERSION=($(echo -n "$BASE_VERSION$TARGET_VERSION$GO_VERSION" | sha1sum))
     - build_if_needed --build-arg "GO_VERSION=$GO_VERSION"
-                      --build-arg "FROM_IMAGE=$CI_REGISTRY_IMAGE/gitlab-ruby"
-                      --build-arg "TAG=$ruby_version${IMAGE_TAG_EXT}"
+                      $DEBIAN_BUILD_ARGS $UBI_BUILD_ARGS
     - push_tags
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-go_tag.txt
 

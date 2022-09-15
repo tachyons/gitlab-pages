@@ -77,7 +77,7 @@ gitlab-exporter:
 gitlab-go:
   extends: .gitlab-go
   needs:
-    - gitlab-ruby
+    - debian-stable
 
 gitlab-mailroom:
   extends: .gitlab-mailroom
