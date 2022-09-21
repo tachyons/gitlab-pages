@@ -27,4 +27,6 @@ RUN echo "Downloading source code" \
     && cd ${BUILD_DIR} \
     && echo "Building kas binary" \
     && mkdir -p /assets/usr/bin \
-    && bazel run //cmd/kas:extract_kas -- /assets/usr/bin
+    && bazel run //cmd/kas:extract_kas -- /assets/usr/bin \
+    && mkdir /assets/licenses \
+    && cp LICENSE /assets/licenses/GitLab.txt
