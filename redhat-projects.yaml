@@ -43,3 +43,15 @@ gitlab-toolbox-ee:
   ospid: ospid-60fb728cc3450afa1bb969e2
   pid: 60fb728cc3450afa1bb969e2
   version_variable: GITLAB_VERSION
+gitlab-kas:
+  ospid: ospid-6306824c0d53878b3b4cc60d
+  pid: 6306824c0d53878b3b4cc60d
+  version_variable: GITLAB_KAS_VERSION
+gitlab-pages:
+  ospid: ospid-630683acb2ab2de150584661
+  pid: 630683acb2ab2de150584661
+  version_variable: GITLAB_PAGES_VERSION
+gitlab-geo-logcursor:
+  ospid: ospid-630683e0290892d1ec194033
+  pid: 630683e0290892d1ec194033
+  version_variable: GITLAB_GEO_LOGCURSOR_VERSION

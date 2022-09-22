@@ -105,6 +105,64 @@ a list of images and their current status in the Red Hat certification
 pipeline. One would need to define `REDHAT_API_TOKEN`in the local environment
 or use the `--token` command line switch to specify their personal token.
 
+#### Certifying containers
+
+Follow the steps below to complete the one-time setup of a container
+project listing with RedHat:
+
+1. Navigate to the [RedHat Partner Connect portal](https://connect.redhat.com/projects/create/containers).
+1. Click **Create Project**.
+1. Select **Red Hat OpenShift** under the **What platform do you want to certify on?** heading.
+1. Select **Container image** under the **What do you want to certify?** heading.
+1. Fill in the relevant project name (for example, `gitlab-pages`).
+1. Select **Red Hat Universal Base Image** under the **OS Content Type** heading.
+1. Select **Non-RedHat Container registry** under the **Distribution Method** heading.
+1. Click **Create**.
+1. Fill in the metadata under the **Settings** tab. Use one of the other container project pages as a reference.
+1. Complete the **Pre-certification Checklist**:
+   - The **Provide details about your container** step is mostly done by hand. However,
+     the **Repository path** field is only filled in when submitting the image for certification.
+   - The **Submit your container for verification** step is completed when the certification passes. If it
+     fails for any reason, this step will remain incomplete.
+   - For the remaining steps, follow the RedHat-provided instructions and refer to other
+     project listings when necessary.
+1. Copy the **PID** value on the following page, and add it to [redhat-projects.yaml](../redhat-projects.yaml).
+1. Ensure a job to certify the image exists in the [UBI CI configuration](../.gitlab/ci/ubi.gitlab-ci.yml).
+
+##### Test certification locally
+
+Test image certification locally using the **preflight** utility.
+
+The following example tests the KAS image:
+
+```shell
+docker run -it --rm registry.gitlab.com/gitlab-org/cloud-native/preflight:1.2.1-1 \
+  preflight check container registry.gitlab.com/gitlab-org/build/cng/gitlab-kas:master-fips
+```
+
+##### Submit certification locally
+
+If you need to submit for certification locally rather than via the pipeline, complete the following:
+
+1. Create a personal access token under your GitLab account with **read registry** access.
+1. Create a [RedHat API key](https://connect.redhat.com/account/api-keys).
+1. Run the following:
+
+   ```shell
+   docker run --rm -it registry.gitlab.com/gitlab-org/cloud-native/preflight:1.2.1-1 bash
+   podman login --username <gitlab email address> --password <GitLab personal access token> registry.gitlab.com
+   preflight check container \
+       registry.gitlab.com/gitlab-org/build/cng/gitlab-kas:master-fips \
+       --submit \
+       --certification-project-id="<PID from container project page, without `ospid-` prefix>" \
+       --pyxis-api-token="<RedHat API key>" \
+       --docker-config /run/containers/0/auth.json
+   ```
+
+After these steps, ensure that the added certification job passes in CI. Note that the certification
+jobs rely on the **REDHAT_API_TOKEN** variable, which is "protected" and therefore only available for
+jobs running on protected references, such as **master** and tags.
+
 ### Offline builds
 
 UBI-based images can be built in an isolated environment with limited access to the internet.
