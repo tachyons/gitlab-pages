@@ -657,6 +657,27 @@ kubectl Certification:
   needs:
     - kubectl
 
+gitlab-kas Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-kas
+  needs:
+    - gitlab-kas
+
+gitlab-pages Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-pages
+  needs:
+    - gitlab-pages
+
+gitlab-geo-logcursor Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: gitlab-geo-logcursor
+  needs:
+    - gitlab-geo-logcursor
+
 ## UBI is only released for EE.
 # Skip all CE jobs, used to mock definitions for `final-images-listing`
 .ubi-skipped:
