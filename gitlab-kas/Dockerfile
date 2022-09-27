@@ -8,8 +8,8 @@ ARG BAZELISK_VERSION=v1.11.0
 ARG GITLAB_KAS_VERSION=v14.5.0
 ARG GITLAB_NAMESPACE=gitlab-org
 ARG BUILD_DIR=/tmp/build
-ARG CI_SERVER_HOST
-ARG CI_SERVER_PORT
+ARG FETCH_ARTIFACTS_PAT
+ARG CI_API_V4_URL
 
 # install debian packages
 RUN apt-get update && apt-get install -y build-essential git
@@ -18,11 +18,16 @@ RUN apt-get update && apt-get install -y build-essential git
 RUN go install github.com/bazelbuild/bazelisk@${BAZELISK_VERSION} \
     && ln -s /root/go/bin/bazelisk /root/go/bin/bazel
 ENV PATH="${PATH}:/root/go/bin"
+ENV GIT_COMMIT="${GITLAB_KAS_VERSION}"
+ENV GIT_TAG="${GITLAB_KAS_VERSION}"
 
 # install kas
-RUN echo "Downloading source code" \
-    && git clone "https://gitlab-token:${FETCH_ARTIFACTS_PAT}@gitlab.com:${CI_SERVER_PORT}/${GITLAB_NAMESPACE}/cluster-integration/gitlab-agent.git" --branch "${GITLAB_KAS_VERSION}" --single-branch "${BUILD_DIR}" \
-    && cd ${BUILD_DIR} \
+RUN echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fcluster-integration%2Fgitlab-agent/repository/archive.tar.bz2?sha=${GITLAB_KAS_VERSION}" \
+    && curl -fL --retry 6 --header "PRIVATE-TOKEN: ${FETCH_ARTIFACTS_PAT}" -o gitlab-kas.tar.bz2 "${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fcluster-integration%2Fgitlab-agent/repository/archive.tar.bz2?sha=${GITLAB_KAS_VERSION}" \
+    && mkdir -p "${BUILD_DIR}" \
+    && tar -xjf gitlab-kas.tar.bz2 -C "${BUILD_DIR}" --strip-components=1 \
+    && rm gitlab-kas.tar.bz2 \
+    && cd "${BUILD_DIR}" \
     && echo "Building kas binary" \
     && bazel run //cmd/kas:extract_kas -- /usr/bin
 
