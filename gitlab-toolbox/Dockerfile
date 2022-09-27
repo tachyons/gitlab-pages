@@ -13,6 +13,7 @@ FROM ${FROM_IMAGE}:${TAG}
 ARG AWSCLI_VERSION="1.22.44"
 ARG S3CMD_VERSION="2.2.0"
 ARG GSUTIL_VERSION="4.43"
+ARG AZCOPY_VERSION="v10"
 
 COPY --from=python /usr/local/bin /usr/local/bin/
 COPY --from=python /usr/local/lib /usr/local/lib/
@@ -32,6 +33,11 @@ RUN apt-get update \
   && pip3 cache purge \
   && find /usr/local/lib/python3.8 -name '__pycache__' -type d -print -exec rm -r {} + \
   && apt-get purge -y --auto-remove gcc \
+  && mkdir /tmp/azcopy \
+  && curl -sL "https://aka.ms/downloadazcopy-${AZCOPY_VERSION}-linux" | \
+     tar xzf - -C /tmp/azcopy --strip-components=1 \
+  && cp /tmp/azcopy/azcopy /usr/local/bin && chmod 755 /usr/local/bin/azcopy \
+  && rm -rf /tmp/azcopy \
   && rm -rf /var/lib/apt/lists/*
 
 ARG GITLAB_USER=git
