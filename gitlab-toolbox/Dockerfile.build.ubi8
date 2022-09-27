@@ -5,6 +5,8 @@ FROM ${BUILD_IMAGE}
 ARG AWSCLI_VERSION=1.22.44
 ARG S3CMD_VERSION=2.2.0
 ARG GSUTIL_VERSION=4.42
+ARG AZCOPY_VERSION="v10"
+
 ARG DNF_OPTS
 
 ADD gitlab-python.tar.gz /
@@ -15,6 +17,11 @@ RUN dnf ${DNF_OPTS} install -by --nodocs gcc \
     && pip3 install awscli==${AWSCLI_VERSION} s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
     && pip3 cache purge \
     && find /usr/local/lib/python3.8 -name '__pycache__' -type d -exec rm -r {} + \
+    && mkdir /tmp/azcopy \
+    && curl -sL "https://aka.ms/downloadazcopy-${AZCOPY_VERSION}-linux" | \
+       tar xzf - -C /tmp/azcopy --strip-components=1 \
+    && cp /tmp/azcopy/azcopy /usr/local/bin && chmod 755 /usr/local/bin/azcopy \
+    && rm -rf /tmp/azcopy \
     && mv /tmp/gitaly/usr/local/bin/gitaly-backup /usr/local/bin \
     && cp -R --parents \
         /usr/local/lib/python3.8/site-packages \
