@@ -109,6 +109,9 @@ RUN install -d -o ${GITLAB_USER} -g ${GITLAB_USER} -m 755 /home/${GITLAB_USER}/r
     install -o ${GITLAB_USER} -g ${GITLAB_USER} -m 0644 /dev/null /var/log/gitaly/gitaly.log && \
     install -o ${GITLAB_USER} -g ${GITLAB_USER} -m 0644 /dev/null /var/log/gitaly/gitlab-shell.log
 
+# add default configuration template
+COPY --chown=${GITLAB_USER}:${GITLAB_USER} config.toml /etc/gitaly/config.toml.erb
+
 # add gitlab-logger
 COPY --from=logger /gitlab-logger /usr/local/bin
 

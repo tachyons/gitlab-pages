@@ -48,6 +48,9 @@ RUN dnf ${DNF_OPTS} install -by --nodocs procps net-tools libicu openssh-clients
       /srv/gitlab-shell \
       /home/${GITLAB_USER}
 
+# add default configuration template
+COPY --chown=${UID}:0 config.toml /etc/gitaly/config.toml.erb
+
 USER ${UID}
 
 ENV PATH "$PATH:/srv/gitaly-ruby/bin"
