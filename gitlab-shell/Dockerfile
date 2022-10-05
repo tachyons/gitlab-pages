@@ -21,10 +21,12 @@ ARG FETCH_ARTIFACTS_PAT
 ARG CI_API_V4_URL
 
 # install build deps
-RUN buildDeps=' \
-    gcc git make' \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends $buildDeps xtail \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      gcc \
+      git \
+      make \
+      xtail \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /assets
 
