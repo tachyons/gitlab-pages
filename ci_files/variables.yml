@@ -24,7 +24,7 @@ variables:
   # link: https://docs.gitlab.com/ee/development/go_guide/go_upgrade.html
   GO_VERSION: "1.17.13"
   GO_FIPS_VERSION: "1.17"
-  GO_FIPS_TAG: "go1.17.12-1-openssl-fips"
+  GO_FIPS_TAG: "go1.17.13-1-openssl-fips"
   # Follow the Ruby upgrade guidelines when changing the ruby version
   # link: https://docs.gitlab.com/ee/development/ruby_upgrade.html
   RUBY_VERSION: 2.7.5
