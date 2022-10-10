@@ -3,7 +3,7 @@ ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.6
 ARG GO_VERSION=1.17
 ARG GO_FIPS_TAG=go1.17.13-1-openssl-fips
 
-FROM ${UBI_IMAGE} as builder
+FROM ${UBI_IMAGE}
 
 ARG GO_FIPS_TAG=go1.17.13-1-openssl-fips
 
@@ -14,7 +14,7 @@ RUN INSTALL_PKGS="openssl-devel glibc-devel gcc git golang" &&  \
 
 RUN git clone \
     https://github.com/golang-fips/go.git \
-    --branch ${GO_FIPS_TAG} \
+    --branch "${GO_FIPS_TAG}" \
     --single-branch \
     --depth 1 \
     /assets/usr/local/go
