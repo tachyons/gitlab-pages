@@ -488,7 +488,6 @@ gitlab-geo-logcursor:
 gitlab-sidekiq-ee:
   extends: .gitlab-sidekiq-ee
   needs:
-  needs:
     - gitlab-rails-ee
     - build:gitlab-sidekiq-ee
     - build:gitlab-python
