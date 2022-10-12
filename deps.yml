@@ -46,12 +46,15 @@ dependencies:
       # YQ
       https://github.com/mikefarah/yq.git:
         replace_in_files:
+        - filename: ci_files/variables.yml
+          pattern: 'YQ_VERSION: "(\S+)"'
+          range: '>= 4.x.x'
         - filename: kubectl/Dockerfile
           pattern: 'ARG YQ_VERSION="(\S+)"'
-          range: '>= 2.x.x'
+          range: '>= 4.x.x'
         - filename: kubectl/Dockerfile.build.ubi8
           pattern: 'ARG YQ_VERSION=(\S+)'
-          range: '>= 2.x.x'
+          range: '>= 4.x.x'
       # GitLab Exporter
       https://gitlab.com/gitlab-org/gitlab-exporter.git:
         replace_in_files:
