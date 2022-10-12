@@ -25,7 +25,7 @@ RUN buildDeps=' \
   && tar -xjf pages.tar.bz2 \
   && rm pages.tar.bz2 \
   && cd gitlab-pages-* \
-  && make 'gitlab-pages' \
+  && make 'gitlab-pages' "LAST_TAG=v${GITLAB_PAGES_VERSION}" "VERSION=${GITLAB_PAGES_VERSION}" \
   && install -m +x ./gitlab-pages /usr/local/bin/gitlab-pages \
   && cd \
   && rm -rf ${BUILD_DIR} \
