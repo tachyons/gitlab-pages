@@ -41,7 +41,7 @@ cover:
 	$Q go tool cover -func .cover/test.coverage
 
 deps-check:
-	go mod tidy
+	go mod tidy -compat=1.17
 	@if git diff --color=always --exit-code -- go.mod go.sum; then \
 		echo "go.mod and go.sum are ok"; \
 	else \
