@@ -649,6 +649,13 @@ alpine-certificates Certification:
   needs:
     - alpine-certificates
 
+cfssl-self-sign Certification:
+  extends: .preflight-certification
+  variables:
+    IMAGE_NAME: cfssl-self-sign
+  needs:
+    - cfssl-self-sign
+
 kubectl Certification:
   extends: .preflight-certification
   variables:
