@@ -1,4 +1,8 @@
 ---
+cfssl-self-sign:
+  ospid: ospid-63474d9a673c3c4e34995d26
+  pid: 63474d9a673c3c4e34995d26
+  version_variable: CFSSL_VERSION
 kubectl:
   ospid: ospid-1f611785-a65d-40c3-aadd-f8cd202c1417
   pid: 5fb611335e09a3c40183e67f
