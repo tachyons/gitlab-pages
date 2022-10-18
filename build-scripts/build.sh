@@ -272,6 +272,13 @@ copy_assets() {
     tar -czf "${ASSETS_DIR}.tar.gz" -C "${ASSETS_DIR}/assets" .
     echo $(sha256sum "${ASSETS_DIR}.tar.gz") $(du -h "${ASSETS_DIR}.tar.gz" | awk '{print $1}')
     rm -rf "${ASSETS_DIR}"
+    echo "==== Cleanup UBI artifacts"
+    du -hd1 --all artifacts/ubi/*.tar.gz
+    for tarball in artifacts/ubi/*.tar.gz ; do
+      if [ "${tarball}" != "${ASSETS_DIR}.tar.gz" ]; then
+        rm -f "${tarball}"
+      fi
+    done
   fi
 }
 
@@ -355,5 +362,19 @@ populate_stable_image_vars() {
     export ALPINE_BUILD_ARGS="--build-arg ALPINE_IMAGE=${ALPINE_IMAGE}"
     echo "ALPINE_BUILD_ARGS: ${ALPINE_BUILD_ARGS}"
   fi
+}
+
+## list_artifacts
+# helper function to list any/all contents of incoming/outgoing artifacts
+# input: subdirectory to `artifacts` on which to focus
+list_artifacts() {
+    subdirectory=$1
+    directory="artifacts"
+    if [ -d "${directory}/${subdirectory}" ]; then 
+      directory="${directory}/${subdirectory}"
+    fi
+    echo "==== Artifacts Summary ===="
+    du -hd2 --all "${directory}"
+    echo "==========================="
 }
 
