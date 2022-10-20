@@ -1,7 +1,7 @@
 # ARGS for entire build
 ARG DEBIAN_IMAGE=debian:bullseye-slim
 ARG KUBECTL_VERSION="1.23.10"
-ARG YQ_VERSION="4.28.1"
+ARG YQ_VERSION="4.28.2"
 
 FROM ${DEBIAN_IMAGE}
 
