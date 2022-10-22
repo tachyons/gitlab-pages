@@ -534,6 +534,7 @@ ubi-assets-release:
     - build:gitlab-go
     - build:gitlab-logger
     - build:gitlab-gomplate
+    - build:gitlab-exiftool
     - build:gitlab-pages
     - build:gitlab-container-registry
     - build:gitlab-mailroom
