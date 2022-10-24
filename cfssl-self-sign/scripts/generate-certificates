@@ -62,7 +62,7 @@ tee ca-csr.json <<CA_CSR
 }
 CA_CSR
 
-echo "wildecard-csr.json:"
+echo "wildcard-csr.json:"
 tee wildcard-csr.json <<WILDCARD_CSR
 {
   "CN": "${CERT_SUBJECT}",
