@@ -8,7 +8,7 @@ class String
 end
 
 class ObjectStorageBackup
-  attr_accessor :name, :local_tar_path, :remote_bucket_name, :tmp_bucket_name, :backend, :s3_tool
+  attr_accessor :name, :local_tar_path, :remote_bucket_name, :tmp_bucket_name, :backend, :s3_tool, :aws_s3_settings, :aws_kms_settings
 
   GLOB_EXCLUDE='tmp/builds/*'
   private_constant :GLOB_EXCLUDE
@@ -16,13 +16,15 @@ class ObjectStorageBackup
   REGEXP_EXCLUDE='tmp/builds/.*$'
   private_constant :REGEXP_EXCLUDE
 
-  def initialize(name, local_tar_path, remote_bucket_name, tmp_bucket_name = 'tmp', backend = 's3', s3_tool = 's3cmd')
+  def initialize(name, local_tar_path, remote_bucket_name, tmp_bucket_name = 'tmp', backend = 's3', s3_tool = 's3cmd', aws_s3_settings = '', aws_kms_settings = '')
     @name = name
     @local_tar_path = local_tar_path
     @remote_bucket_name = remote_bucket_name
     @tmp_bucket_name = tmp_bucket_name
     @backend = backend
     @s3_tool = s3_tool
+    @aws_s3_settings = aws_s3_settings
+    @aws_kms_settings = aws_kms_settings
   end
 
   def backup
@@ -31,8 +33,8 @@ class ObjectStorageBackup
         check_bucket_cmd = %W(s3cmd --limit=1 ls s3://#{@remote_bucket_name})
         cmd = %W(s3cmd --stop-on-error --delete-removed --exclude #{GLOB_EXCLUDE} sync s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
       elsif @s3_tool == "awscli"
-        check_bucket_cmd = %W(aws s3api head-bucket --bucket #{@remote_bucket_name})
-        cmd = %W(aws s3 sync --delete --exclude #{GLOB_EXCLUDE} s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/)
+        check_bucket_cmd = %W(aws s3api head-bucket --bucket #{@remote_bucket_name}) + @aws_s3_settings.split(" ")
+        cmd = %W(aws s3 sync --delete --exclude #{GLOB_EXCLUDE} s3://#{@remote_bucket_name}/ /srv/gitlab/tmp/#{@name}/) + @aws_s3_settings.split(" ") + @aws_kms_settings.split(" ")
       end
     elsif @backend == "gcs"
       check_bucket_cmd = %W(gsutil ls gs://#{@remote_bucket_name})
@@ -90,7 +92,7 @@ class ObjectStorageBackup
       if @s3_tool == "s3cmd"
         cmd = %W(s3cmd --stop-on-error sync #{source_path}/ s3://#{@remote_bucket_name}/#{dir_name}/)
       elsif @s3_tool == "awscli"
-        cmd = %W(aws s3 sync #{source_path}/ s3://#{@remote_bucket_name}/#{dir_name}/)
+        cmd = %W(aws s3 sync #{source_path}/ s3://#{@remote_bucket_name}/#{dir_name}/) + @aws_s3_settings.split(" ") + @aws_kms_settings.split(" ")
       end
     elsif @backend == "gcs"
       cmd = %W(gsutil -m rsync -r #{source_path}/ gs://#{@remote_bucket_name}/#{dir_name})
@@ -108,7 +110,7 @@ class ObjectStorageBackup
       if @s3_tool == "s3cmd"
         cmd = %W(s3cmd sync s3://#{@remote_bucket_name} s3://#{@tmp_bucket_name}/#{backup_file_name}/)
       elsif @s3_tool == "awscli"
-        cmd = %W(aws s3 sync s3://#{@remote_bucket_name} s3://#{@tmp_bucket_name}/#{backup_file_name}/)
+        cmd = %W(aws s3 sync s3://#{@remote_bucket_name} s3://#{@tmp_bucket_name}/#{backup_file_name}/) + @aws_s3_settings.split(" ") + @aws_kms_settings.split(" ")
       end
     elsif @backend == "gcs"
       cmd = %W(gsutil -m rsync -r gs://#{@remote_bucket_name} gs://#{@tmp_bucket_name}/#{backup_file_name}/)
@@ -124,7 +126,7 @@ class ObjectStorageBackup
       if @s3_tool == "s3cmd"
         cmd = %W(s3cmd --stop-on-error del --force --recursive s3://#{@remote_bucket_name})
       elsif @s3_tool == "awscli"
-        cmd = %W(aws s3 rm --recursive s3://#{@remote_bucket_name})
+        cmd = %W(aws s3 rm --recursive s3://#{@remote_bucket_name}) + @aws_s3_settings.split(" ")
       end
     elsif @backend == "gcs"
       # Check if the bucket has any objects
