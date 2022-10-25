@@ -8,4 +8,6 @@ bucket_name = ENV["#{ARGV[0].upcase}_BUCKET_NAME"] || "gitlab-#{ARGV[0]}"
 tmp_bucket  = ENV['TMP_BUCKET_NAME'] || 'tmp'
 backend_type = ENV['BACKUP_BACKEND'] || 's3'
 s3_tool = ENV['S3_TOOL'] || 's3cmd'
-ObjectStorageBackup.new(ARGV[0], ARGV[1], bucket_name, tmp_bucket, backend_type, s3_tool).backup
+aws_s3_settings = ENV['AWS_S3_SETTINGS'] || ''
+aws_kms_settings = ENV['AWS_KMS_SETTINGS'] || ''
+ObjectStorageBackup.new(ARGV[0], ARGV[1], bucket_name, tmp_bucket, backend_type, s3_tool, aws_s3_settings, aws_kms_settings).backup
