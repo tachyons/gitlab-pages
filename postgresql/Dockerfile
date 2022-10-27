@@ -45,9 +45,10 @@ RUN buildDeps=' \
   && rm postgresql.tar.gz \
   && cd postgresql-${PG_VERSION} \
   && ./configure --prefix=/usr/local/psql --with-libedit-preferred --disable-rpath --with-openssl --with-uuid=ossp \
-  && make -j "$(nproc)" -C src/bin install \
-  && make -j "$(nproc)" -C src/include install \
-  && make -j "$(nproc)" -C src/interfaces install \
+  && make -j "$(nproc)" world-bin \
+  && make -C src/bin install \
+  && make -C src/include install \
+  && make -C src/interfaces install \
   && rm -Rf /usr/local/psql/share \
   && cd \
   && apt-get purge -y --auto-remove $buildDeps \
