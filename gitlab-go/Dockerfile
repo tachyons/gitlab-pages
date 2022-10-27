@@ -2,7 +2,7 @@ ARG DEBIAN_IMAGE=debian:bullseye-slim
 
 FROM ${DEBIAN_IMAGE}
 
-ARG GO_VERSION=1.17.13
+ARG GO_VERSION=1.18.7
 ARG BUILD_DIR=/tmp/build
 
 ENV GO_URL="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
