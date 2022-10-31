@@ -28,7 +28,7 @@ function usage()
      -h, --help                             Show this help message and exit.
      --restore [-t TIMESTAMP | -f URL]      When specified, utility restores from an existing backup specified
                                             as url or timestamp in object storage.
-     -f URL                                 http(s):/ftp:/file: URL with backup location. Use with --restore.
+     -f URL                                 http(s):/ftp:/file:/// URL with backup location. Use with --restore.
      -t TIMESTAMP                           Timestamp (part before '_gitlab_backup.tar' in archive name),
                                             can be used to specify backup source or target name.
      --rsyncable                            Pass the '--rsyncable' parameter to gzip for artifact compression.
