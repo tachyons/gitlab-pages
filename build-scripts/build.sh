@@ -201,7 +201,7 @@ function is_branch(){
   [ -n "${CI_COMMIT_BRANCH}" ]
 }
 
-# When `push_tags` is called with `${GITLAB_REF_SLUG}${IMAGE_EXT}` as
+# When `push_tags` is called with `${GITLAB_REF_SLUG}${IMAGE_TAG_EXT}` as
 # arguments, we will have something like `v15.1.3-ee-ubi8` or
 # `v15.1.3-ee-fips`. We need to strip off the `-ee` part from it.
 function trim_edition(){
