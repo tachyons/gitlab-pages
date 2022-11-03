@@ -391,7 +391,8 @@ func (a *theApp) setAuth(config *cfg.Config) error {
 
 	var err error
 	a.Auth, err = auth.New(config.General.Domain, config.Authentication.Secret, config.Authentication.ClientID, config.Authentication.ClientSecret,
-		config.Authentication.RedirectURI, config.GitLab.InternalServer, config.GitLab.PublicServer, config.Authentication.Scope, config.Authentication.Timeout)
+		config.Authentication.RedirectURI, config.GitLab.InternalServer, config.GitLab.PublicServer, config.Authentication.Scope,
+		config.Authentication.Timeout, config.Authentication.CookieSessionTimeout)
 	if err != nil {
 		return fmt.Errorf("could not initialize auth package: %w", err)
 	}

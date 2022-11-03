@@ -37,7 +37,6 @@ const (
 	tokenURLTemplate       = "%s/oauth/token"
 	callbackPath           = "/auth"
 	authorizeProxyTemplate = "%s?domain=%s&state=%s"
-	authSessionMaxAge      = 60 * 10 // 10 minutes
 
 	failAuthErrMsg         = "failed to authenticate request"
 	fetchAccessTokenErrMsg = "fetching access token failed"
@@ -66,6 +65,7 @@ type Auth struct {
 	apiClient            *http.Client
 	store                sessions.Store
 	now                  func() time.Time // allows to stub time.Now() easily in tests
+	cookieSessionTimeout time.Duration
 }
 
 type tokenResponse struct {
@@ -637,7 +637,7 @@ func generateKeys(secret string, count int) ([][]byte, error) {
 }
 
 // New when authentication supported this will be used to create authentication handler
-func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internalGitlabServer, publicGitlabServer, authScope string, authTimeout time.Duration) (*Auth, error) {
+func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internalGitlabServer, publicGitlabServer, authScope string, authTimeout, cookieSessionTimeout time.Duration) (*Auth, error) {
 	// generate 3 keys, 2 for the cookie store and 1 for JWT signing
 	keys, err := generateKeys(storeSecret, 3)
 	if err != nil {
@@ -655,11 +655,12 @@ func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internal
 			Timeout:   authTimeout,
 			Transport: httptransport.DefaultTransport,
 		},
-		store:         sessions.NewCookieStore(keys[0], keys[1]),
-		authSecret:    storeSecret,
-		authScope:     authScope,
-		jwtSigningKey: keys[2],
-		jwtExpiry:     time.Minute,
-		now:           time.Now,
+		store:                sessions.NewCookieStore(keys[0], keys[1]),
+		authSecret:           storeSecret,
+		authScope:            authScope,
+		jwtSigningKey:        keys[2],
+		jwtExpiry:            time.Minute,
+		now:                  time.Now,
+		cookieSessionTimeout: cookieSessionTimeout,
 	}, nil
 }

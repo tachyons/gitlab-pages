@@ -30,7 +30,7 @@ func (a *Auth) getSessionFromStore(r *http.Request) (*hostSession, error) {
 		session.Options.Path = "/"
 		session.Options.HttpOnly = true
 		session.Options.Secure = request.IsHTTPS(r)
-		session.Options.MaxAge = authSessionMaxAge
+		session.Options.MaxAge = int(a.cookieSessionTimeout.Seconds())
 
 		if session.Values[sessionHostKey] == nil || session.Values[sessionHostKey] != r.Host {
 			session.Values = make(map[interface{}]interface{})

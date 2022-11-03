@@ -68,11 +68,13 @@ var (
 
 	enableDisk = flag.Bool("enable-disk", true, "Enable disk access, shall be disabled in environments where shared disk storage isn't available")
 
-	clientID             = flag.String("auth-client-id", "", "GitLab application Client ID")
-	clientSecret         = flag.String("auth-client-secret", "", "GitLab application Client Secret")
-	redirectURI          = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
-	authScope            = flag.String("auth-scope", "api", "Scope to be used for authentication (must match GitLab Pages OAuth application settings)")
-	authTimeout          = flag.Duration("auth-timeout", 5*time.Second, "GitLab application client timeout for authentication")
+	clientID                 = flag.String("auth-client-id", "", "GitLab application Client ID")
+	clientSecret             = flag.String("auth-client-secret", "", "GitLab application Client Secret")
+	redirectURI              = flag.String("auth-redirect-uri", "", "GitLab application redirect URI")
+	authScope                = flag.String("auth-scope", "api", "Scope to be used for authentication (must match GitLab Pages OAuth application settings)")
+	authTimeout              = flag.Duration("auth-timeout", 5*time.Second, "GitLab application client timeout for authentication")
+	authCookieSessionTimeout = flag.Duration("auth-cookie-session-timeout", 10*time.Minute, "Authentication cookie session timeout (truncated to seconds). A zero value means the cookie will be deleted after the browser session ends")
+
 	maxConns             = flag.Int("max-conns", 0, "Limit on the number of concurrent connections to the HTTP, HTTPS or proxy listeners, 0 for no limit")
 	maxURILength         = flag.Int("max-uri-length", 1024, "Limit the length of URI, 0 for unlimited.")
 	insecureCiphers      = flag.Bool("insecure-ciphers", false, "Use default list of cipher suites, may contain insecure ones like 3DES and RC4")
