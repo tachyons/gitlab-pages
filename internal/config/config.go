@@ -88,12 +88,13 @@ type ArtifactsServer struct {
 // Auth groups settings related to configuring Authentication with
 // GitLab
 type Auth struct {
-	Secret       string
-	ClientID     string
-	ClientSecret string
-	RedirectURI  string
-	Scope        string
-	Timeout      time.Duration
+	Secret               string
+	ClientID             string
+	ClientSecret         string
+	RedirectURI          string
+	Scope                string
+	Timeout              time.Duration
+	CookieSessionTimeout time.Duration
 }
 
 // Cache configuration for GitLab API
@@ -318,12 +319,13 @@ func loadConfig() (*Config, error) {
 			URL:            *artifactsServer,
 		},
 		Authentication: Auth{
-			Secret:       *secret,
-			ClientID:     *clientID,
-			ClientSecret: *clientSecret,
-			RedirectURI:  *redirectURI,
-			Scope:        *authScope,
-			Timeout:      *authTimeout,
+			Secret:               *secret,
+			ClientID:             *clientID,
+			ClientSecret:         *clientSecret,
+			RedirectURI:          *redirectURI,
+			Scope:                *authScope,
+			Timeout:              *authTimeout,
+			CookieSessionTimeout: *authCookieSessionTimeout,
 		},
 		Log: Log{
 			Format:  *logFormat,
@@ -440,6 +442,7 @@ func LogConfig(config *Config) {
 		"enable-disk":                    config.GitLab.EnableDisk,
 		"auth-redirect-uri":              config.Authentication.RedirectURI,
 		"auth-scope":                     config.Authentication.Scope,
+		"auth-cookie-session-timeout":    config.Authentication.CookieSessionTimeout,
 		"max-conns":                      config.General.MaxConns,
 		"max-uri-length":                 config.General.MaxURILength,
 		"zip-cache-expiration":           config.Zip.ExpirationInterval,

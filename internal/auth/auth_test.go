@@ -29,7 +29,9 @@ func createTestAuth(t *testing.T, internalServer string, publicServer string) *A
 		"http://pages.gitlab-example.com/auth",
 		internalServer,
 		publicServer,
-		"scope", 5*time.Second)
+		"scope",
+		5*time.Second,
+		10*time.Minute)
 
 	require.NoError(t, err)
 
