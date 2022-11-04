@@ -15,6 +15,9 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-base"
       summary="Base container for GitLab application containers." \
       description="Base container for GitLab application containers."
 
+## https://bugzilla.redhat.com/show_bug.cgi?id=2138434
+RUN chmod +t /tmp
+
 COPY scripts/ /scripts
 
 RUN dnf ${DNF_OPTS} install --nodocs -yb \
