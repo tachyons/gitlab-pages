@@ -5,7 +5,7 @@ set -e
 GITALY_CONFIG_FILE="${GITALY_CONFIG_FILE:-$CONFIG_TEMPLATE_DIRECTORY/config.toml}"
 PRAEFECT_CONFIG_FILE="${PRAEFECT_CONFIG_FILE:-$CONFIG_TEMPLATE_DIRECTORY/config.toml}"
 
-if [ "${USE_GITLAB_LOGGER:-0}" -eq 1 ]; then
+if [ "${USE_GITLAB_LOGGER:-1}" -eq 1 ]; then
     /usr/local/bin/gitlab-logger --json /var/log/gitaly &
 elif command -v xtail >/dev/null; then
     xtail /var/log/gitaly &
