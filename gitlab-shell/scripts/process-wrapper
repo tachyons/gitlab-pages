@@ -20,7 +20,7 @@ fi
 if [ "${SSH_DAEMON}" == "gitlab-sshd" ]; then
   exec /srv/gitlab-shell/bin/gitlab-sshd -config-dir /srv/gitlab-shell
 else
-  if [ "${USE_GITLAB_LOGGER-0}" -eq 1 ]; then
+  if [ "${USE_GITLAB_LOGGER-1}" -eq 1 ]; then
     /usr/local/bin/gitlab-logger /var/log/gitlab-shell &
   else
     if command -v xtail >/dev/null; then
