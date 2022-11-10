@@ -206,6 +206,10 @@ COPY --from=pg_image /usr/local/psql/lib/libpq.so* /usr/lib/
 # Include GraphicsMagick (binary and license)
 COPY --from=graphicsmagick_image /usr/local /usr/local
 
+# Requirement of exiftool
+RUN apt-get update -y \
+  && apt-get install --no-install-recommends -y perl \
+  && rm -rf /var/lib/apt/lists/* 
 COPY --from=exiftool_image / /
 
 COPY --from=gomplate /gomplate /usr/local/bin/gomplate

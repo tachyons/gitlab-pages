@@ -52,6 +52,10 @@ COPY --from=rails --chown=git /srv/gitlab/doc/ /srv/gitlab/doc/
 
 COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 
+# Requirement of exiftool
+RUN apt-get update -y \
+  && apt-get install --no-install-recommends -y perl \
+  && rm -rf /var/lib/apt/lists/* 
 COPY --from=exiftool_image / /
 
 USER $GITLAB_USER:$GITLAB_USER
