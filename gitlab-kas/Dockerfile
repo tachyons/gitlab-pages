@@ -26,7 +26,9 @@ RUN echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESP
 ## FINAL IMAGE ##
 
 # build image is derived from debian 11, so we use that for run image
-FROM gcr.io/distroless/base-debian11@sha256:03dcbf61f859d0ae4c69c6242c9e5c3d7e1a42e5d3b69eb235e81a5810dd768e
+# gcr.io/distroless/base-debian11@nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian11
+# updated 2022-11-07
+FROM gcr.io/distroless/base-debian11@sha256:78158c6f65650bb150be46205b15740e832f2ca7b0f45f2ab8de91e4ef2b304d
 
 COPY --from=builder /usr/bin/kas /usr/bin/kas
 
