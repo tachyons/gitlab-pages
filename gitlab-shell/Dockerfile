@@ -63,6 +63,8 @@ COPY sshd_config /assets/etc/ssh/
 # Set final chmods
 RUN chmod -R g=u /assets
 
+## FINAL IMAGE ##
+
 FROM ${GITLAB_BASE_IMAGE} as final
 
 ARG GITLAB_USER=git

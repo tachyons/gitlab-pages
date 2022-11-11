@@ -1,6 +1,6 @@
 # CI Variables
 
-The GitLab Cloud Native Images [CI pipelines](pipelines.md) use variables provided by the CI environment to change build behavior between mirrors and
+The GitLab Cloud Native Images [CI pipelines](build.md) use variables provided by the CI environment to change build behavior between mirrors and
 keep sensitive data out of the repositories.
 
 Check the table below for more information about the various CI variables used in the pipelines.

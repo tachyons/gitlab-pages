@@ -23,6 +23,8 @@ RUN echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESP
     && echo "Building kas binary" \
     && GIT_COMMIT="${GITLAB_KAS_VERSION}" GIT_TAG="${GITLAB_KAS_VERSION}" TARGET_DIRECTORY=/usr/bin make kas
 
+## FINAL IMAGE ##
+
 # build image is derived from debian 11, so we use that for run image
 FROM gcr.io/distroless/base-debian11@sha256:03dcbf61f859d0ae4c69c6242c9e5c3d7e1a42e5d3b69eb235e81a5810dd768e
 

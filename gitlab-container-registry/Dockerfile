@@ -30,6 +30,8 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
+## FINAL IMAGE ##
+
 FROM ${DEPENDENCY_PROXY}debian:bullseye-slim
 
 ARG GITLAB_USER=git

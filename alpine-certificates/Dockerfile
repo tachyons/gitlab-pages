@@ -1,3 +1,4 @@
+## FINAL IMAGE ##
 # alpine-certificates:
 # - Alpine, with ca-certificates installed. We can't assume that we'll be able
 #   operate as root, or access the internet to install the package.

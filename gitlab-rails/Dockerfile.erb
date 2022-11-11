@@ -174,7 +174,8 @@ COPY --chown=git --from=assets assets /srv/gitlab/public/assets/
 # remove uncompressed maps as per #2062
 RUN find /srv/gitlab/public/assets/webpack -name '*.map' -type f -print -delete
 
-# Final image
+## FINAL IMAGE ##
+
 FROM "$CI_REGISTRY_IMAGE/gitlab-ruby:${TAG}"
 ARG DATADIR=/var/opt/gitlab
 ARG CONFIG=/srv/gitlab/config

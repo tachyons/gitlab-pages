@@ -16,6 +16,8 @@ RUN mkdir -p /assets/srv/sshd /assets/var/log/gitlab-shell \
     && touch /assets/var/log/gitlab-shell/gitlab-shell.log \
     && chmod -R g=u /assets/srv/sshd /assets/srv/gitlab-shell /assets/var/log/gitlab-shell /assets/etc/ssh /assets/scripts
 
+## FINAL IMAGE ##
+
 FROM ${GITLAB_BASE_IMAGE}
 
 ARG GITLAB_USER=git

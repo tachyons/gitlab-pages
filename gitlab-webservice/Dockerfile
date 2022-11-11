@@ -7,6 +7,8 @@ ARG GITLAB_LOGGER_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-logger:master"
 FROM ${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_TAG} as python
 FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
 
+## FINAL IMAGE ##
+
 FROM ${FROM_IMAGE}:${TAG}
 
 ARG DATADIR=/var/opt/gitlab

@@ -34,6 +34,8 @@ RUN buildDeps=' \
 
 FROM ${GOMPLATE_IMAGE} as gomplate
 
+## FINAL IMAGE ##
+
 FROM ${RUBY_IMAGE}
 
 ARG GITLAB_USER=git

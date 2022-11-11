@@ -16,6 +16,8 @@ COPY scripts/install-cfssl.sh /scripts/install-cfssl.sh
 RUN apk add --no-cache curl
 RUN /scripts/install-cfssl.sh
 
+## FINAL IMAGE ##
+
 FROM $ALPINE_IMAGE
 
 ARG CFSSL_BIN=/usr/local/bin

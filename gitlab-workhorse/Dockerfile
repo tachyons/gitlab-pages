@@ -32,6 +32,8 @@ RUN buildDeps=' \
   && apt-get install -y --no-install-recommends perl \
   && rm -rf /var/lib/apt/lists/*
 
+## FINAL IMAGE ##
+
 FROM ${GITLAB_BASE_IMAGE} as final
 
 ARG DATADIR=/var/opt/gitlab
