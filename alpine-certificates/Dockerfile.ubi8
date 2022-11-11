@@ -1,3 +1,5 @@
+## FINAL IMAGE ##
+
 ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.6
 
 FROM ${UBI_IMAGE}

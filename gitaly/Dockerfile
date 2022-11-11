@@ -80,10 +80,9 @@ RUN buildDeps=' \
       /srv/gitaly-ruby \
       /target
 
-# Final image
+## FINAL IMAGE ##
 
 FROM ${RUBY_IMAGE}
-
 
 ARG GITLAB_USER=git
 

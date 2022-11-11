@@ -8,6 +8,8 @@ FROM ${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_TAG} AS python
 
 FROM ${GITALY_IMAGE} AS gitaly
 
+## FINAL IMAGE ##
+
 FROM ${FROM_IMAGE}:${TAG}
 
 ARG AWSCLI_VERSION="1.22.44"

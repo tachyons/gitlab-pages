@@ -1,3 +1,5 @@
+[[_TOC_]]
+
 # Building Images
 
 Building these images is done through GitLab CI. By default triggering a CI
@@ -36,6 +38,10 @@ the build needs to be triggered in this repo's GitLab project with the following
 |`GITLAB_REF_SLUG`|This is used as the docker label when the new images are built. For tags, this is the tag name. For branches, this is typically the slug version of the branch.|`v11.8.0-ee`, `my-test`|
 |`GITALY_SERVER_VERSION`|The version of gitaly to build. This needs to be a tag reference that matches what is in the *GITALY_SERVER_VERSION* file in the version of GitLab being built.|`v1.12.0`|
 |`GITLAB_SHELL_VERSION`|The version of gitlab-shell to build. This needs to be a tag reference that matches what is in the *GITLAB_SHELL_VERSION* file in the version of GitLab being built.|`v8.4.4`|
+
+The list above is not comprehensive. Refer to the correlated pipeline jobs
+for any additional variables that may need specified at build time. Keep in mind
+that dependencies of that component may also require their own additional variables.
 
 **For CE:**
 
@@ -170,35 +176,6 @@ In such an environment, the build scripts must download the binary dependencies 
 [GitLab CNG Releases](https://gitlab.com/gitlab-org/build/CNG/-/releases). They also need
 access the official UBI software repositories.
 
-## Build stages
-
-The CNG images can be built in three stages. This is because some images use the images
-from prior stages as their base. Not all the CNG images are final images. Some are
-intermediates that are only used as base images. The following list shows the stages and
-the purpose of the image (intermediate vs. final or both). Please note that all images
-in one stage can be built concurrently. They do not depend on each other.
-
-**Stage I**
-  * kubectl (intermediate, final)
-  * gitlab-ruby (intermediate)
-  * gitlab-container-registry (final)
-
-**Stage II**
-  * gitlab-exporter (final)
-  * gitlab-mailroom (final)
-  * gitlab-shell (final)
-  * gitlab-rails (intermediate, final)
-  * gitlab-workhorse (final)
-
-**Stage III**
-  * gitlab-geo-logcursor (final)
-  * gitlab-sidekiq (final)
-  * gitlab-toolbox (final)
-  * gitlab-webservice (final)
-
-The rule of thumb is that majority of final images have `LABEL` and `USER` Docker build
-instructions.
-
 To build the UBI-based images in an isolated/controlled environment you need to download,
 verify, and extract binary dependencies into Docker build contexts. Docker build instructions
 for UBI-based images assume that these dependencies are placed in the right locations in the
@@ -221,20 +198,80 @@ Please note that you need to run `prepare.sh` before running this script.
 downloaded by `prepare.sh` and `build.sh`. Same as the other two scripts you you can run this
 script from any location.
 
+
+## Build stages
+
+The CNG images are built in multiple stages. Not all images are final images
+because some are created as a common base for images built in a later stage. The
+following list shows the stages and the purpose of the image. Images within a
+single stage may build concurrently because they are independent of each other.
+
+**Stage 0**
+  * alpine-stable (intermediate)
+  * debian-stable (intermediate)
+  * gitlab-base (intermediate)
+  * gitlab-go (intermediate)
+
+**Stage 1**
+  * alpine-certificates (final)
+  * cfssl-self-sign (final)
+  * gitlab-exiftool (intermediate)
+  * gitlab-gomplate (intermediate)
+  * gitlab-graphicsmagick (intermediate)
+  * gitlab-python(intermediate)
+  * gitlab-ruby (intermediate)
+  * kubectl (intermediate, final)
+  * postgresql (intermediate)
+
+**Stage 2**
+  * gitlab-exporter (final)
+  * gitlab-mailroom (final)
+
+**Stage 3**
+  * gitlab-logger (intermediate, final)
+
+**Stage 4**
+  * gitaly (final)
+  * gitlab-container-registry (final)
+  * gitlab-elasticsearch-indexer (intermediate)
+  * gitlab-kas (final)
+  * gitlab-metrics-exporter (intermediate, final)
+  * gitlab-pages (final)
+  * gitlab-shell (final)
+
+**Stage 5**
+  * gitlab-rails-ee (intermediate)
+
+**Stage 6**
+  * gitlab-geo-logcursor (final)
+  * gitlab-sidekiq-ee (final)
+  * gitlab-toolbox-ee (final)
+  * gitlab-webservice-ee (final)
+  * gitlab-workhorse-ee (final)
+
+Final images are identified by a comment in their Docker file:
+
+```
+## FINAL IMAGE ##
+```
+
+All other images are intermediates and produce a dependency that a final image
+consumes.
+
 ## Build dependencies
 
-We use a layered build process to speed up build time, and reduce the size of our images. This does result in a complicated set of relationships between the images we build during build time.
+A layered build process reduces both build times and image sizes. This design creates complex relationships between the images created at build time.
 
 **Diagram Key**
 
-| Meaning | Markup |
-| :-- | :-- |
-| Base (final `FROM`) | heavy `==>` |
-| Used as `FROM` in mutli-stage | thin `-->` |
-| `COPY`s from | dotted `-.->`
-| External Image | Light Orange (#fca326)
-| Intermediate image | Orange (#fc6d26)
-| Final image | Red (#e24329)
+| Meaning                       | Markup |
+| :--                           | :--    |
+| Base (final `FROM`)           | heavy `==>` |
+| Used as `FROM` in multi-stage | thin `-->` |
+| `COPY`s from                  | dotted `-.->`
+| External Image                | Blue (`#428fdc`)
+| Intermediate image            | Purple (`#9475db`)
+| Final image                   | Orange (`#f5793a`)
 
 ### Final image bases
 
@@ -262,16 +299,17 @@ graph LR;
 
   subgraph Base
     gitlab-base
+    gitlab-go
     gitlab-ruby==>gitlab-base;
     gitlab-rails
-    alpine[alpine:3.15]:::external;
-    debian[debian:bullseye-slim]:::external;
-    gcr.io/distroless/base-debian11:::external;
+    alpine-stable:::external;
+    debian-stable:::external;
+    gcr.io/distroless/base-debian:::external;
   end
 
-  kubectl==>debian;
-  cfssl-self-sign==>alpine;
-  alpine-certificates==>alpine;
+  kubectl==>debian-stable;
+  cfssl-self-sign==>alpine-stable;
+  alpine-certificates==>alpine-stable;
 
   gitlab-toolbox==>gitlab-rails;
   gitlab-geo-logcursor==>gitlab-rails;
@@ -282,18 +320,18 @@ graph LR;
   gitlab-mailroom===>gitlab-ruby;
   gitlab-pages===>gitlab-ruby
   gitlab-rails==>gitlab-ruby;
-  gitlab-workhorse===>gitlab-ruby
+  gitlab-workhorse==>gitlab-base
   gitaly===>gitlab-ruby;
 
   gitlab-shell===>gitlab-base;
 
-  gitlab-container-registry==>debian
+  gitlab-container-registry==>gitlab-go
 
-  gitlab-kas===>gcr.io/distroless/base-debian11;
+  gitlab-kas===>gcr.io/distroless/base-debian;
 
-  classDef default fill:#fc6d26;
-  classDef external fill:#fca326;
-  classDef final fill:#e24329;
+  classDef default color:#000000, fill:#9475db, stroke-width:3, stroke-dasharray:5 5;
+  classDef external color:#000000, fill:#428fdc,stroke-width:3, stroke-dasharray:10 10;
+  classDef final color:#000000, fill:#f5793a,stroke-width:3, stroke-dasharray:20 20;
 ```
 
 ### Complete dependency tree
@@ -339,20 +377,20 @@ graph LR;
 
   subgraph External;
     gitlab-assets[registry.gitlab.com/gitlab-org/gitlab-ee/gitlab-assets-ee]:::external;
-    alpine[alpine:3.15]:::external;
+    alpine-stable:::external;
     scratch[scratch]:::external;
-    debian[debian:bullseye-slim]:::external;
-    gcr.io/distroless/base-debian11
+    debian-stable:::external;
+    gcr.io/distroless/base-debian:::external;
   end
 
-  gitlab-go==>debian;
-  gitlab-base==>debian;
+  gitlab-go==>debian-stable;
+  gitlab-base==>debian-stable;
   gitlab-ruby==>gitlab-base;
 
-  postgresql==>debian;
-  kubectl==>debian;
-  cfssl-self-sign==>alpine;
-  alpine-certificates==>alpine;
+  postgresql==>debian-stable;
+  kubectl==>debian-stable;
+  cfssl-self-sign==>alpine-stable;
+  alpine-certificates==>alpine-stable;
 
   gitlab-logger-->gitlab-go;
   gitlab-logger==>scratch;
@@ -361,13 +399,13 @@ graph LR;
   gitlab-pages-.->gitlab-gomplate
   gitlab-pages-->gitlab-go
 
-  gitlab-graphicsmagick-->debian
+  gitlab-graphicsmagick-->debian-stable
   gitlab-graphicsmagick==>scratch
 
   gitlab-gomplate-->gitlab-go
   gitlab-gomplate==>scratch
 
-  gitlab-python==>debian;
+  gitlab-python==>debian-stable;
 
   gitlab-rails==>gitlab-ruby;
   gitlab-rails-.->postgresql;
@@ -408,9 +446,9 @@ graph LR;
   gitaly-.->gitlab-logger;
 
   gitlab-kas-.->gitlab-go;
-  gitlab-kas==>gcr.io/distroless/base-debian11
+  gitlab-kas==>gcr.io/distroless/base-debian
 
-  gitlab-container-registry==>debian
+  gitlab-container-registry==>debian-stable
   gitlab-container-registry-->gitlab-go
   gitlab-container-registry-.->gitlab-gomplate
 
@@ -419,7 +457,7 @@ graph LR;
   gitlab-workhorse-.->gitlab-rails
   gitlab-workhorse-.->gitlab-gomplate
 
-  classDef default fill:#fc6d26;
-  classDef external fill:#fca326;
-  classDef final fill:#e24329;
+  classDef default color:#000000, fill:#9475db, stroke-width:3, stroke-dasharray:5 5;
+  classDef external color:#000000, fill:#428fdc, stroke-width:3, stroke-dasharray:10 10;
+  classDef final color:#000000, fill:#f5793a, stroke-width:3, stroke-dasharray:20 20;
 ```

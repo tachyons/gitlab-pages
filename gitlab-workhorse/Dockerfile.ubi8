@@ -16,6 +16,8 @@ RUN install -d -o ${UID} -g 0 -m 0770 /assets/var/log/gitlab \
     && chown -R ${UID}:0 /assets/srv/gitlab \
     && chmod -R g=u /assets
 
+## FINAL IMAGE ##
+
 FROM ${GITLAB_BASE_IMAGE} as final
 
 ARG GITLAB_VERSION
