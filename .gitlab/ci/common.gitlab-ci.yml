@@ -429,6 +429,7 @@
                       --build-arg "GM_IMAGE=${gm_image}"
                       --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(tail -n1 artifacts/images/$CI_JOB_NAME.txt)
@@ -481,6 +482,7 @@
                       --build-arg "GM_IMAGE=${gm_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
                       --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG
     - if [ ! "$UBI_PIPELINE" = "true" ]; then
     -   image_name=$(tail -n1 artifacts/images/$CI_JOB_NAME.txt)
@@ -514,6 +516,7 @@
                       --build-arg "TAG=$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
 
 .gitlab-sidekiq-ee:
@@ -542,6 +545,7 @@
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
 
 .gitlab-sidekiq-ce:
@@ -565,6 +569,7 @@
                       --build-arg "PYTHON_TAG=${python_version}"
                       --build-arg "TAG=$rails_container"
                       --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG
 
 .gitlab-toolbox-ee:
@@ -591,6 +596,7 @@
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITALY_IMAGE=$CI_REGISTRY_IMAGE/gitaly:$gitaly_container${IMAGE_TAG_EXT}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT} ${CI_JOB_NAME/toolbox/task-runner}
 
@@ -613,6 +619,7 @@
                       --build-arg "PYTHON_TAG=${python_version}"
                       --build-arg "S3CMD_VERSION=$S3CMD_VERSION"
                       --build-arg "GITALY_IMAGE=$CI_REGISTRY_IMAGE/gitaly:$gitaly_container${IMAGE_TAG_EXT}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG
     - push_tags $GITLAB_REF_SLUG ${CI_JOB_NAME/toolbox/task-runner}
 
@@ -642,6 +649,7 @@
                       --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
                       --build-arg "RAILS_IMAGE=$CI_REGISTRY_IMAGE/gitlab-rails-ee:$rails_container${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
 
 .gitlab-webservice-ce:
@@ -665,6 +673,7 @@
                       --build-arg "TAG=$rails_container"
                       --build-arg "PYTHON_TAG=${python_version}"
                       --build-arg "GITLAB_LOGGER_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-logger:${GITLAB_LOGGER_VERSION}${IMAGE_TAG_EXT}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG
 
 .gitlab-workhorse-ce:
@@ -692,6 +701,7 @@
                       --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_BASE_IMAGE=${GITLAB_BASE_IMAGE}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG
 
 .gitlab-workhorse-ee:
@@ -722,4 +732,5 @@
                       --build-arg "EXIFTOOL_IMAGE=${exiftool_image}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
                       --build-arg "GITLAB_BASE_IMAGE=${GITLAB_BASE_IMAGE}"
+    - push_tags
     - push_tags $GITLAB_REF_SLUG${IMAGE_TAG_EXT}
