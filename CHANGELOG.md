@@ -1,3 +1,13 @@
+## 1.63.0 (2022-11-10)
+
+### Security (1 change)
+
+- [Fix CVE-2022-32149 in golang.org/x/text](gitlab-org/gitlab-pages@7e01bfda3f59a5bcb78af4f4d3001dfa7fe1078a) ([merge request](gitlab-org/gitlab-pages!832))
+
+### Other (1 change)
+
+- [Add note about docs](gitlab-org/gitlab-pages@b6b2bf5a25558a1c9173b2ca55063528bc6c6c7f) ([merge request](gitlab-org/gitlab-pages!835))
+
 ## 1.62.0 (2022-07-28)
 
 ### Fixed (2 changes)
