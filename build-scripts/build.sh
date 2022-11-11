@@ -145,6 +145,7 @@ function build_if_needed(){
 
     # Push new image unless it is a UBI build image
     if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
+      echo "Pushing the image with computed CONTAINER_VERSION as the image tag."
       docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}"
     fi
   fi
@@ -227,6 +228,7 @@ function push_tags(){
   # If a version has been specified and we are on master branch or a
   # non-auto-deploy tag, we use the specified version.
   if [ -n "$1" ] && (is_default_branch || is_regular_tag); then
+    echo "Pipeline running against default branch or stable tag. Using specified version as the image tag."
     local edition=$1
 
     # If on a non-auto-deploy tag pipeline, we can trim the `-ee` suffixes.
@@ -236,27 +238,36 @@ function push_tags(){
 
     version_to_tag=$edition
   elif is_regular_tag; then
+    echo "Pipeline running against stable tag and no version specified. Using git tag to as the image tag."
     # If no version is specified, but on a non-auto-deploy tag pipeline, we use
     # the trimmed tag.
     trimmed_tag=$(trim_edition $CI_COMMIT_TAG)
 
     version_to_tag=$trimmed_tag
-  else
-    # If a version was specified but on a branch or auto-deploy tag,
-    # OR
-    # if no version was specified at all,
-    # we use the slug.
+  elif [ -z "$1" ]; then
+    echo "No version specified. Using commit ref slug as the image tag."
+    # If no version was specified at all, we use the slug.
     version_to_tag=${CI_COMMIT_REF_SLUG}${IMAGE_TAG_EXT}
+  else
+    # If a version was specified on any other scenarios - branch builds or
+    # auto-deploy tag builds, we ignore it as we don't want to overwrite an
+    # existing versioned image. Since we always call `push_tags` without a
+    # version before calling it with a version, the image would've been already
+    # tagged with commit ref slug so we need not try to do it again.
+    echo "Pipeline running against feature branch or auto-deploy tag. Not tagging the image with specified version."
+    version_to_tag=""
   fi
 
-  tag_and_push $version_to_tag $mirror_image_name
+  if [ -n "$version_to_tag" ]; then
+    tag_and_push $version_to_tag $mirror_image_name
 
-  # Append the newly pushed tags also to the artifact list
-  echo "${CI_JOB_NAME#build:*}:${version_to_tag}" >> "artifacts/images/${CI_JOB_NAME#build:*}.txt"
+    # Append the newly pushed tags also to the artifact list
+    echo "${CI_JOB_NAME#build:*}:${version_to_tag}" >> "artifacts/images/${CI_JOB_NAME#build:*}.txt"
 
-  # if this is a final image, record it separately.
-  if is_final_image; then
-    echo "${CI_JOB_NAME#build:*}:${version_to_tag}" > "artifacts/final/${CI_JOB_NAME#build:*}.txt"
+    # if this is a final image, record it separately.
+    if is_final_image; then
+      echo "${CI_JOB_NAME#build:*}:${version_to_tag}" > "artifacts/final/${CI_JOB_NAME#build:*}.txt"
+    fi
   fi
 }
 
