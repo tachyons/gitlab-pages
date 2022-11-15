@@ -13,10 +13,12 @@ dependencies:
       - 2602134 # rmarshall (*)
     gitlab_labels:
       - group::distribution
-      - devops::enablement
+      - section::enablement
+      - devops::systems
       - type::maintenance
-      - maintenance
+      - maintenance::dependency
       - dependencies.io
+      - workflow::ready for review
     gitlab_remove_source_branch: true
     remotes:
       # AWS CLI
