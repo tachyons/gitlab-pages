@@ -29,6 +29,20 @@ RUN dnf ${DNF_OPTS} install --nodocs -yb \
     && chgrp -R 0 /scripts \
     && chmod -R g=u /scripts
 
+## Hardening: CIS L1 SCAP
+COPY hardening/ /hardening
+RUN chmod +x /hardening && \
+    /hardening/000_rhel_disable_subscription.sh && \
+    /hardening/xccdf_org.ssgproject.content_rule_accounts_umask_etc_bashrc.sh && \
+    /hardening/xccdf_org.ssgproject.content_rule_accounts_umask_etc_csh_cshrc.sh && \
+    /hardening/xccdf_org.ssgproject.content_rule_accounts_umask_etc_login_defs.sh && \
+    /hardening/xccdf_org.ssgproject.content_rule_accounts_umask_etc_profile.sh && \
+    /hardening/xccdf_org.ssgproject.content_rule_coredump_disable_backtraces.sh && \
+    /hardening/xccdf_org.ssgproject.content_rule_coredump_disable_storage.sh && \
+    /hardening/xccdf_org.ssgproject.content_rule_disable_users_coredumps.sh && \
+    /hardening/xccdf_org.ssgproject.content_rule_use_pam_wheel_for_su.sh && \
+    rm -rf /hardening
+
 ENV CONFIG_TEMPLATE_DIRECTORY=/etc
 ENV GITLAB_USER=${GITLAB_USER}
 
