@@ -39,9 +39,25 @@ the build needs to be triggered in this repo's GitLab project with the following
 |`GITALY_SERVER_VERSION`|The version of gitaly to build. This needs to be a tag reference that matches what is in the *GITALY_SERVER_VERSION* file in the version of GitLab being built.|`v1.12.0`|
 |`GITLAB_SHELL_VERSION`|The version of gitlab-shell to build. This needs to be a tag reference that matches what is in the *GITLAB_SHELL_VERSION* file in the version of GitLab being built.|`v8.4.4`|
 
-The list above is not comprehensive. Refer to the correlated pipeline jobs
-for any additional variables that may need specified at build time. Keep in mind
-that dependencies of that component may also require their own additional variables.
+The list above is not comprehensive. Refer to the correlated pipeline jobs for
+any additional variables that may need to be specified at build time. Keep in
+mind that dependencies of that component may also require their own additional
+variables.
+
+### Functional Example
+
+Let's say we want to build a target version of the rails application.  Let's
+randomly pick
+[`32916ac2169`](https://gitlab.com/gitlab-org/gitlab/-/commit/32916ac21690c9f2e94c1c30fbbb28bca44a9ac4).
+We can kick off a pipeline with variable `GITLAB_VERSION` set to the
+aforementioned `sha`.  This only changes the rails code base, and does not
+impact any other component.  Reference the file
+[`ci_files/variables.yml`](../ci_files/variables.yml`) as reference as to what
+will build if left undefined.  **All variables set inside of CI overwrite what
+is configured in this _repo_ at build time.**  The content of `*_VERSION` in the
+`gitlab-org/gitlab` repo does **NOT** influence what component versions will be
+built.  If you need a target component to match a given GitLab version, the
+associated variable for that component **MUST** also be set.
 
 **For CE:**
 
@@ -59,9 +75,89 @@ The following variable should be present for a EE build:
 
 ![ee-cng-release.png](ee-cng-release.png)
 
+If the above variable is not present, by default CNG will attempt a `CE` build.
+There are quite a few rules that feed into this, this can be found in the
+[`rules.gitlab-ci.yaml`](https://gitlab.com/gitlab-org/build/CNG/-/blob/1c36c9eb6815b29a2aa0fc4494563ac56690ee7c/.gitlab/ci/rules.gitlab-ci.yml#L71-121)
+
 ## CI variables
 
 See separate document on the [available ci variables](ci-variables.md).
+
+## Post CI Build Image Introspection
+
+Image tagging is a bit complex.  Thus determining what went into said image is a
+also complex, but finding the information has been made easy for us.  Basic
+guidelines;
+
+* A CI Pipeline that is part of a tagged build, will receive that tag name.  If
+  we tagged CNG for version `v15.4.0`, all final images will be tagged as such.
+* A CI pipeline that is part of Auto-Deploy - all final images will be tagged in
+  accordance to the information sent via `release-tools`.  These are normally
+  something like: `15-5-202210061220-80de0d60905`, which is formatted
+  `<major>-<minor>-<timestamp>-<gitlab_sha>`.
+* A build triggered manually - all final images will be tagged with a `sha` that
+  is calculated, see
+  [`build.sh`](https://gitlab.com/gitlab-org/build/CNG/-/blob/1c36c9eb6815b29a2aa0fc4494563ac56690ee7c/build-scripts/build.sh#L138)
+  for some of the details that goes into this.
+  * Some of the information that is used into building the tag `sha` is
+    determined by the build job.  Refer to the appropriate build job being
+    investigated as defined in
+    [`common.gitlab-ci.yml`](https://gitlab.com/gitlab-org/build/CNG/-/blob/master/.gitlab/ci/common.gitlab-ci.yml)
+  * For FIPS specific builds, final images tags will be suffixed with `-fips`
+  * For UBI specific builds, final image tags will be suffixed with `-ubi8`
+
+Each job produces an artifact that denotes the tag name.  This is far easier
+than interrogating the CI job log output.  The artifacts contain small bits of
+information, but importantly, they'll contain a line that represents that tag
+name leveraged for the given image.
+
+### Functional Example
+
+Using my example build from above, we landed with an image that was tagged like
+so:
+
+```
+<SNIP from `gitlab-webservice-ee` CI Job Logs>
+Successfully built 2610220ad3c5
+Successfully tagged registry.gitlab.com/gitlab-org/build/cng-mirror/gitlab-webservice-ee:309c11e03a2733c265cd047ed71a9dc6d5c056cb
+Final Image Size: 2116596332
+<SNIP>
+```
+
+The contextual information we need for the image tag is also dropped in the
+artifacts as mentioned already.  If we browse to
+`artifacts/images/gitlab-webservice-ee.txt`, we see the following:
+
+```txt
+gitlab-webservice-ee:309c11e03a2733c265cd047ed71a9dc6d5c056cb
+gitlab-webservice-ee:master
+```
+
+So we can download that tag directly and validate that the version of GitLab
+built matches our intention
+
+```
+% docker run -it --rm registry.gitlab.com/gitlab-org/build/cng-mirror/gitlab-webservice-ee:309c11e03a2733c265cd047ed71a9dc6d5c056cb cat /srv/gitlab/REVISION
+Unable to find image 'registry.gitlab.com/gitlab-org/build/cng-mirror/gitlab-webservice-ee:309c11e03a2733c265cd047ed71a9dc6d5c056cb' locally
+309c11e03a2733c265cd047ed71a9dc6d5c056cb: Pulling from gitlab-org/build/cng-mirror/gitlab-webservice-ee
+<SNIP>
+Digest: sha256:769faa4f0c394016df0cc787a3d2e4708d011e9e55d97e9ae7c2349dbed9da35
+Status: Downloaded newer image for registry.gitlab.com/gitlab-org/build/cng-mirror/gitlab-webservice-ee:309c11e03a2733c265cd047ed71a9dc6d5c056cb
+Begin parsing .erb templates from /srv/gitlab/config
+Begin parsing .tpl templates from /srv/gitlab/config
+32916ac2169
+```
+
+Which of course matches the `ref` I used to kick off the build.  Note that
+getting the version will differ for each image.  Refer to that target project
+for ways to grab that information.
+
+Use caution when using the `final-image-listing`.  These refer to the tags of
+the images per guidance above.  Thus we can rely on these tags for items such as
+Auto-Deploy or tags for releases.  However, we cannot correlate the tag of the
+image with any `ref` to the component being built.  Images that are tagged with a 
+branch name refer to the name of the CNG branch and NOT the branch of the
+component being built.
 
 ## UBI images
 
