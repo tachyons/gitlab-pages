@@ -24,9 +24,9 @@ RUN buildDeps=' \
   make install && \
   ldconfig && \
   pip3 install --upgrade pip setuptools && \
-  rm -rf /usr/local/lib/python.3.8/lib-dynload/dbm.* && \
-  rm -rf /usr/local/lib/python.3.8/lib-dynload/_sqlite3.* && \
-  rm -rf /usr/local/lib/python.3.8/test && \
+  rm -rf /usr/local/lib/python3.8/lib-dynload/dbm.* && \
+  rm -rf /usr/local/lib/python3.8/lib-dynload/_sqlite3.* && \
+  rm -rf /usr/local/lib/python3.8/test && \
   find /usr/local/lib/python3.8 -name '__pycache__' -type d -print -exec rm -r {} + && \
   apt-get purge -y $buildDeps && \
   rm -rf /var/lib/apt/list/* && \
