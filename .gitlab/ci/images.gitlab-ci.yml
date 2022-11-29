@@ -132,3 +132,41 @@ container-scanning:
     - if: '$CI_COMMIT_REF_NAME =~ /-fips$/ || $FIPS_PIPELINE == "true" '
       when: manual
       allow_failure: true
+
+.trigger_alternate_pipeline:
+  stage: prepare
+  trigger:
+    include: '.gitlab-ci.yml'
+    strategy: depend
+  needs: []
+  # Because allow_failure decides whether a manual job is blocking or not,
+  # we have to set it to true, unfortunately.
+  # https://gitlab.com/groups/gitlab-org/-/epics/6788
+  allow_failure: true
+  rules:
+    - if: '$DEPS_PIPELINE == "true" || $CE_PIPELINE'
+      when: never
+    - if: '$CI_COMMIT_BRANCH =~ /-ubi8$/ || $UBI_PIPELINE == "true"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH =~ /-fips$/ || $FIPS_PIPELINE == "true"'
+      when: never
+
+ubi_pipeline:
+  extends:
+    - .trigger_alternate_pipeline
+  rules:
+    - !reference [.trigger_alternate_pipeline, rules]
+    - if: '$CI_COMMIT_BRANCH'
+      when: manual
+      variables:
+        UBI_PIPELINE: 'true'
+
+fips_pipeline:
+  extends:
+    - .trigger_alternate_pipeline
+  rules:
+    - !reference [.trigger_alternate_pipeline, rules]
+    - if: '$CI_COMMIT_BRANCH'
+      when: manual
+      variables:
+        FIPS_PIPELINE: 'true'
