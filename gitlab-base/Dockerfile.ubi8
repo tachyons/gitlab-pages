@@ -15,8 +15,10 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-base"
       summary="Base container for GitLab application containers." \
       description="Base container for GitLab application containers."
 
-## https://bugzilla.redhat.com/show_bug.cgi?id=2138434
-RUN chmod +t /tmp
+## Corrects CIS Server Level 1 benchmark finding, CCE-80783-4
+## Details: http://static.open-scap.org/ssg-guides/ssg-rhel8-guide-standard.html#xccdf_org.ssgproject.content_rule_dir_perms_world_writable_sticky_bits
+## RHEL Bug: https://bugzilla.redhat.com/show_bug.cgi?id=2138434
+RUN chmod +t /tmp /var/tmp
 
 COPY scripts/ /scripts
 
