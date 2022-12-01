@@ -189,6 +189,8 @@ RUN mkdir -p /usr/share/man/man7 \
          libpng16-16 libtiff5 libturbojpeg0 zlib1g \
          # required for exiftool
          perl \
+         # required for diagnostic report compression
+         gzip \
     && rm -rf /var/lib/apt/lists/*
 
 <% if ee? %>
