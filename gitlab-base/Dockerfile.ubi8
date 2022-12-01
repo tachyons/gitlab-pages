@@ -22,7 +22,8 @@ RUN chmod +t /tmp /var/tmp
 
 COPY scripts/ /scripts
 
-RUN dnf ${DNF_OPTS} install --nodocs -yb \
+RUN dnf ${DNF_OPTS} upgrade --nodocs -yb \
+    && dnf ${DNF_OPTS} install --nodocs -yb \
       findutils \
       less \
       procps \
