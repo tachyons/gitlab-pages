@@ -19,16 +19,32 @@ trigger-chart-test:
   trigger:
     project: 'gitlab-org/charts/gitlab'
     branch: master-trigger-branch
+    strategy: depend
   inherit:
     variables: false
   variables:
-    GITLAB_VERSION: "${CI_COMMIT_REF_SLUG}"
     REVIEW_REF_PREFIX: "${CI_PIPELINE_ID}-"
   rules:
-    # Run only on main .com repo branches
-    - if: '$CI_COMMIT_BRANCH && $CI_PROJECT_PATH == "gitlab-org/build/CNG"'
+    # Run only on Canonical and security mirror
+    - if: '$CI_PROJECT_PATH != "gitlab-org/build/CNG" && $CI_PROJECT_PATH != "gitlab-org/security/charts/components/images"'
+      when: never
+    # For UBI pipelines, the images has a `-ubi8` suffix
+    - if: '$CI_COMMIT_BRANCH =~ /-ubi8$/ || $UBI_PIPELINE == "true"'
       when: manual
       allow_failure: true
+      variables:
+        GITLAB_VERSION: "${CI_COMMIT_REF_SLUG}-ubi8"
+    # For FIPS pipelines, the images has a `-fips` suffix
+    - if: '$CI_COMMIT_BRANCH =~ /-fips$/ || $FIPS_PIPELINE == "true"'
+      when: manual
+      allow_failure: true
+      variables:
+        GITLAB_VERSION: "${CI_COMMIT_REF_SLUG}-fips"
+    - if: '$CI_COMMIT_BRANCH'
+      when: manual
+      allow_failure: true
+      variables:
+        GITLAB_VERSION: "${CI_COMMIT_REF_SLUG}"
     - when: never
 
 final-images-listing:
