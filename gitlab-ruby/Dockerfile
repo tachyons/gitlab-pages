@@ -59,7 +59,7 @@ RUN buildDeps=' \
   && tar -xf ruby.tar.xz \
   && rm ruby.tar.xz \
   && cd ruby-${RUBY_VERSION} \
-  && patch -p1 < ${BUILD_DIR}/patches/thread-memory-allocations-${RUBY_MAJOR_VERSION}.patch \
+  && /build-scripts/apply_ruby_patches.sh ${BUILD_DIR}/patches ${RUBY_MAJOR_VERSION} \
   && export LDFLAGS="-Wl,--no-as-needed" \
   && cflags="-fno-omit-frame-pointer" ./configure --prefix=/usr --with-jemalloc --with-out-ext=dbm,readline --enable-shared --disable-install-rdoc --disable-install-doc  --without-gmp --without-gdbm --without-tk --disable-dtrace \
   && make -j "$(nproc)" install \
