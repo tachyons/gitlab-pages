@@ -3,15 +3,8 @@ ARG TAG="master"
 
 ARG GO_TAG="${TAG}"
 ARG GO_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:${GO_TAG}"
-ARG GITLAB_LOGGER_IMAGE="$CI_REGISTRY_IMAGE/gitlab-logger:master"
 
 ARG GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${TAG}"
-
-ARG GOMPLATE_TAG=
-ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
-
-FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
-FROM ${GOMPLATE_IMAGE} as gomplate
 
 FROM ${GO_IMAGE} as build
 
@@ -56,8 +49,6 @@ RUN install -d /assets/srv/sshd && \
     touch /assets/var/log/gitlab-shell/gitlab-shell.log
 
 # COPY in external items
-COPY --from=gitlab-logger /gitlab-logger /assets/usr/local/bin/gitlab-logger
-COPY --from=gomplate /gomplate /assets/usr/local/bin/gomplate
 COPY sshd_config /assets/etc/ssh/
 
 # Set final chmods
