@@ -1,11 +1,8 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
 ARG GO_TAG="master"
-
-ARG GOMPLATE_TAG=
-ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
-
-FROM ${GOMPLATE_IMAGE} as gomplate
+ARG TAG="master"
+ARG GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${TAG}"
 
 FROM ${FROM_IMAGE}:${GO_TAG} as builder
 
@@ -15,7 +12,8 @@ ARG REGISTRY_NAMESPACE=gitlab-org
 ARG REGISTRY_PROJECT=container-registry
 ARG GOPATH=/go
 ARG REGISTRY_SOURCE_PATH=${GOPATH}/src/github.com/docker/distribution
-ARG DEPENDENCY_PROXY
+ARG GITLAB_BASE
+ARG GITLAB_BASE_IMAGE
 
 RUN buildDeps=' \
   git make' \
@@ -32,7 +30,7 @@ RUN buildDeps=' \
 
 ## FINAL IMAGE ##
 
-FROM ${DEPENDENCY_PROXY}debian:bullseye-slim
+FROM ${GITLAB_BASE_IMAGE}
 
 ARG GITLAB_USER=git
 
@@ -42,7 +40,6 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* \
   && adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER}
 
-COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 COPY --from=builder /usr/local/bin/registry /bin/registry
 COPY scripts/ /scripts/
 

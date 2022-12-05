@@ -2,10 +2,8 @@ ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG PYTHON_TAG="3.8.12"
 ARG TAG="master"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee"
-ARG GITLAB_LOGGER_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-logger:master"
 
 FROM ${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_TAG} as python
-FROM ${GITLAB_LOGGER_IMAGE} as gitlab-logger
 
 ## FINAL IMAGE ##
 
@@ -21,9 +19,6 @@ ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages
 RUN ldconfig \
     && /usr/local/bin/pip3 install --compile docutils==${DOCUTILS_VERSION}
 # END python install
-
-# Pull in gitlab-logger
-COPY --from=gitlab-logger /gitlab-logger /usr/local/bin/gitlab-logger
 
 ARG GITLAB_USER=git
 

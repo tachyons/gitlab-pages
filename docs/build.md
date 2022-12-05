@@ -20,7 +20,6 @@ The images which currently use this are:
 
 1. alpine-certificates
 1. cfssl-self-sign
-1. gitlab-container-registry
 1. gitlab-python
 1. kubectl
 1. postgresql
@@ -305,32 +304,32 @@ single stage may build concurrently because they are independent of each other.
 **Stage 0**
   * alpine-stable (intermediate)
   * debian-stable (intermediate)
-  * gitlab-base (intermediate)
   * gitlab-go (intermediate)
 
 **Stage 1**
   * alpine-certificates (final)
   * cfssl-self-sign (final)
-  * gitlab-exiftool (intermediate)
   * gitlab-gomplate (intermediate)
   * gitlab-graphicsmagick (intermediate)
+  * gitlab-logger (intermediate, final)
   * gitlab-python(intermediate)
-  * gitlab-ruby (intermediate)
   * kubectl (intermediate, final)
   * postgresql (intermediate)
 
 **Stage 2**
-  * gitlab-exporter (final)
-  * gitlab-mailroom (final)
+  * gitlab-base (intermediate)
 
 **Stage 3**
-  * gitlab-logger (intermediate, final)
+  * gitlab-exiftool (intermediate)
+  * gitlab-ruby (intermediate)
 
 **Stage 4**
   * gitaly (final)
   * gitlab-container-registry (final)
   * gitlab-elasticsearch-indexer (intermediate)
+  * gitlab-exporter (final)
   * gitlab-kas (final)
+  * gitlab-mailroom (final)
   * gitlab-metrics-exporter (intermediate, final)
   * gitlab-pages (final)
   * gitlab-shell (final)
@@ -481,6 +480,8 @@ graph LR;
 
   gitlab-go==>debian-stable;
   gitlab-base==>debian-stable;
+  gitlab-base-.->gitlab-logger
+  gitlab-base-.->gitlab-gomplate
   gitlab-ruby==>gitlab-base;
 
   postgresql==>debian-stable;
@@ -544,7 +545,7 @@ graph LR;
   gitlab-kas-.->gitlab-go;
   gitlab-kas==>gcr.io/distroless/base-debian
 
-  gitlab-container-registry==>debian-stable
+  gitlab-container-registry==>gitlab-base
   gitlab-container-registry-->gitlab-go
   gitlab-container-registry-.->gitlab-gomplate
 

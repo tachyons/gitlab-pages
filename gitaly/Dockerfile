@@ -3,17 +3,8 @@ ARG GO_TAG="master"
 ARG GO_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
 ARG RUBY_TAG="master"
 ARG RUBY_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby:${RUBY_TAG}"
-ARG GITLAB_LOGGER_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-logger"
-ARG GITLAB_LOGGER_TAG="${GITLAB_LOGGER_TAG}"
 
 FROM ${GO_IMAGE}:${GO_TAG} as golang
-
-ARG RUBY_IMAGE
-ARG RUBY_TAG
-ARG GITLAB_LOGGER_IMAGE
-ARG GITLAB_LOGGER_TAG
-
-FROM ${GITLAB_LOGGER_IMAGE}:${GITLAB_LOGGER_TAG} as logger
 
 ARG RUBY_IMAGE
 ARG RUBY_TAG
@@ -110,9 +101,6 @@ RUN install -d -o ${GITLAB_USER} -g ${GITLAB_USER} -m 755 /home/${GITLAB_USER}/r
 
 # add default configuration template
 COPY --chown=${GITLAB_USER}:${GITLAB_USER} config.toml /etc/gitaly/config.toml.erb
-
-# add gitlab-logger
-COPY --from=logger /gitlab-logger /usr/local/bin
 
 # pull contents from builder
 COPY --from=builder /target/ /

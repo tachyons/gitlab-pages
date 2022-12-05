@@ -8,12 +8,9 @@ ARG RAILS_VERSION="master"
 ARG GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${TAG}"
 
 ARG EXIFTOOL_IMAGE="$CI_REGISTRY_IMAGE/gitlab-exiftool:${EXIFTOOL_VERSION}"
-ARG GOMPLATE_TAG=
-ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
 
 FROM ${CI_REGISTRY_IMAGE}/${GITLAB_EDITION}:${RAILS_VERSION} as rails
 FROM ${EXIFTOOL_IMAGE} as exiftool_image
-FROM ${GOMPLATE_IMAGE} as gomplate
 
 FROM ${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG} as builder
 
@@ -52,12 +49,11 @@ COPY --from=rails --chown=git /srv/gitlab/public/ /srv/gitlab/public/
 
 COPY --from=rails --chown=git /srv/gitlab/doc/ /srv/gitlab/doc/
 
-COPY --from=gomplate /gomplate /usr/local/bin/gomplate
-
 # Requirement of exiftool
 RUN apt-get update -y \
   && apt-get install --no-install-recommends -y perl \
   && rm -rf /var/lib/apt/lists/* 
+
 COPY --from=exiftool_image / /
 
 USER $GITLAB_USER:$GITLAB_USER

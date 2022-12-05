@@ -19,6 +19,8 @@ gitlab-base:
   extends: .gitlab-base
   needs:
      - debian-stable
+     - gitlab-logger
+     - gitlab-gomplate
 
 ## phase one
 
@@ -96,16 +98,14 @@ gitlab-logger:
 gitaly:
   extends: .gitaly
   needs:
-   - gitlab-logger
    - gitlab-go
    - gitlab-ruby
 
 gitlab-container-registry:
   extends: .gitlab-container-registry
   needs:
-    - debian-stable
+    - gitlab-base
     - gitlab-go
-    - gitlab-gomplate
 
 gitlab-elasticsearch-indexer:
   extends: .gitlab-elasticsearch-indexer
@@ -126,14 +126,11 @@ gitlab-pages:
   extends: .gitlab-pages
   needs:
     - gitlab-go
-    - gitlab-gomplate
     - gitlab-ruby
 
 gitlab-shell:
   extends: .gitlab-shell
   needs:
-    - gitlab-gomplate
-    - gitlab-logger
     - gitlab-base
     - gitlab-go
 
@@ -148,7 +145,6 @@ gitlab-rails-ee:
     - gitlab-ruby
     - gitlab-elasticsearch-indexer
     - gitlab-metrics-exporter
-    - gitlab-gomplate
 
 gitlab-rails-ce:
   extends: .gitlab-rails-ce
@@ -158,7 +154,6 @@ gitlab-rails-ce:
     - gitlab-exiftool
     - gitlab-ruby
     - gitlab-metrics-exporter
-    - gitlab-gomplate
 
 ## phase six
 
@@ -172,14 +167,12 @@ gitlab-sidekiq-ee:
   needs:
     - gitlab-rails-ee
     - gitlab-python
-    - gitlab-logger
 
 gitlab-sidekiq-ce:
   extends: .gitlab-sidekiq-ce
   needs:
     - gitlab-rails-ce
     - gitlab-python
-    - gitlab-logger
 
 gitlab-toolbox-ee:
   extends: .gitlab-toolbox-ee
@@ -200,21 +193,18 @@ gitlab-webservice-ee:
   needs:
     - gitlab-rails-ee
     - gitlab-python
-    - gitlab-logger
 
 gitlab-webservice-ce:
   extends: .gitlab-webservice-ce
   needs:
     - gitlab-rails-ce
     - gitlab-python
-    - gitlab-logger
 
 gitlab-workhorse-ee:
   extends: .gitlab-workhorse-ee
   needs:
     - gitlab-go
     - gitlab-exiftool
-    - gitlab-gomplate
     - gitlab-rails-ee
 
 gitlab-workhorse-ce:
@@ -222,5 +212,4 @@ gitlab-workhorse-ce:
   needs:
     - gitlab-go
     - gitlab-exiftool
-    - gitlab-gomplate
     - gitlab-rails-ce
