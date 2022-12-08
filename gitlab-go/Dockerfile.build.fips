@@ -1,4 +1,4 @@
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.6
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.7
 
 ARG GO_VERSION=1.18
 ARG GO_FIPS_TAG=go1.18.7-2-openssl-fips
