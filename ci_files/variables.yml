@@ -31,7 +31,7 @@ variables:
   PYTHON_VERSION: "3.8.12"
   KUBECTL_VERSION: "1.24.7"
   YQ_VERSION: "4.30.5"
-  PG_VERSION: "14.1"
+  PG_VERSION: "15.1"
   CA_PKG_VERSION: "20220614-r0"
   CFSSL_VERSION: "1.6.1"
   CFSSL_CHECKSUM_SHA256: "89e600cd5203a025f8b47c6cd5abb9a74b06e3c7f7f7dd3f5b2a00975b15a491"
@@ -59,7 +59,6 @@ variables:
   CE_PROJECT: "gitlab-foss"
   EE_PROJECT: "gitlab"
   COMPILE_ASSETS: "false"
-
 ## Note
 # Variables ASSETS_IMAGE_REGISTRY_PREFIX, PREFIX_IMAGE_REGISTRY_PREFIX,
 # GITLAB_NAMESPACE and CE_PROJECT are overridden in the mirror of this

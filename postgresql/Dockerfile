@@ -2,7 +2,7 @@ ARG DEBIAN_IMAGE=debian:bullseye-slim
 FROM ${DEBIAN_IMAGE} as build
 
 ARG BUILD_DIR=/tmp/build
-ARG PG_VERSION=14.1
+ARG PG_VERSION=15.1
 
 ENV LANG=C.UTF-8
 
