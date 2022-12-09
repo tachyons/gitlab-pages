@@ -1,3 +1,5 @@
 #!/bin/bash
 
-registry database migrate up ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
+SKIP_POST_DEPLOY="${SKIP_POST_DEPLOYMENT_MIGRATIONS:-}"
+
+registry database migrate up ${SKIP_POST_DEPLOY:+ --skip-post-deployment} ${CONFIG_DIRECTORY}/${CONFIG_FILENAME}
