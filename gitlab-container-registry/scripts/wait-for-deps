@@ -3,12 +3,13 @@
 WAIT_FOR_TIMEOUT="${WAIT_FOR_TIMEOUT:-30}"
 SLEEP_DURATION="${SLEEP_DURATION:-1}"
 BYPASS_SCHEMA_VERSION="${BYPASS_SCHEMA_VERSION:-}"
+SKIP_POST_DEPLOY="${SKIP_POST_DEPLOYMENT_MIGRATIONS:-}"
 
 TMP=$(mktemp)
 
 function checkStatus {
   # result=true|false, if command successful
-  result=$(registry database migrate status --up-to-date ${CONFIG_DIRECTORY}/${CONFIG_FILENAME})
+  result=$(registry database migrate status --up-to-date ${SKIP_POST_DEPLOY:+ --skip-post-deployment} ${CONFIG_DIRECTORY}/${CONFIG_FILENAME})
   ret=$?
 
   if [ $ret -eq 0 ]; then
