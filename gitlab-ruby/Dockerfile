@@ -36,6 +36,7 @@ RUN buildDeps=' \
   bison \
   dpkg-dev \
   gcc \
+  g++ \
   libbz2-dev \
   libgdbm-dev \
   libglib2.0-dev \
