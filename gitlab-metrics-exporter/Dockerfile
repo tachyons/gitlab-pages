@@ -2,7 +2,7 @@ ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG="master"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
 
-FROM ${FROM_IMAGE}:${TAG}
+FROM ${FROM_IMAGE}:${TAG} as GME
 
 ARG BUILD_DIR=/tmp/build
 ARG VERSION
@@ -27,3 +27,7 @@ RUN cd ${BUILD_DIR} && \
   make install && \
   cd / && \
   rm -rf "${BUILD_DIR}"
+
+FROM scratch as final
+
+COPY --from=GME /usr/local/bin/gitlab-metrics-exporter /usr/local/bin/gitlab-metrics-exporter

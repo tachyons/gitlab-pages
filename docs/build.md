@@ -311,7 +311,7 @@ single stage may build concurrently because they are independent of each other.
   * cfssl-self-sign (final)
   * gitlab-gomplate (intermediate)
   * gitlab-graphicsmagick (intermediate)
-  * gitlab-logger (intermediate, final)
+  * gitlab-logger (intermediate)
   * gitlab-python(intermediate)
   * kubectl (intermediate, final)
   * postgresql (intermediate)
@@ -330,7 +330,7 @@ single stage may build concurrently because they are independent of each other.
   * gitlab-exporter (final)
   * gitlab-kas (final)
   * gitlab-mailroom (final)
-  * gitlab-metrics-exporter (intermediate, final)
+  * gitlab-metrics-exporter (intermediate)
   * gitlab-pages (final)
   * gitlab-shell (final)
 
@@ -536,7 +536,8 @@ graph LR;
   gitlab-shell-.->gitlab-gomplate;
 
   gitlab-elasticsearch-indexer==>gitlab-go;
-  gitlab-metrics-exporter==>gitlab-go;
+  gitlab-metrics-exporter-->gitlab-go;
+  gitlab-metrics-exporter==>scratch;
 
   gitaly==>gitlab-ruby;
   gitaly-.->gitlab-go;
