@@ -1,5 +1,5 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
-ARG PYTHON_TAG="3.8.12"
+ARG PYTHON_TAG="3.8.16"
 ARG TAG="master"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-rails-ee"
 
