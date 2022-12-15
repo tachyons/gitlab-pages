@@ -95,6 +95,7 @@ services:
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
     volumes:
       - ./dev/sidekiq-config:/var/opt/gitlab/config/templates
+      - uploads:/srv/gitlab/public/uploads
       - shared-dir:/srv/gitlab/shared
       - pages:/srv/gitlab/shared/pages
   shell:
