@@ -15,6 +15,8 @@ FROM ${EXIFTOOL_IMAGE} as exiftool_image
 FROM ${CI_REGISTRY_IMAGE}/gitlab-go:${GO_TAG} as builder
 
 ARG BUILD_DIR=/tmp/build
+ARG FIPS_MODE=
+
 RUN mkdir -p ${BUILD_DIR}
 COPY --from=rails /srv/gitlab/ ${BUILD_DIR}/
 
@@ -22,7 +24,7 @@ RUN buildDeps=' \
   git make' \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && make -C ${BUILD_DIR}/workhorse install \
+  && FIPS_MODE=${FIPS_MODE} make -C ${BUILD_DIR}/workhorse install \
   && rm -rf ${BUILD_DIR} \
   && apt-get purge -y --auto-remove $buildDeps \
   # install perl for exiftool requirement
