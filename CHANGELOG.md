@@ -2,6 +2,10 @@
 
 No changes.
 
+## 15.6.3 (2022-12-21)
+
+No changes.
+
 ## 15.6.2 (2022-12-15)
 
 No changes.
