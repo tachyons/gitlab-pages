@@ -16,40 +16,41 @@ rewritten. Tags should never be deleted.
 
 ## Releasing
 
-Pages is tightly coupled to GitLab itself. To align with GitLab's
-[development month](https://gitlab.com/gitlab-org/gitlab-ce/blob/master/PROCESS.md),
-new versions of GitLab Pages are released before the 7th of each month (assuming
-any changes have been made).
-To do so create [release issue](https://gitlab.com/gitlab-org/gitlab-pages/issues/new?issuable_template=release) and follow the instructions.
+[GitLab Pages] releases are tagged automatically by [Release Tools] when a Release Manager 
+tags a GitLab version.
+
+The version of GitLab Pages used will depend on the `GITLAB_PAGES_VERSION` file in 
+the [`gitlab-org/gitlab`](https://gitlab.com/gitlab-org/gitlab) repository. This file
+is managed manually, so when changes to GitLab Pages are ready to be released with GitLab, the
+target commit SHA from the GitLab Pages default branch should be committed to the
+`GITLAB_PAGES_VERSION` file on the `gitlab-org/gitlab` default branch. When GitLab.com
+is deployed, the new version of GitLab Pages will be used. When GitLab is tagged for a monthly release,
+the version of GitLab Pages from the selected deployment of GitLab will be used for tagging
+GitLab Pages.
 
 ## Stable releases
 
-Typically, release tags point to a specific commit on the **master** branch. As
-the Pages repository experiences a low rate of change, this allows most releases
-to happen in conformance with semver, without the overhead of multiple
-[stable branches](https://docs.gitlab.com/ee/workflow/gitlab_flow.html).
+Each month, when GitLab is released, a new stable branch will be created in alignment
+with the version of GitLab being released. For example, release of version 15.2.0 
+will result in a branch named `15-2-stable` being created on [GitLab Pages].
 
-A bug fix may required in a particular version after the **master** branch has
-moved on. This may happen between the 7th and 22nd of a release month, relating
-to the **previous** release, or at any time for a security fix.
+To backport a change: 
 
-GitLab may backport security fixes for up to three releases, which may
-correspond to three separate minor versions of GitLab Pages - and so three new
-versions to release. See [Security releases](#Security releases) for the details.
-
-In either case, the fix should first be developed against the master branch.
-Once ready, the fix should be merged to master, where it will be
-included in the next major or minor release as usual.
-
-The fix may be cherry-picked into each relevant stable branch, and a new patch
-release made in the same way as defined above.
-
-When updating `GITLAB_PAGES_VERSION` in the [GitLab](https://gitlab.com/gitlab-org/gitlab)
-repository, you should target the relevant `X-Y-stable` branches there. In
-general, these branches should only ever have the patch version of GitLab pages
-incremented.
+1. Develop an MR to fix the bug against the master branch.
+1. Once ready, the MR should be merged to master, where it will be included in the next major or minor release as usual.
+1. Create a merge request for `gitlab-org/gitlab` that updates `GITLAB_PAGES_VERSION` with the
+merge commit SHA from the GitLab Pages default branch to deploy the changes.
+1. To create a backport MR for a given stable version:
+   1. Create a new branch off of the stable branch for the targeted version.
+   1. Cherry-pick the commit onto the new branch.
+   1. Open an MR targeting the relevant stable branch.
+   1. Have the MR reviewed and merged. Note: security backports should not be merged, see [security releases](#Security releases) for more details.
+1. When release managers tag a patch or security release, the stable branch will be tagged automatically.
 
 ## Security releases
+
+This process is currently [under discussion](https://gitlab.com/gitlab-com/gl-infra/delivery/-/issues/2746). Please consult with release managers
+about any process changes in the interim. 
 
 Pages security releases are built on top of the [GitLab Security Release process]. Engineers follow
 the same steps stated on the [Security Developer] guidelines with some adjustments:
