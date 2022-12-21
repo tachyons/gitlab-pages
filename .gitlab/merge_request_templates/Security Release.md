@@ -26,9 +26,8 @@ When submitting a merge request for gitlab-pages, CE and EE merge requests for u
 
 ## Reviewer checklist
 
-- [ ] Correct milestone is applied and the title is matching across all backports
-- [ ] Merge this merge request
-- [ ] Create corresponding tag and push it to https://gitlab.com/gitlab-org/security/gitlab-pages
+- [ ] Correct milestone is applied and the title is matching across all backports.
+- [ ] Approve the MR. Do not merge it, release managers will assist with merging at the time of release.
 
 [CHANGELOG entry]: https://docs.gitlab.com/ee/development/changelog.html#overview
 
