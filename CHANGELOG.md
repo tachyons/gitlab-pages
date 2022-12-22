@@ -1,6 +1,6 @@
 ## 15.7.0 (2022-12-21)
 
-No changes.
+No changes. Same content of 1.64.0.
 
 ## 15.6.3 (2022-12-21)
 
@@ -8,15 +8,15 @@ No changes.
 
 ## 15.6.2 (2022-12-15)
 
-No changes.
+No changes. Same content of 1.63.0.
 
 ## 15.5.6 (2022-12-15)
 
-No changes.
+No changes. Same content of 1.62.0.
 
 ## 15.4.6 (2022-12-15)
 
-No changes.
+No changes. Same content of 1.62.0.
 
 ## 1.64.0 (2022-12-01)
 
