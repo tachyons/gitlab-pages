@@ -125,8 +125,8 @@ gitlab-kas:
 gitlab-pages:
   extends: .gitlab-pages
   needs:
+    - gitlab-base
     - gitlab-go
-    - gitlab-ruby
 
 gitlab-shell:
   extends: .gitlab-shell

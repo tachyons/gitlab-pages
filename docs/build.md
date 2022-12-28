@@ -413,7 +413,7 @@ graph LR;
 
   gitlab-exporter==>gitlab-ruby;
   gitlab-mailroom===>gitlab-ruby;
-  gitlab-pages===>gitlab-ruby
+  gitlab-pages===>gitlab-base;
   gitlab-rails==>gitlab-ruby;
   gitlab-workhorse==>gitlab-base
   gitaly===>gitlab-ruby;
@@ -492,7 +492,7 @@ graph LR;
   gitlab-logger-->gitlab-go;
   gitlab-logger==>scratch;
 
-  gitlab-pages==>gitlab-ruby
+  gitlab-pages==>gitlab-base;
   gitlab-pages-.->gitlab-gomplate
   gitlab-pages-->gitlab-go
 

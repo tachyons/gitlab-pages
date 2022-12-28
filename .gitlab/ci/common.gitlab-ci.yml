@@ -339,18 +339,20 @@
   stage: phase-four
   script:
     - import_assets artifacts/ubi/gitlab-gomplate.tar.gz
-    - ruby_version=$(cat artifacts/container_versions/gitlab-ruby_tag.txt)
     - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
     - gomplate_version=$(cat artifacts/container_versions/gitlab-gomplate_tag.txt)
-    - export CONTAINER_VERSION=($(echo -n "$go_version$gomplate_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
+    - gitlab_base_version=$(cat artifacts/container_versions/gitlab-base_tag.txt)
+    - export GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${gitlab_base_version}${IMAGE_TAG_EXT}"
+    - export CONTAINER_VERSION=($(echo -n "$gitlab_base_version$go_version$gomplate_version$TARGET_VERSION$GITLAB_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - build_if_needed --build-arg "GITLAB_PAGES_VERSION=$GITLAB_PAGES_VERSION"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GOMPLATE_TAG=${gomplate_version}${IMAGE_TAG_EXT}"
                       --build-arg "FETCH_ARTIFACTS_PAT=${FETCH_DEV_ARTIFACTS_PAT}"
                       --build-arg "DEPENDENCY_PROXY=${DEPENDENCY_PROXY}"
-                      --build-arg "RUBY_IMAGE=${CI_REGISTRY_IMAGE}/gitlab-ruby:$ruby_version${IMAGE_TAG_EXT}"
                       --build-arg "CI_API_V4_URL=${CI_API_V4_URL}"
                       --build-arg "GITLAB_NAMESPACE=${GITLAB_NAMESPACE}"
+                      --build-arg "GITLAB_BASE_IMAGE=${GITLAB_BASE_IMAGE}"
+                      --build-arg "TAG=${gitlab_base_version}${IMAGE_TAG_EXT}"
     - push_tags
     - push_tags $GITLAB_PAGES_VERSION${IMAGE_TAG_EXT}
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-pages_tag.txt
