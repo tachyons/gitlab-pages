@@ -173,6 +173,27 @@ func TestTryAuthenticateWithDomainAndState(t *testing.T) {
 	require.Equal(t, "/public-gitlab.example.com/oauth/authorize?client_id=id&redirect_uri=http://pages.gitlab-example.com/auth&response_type=code&state=state&scope=scope", redirect.String())
 }
 
+func TestCheckAuthenticationWhenStateIsAlreadySet(t *testing.T) {
+	auth := createTestAuth(t, "", "")
+
+	result := httptest.NewRecorder()
+
+	r, err := http.NewRequest("Get", "https://example.com/", nil)
+	require.NoError(t, err)
+
+	// pre-set an state
+	setSessionValues(t, r, auth, map[interface{}]interface{}{
+		"state": "given_state",
+	})
+
+	contentServed := auth.CheckAuthentication(result, r, &domainMock{projectID: 1000})
+	require.True(t, contentServed)
+
+	// check if the state was re-used instead of re-created
+	session, _ := auth.getSessionFromStore(r)
+	require.Equal(t, "given_state", session.Values["state"], "did not reuse the pre-set state")
+}
+
 func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	t.Helper()
 
