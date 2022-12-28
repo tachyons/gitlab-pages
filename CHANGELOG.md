@@ -1,3 +1,37 @@
+## 15.7.0 (2022-12-21)
+
+No changes. Same content of 1.64.0.
+
+## 15.6.3 (2022-12-21)
+
+No changes.
+
+## 15.6.2 (2022-12-15)
+
+No changes. Same content of 1.63.0.
+
+## 15.5.6 (2022-12-15)
+
+No changes. Same content of 1.62.0.
+
+## 15.4.6 (2022-12-15)
+
+No changes. Same content of 1.62.0.
+
+## 1.64.0 (2022-12-01)
+
+No changes.
+
+## 1.63.0 (2022-11-10)
+
+### Security (1 change)
+
+- [Fix CVE-2022-32149 in golang.org/x/text](gitlab-org/gitlab-pages@7e01bfda3f59a5bcb78af4f4d3001dfa7fe1078a) ([merge request](gitlab-org/gitlab-pages!832))
+
+### Other (1 change)
+
+- [Add note about docs](gitlab-org/gitlab-pages@b6b2bf5a25558a1c9173b2ca55063528bc6c6c7f) ([merge request](gitlab-org/gitlab-pages!835))
+
 ## 1.62.0 (2022-07-28)
 
 ### Fixed (2 changes)

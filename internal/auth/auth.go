@@ -416,9 +416,14 @@ func (a *Auth) checkTokenExists(session *hostSession, w http.ResponseWriter, r *
 	if session.Values["access_token"] == nil {
 		logRequest(r).Debug("No access token exists, redirecting user to OAuth2 login")
 
-		// Generate state hash and store requested address
-		state := base64.URLEncoding.EncodeToString(securecookie.GenerateRandomKey(16))
-		session.Values["state"] = state
+		// When the user tries to authenticate and reload the page concurrently,
+		// gitlab pages might receive a authentication request with the state already set.
+		// In these cases, we should re-use the state instead of creating a new one.
+		if session.Values["state"] == nil {
+			//Generate state hash and store requested address
+			session.Values["state"] = base64.URLEncoding.EncodeToString(securecookie.GenerateRandomKey(16))
+		}
+
 		session.Values["uri"] = getRequestAddress(r)
 
 		// Clear possible proxying
@@ -435,7 +440,7 @@ func (a *Auth) checkTokenExists(session *hostSession, w http.ResponseWriter, r *
 
 		// Because the pages domain might be in public suffix list, we have to
 		// redirect to pages domain to trigger authorization flow
-		http.Redirect(w, r, a.getProxyAddress(r, state), http.StatusFound)
+		http.Redirect(w, r, a.getProxyAddress(r, session.Values["state"].(string)), http.StatusFound)
 
 		return true
 	}
