@@ -126,7 +126,7 @@ services:
       - "CONFIG_DIRECTORY=/etc/gitlab-pages"
       - "PAGES_CONFIG_FILE=/etc/gitlab-pages/pages-config"
     volumes:
-      - ./dev/pages-config/pages-config.erb:/etc/gitlab-pages/templates/pages-config.erb
+      - ./dev/pages-config/pages-config.tpl:/etc/gitlab-pages/templates/pages-config.tpl
       - ./dev/pages-secret/.gitlab_pages_secret:/etc/gitlab-pages/.gitlab_pages_secret
       - shared-dir:/srv/gitlab/shared
       - pages:/srv/gitlab/shared/pages

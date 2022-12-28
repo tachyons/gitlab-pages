@@ -1,10 +1,9 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
-ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
-ARG GO_TAG="master"
-ARG RUBY_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-ruby:master"
+ARG TAG="master"
 
-ARG GOMPLATE_TAG=
-ARG GOMPLATE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-gomplate:${GOMPLATE_TAG}"
+ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
+ARG GO_TAG="${TAG}"
+ARG GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${TAG}"
 
 FROM ${FROM_IMAGE}:${GO_TAG} as builder
 
@@ -32,11 +31,9 @@ RUN buildDeps=' \
   && apt-get purge -y --auto-remove $buildDeps \
   && rm -rf /var/lib/apt/lists/*
 
-FROM ${GOMPLATE_IMAGE} as gomplate
-
 ## FINAL IMAGE ##
 
-FROM ${RUBY_IMAGE}
+FROM ${GITLAB_BASE_IMAGE} as final
 
 ARG GITLAB_USER=git
 ARG CONFIG_DIRECTORY=/etc/gitlab-pages
@@ -48,9 +45,6 @@ RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab
 
 COPY --from=builder /usr/local/bin/gitlab-pages /bin/gitlab-pages
-
-# Pull in gomplate
-COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 
 ENV CONFIG_TEMPLATE_DIRECTORY=${CONFIG_DIRECTORY}
 

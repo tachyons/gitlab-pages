@@ -450,7 +450,7 @@ gitlab-kas:
 gitlab-pages:
   extends: .gitlab-pages
   needs:
-    - gitlab-ruby
+    - gitlab-base
     - build:gitlab-gomplate
     - build:gitlab-pages
 
