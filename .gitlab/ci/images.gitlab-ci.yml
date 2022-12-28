@@ -94,6 +94,7 @@ sync-images:
   stage: release
   allow_failure: false
   script:
+    - apk add skopeo
     - cat artifacts/images/* > image_versions.txt
     - rm -rf artifacts/*
     - sh build-scripts/docker_image_sync.sh image_versions.txt
