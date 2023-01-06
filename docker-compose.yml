@@ -19,6 +19,7 @@ services:
       - "CONFIG_TEMPLATE_DIRECTORY=/var/opt/gitlab/config/templates"
       - "CONFIG_DIRECTORY=/srv/gitlab/config"
       - "BYPASS_SCHEMA_VERSION=true"
+      - "GITLAB_SHARED_RUNNERS_REGISTRATION_TOKEN=runnertestsecretregtoken"
     command: ["/scripts/wait-for-deps", "/scripts/db-migrate"]
     depends_on:
       - postgres
@@ -170,6 +171,18 @@ services:
       - ./dev/gitlab-kas/.gitlab_kas_internal_api_secret:/etc/kas/.gitlab_kas_internal_api_secret
       - ./dev/gitlab-kas/.gitlab_kas_private_api_secret:/etc/kas/.gitlab_kas_private_api_secret
       - ./dev/gitlab-kas/.redis_password:/etc/kas/.redis_password
+  runner:
+    image: ${GITLAB_RUNNER_IMAGE}
+    depends_on:
+      - webservice
+    entrypoint: "/register-and-run"
+    environment:
+      - "REGISTRATION_TOKEN=runnertestsecretregtoken"
+      - "CI_SERVER_URL=http://workhorse:8181/"
+      - "CLONE_URL=http://workhorse:8181/"
+      - "RUNNER_EXECUTOR=shell"
+    volumes:
+    - ./dev/runner/register-and-run:/register-and-run
 volumes:
   db-upgrade:
     driver: local
