@@ -84,7 +84,7 @@ image-metrics:
     reports:
       metrics: metrics/image_metrics.txt
 
-sync-images:
+.sync-images:
   image: "${DEPENDENCY_PROXY}docker:git"
   variables:
     DOCKER_DRIVER: overlay2
@@ -97,10 +97,19 @@ sync-images:
     - apk add skopeo
     - cat artifacts/images/* > image_versions.txt
     - rm -rf artifacts/*
-    - sh build-scripts/docker_image_sync.sh image_versions.txt
+    - sh build-scripts/docker_image_sync.sh image_versions.txt $SYNC_DEST
+  artifacts:
+    paths:
+      - artifacts/
+
+sync-images-gitlab-com:
+  extends: .sync-images
+  variables:
+    SYNC_DEST: gitlab-com
+  after_script:
     - if $(echo $CI_COMMIT_TAG | grep -Eq 'v*-ubi8'); then
     -   apk add curl
-    -   UBI_IMAGES=$(cat artifacts/cng_images.txt | xargs printf ', %s')
+    -   UBI_IMAGES=$(cat artifacts/gitlab-com-images.txt | xargs printf ', %s')
     -   curl -fS
           --request POST
           --form ref=master
@@ -108,12 +117,16 @@ sync-images:
           --form "token=${SCANNING_TRIGGER_TOKEN}"
           "${SCANNING_TRIGGER_PIPELINE}"
     - fi
-  artifacts:
-    paths:
-      - artifacts/
   rules:
     - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
       when: manual
+
+sync-images-artifact-registry:
+  extends: .sync-images
+  variables:
+    SYNC_DEST: artifact-registry
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "gitlab/charts/components/images"'
 
 container-scanning:
   stage: container-scanning
