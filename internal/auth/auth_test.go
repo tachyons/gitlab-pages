@@ -173,6 +173,21 @@ func TestTryAuthenticateWithDomainAndState(t *testing.T) {
 	require.Equal(t, "/public-gitlab.example.com/oauth/authorize?client_id=id&redirect_uri=http://pages.gitlab-example.com/auth&response_type=code&state=state&scope=scope", redirect.String())
 }
 
+func TestTryAuthenticateWithNonHttpDomainAndState(t *testing.T) {
+	auth := createTestAuth(t, "", "")
+
+	result := httptest.NewRecorder()
+
+	r, err := http.NewRequest("Get", "https://example.com/auth?domain=mailto://example.com?body=TESTBODY&state=state", nil)
+	require.NoError(t, err)
+
+	mockCtrl := gomock.NewController(t)
+
+	mockSource := mock.NewMockSource(mockCtrl)
+	require.True(t, auth.TryAuthenticate(result, r, mockSource))
+	require.Equal(t, http.StatusUnauthorized, result.Code)
+}
+
 func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	t.Helper()
 

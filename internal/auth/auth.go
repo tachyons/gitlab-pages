@@ -38,10 +38,11 @@ const (
 	callbackPath           = "/auth"
 	authorizeProxyTemplate = "%s?domain=%s&state=%s"
 
-	failAuthErrMsg         = "failed to authenticate request"
-	fetchAccessTokenErrMsg = "fetching access token failed"
-	queryParameterErrMsg   = "failed to parse domain query parameter"
-	saveSessionErrMsg      = "failed to save the session"
+	failAuthErrMsg             = "failed to authenticate request"
+	fetchAccessTokenErrMsg     = "fetching access token failed"
+	queryParameterErrMsg       = "failed to parse domain query parameter"
+	saveSessionErrMsg          = "failed to save the session"
+	domainQueryParameterErrMsg = "domain query parameter only supports http/https protocol"
 )
 
 var (
@@ -197,6 +198,7 @@ func (a *Auth) domainAllowed(ctx context.Context, name string, domains source.So
 	return (domain != nil && err == nil)
 }
 
+// nolint: gocyclo // TODO refactor this function https://gitlab.com/gitlab-org/gitlab-pages/-/issues/813
 func (a *Auth) handleProxyingAuth(session *hostSession, w http.ResponseWriter, r *http.Request, domains source.Source) bool {
 	// handle auth callback e.g. https://gitlab.io/auth?domain=domain&state=state
 	if shouldProxyAuthToGitlab(r) {
@@ -211,6 +213,15 @@ func (a *Auth) handleProxyingAuth(session *hostSession, w http.ResponseWriter, r
 			httperrors.Serve500(w)
 			return true
 		}
+
+		// domain query param can only contain https or http URLs.
+		if proxyurl.Scheme != "http" && proxyurl.Scheme != "https" {
+			logRequest(r).WithField("domain_query", domain).Warn(domainQueryParameterErrMsg)
+
+			httperrors.Serve401(w)
+			return true
+		}
+
 		host, _, err := net.SplitHostPort(proxyurl.Host)
 		if err != nil {
 			host = proxyurl.Host
