@@ -128,7 +128,7 @@ function get_existing_backups(){
           existing_backups=($(s3cmd ${S3_CMD_BACKUP_OPTION} ls s3://$BACKUP_BUCKET_NAME --rinclude '^\d{10}_\d{4}_\d{2}_\d{2}_.+_gitlab_backup.tar$' | awk '{print $4}' | LC_ALL=C sort))
           ;;
         awscli)
-          existing_backups=($(aws s3 ls ${AWS_S3_SETTINGS_LIST} "s3://$BACKUP_BUCKET_NAME" | awk '{print $4}' | grep -E '^[0-9]{10}_[0-9]{4}_[0-9]{2}_[0-9]{2}_.+_gitlab_backup.tar$' | LC_ALL=C sort))
+          existing_backups=($(aws s3 ls ${AWS_S3_SETTINGS_LIST[@]} "s3://$BACKUP_BUCKET_NAME" | awk '{print $4}' | grep -E '^[0-9]{10}_[0-9]{4}_[0-9]{2}_[0-9]{2}_.+_gitlab_backup.tar$' | LC_ALL=C sort))
           ;;
         *)
           echo "Unknown S3 tool: ${S3_TOOL}"
@@ -154,7 +154,7 @@ function remove_backup(){
     s3)
       case "$S3_TOOL" in
         s3cmd) s3cmd ${S3_CMD_BACKUP_OPTION} del ${backup_to_remove} > /dev/null ;;
-        awscli) aws s3 rm ${AWS_S3_SETTINGS_LIST} "s3://${BACKUP_BUCKET_NAME}/${backup_to_remove}" > /dev/null ;;
+        awscli) aws s3 rm ${AWS_S3_SETTINGS_LIST[@]} "s3://${BACKUP_BUCKET_NAME}/${backup_to_remove}" > /dev/null ;;
         *)
           echo "Unknown S3 tool: $S3_TOOL"
           exit 1
