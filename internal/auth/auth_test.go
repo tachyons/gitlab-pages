@@ -194,6 +194,21 @@ func TestCheckAuthenticationWhenStateIsAlreadySet(t *testing.T) {
 	require.Equal(t, "given_state", session.Values["state"], "did not reuse the pre-set state")
 }
 
+func TestTryAuthenticateWithNonHttpDomainAndState(t *testing.T) {
+	auth := createTestAuth(t, "", "")
+
+	result := httptest.NewRecorder()
+
+	r, err := http.NewRequest("Get", "https://example.com/auth?domain=mailto://example.com?body=TESTBODY&state=state", nil)
+	require.NoError(t, err)
+
+	mockCtrl := gomock.NewController(t)
+
+	mockSource := mock.NewMockSource(mockCtrl)
+	require.True(t, auth.TryAuthenticate(result, r, mockSource))
+	require.Equal(t, http.StatusUnauthorized, result.Code)
+}
+
 func testTryAuthenticateWithCodeAndState(t *testing.T, https bool) {
 	t.Helper()
 

@@ -1,3 +1,9 @@
+## 15.7.2 (2023-01-09)
+
+### Security (1 change)
+
+- [Restrict arbitrary protocol redirection to only https or http URLs](gitlab-org/security/gitlab-pages@349102115927947edd59ce0a03d1ffba3a74947f) ([merge request](gitlab-org/security/gitlab-pages!59))
+
 ## 15.7.1 (2023-01-05)
 
 No changes.
@@ -6,6 +12,12 @@ No changes.
 
 No changes. Same content of 1.64.0.
 
+## 15.6.4 (2023-01-09)
+
+### Security (1 change)
+
+- [Restrict arbitrary protocol redirection to only https or http URLs](gitlab-org/security/gitlab-pages@c0da7401a044a31d1ccf754716880e3e4721453f) ([merge request](gitlab-org/security/gitlab-pages!58))
+
 ## 15.6.3 (2022-12-21)
 
 No changes.
@@ -13,6 +25,12 @@ No changes.
 ## 15.6.2 (2022-12-15)
 
 No changes. Same content of 1.63.0.
+
+## 15.5.7 (2023-01-09)
+
+### Security (1 change)
+
+- [Restrict arbitrary protocol redirection to only https or http URLs](gitlab-org/security/gitlab-pages@f14d39bbaacd76d8be26b6121e732c7327cc0d4d) ([merge request](gitlab-org/security/gitlab-pages!57))
 
 ## 15.5.6 (2022-12-15)
 
