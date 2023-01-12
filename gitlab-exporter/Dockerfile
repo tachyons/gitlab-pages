@@ -3,7 +3,7 @@
 ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
 ARG TAG="master"
 ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-ruby"
-ARG GITLAB_EXPORTER_VERSION=11.18.2
+ARG GITLAB_EXPORTER_VERSION=12.1.0
 FROM ${FROM_IMAGE}:${TAG}
 
 # https://docs.docker.com/engine/reference/builder/#understand-how-arg-and-from-interact
