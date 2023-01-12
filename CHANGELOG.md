@@ -20,6 +20,10 @@ No changes.
 
 No changes. Same content of 1.64.0.
 
+## 15.6.5 (2023-01-12)
+
+No changes.
+
 ## 15.6.4 (2023-01-09)
 
 ### Security (1 change)
