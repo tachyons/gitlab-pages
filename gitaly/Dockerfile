@@ -17,6 +17,7 @@ ARG RUBY_TAG
 COPY --from=golang /usr/local/go /usr/local/go
 
 ARG GITALY_SERVER_VERSION=v1.83.0
+ARG GITALY_GIT_REPO_URL
 ARG BUILD_DIR=/tmp/build
 ARG GITLAB_NAMESPACE="gitlab-org"
 ARG FETCH_ARTIFACTS_PAT
@@ -59,6 +60,7 @@ RUN buildDeps=' \
     bundle install ${BUNDLE_OPTIONS} && \
     cd .. && \
     touch .ruby-bundle && \
+    if [ -n "${GITALY_GIT_REPO_URL}" ]; then export GIT_REPO_URL="${GITALY_GIT_REPO_URL}" ; fi && \
     make install WITH_BUNDLED_GIT=YesPlease && \
     rm -rf ${BUILD_DIR}/ruby/spec ${BUILD_DIR}/ruby/features && \
     mv ${BUILD_DIR}/ruby /srv/gitaly-ruby && \

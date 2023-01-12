@@ -247,6 +247,7 @@
     -   export BASE_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go:$go_version${IMAGE_TAG_EXT}"
     - fi
     - build_if_needed --build-arg "GITALY_SERVER_VERSION=${GITALY_SERVER_VERSION}"
+                      --build-arg "GITALY_GIT_REPO_URL=${GITALY_GIT_REPO_URL}"
                       --build-arg "TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "GO_TAG=${go_version}${IMAGE_TAG_EXT}"
                       --build-arg "RUBY_TAG=$ruby_version${IMAGE_TAG_EXT}"
