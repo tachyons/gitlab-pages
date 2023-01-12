@@ -148,7 +148,8 @@ build:gitaly:
     - go_version=$(cat artifacts/container_versions/gitlab-go_tag.txt)
     - export shell_container=($(echo -n "$BASE_VERSION$go_version$TARGET_VERSION$GITLAB_SHELL_VERSION$CI_PIPELINE_CREATED_AT" | sha1sum))
     - export CONTAINER_VERSION=($(echo -n "$shell_container$GITALY_SERVER_VERSION$go_version$TARGET_VERSION" | sha1sum))
-    - build_if_needed --build-arg "VERSION=${GITALY_SERVER_VERSION}"
+    - build_if_needed --build-arg "GITALY_SERVER_VERSION=${GITALY_SERVER_VERSION}"
+                      --build-arg "GITALY_GIT_REPO_URL=${GITALY_GIT_REPO_URL}"
                       --build-arg "NAMESPACE=${GITLAB_NAMESPACE}"
                       --build-arg "API_URL=${CI_API_V4_URL}"
                       --build-arg "API_TOKEN=${FETCH_DEV_ARTIFACTS_PAT}"
