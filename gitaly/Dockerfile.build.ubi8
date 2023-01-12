@@ -2,7 +2,8 @@ ARG BUILD_IMAGE=
 
 FROM ${BUILD_IMAGE}
 
-ARG VERSION=master
+ARG GITALY_SERVER_VERSION=master
+ARG GITALY_GIT_REPO_URL
 ARG NAMESPACE=gitlab-org
 ARG PROJECT=gitaly
 ARG API_URL=
@@ -30,8 +31,8 @@ RUN mkdir /assets \
         "${API_URL}" \
         "${NAMESPACE}" \
         "${PROJECT}" \
-        "${VERSION}" \
-    && cd ${PROJECT}-${VERSION}/ruby \
+        "${GITALY_SERVER_VERSION}" \
+    && cd ${PROJECT}-${GITALY_SERVER_VERSION}/ruby \
     && bundle config set --local deployment 'true' \
     && bundle config set --local without 'development test' \
     && bundle install ${BUNDLE_OPTIONS} \
@@ -41,6 +42,7 @@ RUN mkdir /assets \
     && install -D LICENSE /licenses/GitLab.txt \
     && rm -rf /srv/gitaly-ruby/spec /srv/gitaly-ruby/features \
     && touch .ruby-bundle \
+    && if [ -n "${GITALY_GIT_REPO_URL}" ]; then export GIT_REPO_URL="${GITALY_GIT_REPO_URL}" ; fi \
     && FIPS_MODE=${FIPS_MODE} make install WITH_BUNDLED_GIT=YesPlease \
     && /build-scripts/cleanup-gems /srv/gitaly-ruby/vendor/bundle/ruby \
     && cp -R --parents \
