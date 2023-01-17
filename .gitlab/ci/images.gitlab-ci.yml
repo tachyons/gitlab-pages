@@ -86,6 +86,7 @@ image-metrics:
 
 .sync-images:
   image: "${DEPENDENCY_PROXY}docker:git"
+  retry: 2
   variables:
     DOCKER_DRIVER: overlay2
     DOCKER_HOST: tcp://docker:2375
