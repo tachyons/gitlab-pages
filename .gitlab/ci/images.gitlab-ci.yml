@@ -91,7 +91,6 @@ image-metrics:
     DOCKER_HOST: tcp://docker:2375
   services:
     - docker:${DOCKER_VERSION}-dind
-  stage: release
   allow_failure: false
   script:
     - apk add skopeo
@@ -104,6 +103,7 @@ image-metrics:
 
 sync-images-gitlab-com:
   extends: .sync-images
+  stage: release
   variables:
     SYNC_DEST: gitlab-com
   after_script:
@@ -123,6 +123,7 @@ sync-images-gitlab-com:
 
 sync-images-artifact-registry:
   extends: .sync-images
+  stage: sync
   variables:
     SYNC_DEST: artifact-registry
   rules:
