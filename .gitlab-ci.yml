@@ -47,6 +47,7 @@ stages:
   - phase-five
   - phase-six
   - final-list
+  - sync
   - release
   - container-scanning
   - report
