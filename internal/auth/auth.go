@@ -652,31 +652,45 @@ func generateKeys(secret string, count int) ([][]byte, error) {
 	return keys, nil
 }
 
+// Options carry required auth parameters used to populate Auth struct
+type Options struct {
+	PagesDomain          string
+	StoreSecret          string
+	ClientID             string
+	ClientSecret         string
+	RedirectURI          string
+	InternalGitlabServer string
+	PublicGitlabServer   string
+	AuthScope            string
+	AuthTimeout          time.Duration
+	CookieSessionTimeout time.Duration
+}
+
 // New when authentication supported this will be used to create authentication handler
-func New(pagesDomain, storeSecret, clientID, clientSecret, redirectURI, internalGitlabServer, publicGitlabServer, authScope string, authTimeout, cookieSessionTimeout time.Duration) (*Auth, error) {
+func New(options *Options) (*Auth, error) {
 	// generate 3 keys, 2 for the cookie store and 1 for JWT signing
-	keys, err := generateKeys(storeSecret, 3)
+	keys, err := generateKeys(options.StoreSecret, 3)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Auth{
-		pagesDomain:          pagesDomain,
-		clientID:             clientID,
-		clientSecret:         clientSecret,
-		redirectURI:          redirectURI,
-		internalGitlabServer: strings.TrimRight(internalGitlabServer, "/"),
-		publicGitlabServer:   strings.TrimRight(publicGitlabServer, "/"),
+		pagesDomain:          options.PagesDomain,
+		clientID:             options.ClientID,
+		clientSecret:         options.ClientSecret,
+		redirectURI:          options.RedirectURI,
+		internalGitlabServer: strings.TrimRight(options.InternalGitlabServer, "/"),
+		publicGitlabServer:   strings.TrimRight(options.PublicGitlabServer, "/"),
 		apiClient: &http.Client{
-			Timeout:   authTimeout,
+			Timeout:   options.AuthTimeout,
 			Transport: httptransport.DefaultTransport,
 		},
 		store:                sessions.NewCookieStore(keys[0], keys[1]),
-		authSecret:           storeSecret,
-		authScope:            authScope,
+		authSecret:           options.StoreSecret,
+		authScope:            options.AuthScope,
 		jwtSigningKey:        keys[2],
 		jwtExpiry:            time.Minute,
 		now:                  time.Now,
-		cookieSessionTimeout: cookieSessionTimeout,
+		cookieSessionTimeout: options.CookieSessionTimeout,
 	}, nil
 }

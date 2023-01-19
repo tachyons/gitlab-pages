@@ -22,16 +22,18 @@ import (
 func createTestAuth(t *testing.T, internalServer string, publicServer string) *Auth {
 	t.Helper()
 
-	a, err := New("pages.gitlab-example.com",
-		"something-very-secret",
-		"id",
-		"secret",
-		"http://pages.gitlab-example.com/auth",
-		internalServer,
-		publicServer,
-		"scope",
-		5*time.Second,
-		10*time.Minute)
+	a, err := New(&Options{
+		PagesDomain:          "pages.gitlab-example.com",
+		StoreSecret:          "something-very-secret",
+		ClientID:             "id",
+		ClientSecret:         "secret",
+		RedirectURI:          "http://pages.gitlab-example.com/auth",
+		InternalGitlabServer: internalServer,
+		PublicGitlabServer:   publicServer,
+		AuthScope:            "scope",
+		AuthTimeout:          5 * time.Second,
+		CookieSessionTimeout: 10 * time.Minute,
+	})
 
 	require.NoError(t, err)
 
