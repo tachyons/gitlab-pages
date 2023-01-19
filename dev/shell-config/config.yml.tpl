@@ -34,7 +34,7 @@ audit_usernames: false
 {% if eq $daemon "gitlab-sshd" %}
 # This section configures the built-in SSH server. Ignored when running on OpenSSH.
 sshd:
-+  # Address which the SSH server listens on. Defaults to [::]:2222.
+  # Address which the SSH server listens on. Defaults to [::]:2222.
   listen: "[::]:2222"
   # Address which the server listens on HTTP for monitoring/health checks. Defaults to 0.0.0.0:9122.
   web_listen: "0.0.0.0:9122"
@@ -47,6 +47,16 @@ sshd:
     - {%.%}
     {%- end %}
   {%- end %}
+  # GSSAPI-related settings
+  gssapi:
+    # Enable the gssapi-with-mic authentication method. Defaults to false.
+    enabled: false
+    # Keytab path. Defaults to "", system default (usually /etc/krb5.keytab).
+    keytab: ""
+    # The Kerberos service name to be used by sshd. Defaults to "", accepts any service name in keytab file.
+    service_principal_name: ""
+    # GSSAPI Library path - this needs to be set to libgssapi_krb5.so.2 for our images
+    libpath: "libgssapi_krb5.so.2"
 {% end %}
 
 {% if env.Getenv "CUSTOM_HOOKS_DIR" %}

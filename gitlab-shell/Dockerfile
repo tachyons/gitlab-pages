@@ -20,6 +20,7 @@ RUN apt-get update \
       git \
       make \
       xtail \
+      libkrb5-dev \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /assets
 
