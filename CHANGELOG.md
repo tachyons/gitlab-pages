@@ -1,3 +1,9 @@
+## 15.8.0 (2023-01-20)
+
+### Security (1 change)
+
+- [Restrict arbitrary protocol redirection to only https or http URLs](gitlab-org/gitlab-pages@973d93daeaa0e31f0cec2e09db8838cf38c67dc5) ([merge request](gitlab-org/gitlab-pages!845))
+
 ## 15.7.5 (2023-01-12)
 
 No changes.
