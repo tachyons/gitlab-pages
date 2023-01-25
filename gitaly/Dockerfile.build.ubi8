@@ -21,10 +21,6 @@ ENV LIBDIR ${LIBDIR:-"/usr/lib64"}
 
 COPY shared/build-scripts/ /build-scripts
 
-RUN dnf ${DNF_OPTS} install -by --nodocs git \
-    && dnf clean all \
-    && rm -r /var/cache/dnf
-
 RUN mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
     && /gitlab-fetch \

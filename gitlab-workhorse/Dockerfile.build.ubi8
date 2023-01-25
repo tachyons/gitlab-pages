@@ -8,13 +8,11 @@ ARG VERSION=v5.2.0
 ARG API_URL=
 ARG API_TOKEN=
 ARG FIPS_MODE=
-ARG DNF_OPTS
 
 ADD gitlab-go.tar.gz /
 ADD gitlab-rails-ee.tar.gz /
 
-RUN dnf ${DNF_OPTS} install -by --nodocs git \
-    && ldconfig \
+RUN ldconfig \
     && mkdir /assets \
     && ln -sf /usr/local/go/bin/* /usr/local/bin \
     && FIPS_MODE=${FIPS_MODE} make -C /srv/gitlab/workhorse install \

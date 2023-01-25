@@ -4,14 +4,10 @@ FROM ${BUILD_IMAGE}
 ARG GITLAB_KAS_VERSION=v14.5.0
 ARG GITLAB_NAMESPACE=gitlab-org
 ARG BUILD_DIR=/tmp/build-gitlab-kas
-ARG DNF_OPTS
 ARG FETCH_ARTIFACTS_PAT
 ARG CI_API_V4_URL
 
 ADD gitlab-go.tar.gz /
-
-# install packages
-RUN dnf ${DNF_OPTS} install -by --nodocs gcc git
 
 # install go
 RUN ln -sf /usr/local/go/bin/* /usr/local/bin
