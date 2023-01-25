@@ -7,13 +7,10 @@ ARG S3CMD_VERSION=2.3.0
 ARG GSUTIL_VERSION=4.42
 ARG AZCOPY_VERSION="v10"
 
-ARG DNF_OPTS
-
 ADD gitlab-python.tar.gz /
 ADD gitaly.tar.gz /tmp/gitaly
 
-RUN dnf ${DNF_OPTS} install -by --nodocs gcc \
-    && mkdir /assets \
+RUN mkdir /assets \
     && pip3 install awscli==${AWSCLI_VERSION} s3cmd==${S3CMD_VERSION} gsutil==${GSUTIL_VERSION} crcmod \
     && pip3 cache purge \
     && find /usr/local/lib/python3.8 -name '__pycache__' -type d -exec rm -r {} + \

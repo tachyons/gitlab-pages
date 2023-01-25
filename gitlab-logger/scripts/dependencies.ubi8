@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # Install tools and libaries needed for compilation
-dnf install -q -y git curl
+# git & curl installed as part of `gitlab-ubi-builder`
