@@ -135,7 +135,15 @@ function build_if_needed(){
       done < $openshift_file_name
     fi
 
-    docker build --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.} "${openshift_labels[@]}"
+    # Build new image and Push unless it is a UBI build image
+    if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
+      echo "Not a UBI build image, will build and push the image with computed CONTAINER_VERSION as the image tag."
+      BUILD_TYPE='buildx build --push'
+    else
+      BUILD_TYPE='build'
+    fi
+
+    docker $BUILD_TYPE --build-arg CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE -t "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" "${DOCKER_ARGS[@]}" -f Dockerfile${DOCKERFILE_EXT} ${DOCKER_BUILD_CONTEXT:-.} "${openshift_labels[@]}"
 
     # Output "Final Image Size: %d" (gitlab-org/charts/gitlab#1267)
     docker inspect "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}" \
@@ -143,11 +151,6 @@ function build_if_needed(){
 
     popd # exit image directory
 
-    # Push new image unless it is a UBI build image
-    if [ ! "${UBI_BUILD_IMAGE}" = 'true' ]; then
-      echo "Pushing the image with computed CONTAINER_VERSION as the image tag."
-      docker push "$CI_REGISTRY_IMAGE/${CI_JOB_NAME#build:*}:$CONTAINER_VERSION${IMAGE_TAG_EXT}"
-    fi
   fi
 
   # Record image repository and tag unless it is a UBI build image
