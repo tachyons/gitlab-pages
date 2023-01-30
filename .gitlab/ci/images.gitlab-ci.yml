@@ -29,18 +29,18 @@ trigger-chart-test:
     - if: '$CI_PROJECT_PATH != "gitlab-org/build/CNG" && $CI_PROJECT_PATH != "gitlab-org/security/charts/components/images"'
       when: never
     # For UBI pipelines, the images has a `-ubi8` suffix
-    - if: '$CI_COMMIT_BRANCH =~ /-ubi8$/ || $UBI_PIPELINE == "true"'
+    - if: '$CI_COMMIT_BRANCH =~ /-ubi8$/ || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /-ubi8$/ || $UBI_PIPELINE == "true"'
       when: manual
       allow_failure: true
       variables:
         GITLAB_VERSION: "${CI_COMMIT_REF_SLUG}-ubi8"
     # For FIPS pipelines, the images has a `-fips` suffix
-    - if: '$CI_COMMIT_BRANCH =~ /-fips$/ || $FIPS_PIPELINE == "true"'
+    - if: '$CI_COMMIT_BRANCH =~ /-fips$/ || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /-fips$/ || $FIPS_PIPELINE == "true"'
       when: manual
       allow_failure: true
       variables:
         GITLAB_VERSION: "${CI_COMMIT_REF_SLUG}-fips"
-    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME'
       when: manual
       allow_failure: true
       variables:
@@ -75,9 +75,8 @@ image-metrics:
   needs: !reference [.final_images]
   rules: # NOTE: never runs for auto-deploy branches. See `workflow:rules` above.
     - !reference [.tagless-versionless, rules]
-      # Run on any Branch pipeline on .com (where registry is public)
-      # CI_COMMIT_BRANCH is available in branch pipelines. Not available in MR (detached) or Tag pipelines.
-    - if: '$CI_COMMIT_BRANCH && $CI_PROJECT_PATH == "gitlab-org/build/CNG"'
+      # Run on any Branch/MR pipeline on .com (where registry is public)
+    - if: '($CI_COMMIT_BRANCH || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME) && $CI_PROJECT_PATH == "gitlab-org/build/CNG"'
   artifacts:
     paths:
       - artifacts/final/
@@ -178,9 +177,9 @@ container-scanning:
   rules:
     - if: '$DEPS_PIPELINE == "true" || $CE_PIPELINE'
       when: never
-    - if: '$CI_COMMIT_BRANCH =~ /-ubi8$/ || $UBI_PIPELINE == "true"'
+    - if: '$CI_COMMIT_BRANCH =~ /-ubi8$/ || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /-ubi8$/ || $UBI_PIPELINE == "true"'
       when: never
-    - if: '$CI_COMMIT_BRANCH =~ /-fips$/ || $FIPS_PIPELINE == "true"'
+    - if: '$CI_COMMIT_BRANCH =~ /-fips$/ || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /-fips$/ || $FIPS_PIPELINE == "true"'
       when: never
 
 ubi_pipeline:
@@ -188,7 +187,7 @@ ubi_pipeline:
     - .trigger_alternate_pipeline
   rules:
     - !reference [.trigger_alternate_pipeline, rules]
-    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME'
       when: manual
       variables:
         UBI_PIPELINE: 'true'
@@ -198,7 +197,7 @@ fips_pipeline:
     - .trigger_alternate_pipeline
   rules:
     - !reference [.trigger_alternate_pipeline, rules]
-    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME'
       when: manual
       variables:
         FIPS_PIPELINE: 'true'
