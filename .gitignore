@@ -13,3 +13,5 @@ shared/pages/.update
 /.GOPATH
 /.cover
 /bin
+.idea
+.DS_Store

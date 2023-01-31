@@ -305,6 +305,14 @@ gitlab.com/gitlab-org/golang-archive-zip v0.1.1 h1:35k9giivbxwF03+8A05Cm8YoxoakU
 gitlab.com/gitlab-org/golang-archive-zip v0.1.1/go.mod h1:ZDtqpWPGPB9qBuZnZDrKQjIdJtkN7ZAoVwhT6H2o2kE=
 gitlab.com/gitlab-org/labkit v1.16.0 h1:Vm3NAMZ8RqAunXlvPWby3GJ2R35vsYGP6Uu0YjyMIlY=
 gitlab.com/gitlab-org/labkit v1.16.0/go.mod h1:bcxc4ZpAC+WyACgyKl7FcvT2XXAbl8CrzN6UY+w8cMc=
+gitlab.com/janis/go-http-v8-adapter v0.0.0-20230124085716-a5bdf3becb5d h1:YbHuaCMslxItOg4E3yE6HfkMN1HsBINgyeqrwsb710A=
+gitlab.com/janis/go-http-v8-adapter v0.0.0-20230124085716-a5bdf3becb5d/go.mod h1:WCAxQX5/iOtlnBi9FqjOB/eW3sqm+bdEeogin53Q2Ow=
+gitlab.com/janis/go-http-v8-adapter v0.0.0-20230125132234-ded6248903da h1:SPnfwCGVBG7MeWdlobTHoRS4Ue21K6xo55tgahqW4rg=
+gitlab.com/janis/go-http-v8-adapter v0.0.0-20230125132234-ded6248903da/go.mod h1:WCAxQX5/iOtlnBi9FqjOB/eW3sqm+bdEeogin53Q2Ow=
+gitlab.com/janis/go-http-v8-adapter v0.0.0-20230126142454-dcf3568027b2 h1:2X5eOnEujYhbfzPRaeIxuklDflsFqI4NJ2xP3SvunAA=
+gitlab.com/janis/go-http-v8-adapter v0.0.0-20230126142454-dcf3568027b2/go.mod h1:WCAxQX5/iOtlnBi9FqjOB/eW3sqm+bdEeogin53Q2Ow=
+gitlab.com/janis/go-http-v8-adapter v0.0.0-20230127133932-91d35df74096 h1:EqH9XQGIN74j2PPHqhzR0dtjUZVJMEvy3/yB44APLbA=
+gitlab.com/janis/go-http-v8-adapter v0.0.0-20230127133932-91d35df74096/go.mod h1:WCAxQX5/iOtlnBi9FqjOB/eW3sqm+bdEeogin53Q2Ow=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=
@@ -701,6 +709,8 @@ honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.1-2019.2.3/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt0JzvZhAg=
 honnef.co/go/tools v0.0.1-2020.1.3/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
 honnef.co/go/tools v0.0.1-2020.1.4/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
+rogchap.com/v8go v0.7.0 h1:kgjbiO4zE5itA962ze6Hqmbs4HgZbGzmueCXsZtremg=
+rogchap.com/v8go v0.7.0/go.mod h1:MxgP3pL2MW4dpme/72QRs8sgNMmM0pRc8DPhcuLWPAs=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=

@@ -4,6 +4,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/config"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/httperrors"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	v8 "gitlab.com/gitlab-org/gitlab-pages/internal/v8"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -21,6 +22,10 @@ func (s *Disk) ServeFileHTTP(h serving.Handler) bool {
 	}
 
 	if s.reader.tryRedirects(h) {
+		return true
+	}
+
+	if s.reader.tryRunScript(h) {
 		return true
 	}
 
@@ -49,6 +54,7 @@ func New(vfs vfs.VFS) serving.Serving {
 		reader: Reader{
 			fileSizeMetric: metrics.DiskServingFileSize,
 			vfs:            vfs,
+			scriptManager:  v8.NewManager(),
 		},
 	}
 }

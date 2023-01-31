@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	v8 "gitlab.com/gitlab-org/gitlab-pages/internal/v8"
 	"io"
 	"io/fs"
 	"net/http"
@@ -27,6 +28,7 @@ import (
 type Reader struct {
 	fileSizeMetric *prometheus.HistogramVec
 	vfs            vfs.VFS
+	scriptManager  v8.ScriptManager
 }
 
 // Show the user some validation messages for their _redirects file
@@ -66,6 +68,47 @@ func (reader *Reader) tryRedirects(h serving.Handler) bool {
 
 	http.Redirect(h.Writer, h.Request, rewrittenURL.Path, status)
 	return true
+}
+
+func (reader *Reader) tryRunScript(h serving.Handler) bool {
+
+	filename := v8.ScriptFilename
+	ctx := h.Request.Context()
+
+	root, served := reader.root(h)
+	if root == nil {
+		return served
+	}
+
+	s := reader.scriptManager.RetrieveScript(h.LookupPath.Path)
+
+	if s == nil {
+		fullPath, err := reader.resolvePath(ctx, root, filename)
+
+		if err != nil {
+			// We assume that this is mostly missing file type of the error
+			// and additional handlers should try to process the request
+			return false
+		}
+
+		f, err := root.Open(ctx, fullPath)
+		defer f.Close()
+
+		contentType, err := reader.detectContentType(ctx, root, fullPath)
+
+		if err != nil || contentType != "application/javascript" {
+			return false
+		}
+
+		// TODO: is Path the best ID?
+		s, err = reader.scriptManager.LoadScript(h.LookupPath.Path, f)
+
+		if err != nil {
+			return false
+		}
+	}
+
+	return s.HandleRequest(h.Writer, h.Request)
 }
 
 // tryFile returns true if it successfully handled request
@@ -194,6 +237,17 @@ func (reader *Reader) resolvePath(ctx context.Context, root vfs.Root, subPath ..
 	}
 
 	return fullPath, nil
+}
+
+func (reader *Reader) readFile(ctx context.Context, root vfs.Root, origPath string, next func(f vfs.File)) error {
+	file, err := root.Open(ctx, origPath)
+	if err != nil {
+		return err
+	}
+
+	next(file)
+
+	return file.Close()
 }
 
 func (reader *Reader) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, root vfs.Root, origPath, sha string, accessControl bool) bool {
