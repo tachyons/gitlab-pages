@@ -58,7 +58,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/sebest/xff v0.0.0-20210106013422-671bd2870b3a // indirect
 	github.com/tj/assert v0.0.3 // indirect
-	gitlab.com/janis/go-http-v8-adapter v0.0.0-20230127133932-91d35df74096 // indirect
+	gitlab.com/gitlab-org/incubation-engineering/jamstack/go-http-v8-adapter v0.0.0-20230131155618-ff61380d99ac // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20210805134026-6f1e6394065a // indirect
 	golang.org/x/text v0.3.8 // indirect

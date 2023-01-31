@@ -1,7 +1,7 @@
 package v8
 
 import (
-	"gitlab.com/janis/go-http-v8-adapter/script"
+	"gitlab.com/gitlab-org/incubation-engineering/jamstack/go-http-v8-adapter/script"
 	"io"
 )
 
