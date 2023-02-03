@@ -127,7 +127,10 @@ RUN cd /srv/gitlab && \
 <% end %>
 
 RUN cd /srv/gitlab && \
-    sudo -u git -H bundle install --clean --deployment --without development test mysql aws --jobs 4 --retry 5
+    sudo -u git -H bundle config set --local clean 'true' && \
+    sudo -u git -H bundle config set --local deployment 'true' && \
+    sudo -u git -H bundle config set --local without 'development test mysql aws' && \
+    sudo -u git -H bundle install --jobs 4 --retry 5
 
 # Install node dependencies
 RUN cd /srv/gitlab && \
