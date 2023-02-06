@@ -391,10 +391,10 @@ gitlab-base:
     - ubi-stable
 
 ## phase one
-alpine-certificates:
-  extends: .alpine-certificates
+certificates:
+  extends: .certificates
   needs:
-    - ubi-stable
+    - gitlab-base
 
 cfssl-self-sign:
   extends: .cfssl-self-sign
@@ -648,12 +648,12 @@ gitaly Certification:
   needs:
     - gitaly
 
-alpine-certificates Certification:
+certificates Certification:
   extends: .preflight-certification
   variables:
-    IMAGE_NAME: alpine-certificates
+    IMAGE_NAME: certificates
   needs:
-    - alpine-certificates
+    - certificates
 
 cfssl-self-sign Certification:
   extends: .preflight-certification

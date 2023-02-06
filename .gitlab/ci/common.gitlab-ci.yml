@@ -65,16 +65,18 @@
 
 ## phase one
 
-.alpine-certificates:
+.certificates:
   extends: .job-base
-  stage: phase-one
+  stage: phase-two
   script:
-    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION$CA_PKG_VERSION" | sha1sum))
-    - build_if_needed --build-arg "CA_PKG_VERSION=${CA_PKG_VERSION}"
-                      --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
-                      $ALPINE_BUILD_ARGS $UBI_BUILD_ARGS
+    - gitlab_base_version=$(cat artifacts/container_versions/gitlab-base_tag.txt)
+    - export CONTAINER_VERSION=($(echo -n "$TARGET_VERSION${gitlab_base_version}$GITLAB_VERSION" | sha1sum))
+    - export GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${gitlab_base_version}${IMAGE_TAG_EXT}"
+    - build_if_needed --build-arg "GITLAB_VERSION=${GITLAB_VERSION}"
+                      --build-arg "GITLAB_BASE_IMAGE=${GITLAB_BASE_IMAGE}"
+                      $UBI_BUILD_ARGS
     - push_tags
-    - push_tags ${CA_PKG_VERSION}${IMAGE_TAG_EXT}
+    - push_tags ${GITLAB_VERSION}${IMAGE_TAG_EXT} ${CI_JOB_NAME/certificates/alpine-certificates}
 
 .cfssl-self-sign:
   extends: .job-base
