@@ -39,10 +39,10 @@ gitaly:
   ospid: ospid-1247ca06-5cf5-4005-935e-3c166d38d8c4
   pid: 5fb60ec6c65ee7c76a2ad0d8
   version_variable: GITALY_SERVER_VERSION
-alpine-certificates:
-  ospid: ospid-4948c328-b8fa-4ed0-9ca1-52ec4f2071f1
-  pid: 5fb615212977e7063dba93d0
-  version_variable: ALPINE_VERSION
+certificates:
+  ospid: ospid-63e144f1f907eb898fd98682
+  pid: 63e144f1f907eb898fd98682
+  version_variable: GITLAB_VERSION
 gitlab-toolbox-ee:
   ospid: ospid-60fb728cc3450afa1bb969e2
   pid: 60fb728cc3450afa1bb969e2

@@ -18,7 +18,7 @@ When the variable `DEPENDENCY_PROXY` is set, it will be prefixed to the name of 
 is pulled from dockerhub.com. To work properly, the variable should be set with the trailing `/`.
 The images which currently use this are:
 
-1. alpine-certificates
+1. certificates
 1. cfssl-self-sign
 1. gitlab-python
 1. kubectl
@@ -307,7 +307,7 @@ single stage may build concurrently because they are independent of each other.
   * gitlab-go (intermediate)
 
 **Stage 1**
-  * alpine-certificates (final)
+  * certificates (final)
   * cfssl-self-sign (final)
   * gitlab-gomplate (intermediate)
   * gitlab-graphicsmagick (intermediate)
@@ -388,7 +388,7 @@ graph LR;
     gitlab-kas:::final
     kubectl:::final
     gitlab-container-registry:::final
-    alpine-certificates:::final
+    certificates:::final
     cfssl-self-sign:::final
   end
 
@@ -404,7 +404,7 @@ graph LR;
 
   kubectl==>debian-stable;
   cfssl-self-sign==>alpine-stable;
-  alpine-certificates==>alpine-stable;
+  certificates==>gitlab-base;
 
   gitlab-toolbox==>gitlab-rails;
   gitlab-geo-logcursor==>gitlab-rails;
@@ -449,7 +449,7 @@ graph LR;
     gitlab-kas:::final
     kubectl:::final
     gitlab-container-registry:::final
-    alpine-certificates:::final
+    certificates:::final
     cfssl-self-sign:::final
   end
 
@@ -487,7 +487,7 @@ graph LR;
   postgresql==>debian-stable;
   kubectl==>debian-stable;
   cfssl-self-sign==>alpine-stable;
-  alpine-certificates==>alpine-stable;
+  certificates==>alpine-stable;
 
   gitlab-logger-->gitlab-go;
   gitlab-logger==>scratch;

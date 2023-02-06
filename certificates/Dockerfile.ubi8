@@ -1,0 +1,31 @@
+## FINAL IMAGE ##
+
+ARG GITLAB_BASE_IMAGE=
+
+FROM ${GITLAB_BASE_IMAGE}
+
+ARG GITLAB_VERSION
+
+LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/certificates" \
+      name="certificates" \
+      maintainer="GitLab Distribution Team" \
+      vendor="GitLab" \
+      version=${GITLAB_VERSION} \
+      release=${GITLAB_VERSION} \
+      summary="certificates is a base container that organizes public CA certificates" \
+      description="certificates is a base container that organizes public CA certificates"
+
+COPY scripts/bundle-certificates-ubi /scripts/bundle-certificates
+COPY LICENSE /licenses/GitLab.txt
+
+# Ensure that update-ca-trust has permission when non-root user
+RUN chmod -R 775 /etc/pki/ca-trust/extracted && \
+    chmod -R 775 /usr/share/pki/ca-trust-source/anchors
+
+# bundle-certificates script will copy custom CAs into RHEL-compatible directory
+VOLUME /etc/ssl/certs /usr/local/share/ca-certificates
+
+CMD ["/scripts/bundle-certificates"]
+
+# Default to non-root user
+USER 65534:65534

@@ -24,10 +24,10 @@ gitlab-base:
 
 ## phase one
 
-alpine-certificates:
-  extends: .alpine-certificates
+certificates:
+  extends: .certificates
   needs:
-    - alpine-stable
+    - gitlab-base
 
 cfssl-self-sign:
   extends: .cfssl-self-sign

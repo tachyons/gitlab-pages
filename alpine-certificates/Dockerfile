@@ -1,17 +1,4 @@
-## FINAL IMAGE ##
-# alpine-certificates:
-# - Alpine, with ca-certificates installed. We can't assume that we'll be able
-#   operate as root, or access the internet to install the package.
-# - This image is intended to be based on alpine:latest, which is currently 3.15.
-#   We're doing this to ensure the latest ca-certificates package.
-ARG ALPINE_IMAGE=alpine:3.15
-FROM $ALPINE_IMAGE
-
-ARG CA_PKG_VERSION=20220614-r0
-RUN apk --update-cache --no-cache add ca-certificates=${CA_PKG_VERSION}
-
-COPY scripts/bundle-certificates /scripts/
-
-VOLUME /etc/ssl/certs /usr/local/share/ca-certificates
-
-CMD ["/scripts/bundle-certificates"]
+# This is a place holder, allowing us to mirror the certificates image to alpine-certificates
+ARG CI_REGISTRY_IMAGE="registry.gitlab.com/gitlab-org/build/cng"
+ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/certificates"
+FROM ${FROM_IMAGE}:${COMMIT_REF_SLUG}

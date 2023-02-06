@@ -1,5 +1,5 @@
 .final_images: &final_images
-  - job: alpine-certificates
+  - job: certificates
   - job: cfssl-self-sign
   - job: gitlab-base
   - job: gitlab-ruby
