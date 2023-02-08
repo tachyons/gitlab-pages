@@ -2,9 +2,10 @@ module gitlab.com/gitlab-org/gitlab-pages
 
 // before bumping this:
 // - update the minimum version used in ci
-// - make sure the internal/vfs/serving package is synced
-//   with upstream
-go 1.17
+// - make sure the internal/vfs/serving package is synced with upstream
+//   - which can be done in the go repository with:
+//     git log --oneline -s -L:serveContent:src/net/http/fs.go --since="2021-02-16"
+go 1.18
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.1.0
