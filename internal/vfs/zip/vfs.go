@@ -58,6 +58,8 @@ type zipVFS struct {
 	// https://gitlab.com/gitlab-org/gitlab/-/issues/337261
 	archiveCount *int64
 	httpClient   *http.Client
+
+	indexExtension string
 }
 
 // New creates a zipVFS instance that can be used by a serving request
@@ -252,4 +254,8 @@ func (zfs *zipVFS) findOrOpenArchive(ctx context.Context, key, path string) (*zi
 	}
 
 	return zipArchive, nil
+}
+
+func (zfs *zipVFS) FileExtension() string {
+	return zfs.indexExtension
 }

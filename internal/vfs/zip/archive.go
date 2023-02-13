@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -160,6 +161,14 @@ func (a *zipArchive) readArchive(url string) {
 			a.directories[file.Name] = &file.FileHeader
 		} else {
 			a.files[file.Name] = file
+		}
+
+		// By default html files are expected, but if the main index file,
+		// in public/index.(ext) have another valid extension,
+		// this extension will be used to lookup the files in other folders
+		a.fs.indexExtension = "html"
+		if strings.HasPrefix(file.Name, "public/index") && isValidExt(file.Name) {
+			a.fs.indexExtension = filepath.Ext(file.Name)
 		}
 
 		a.addPathDirectory(file.Name)
@@ -321,4 +330,17 @@ func (a *zipArchive) openStatus() (archiveStatus, error) {
 	default:
 		return archiveOpening, nil
 	}
+}
+
+func isValidExt(filename string) bool {
+	validExts := []string{"html", "xhtml", "htm", "xhtm"}
+	ext := filepath.Ext(filename)[1:]
+
+	for _, e := range validExts {
+		if ext == e {
+			return true
+		}
+	}
+
+	return false
 }

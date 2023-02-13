@@ -46,3 +46,7 @@ func (localFs *VFS) Reconfigure(*config.Config) error {
 	// noop
 	return nil
 }
+
+func (localFs *VFS) FileExtension() string {
+	return ""
+}

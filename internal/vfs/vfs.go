@@ -16,6 +16,7 @@ type VFS interface {
 	Root(ctx context.Context, path string, cacheKey string) (Root, error)
 	Name() string
 	Reconfigure(config *config.Config) error
+	FileExtension() string
 }
 
 func Instrumented(fs VFS) VFS {
@@ -56,4 +57,8 @@ func (i *instrumentedVFS) Name() string {
 
 func (i *instrumentedVFS) Reconfigure(cfg *config.Config) error {
 	return i.fs.Reconfigure(cfg)
+}
+
+func (i *instrumentedVFS) FileExtension() string {
+	return i.fs.FileExtension()
 }
