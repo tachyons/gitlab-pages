@@ -1,3 +1,7 @@
+## 15.8.2 (2023-02-10)
+
+No changes.
+
 ## 15.8.1 (2023-01-30)
 
 No changes.
@@ -7,6 +11,10 @@ No changes.
 ### Security (1 change)
 
 - [Restrict arbitrary protocol redirection to only https or http URLs](gitlab-org/gitlab-pages@973d93daeaa0e31f0cec2e09db8838cf38c67dc5) ([merge request](gitlab-org/gitlab-pages!845))
+
+## 15.7.7 (2023-02-10)
+
+No changes.
 
 ## 15.7.6 (2023-01-30)
 
@@ -37,6 +45,10 @@ No changes.
 ## 15.7.0 (2022-12-21)
 
 No changes. Same content of 1.64.0.
+
+## 15.6.8 (2023-02-10)
+
+No changes.
 
 ## 15.6.7 (2023-01-30)
 
