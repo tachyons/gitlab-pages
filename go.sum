@@ -301,8 +301,8 @@ gitlab.com/feistel/go-contentencoding v1.0.0 h1:tBXZUv35f8AFsr7q7U38zZkhmPjSksfX
 gitlab.com/feistel/go-contentencoding v1.0.0/go.mod h1:xNYBUFP6IqNB5RX5NGm5IX+is7VvM3nBu2jBLADUOE4=
 gitlab.com/gitlab-org/go-mimedb v1.45.0 h1:PO8dx6HEWzPYU6MQTYnCbpQEJzhJLW/Bh43+2VUHTgc=
 gitlab.com/gitlab-org/go-mimedb v1.45.0/go.mod h1:wa9y/zOSFKmTXLyBs4clz2FNVhZQmmEQM9TxslPAjZ0=
-gitlab.com/gitlab-org/labkit v1.16.0 h1:Vm3NAMZ8RqAunXlvPWby3GJ2R35vsYGP6Uu0YjyMIlY=
-gitlab.com/gitlab-org/labkit v1.16.0/go.mod h1:bcxc4ZpAC+WyACgyKl7FcvT2XXAbl8CrzN6UY+w8cMc=
+gitlab.com/gitlab-org/labkit v1.17.0 h1:mEkoLzXorLNdt8NkfgYS5xMDhdqCsIJaeEVtSf7d8cU=
+gitlab.com/gitlab-org/labkit v1.17.0/go.mod h1:nlLJvKgXcIclqWMI+rga2TckNBVHOtRCHMxBoVByNoE=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=
