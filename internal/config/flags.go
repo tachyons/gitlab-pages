@@ -44,7 +44,7 @@ var (
 	metricsKey              = flag.String("metrics-key", "", "The default path to file private key to serve metrics requests")
 	sentryDSN               = flag.String("sentry-dsn", "", "The address for sending sentry crash reporting to")
 	sentryEnvironment       = flag.String("sentry-environment", "", "The environment for sentry crash reporting")
-	propagateCorrelationID  = flag.Bool("propagate-correlation-id", false, "Reuse existing Correlation-ID from the incoming request header `X-Request-ID` if present")
+	propagateCorrelationID  = flag.Bool("propagate-correlation-id", true, "Reuse existing Correlation-ID from the incoming request header `X-Request-ID` if present")
 	serverShutdownTimeout   = flag.Duration("server-shutdown-timeout", 30*time.Second, "GitLab Pages server shutdown timeout (default: 30s)")
 	logFormat               = flag.String("log-format", "json", "The log output format: 'text' or 'json'")
 	logVerbose              = flag.Bool("log-verbose", false, "Verbose logging")
