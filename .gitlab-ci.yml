@@ -77,6 +77,11 @@ workflow:
     # No pipeline on tag pushes to com. We build them in dev and sync to com
     - if: '$CI_PROJECT_PATH == "gitlab-org/build/CNG" && $CI_COMMIT_TAG'
       when: never
+    - if: '$CI_COMMIT_TAG =~ $WF_AUTO_DEPLOY_TAG_REGEX && $USE_NEXT_RUBY_VERSION_IN_AUTODEPLOY == "true"'
+      variables:
+        PIPELINE_TYPE: AUTO_DEPLOY_BUILD_PIPELINE
+        RUBY_CACHE_KEY: $NEXT_RUBY_CACHE_KEY
+        RUBY_VERSION: $NEXT_RUBY_VERSION
     # For auto-deploy tags, set PIPELINE_TYPE to be used as pipeline name in
     # workflow:name
     - if: '$CI_COMMIT_TAG =~ $WF_AUTO_DEPLOY_TAG_REGEX'
