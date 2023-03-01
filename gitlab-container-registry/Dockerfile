@@ -7,7 +7,7 @@ ARG GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${TAG}"
 FROM ${FROM_IMAGE}:${GO_TAG} as builder
 
 ARG DOCKER_BUILDTAGS="include_oss include_gcs continuous_profiler_stackdriver"
-ARG REGISTRY_VERSION=v3.67.0-gitlab
+ARG REGISTRY_VERSION=v3.67.1-gitlab
 ARG REGISTRY_NAMESPACE=gitlab-org
 ARG REGISTRY_PROJECT=container-registry
 ARG GOPATH=/go
