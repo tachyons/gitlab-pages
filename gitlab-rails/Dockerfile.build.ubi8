@@ -78,7 +78,8 @@ RUN /gitlab-fetch \
 
 COPY --from=assets assets /srv/gitlab/public/assets/
 
-RUN mkdir -p /assets/usr/{bin,lib} /assets${LIBDIR} \
+RUN find /srv/gitlab/public/assets/webpack -name '*.map' -type f -print -delete \
+    && mkdir -p /assets/usr/{bin,lib} /assets${LIBDIR} \
     && cp /usr/local/bin/gitlab-elasticsearch-indexer /assets/usr/bin/ \
     && cp /usr/local/bin/gitlab-metrics-exporter /assets/usr/bin/ \
     && install /usr/local/postgresql/bin/* /assets/usr/bin/ \
