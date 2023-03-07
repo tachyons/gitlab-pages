@@ -172,8 +172,8 @@ function tag_and_push(){
 
   # Tag and push unless it is a UBI build image
   if [ ! "${UBI_BUILD_IMAGE}" = 'true' -a -f "$(get_trimmed_job_name)/Dockerfile${DOCKERFILE_EXT}" ]; then
-    docker tag "${source_image}" "${target_image}"
-    docker push "${target_image}"
+    skopeo copy --all "docker://${source_image}" "docker://${target_image}"
+    echo "Copied ${source_image} to ${target_image}"
   fi
 }
 
