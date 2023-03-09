@@ -18,7 +18,7 @@ ARG BUILD_DIR=/tmp/build
 ARG FIPS_MODE=
 
 RUN mkdir -p ${BUILD_DIR}
-COPY --from=rails /srv/gitlab/ ${BUILD_DIR}/
+COPY --from=rails /srv/gitlab/workhorse ${BUILD_DIR}/workhorse
 
 RUN buildDeps=' \
   git make' \

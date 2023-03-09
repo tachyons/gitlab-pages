@@ -99,6 +99,7 @@ RUN cd /home/${GITLAB_USER} && \
     mv ${GITLAB_PROJECT}-* /srv/gitlab && \
     chown ${GITLAB_USER}:${GITLAB_USER} /srv/gitlab && \
     echo -n ${REVISION} > /srv/gitlab/REVISION && \
+    cp --remove-destination /srv/gitlab/VERSION /srv/gitlab/workhorse/VERSION && \
     rm gitlab.tar.bz2
 
 # Configure GitLab
