@@ -23,7 +23,7 @@ ADD gitlab-logger.tar.gz /usr/local/bin
 
 COPY scripts/ /scripts/
 
-RUN dnf ${DNF_OPTS} install -by --nodocs procps net-tools libicu openssh-clients \
+RUN dnf ${DNF_OPTS} install -by --nodocs procps net-tools libicu openssh-clients bzip2 \
     && dnf clean all \
     && rm -r /var/cache/dnf \
     && rm -f /usr/local/tmp/openssh-server-*.rpm /usr/libexec/openssh/ssh-keysign \
