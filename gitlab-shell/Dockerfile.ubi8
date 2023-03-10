@@ -39,9 +39,8 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-shell
 COPY --from=build --chown=${UID}:0 /assets/ /
 
 # install runtime deps, remove files overwritten in runtime, add user
-RUN dnf ${DNF_OPTS} install -by --nodocs procps fipscheck-lib openssh openssh-server \
-    && dnf clean all \
-    && rm -r /var/cache/dnf \
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs procps fipscheck-lib openssh openssh-server \
+    && microdnf clean all \
     && rm -r /usr/local/tmp /usr/libexec/openssh/ssh-keysign \
     && rm -rf /etc/ssh/ssh_host_* /etc/ssh/sshd_config.* \
     && chown ${UID}:0 /etc/ssh \

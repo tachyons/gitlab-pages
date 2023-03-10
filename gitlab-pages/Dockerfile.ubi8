@@ -25,13 +25,15 @@ ADD gitlab-gomplate.tar.gz /
 
 COPY scripts/ /scripts
 
-RUN dnf ${DNF_OPTS} install -by --nodocs procps libicu tzdata \
-    && dnf clean all \
-    && rm -r /var/cache/dnf \
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs procps libicu tzdata shadow-utils \
+    && microdnf clean all \
     && adduser -m ${GITLAB_USER} -u ${UID} \
     && mkdir -p ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab \
     && chown -R ${UID}:0 ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab /scripts \
-    && chmod -R g=u ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab /scripts
+    && chmod -R g=u ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab /scripts \
+    # remove shadow-utils within the same layer
+    && microdnf remove shadow-utils \
+    && microdnf clean all
 
 USER ${UID}
 

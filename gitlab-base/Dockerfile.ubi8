@@ -1,4 +1,4 @@
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.7
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:8.7
 
 FROM ${UBI_IMAGE}
 
@@ -22,13 +22,14 @@ RUN chmod +t /tmp /var/tmp
 
 COPY scripts/ /scripts
 
-RUN dnf ${DNF_OPTS} upgrade --nodocs -yb \
-    && dnf ${DNF_OPTS} install --nodocs -yb \
+RUN microdnf ${DNF_OPTS} upgrade --nodocs --best --assumeyes \
+    && microdnf ${DNF_OPTS} install --nodocs --best --assumeyes \
       findutils \
       less \
       procps \
-    && dnf clean all \
-    && rm -rf /var/cache/dnf \
+      curl ca-certificates tar \
+    && microdnf ${DNF_OPTS} reinstall --nodocs --best --assumeyes tzdata -y \
+    && microdnf clean all \
     && chgrp -R 0 /scripts \
     && chmod -R g=u /scripts
 

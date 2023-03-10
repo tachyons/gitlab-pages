@@ -23,9 +23,8 @@ ENV DB_SCHEMA_TARGET=geo
 
 COPY scripts/  /scripts/
 
-RUN dnf ${DNF_OPTS} install -by --nodocs procps \
-    && dnf clean all \
-    && rm -r /var/cache/dnf \
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs procps \
+    && microdnf clean all \
     && chown -R ${UID}:0 /scripts /home/${GITLAB_USER} \
     && chmod -R g=u scripts /home/${GITLAB_USER}
 

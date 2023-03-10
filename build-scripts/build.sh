@@ -359,8 +359,8 @@ populate_stable_image_vars() {
     echo "DEBIAN_BUILD_ARGS: ${DEBIAN_BUILD_ARGS}"
   fi
   # update DEBIAN_IMAGE to full origin & digest
-  if [ -f artifacts/container_versions/ubi.txt ]; then
-    export UBI_DIGEST=$(cat artifacts/container_versions/ubi.txt) ;
+  if [ -f artifacts/container_versions/ubi-minimal.txt ]; then
+    export UBI_DIGEST=$(cat artifacts/container_versions/ubi-minimal.txt) ;
     export UBI_IMAGE="${UBI_IMAGE}@${UBI_DIGEST}" ;
     export UBI_BUILD_ARGS="--build-arg UBI_IMAGE=${UBI_IMAGE}"
     echo "UBI_BUILD_ARGS: ${UBI_BUILD_ARGS}"
@@ -380,7 +380,7 @@ populate_stable_image_vars() {
 list_artifacts() {
     subdirectory=$1
     directory="artifacts"
-    if [ -d "${directory}/${subdirectory}" ]; then 
+    if [ -d "${directory}/${subdirectory}" ]; then
       directory="${directory}/${subdirectory}"
     fi
     echo "==== Artifacts Summary ===="

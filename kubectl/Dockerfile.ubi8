@@ -1,6 +1,6 @@
 ## FINAL IMAGE ##
 
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.7
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:8.7
 
 FROM ${UBI_IMAGE}
 
@@ -19,9 +19,8 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/kubectl" \
 ADD kubectl.tar.gz /
 
 RUN chmod +x /usr/local/bin/{kubectl,yq} \
-    && dnf ${DNF_OPTS} install -by --nodocs openssh openssl \
-    && dnf clean all \
-    && rm -r /var/cache/dnf \
+    && microdnf ${DNF_OPTS} install --best --assumeyes --nodocs openssh openssl \
+    && microdnf clean all \
     && rm /usr/libexec/openssh/ssh-keysign
 
 # Default to non-root user

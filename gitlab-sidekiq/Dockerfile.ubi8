@@ -27,9 +27,8 @@ ADD gitlab-logger.tar.gz /usr/local/bin
 
 COPY scripts/ /scripts/
 
-RUN dnf ${DNF_OPTS} install -by --nodocs procps openssh-clients \
-    && dnf clean all \
-    && rm -r /var/cache/dnf \
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs procps openssh-clients \
+    && microdnf clean all \
     && rm /usr/libexec/openssh/ssh-keysign \
     && chown -R ${UID}:0 /scripts /home/${GITLAB_USER} /var/log/gitlab \
     && chmod -R g=u /scripts /home/${GITLAB_USER} /var/log/gitlab

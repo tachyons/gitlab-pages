@@ -53,7 +53,7 @@ final-images-listing:
   script:
     - '[ -f artifacts/container_versions/debian.txt ] && echo "debian.txt - ${DEBIAN_IMAGE}"'
     - '[ -f artifacts/container_versions/alpine.txt ] && echo "alpine.txt - ${ALPINE_IMAGE}"'
-    - '[ -f artifacts/container_versions/ubi.txt ] && echo "UBI.txt - ${UBI_IMAGE}"'
+    - '[ -f artifacts/container_versions/ubi-minimal.txt ] && echo "ubi-minimal.txt - ${UBI_IMAGE}"'
     - for i in artifacts/final/* ; do echo "${i} - $(cat ${i})" ; done
   needs: !reference [.final_images]
   rules:
