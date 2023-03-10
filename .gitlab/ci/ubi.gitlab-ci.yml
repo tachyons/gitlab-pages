@@ -487,6 +487,8 @@ gitlab-rails-ee:
     - build:gitlab-exiftool
     - build:gitlab-elasticsearch-indexer
     - build:gitlab-gomplate
+  variables:
+    IMAGE_FLAVOR: 'ubi'
 
 ## phase six
 

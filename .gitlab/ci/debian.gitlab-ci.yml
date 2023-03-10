@@ -145,6 +145,8 @@ gitlab-rails-ee:
     - gitlab-ruby
     - gitlab-elasticsearch-indexer
     - gitlab-metrics-exporter
+  variables:
+    IMAGE_FLAVOR: 'debian'
 
 gitlab-rails-ce:
   extends: .gitlab-rails-ce
@@ -154,6 +156,8 @@ gitlab-rails-ce:
     - gitlab-exiftool
     - gitlab-ruby
     - gitlab-metrics-exporter
+  variables:
+    IMAGE_FLAVOR: 'debian'
 
 ## phase six
 
