@@ -4,7 +4,7 @@ ARG GO_TAG="master"
 ARG TAG="master"
 ARG GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${TAG}"
 
-FROM ${FROM_IMAGE}:${GO_TAG} as builder
+FROM cgr.dev/chainguard/go:1.19-dev as builder
 
 ARG DOCKER_BUILDTAGS="include_oss include_gcs continuous_profiler_stackdriver"
 ARG REGISTRY_VERSION=v3.68.0-gitlab
@@ -15,32 +15,23 @@ ARG REGISTRY_SOURCE_PATH=${GOPATH}/src/github.com/docker/distribution
 ARG GITLAB_BASE
 ARG GITLAB_BASE_IMAGE
 
-RUN buildDeps=' \
-  git make' \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends $buildDeps \
-  && git clone https://gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT}.git \
+RUN git clone https://gitlab.com/${REGISTRY_NAMESPACE}/${REGISTRY_PROJECT}.git \
     --branch ${REGISTRY_VERSION} --single-branch ${REGISTRY_SOURCE_PATH} \
   && cd ${REGISTRY_SOURCE_PATH} \
   && CGO_ENABLED=0 BUILDTAGS=${DOCKER_BUILDTAGS} make clean binaries \
-  && cp bin/registry /usr/local/bin/registry \
-  && rm -rf ${GOPATH} \
-  && apt-get purge -y --auto-remove $buildDeps \
-  && rm -rf /var/lib/apt/lists/*
+  && cp bin/registry /usr/bin/registry \
+  && rm -rf ${GOPATH}
 
 ## FINAL IMAGE ##
 
-FROM ${GITLAB_BASE_IMAGE}
+FROM cgr.dev/chainguard/wolfi-base:latest
 
 ARG GITLAB_USER=git
 
 # create gitlab user
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates curl \
-  && rm -rf /var/lib/apt/lists/* \
-  && adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER}
+RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER}
 
-COPY --from=builder /usr/local/bin/registry /bin/registry
+COPY --from=builder /usr/bin/registry /bin/registry
 COPY scripts/ /scripts/
 
 USER $GITLAB_USER:$GITLAB_USER

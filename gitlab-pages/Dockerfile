@@ -5,7 +5,7 @@ ARG FROM_IMAGE="$CI_REGISTRY_IMAGE/gitlab-go"
 ARG GO_TAG="${TAG}"
 ARG GITLAB_BASE_IMAGE="${CI_REGISTRY_IMAGE}/gitlab-base:${TAG}"
 
-FROM ${FROM_IMAGE}:${GO_TAG} as builder
+FROM cgr.dev/chainguard/go:1.19-dev as builder
 
 ARG GITLAB_PAGES_VERSION=v1.30.0
 ARG BUILD_DIR=/tmp/build
@@ -13,10 +13,7 @@ ARG GITLAB_NAMESPACE="gitlab-org"
 ARG FETCH_ARTIFACTS_PAT
 ARG CI_API_V4_URL="https://gitlab.com/api/v4"
 
-RUN buildDeps=' \
-  make' \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends $buildDeps \
+RUN apk add curl \
   && mkdir -p ${BUILD_DIR} \
   && cd ${BUILD_DIR} \
   && echo "Downloading source code from ${CI_API_V4_URL}/projects/${GITLAB_NAMESPACE}%2Fgitlab-pages/repository/archive.tar.bz2?sha=${GITLAB_PAGES_VERSION}" \
@@ -25,15 +22,11 @@ RUN buildDeps=' \
   && rm pages.tar.bz2 \
   && cd gitlab-pages-* \
   && make 'gitlab-pages' "LAST_TAG=v${GITLAB_PAGES_VERSION}" "VERSION=${GITLAB_PAGES_VERSION}" \
-  && install -m +x ./gitlab-pages /usr/local/bin/gitlab-pages \
-  && cd \
-  && rm -rf ${BUILD_DIR} \
-  && apt-get purge -y --auto-remove $buildDeps \
-  && rm -rf /var/lib/apt/lists/*
+  && install -m +x ./gitlab-pages /usr/bin/gitlab-pages
 
 ## FINAL IMAGE ##
 
-FROM ${GITLAB_BASE_IMAGE} as final
+FROM cgr.dev/chainguard/wolfi-base:latest
 
 ARG GITLAB_USER=git
 ARG CONFIG_DIRECTORY=/etc/gitlab-pages
@@ -44,7 +37,7 @@ RUN adduser --disabled-password --gecos 'GitLab' ${GITLAB_USER} \
     && mkdir -p ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab \
     && chown -R ${GITLAB_USER}:${GITLAB_USER} ${CONFIG_DIRECTORY} ${DATA_DIRECTORY} /var/log/gitlab
 
-COPY --from=builder /usr/local/bin/gitlab-pages /bin/gitlab-pages
+COPY --from=builder /usr/bin/gitlab-pages /usr/bin/gitlab-pages
 
 ENV CONFIG_TEMPLATE_DIRECTORY=${CONFIG_DIRECTORY}
 
