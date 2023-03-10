@@ -11,7 +11,7 @@ FROM ${FROM_IMAGE}:${TAG}
 
 ARG DATADIR=/var/opt/gitlab
 ARG CONFIG=/srv/gitlab/config
-ARG DOCUTILS_VERSION="0.16"
+ARG DOCUTILS_VERSION="0.19"
 
 COPY --from=python /usr/local/bin /usr/local/bin/
 COPY --from=python /usr/local/lib /usr/local/lib/
