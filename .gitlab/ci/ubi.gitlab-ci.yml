@@ -54,6 +54,11 @@ gitlab-ubi-builder:
   needs:
     - gitlab-ubi-builder
 
+.no-ubi-artifacts: &no-ubi-artifacts
+  artifacts:
+    exclude:
+      - artifacts/ubi/*
+
 ## prepare phase one
 
 build:cfssl-self-sign:
@@ -486,12 +491,16 @@ gitlab-rails-ee:
 ## phase six
 
 gitlab-geo-logcursor:
-  extends: .gitlab-geo-logcursor
+  extends:
+    - .gitlab-geo-logcursor
+    - .no-ubi-artifacts
   needs:
     - gitlab-rails-ee
 
 gitlab-sidekiq-ee:
-  extends: .gitlab-sidekiq-ee
+  extends:
+    - .gitlab-sidekiq-ee
+    - .no-ubi-artifacts
   needs:
     - gitlab-rails-ee
     - build:gitlab-sidekiq-ee
@@ -499,7 +508,9 @@ gitlab-sidekiq-ee:
     - build:gitlab-logger
 
 gitlab-toolbox-ee:
-  extends: .gitlab-toolbox-ee
+  extends:
+    - .gitlab-toolbox-ee
+    - .no-ubi-artifacts
   needs:
     - gitlab-rails-ee
     - build:gitlab-python
@@ -507,7 +518,9 @@ gitlab-toolbox-ee:
     - build:gitlab-toolbox-ee
 
 gitlab-webservice-ee:
-  extends: .gitlab-webservice-ee
+  extends:
+    - .gitlab-webservice-ee
+    - .no-ubi-artifacts
   needs:
     - gitlab-rails-ee
     - build:gitlab-webservice-ee
@@ -515,7 +528,9 @@ gitlab-webservice-ee:
     - build:gitlab-logger
 
 gitlab-workhorse-ee:
-  extends: .gitlab-workhorse-ee
+  extends:
+    - .gitlab-workhorse-ee
+    - .no-ubi-artifacts
   needs:
     - gitlab-rails-ee
     - build:gitlab-exiftool
