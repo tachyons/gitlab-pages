@@ -445,7 +445,7 @@
     - fi
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-rails-ee_tag.txt
   cache:
-    key: "$CI_JOB_NAME-gitlab-rails-vendor-bundle-$RUBY_CACHE_KEY-$RAILS_CACHE_SUFFIX"
+    key: "$CI_JOB_NAME-gitlab-rails-vendor-bundle-$RUBY_CACHE_KEY-$IMAGE_FLAVOR-$RAILS_CACHE_SUFFIX"
     paths:
       - gitlab-rails/vendor/bundle
 
@@ -496,7 +496,7 @@
     - fi
     - echo -n "${CONTAINER_VERSION}" > artifacts/container_versions/gitlab-rails-ce_tag.txt
   cache:
-    key: "$CI_JOB_NAME-gitlab-rails-vendor-bundle-$RUBY_CACHE_KEY-$RAILS_CACHE_SUFFIX"
+    key: "$CI_JOB_NAME-gitlab-rails-vendor-bundle-$RUBY_CACHE_KEY-$IMAGE_FLAVOR-$RAILS_CACHE_SUFFIX"
     paths:
       - gitlab-rails/vendor/bundle
 
