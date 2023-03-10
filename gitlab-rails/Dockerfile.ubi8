@@ -17,16 +17,18 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-rails
       summary="Rails container for GitLab." \
       description="Rails container for GitLab."
 
-RUN dnf ${DNF_OPTS} install -by --nodocs \
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs \
             libicu tzdata uuid \
-            libpng libjpeg-turbo zlib libtiff \
-    && dnf clean all \
-    && rm -r /var/cache/dnf \
+            libpng libjpeg-turbo zlib libtiff shadow-utils \
+    && microdnf clean all \
     && adduser -m ${GITLAB_USER} -u ${UID} \
     && mkdir -p ${GITLAB_DATA}/{.upgrade-status,data,repo,config} \
     && chown -R ${UID}:0 ${GITLAB_DATA} \
     && chmod -R ug+rwX,o-rwx ${GITLAB_DATA}/repo \
-    && chmod -R ug-s ${GITLAB_DATA}/repo
+    && chmod -R ug-s ${GITLAB_DATA}/repo \
+    # remove shadow-utils within the same layer
+    && microdnf remove shadow-utils \
+    && microdnf clean all
 
 ADD gitlab-rails-ee.tar.gz /
 ADD gitlab-gomplate.tar.gz /
@@ -64,11 +66,15 @@ ENV UPGRADE_STATUS_DIR=${GITLAB_DATA}/.upgrade-status
 ENV BOOTSNAP_CACHE_DIR=/srv/gitlab/bootsnap
 # Generate bootsnap cache
 RUN echo "Generating bootsnap cache"; \
+    # ubi-minimal does not have su. This is messy. See install / remove outputs.
+    microdnf ${DNF_OPTS} install --best --assumeyes --nodocs util-linux && \
     cd /srv/gitlab && \
     su ${GITLAB_USER} -c "mkdir ${BOOTSNAP_CACHE_DIR}"  && \
     su ${GITLAB_USER} -c "ENABLE_BOOTSNAP=1 BOOTSNAP_CACHE_DIR=${BOOTSNAP_CACHE_DIR} bin/rake about" && \
     chown -R ${UID}:0 ${BOOTSNAP_CACHE_DIR} && \
     chmod -R g=u ${BOOTSNAP_CACHE_DIR} && \
+    # Remove util-linux and the pile added for it.
+    microdnf remove util-linux pam libutempter libtirpc libpwquality libnsl2 libfdisk cracklib cracklib-dicts && \
     du -hs ${BOOTSNAP_CACHE_DIR} ;
 # exit code of this command will be that of `du`
 

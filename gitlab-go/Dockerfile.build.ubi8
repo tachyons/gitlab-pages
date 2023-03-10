@@ -1,10 +1,12 @@
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.7
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:8.7
 
 FROM ${UBI_IMAGE}
 
 ARG GO_VERSION=1.18.7
 
-RUN mkdir -p /assets/usr/local \
+RUN microdnf install curl ca-certificates tar gzip \
+    && microdnf clean all\
+    && mkdir -p /assets/usr/local \
     && curl -f --retry 6 https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz -o go${GO_VERSION}.linux-amd64.tar.gz \
     && curl -f --retry 6 https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz.asc -o go${GO_VERSION}.linux-amd64.tar.gz.asc \
     && curl -f --retry 6 https://dl.google.com/linux/linux_signing_key.pub -o linux_signing_key.pub \

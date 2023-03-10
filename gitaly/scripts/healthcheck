@@ -3,4 +3,4 @@
 set -e
 
 # Check that gitaly is running
-netstat -tulnp | grep -w 8075 | grep "[0-9]\+/gitaly"
+ss -tulnp '( sport = :8075 )' | grep gitaly

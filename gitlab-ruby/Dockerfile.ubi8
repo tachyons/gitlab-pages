@@ -17,9 +17,9 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-ruby"
 
 ADD gitlab-ruby.tar.gz /
 
-RUN dnf ${DNF_OPTS} install -by --nodocs ncurses libedit diffutils \
-    && dnf clean all \
-    && rm -rf /var/cache/dnf \
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs ncurses libedit diffutils \
+    && microdnf clean all \
+    && rm -rf /var/cache/yum \
     && chgrp -R 0 /scripts \
     && chmod -R g=u /scripts
 

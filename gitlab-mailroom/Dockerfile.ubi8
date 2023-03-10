@@ -18,10 +18,12 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-mailr
       summary="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received." \
       description="A configuration based process that will idle on IMAP connections and execute a delivery method when a new message is received."
 
-RUN dnf ${DNF_OPTS} install -by --nodocs procps libicu tzdata \
-    && dnf clean all \
-    && rm -r /var/cache/dnf \
-    && adduser -m ${GITLAB_USER} -u ${UID}
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs procps libicu tzdata shadow-utils \
+    && microdnf clean all \
+    && adduser -m ${GITLAB_USER} -u ${UID} \
+    # remove shadow-utils within the same layer
+    && microdnf remove shadow-utils \
+    && microdnf clean all
 
 COPY scripts/ /scripts/
 

@@ -39,12 +39,14 @@ ENV LANG=C.UTF-8
 
 COPY --from=build /assets/ /
 
-RUN dnf ${DNF_OPTS} install -by --nodocs perl \
-    && dnf clean all \
-    && rm -r /var/cache/dnf \
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs perl shadow-utils \
+    && microdnf clean all \
     && install -d -o ${UID} -g 0 -m 0770 /home/${GITLAB_USER} \
     && install -d -o ${UID} -g 0 -m 0770 ${GITLAB_DATA} \
-    && adduser -M -d /home/${GITLAB_USER} -u ${UID} ${GITLAB_USER}
+    && adduser -M -d /home/${GITLAB_USER} -u ${UID} ${GITLAB_USER} \
+    # remove shadow-utils within the same layer
+    && microdnf remove shadow-utils \
+    && microdnf clean all
 
 USER ${UID}
 

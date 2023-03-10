@@ -1,6 +1,6 @@
 ## FINAL IMAGE ##
 
-ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi:8.7
+ARG UBI_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:8.7
 
 FROM ${UBI_IMAGE}
 
@@ -18,16 +18,20 @@ LABEL source="https://gitlab.com/gitlab-org/build/CNG/-/tree/master/gitlab-conta
       summary="The Docker toolset to pack, ship, store, and deliver content." \
       description="The Docker toolset to pack, ship, store, and deliver content. This is a fork of official Docker Registry 2.0 implementation."
 
-RUN adduser -m ${GITLAB_USER} -u ${UID} \
-    && ln -sf /usr/local/bin/registry /bin/registry
-
 ADD gitlab-gomplate.tar.gz /
 ADD gitlab-container-registry.tar.gz /
 
 COPY scripts/ /scripts/
 
-RUN chgrp -R 0 /scripts /home/${GITLAB_USER} && \
-    chmod -R g=u /scripts /home/${GITLAB_USER}
+RUN microdnf ${DNF_OPTS} install --best --assumeyes shadow-utils && \
+    microdnf ${DNF_OPTS} reinstall --nodocs --best --assumeyes tzdata -y && \
+    adduser -m ${GITLAB_USER} -u ${UID} && \
+    ln -sf /usr/local/bin/registry /bin/registry && \
+    chgrp -R 0 /scripts /home/${GITLAB_USER} && \
+    chmod -R g=u /scripts /home/${GITLAB_USER} && \
+    # remove shadow-utils within the same layer
+    microdnf remove shadow-utils && \
+    microdnf clean all
 
 USER ${UID}
 

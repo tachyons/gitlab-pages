@@ -26,14 +26,16 @@ ADD gitlab-exporter.tar.gz /
 
 COPY scripts/ /scripts/
 
-RUN dnf ${DNF_OPTS} install -by --nodocs procps uuid \
-    && dnf clean all \
-    && rm -r /var/cache/dnf \
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs procps uuid shadow-utils \
+    && microdnf clean all \
     && adduser -m ${GITLAB_USER} -u ${UID} \
     && mkdir -p /var/log/gitlab ${CONFIG_DIRECTORY} \
     && chown -R ${UID}:0 /var/log/gitlab ${CONFIG_DIRECTORY} /scripts \
     && chmod -R g=u ${CONFIG_DIRECTORY} /scripts \
-    && ldconfig
+    && ldconfig \
+    # remove shadow-utils within the same layer
+    && microdnf remove shadow-utils \
+    && microdnf clean all
 
 USER ${UID}
 

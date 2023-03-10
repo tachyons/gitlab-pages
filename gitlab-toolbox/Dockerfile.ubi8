@@ -25,9 +25,8 @@ ADD gitlab-python.tar.gz /
 COPY scripts/bin/* /usr/local/bin/
 COPY scripts/lib/* ${LIBDIR}/ruby/vendor_ruby/
 
-RUN dnf ${DNF_OPTS} install -by --nodocs ca-certificates openssl \
-    && dnf clean all \
-    && rm -r /var/cache/dnf
+RUN microdnf ${DNF_OPTS} install --best --assumeyes --nodocs ca-certificates openssl \
+    && microdnf clean all
 
 RUN chown -R ${UID}:0 /scripts /home/${GITLAB_USER} /var/log/gitlab && \
     chmod -R g=u /scripts /home/${GITLAB_USER} /var/log/gitlab

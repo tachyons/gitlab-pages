@@ -27,7 +27,7 @@ ARG BUNDLE_OPTIONS="--jobs 4"
 # install runtime deps. openssh-client is required so that SSH client binaries
 # are present for repository mirroring.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libicu67 net-tools openssh-client xtail
+    && apt-get install -y --no-install-recommends libicu67 iproute2 openssh-client xtail
 
 COPY shared/build-scripts/ /build-scripts
 
@@ -84,7 +84,7 @@ ARG GITLAB_USER=git
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       libpcre2-16-0 libpcre2-32-0 libpcre2-posix2 libcurl3-gnutls \
-      libicu67 net-tools openssh-client xtail \
+      libicu67 iproute2 openssh-client xtail \
     && rm -rf /var/lib/apt/lists/*
 
 # create gitlab user
