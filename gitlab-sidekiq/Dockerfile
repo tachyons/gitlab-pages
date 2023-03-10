@@ -10,7 +10,7 @@ FROM ${CI_REGISTRY_IMAGE}/gitlab-python:${PYTHON_TAG} as python
 FROM ${FROM_IMAGE}:${TAG}
 
 ARG GITLAB_USER=git
-ARG DOCUTILS_VERSION="0.16"
+ARG DOCUTILS_VERSION="0.19"
 
 # BEGIN python install
 COPY --from=python /usr/local/bin /usr/local/bin/
