@@ -103,6 +103,14 @@ var (
 	listenHTTPSProxyv2 = MultiStringFlag{separator: ","}
 
 	header = MultiStringFlag{separator: ";;"}
+
+	// flags that won't be logged to the output on Pages boot
+	nonLoggableFlags = map[string]bool{
+		"auth-client-id":     true,
+		"auth-client-secret": true,
+		"auth-secret":        true,
+		"use-http2":          true,
+	}
 )
 
 // initFlags will be called from LoadConfig

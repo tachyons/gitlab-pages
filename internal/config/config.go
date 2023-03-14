@@ -410,8 +410,8 @@ func loadConfig() (*Config, error) {
 	return config, nil
 }
 
-func LogConfig(config *Config) {
-	log.WithFields(log.Fields{
+func logFields(config *Config) map[string]any {
+	return map[string]any{
 		"artifacts-server":               config.ArtifactsServer.URL,
 		"artifacts-server-timeout":       *artifactsServerTimeout,
 		"default-config-filename":        flag.DefaultConfigFlagname,
@@ -422,7 +422,8 @@ func LogConfig(config *Config) {
 		"listen-https":                   listenHTTPS,
 		"listen-proxy":                   listenProxy,
 		"listen-https-proxyv2":           listenHTTPSProxyv2,
-		"log-format":                     *logFormat,
+		"log-format":                     config.Log.Format,
+		"log-verbose":                    config.Log.Verbose,
 		"metrics-address":                *metricsAddress,
 		"metrics-certificate":            *metricsCertificate,
 		"metrics-key":                    *metricsKey,
@@ -443,6 +444,7 @@ func LogConfig(config *Config) {
 		"auth-redirect-uri":              config.Authentication.RedirectURI,
 		"auth-scope":                     config.Authentication.Scope,
 		"auth-cookie-session-timeout":    config.Authentication.CookieSessionTimeout,
+		"auth-timeout":                   config.Authentication.Timeout,
 		"max-conns":                      config.General.MaxConns,
 		"max-uri-length":                 config.General.MaxURILength,
 		"zip-cache-expiration":           config.Zip.ExpirationInterval,
@@ -458,6 +460,14 @@ func LogConfig(config *Config) {
 		"rate-limit-tls-source-ip-burst": config.RateLimit.TLSSourceIPBurst,
 		"rate-limit-tls-domain":          config.RateLimit.TLSDomainLimitPerSecond,
 		"rate-limit-tls-domain-burst":    config.RateLimit.TLSDomainBurst,
+		"gitlab-client-http-timeout":     config.GitLab.ClientHTTPTimeout,
+		"gitlab-client-jwt-expiry":       config.GitLab.JWTTokenExpiration,
+		"gitlab-cache-expiry":            config.GitLab.Cache.CacheExpiry,
+		"gitlab-cache-refresh":           config.GitLab.Cache.CacheCleanupInterval,
+		"gitlab-cache-cleanup":           config.GitLab.Cache.EntryRefreshTimeout,
+		"gitlab-retrieval-timeout":       config.GitLab.Cache.RetrievalTimeout,
+		"gitlab-retrieval-interval":      config.GitLab.Cache.MaxRetrievalInterval,
+		"gitlab-retrieval-retries":       config.GitLab.Cache.MaxRetrievalRetries,
 		"redirects-max-config-size":      config.Redirects.MaxConfigSize,
 		"redirects-max-path-segments":    config.Redirects.MaxPathSegments,
 		"redirects-max-rule-count":       config.Redirects.MaxRuleCount,
@@ -465,7 +475,15 @@ func LogConfig(config *Config) {
 		"server-read-header-timeout":     config.Server.ReadHeaderTimeout,
 		"server-write-timeout":           config.Server.WriteTimeout,
 		"server-keep-alive":              config.Server.ListenKeepAlive,
-	}).Debug("Start Pages with configuration")
+		"server-shutdown-timeout":        config.General.ServerShutdownTimeout,
+		"sentry-dsn":                     config.Sentry.DSN,
+		"sentry-environment":             config.Sentry.Environment,
+		"version":                        config.General.ShowVersion,
+	}
+}
+
+func LogConfig(config *Config) {
+	log.WithFields(logFields(config)).Debug("Start Pages with configuration")
 }
 
 // LoadConfig parses configuration settings passed as command line arguments or

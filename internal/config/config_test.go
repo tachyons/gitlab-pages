@@ -5,10 +5,33 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/namsral/flag"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/fixture"
 )
+
+func TestLogFields(t *testing.T) {
+	loggingFlags := logFields(&Config{})
+
+	var missingFlags []string
+
+	flag.VisitAll(func(f *flag.Flag) {
+		_, logging := loggingFlags[f.Name]
+
+		if nonLoggableFlags[f.Name] || logging {
+			return
+		}
+
+		missingFlags = append(missingFlags, f.Name)
+	})
+
+	require.Empty(
+		t,
+		missingFlags,
+		"New flag is added, but not logged. Consider adding it to nonLoggableFlags if it contains any sensitive data such as keys",
+	)
+}
 
 func Test_loadMetricsConfig(t *testing.T) {
 	defaultMetricsAdress := ":9325"
