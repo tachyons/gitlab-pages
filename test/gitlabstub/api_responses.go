@@ -14,6 +14,14 @@ import (
 
 type responseFn func(string) api.VirtualDomain
 
+type projectConfig struct {
+	// refer to makeGitLabPagesAccessStub for custom HTTP responses per projectID
+	projectID     int
+	accessControl bool
+	https         bool
+	pathOnDisk    string
+}
+
 // domainResponses holds the predefined API responses for certain domains
 // that can be used with the GitLab API stub in acceptance tests
 // Assume the working dir is inside shared/pages/
@@ -23,28 +31,63 @@ var domainResponses = map[string]responseFn{
 		pathOnDisk: "@hashed/zip-from-disk.gitlab.io",
 	}),
 	"zip-from-disk-not-found.gitlab.io": customDomain(projectConfig{}),
-	// outside of working dir
-	"zip-not-allowed-path.gitlab.io":  customDomain(projectConfig{pathOnDisk: "../../../../"}),
-	"group.gitlab-example.com":        generateVirtualDomainFromDir("group", "group.gitlab-example.com", nil),
-	"CapitalGroup.gitlab-example.com": generateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com", nil),
-	"group.404.gitlab-example.com": generateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com", map[string]projectConfig{
+	"zip-not-allowed-path.gitlab.io":    customDomain(projectConfig{pathOnDisk: "../../../../"}),
+	"group.gitlab-example.com": generateVirtualDomain("group.gitlab-example.com", map[string]projectConfig{
+		"/CapitalProject": {
+			pathOnDisk: "group/CapitalProject",
+		},
+		"/group.gitlab-example.com": {
+			pathOnDisk: "group/group.gitlab-example.com",
+		},
+		"/new-source-test.gitlab.io": {
+			pathOnDisk: "group/new-source-test.gitlab.io",
+		},
+		"/project": {
+			pathOnDisk: "group/project",
+		},
+		"/project2": {
+			pathOnDisk: "group/project2",
+		},
+		"/serving": {
+			pathOnDisk: "group/serving",
+		},
+		"/subgroup/project": {
+			pathOnDisk: "group/subgroup/project",
+		},
+		"/zip.gitlab.io/public-without-dirs": {
+			pathOnDisk: "group/zip.gitlab.io",
+		},
+		"/zip.gitlab.io": {
+			pathOnDisk: "group/zip.gitlab.io",
+		},
+	}),
+	"CapitalGroup.gitlab-example.com": generateVirtualDomain("CapitalGroup.gitlab-example.com", map[string]projectConfig{
+		"/CapitalProject": {
+			pathOnDisk: "CapitalProject/CapitalProject",
+		},
+	}),
+	"group.404.gitlab-example.com": generateVirtualDomain("group.404.gitlab-example.com", map[string]projectConfig{
 		"/private_project": {
 			projectID:     1300,
 			accessControl: true,
+			pathOnDisk:    "group.404/private_project",
 		},
 		"/private_unauthorized": {
 			projectID:     2000,
 			accessControl: true,
+			pathOnDisk:    "group.404/private_unauthorized",
 		},
 	}),
-	"group.https-only.gitlab-example.com": generateVirtualDomainFromDir("group.https-only", "group.https-only.gitlab-example.com", map[string]projectConfig{
+	"group.https-only.gitlab-example.com": generateVirtualDomain("group.https-only.gitlab-example.com", map[string]projectConfig{
 		"/project1": {
-			projectID: 1000,
-			https:     true,
+			projectID:  1000,
+			https:      true,
+			pathOnDisk: "group.https-only/project1",
 		},
 		"/project2": {
-			projectID: 1100,
-			https:     false,
+			projectID:  1100,
+			https:      false,
+			pathOnDisk: "group.https-only/project2",
 		},
 	}),
 	"domain.404.com": customDomain(projectConfig{
@@ -55,7 +98,17 @@ var domainResponses = map[string]responseFn{
 		projectID:  1234,
 		pathOnDisk: "group.acme/with.acme.challenge",
 	}),
-	"group.redirects.gitlab-example.com": generateVirtualDomainFromDir("group.redirects", "group.redirects.gitlab-example.com", nil),
+	"group.redirects.gitlab-example.com": generateVirtualDomain("group.redirects.gitlab-example.com", map[string]projectConfig{
+		"/custom-domain": {
+			pathOnDisk: "group.redirects/custom-domain",
+		},
+		"/group.redirects.gitlab-example.com": {
+			pathOnDisk: "group.redirects/group.redirects.gitlab-example.com",
+		},
+		"/project-redirects": {
+			pathOnDisk: "group.redirects/project-redirects",
+		},
+	}),
 	"redirects.custom-domain.com": customDomain(projectConfig{
 		projectID:  1001,
 		pathOnDisk: "group.redirects/custom-domain",
@@ -75,34 +128,41 @@ var domainResponses = map[string]responseFn{
 		https:      true,
 		pathOnDisk: "group.https-only/project5",
 	}),
-	"group.auth.gitlab-example.com": generateVirtualDomainFromDir("group.auth", "group.auth.gitlab-example.com", map[string]projectConfig{
+	"group.auth.gitlab-example.com": generateVirtualDomain("group.auth.gitlab-example.com", map[string]projectConfig{
 		"/": {
 			projectID:     1005,
 			accessControl: true,
+			pathOnDisk:    "group.auth/group.auth.gitlab-example.com",
 		},
 		"/private.project": {
 			projectID:     1006,
 			accessControl: true,
+			pathOnDisk:    "group.auth/private.project",
 		},
 		"/private.project.1": {
 			projectID:     2006,
 			accessControl: true,
+			pathOnDisk:    "group.auth/private.project.1",
 		},
 		"/private.project.2": {
 			projectID:     3006,
 			accessControl: true,
+			pathOnDisk:    "group.auth/private.project.2",
 		},
 		"/subgroup/private.project": {
 			projectID:     1007,
 			accessControl: true,
+			pathOnDisk:    "group.auth/subgroup/private.project",
 		},
 		"/subgroup/private.project.1": {
 			projectID:     2007,
 			accessControl: true,
+			pathOnDisk:    "group.auth/subgroup/private.project.1",
 		},
 		"/subgroup/private.project.2": {
 			projectID:     3007,
 			accessControl: true,
+			pathOnDisk:    "group.auth/subgroup/private.project.2",
 		},
 	}),
 	"private.domain.com": customDomain(projectConfig{
@@ -117,6 +177,43 @@ var domainResponses = map[string]responseFn{
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving
 	// make zip PROJECT_SUBDIR=group/project2
+}
+
+func generateVirtualDomain(rootDomain string, projectConfigs map[string]projectConfig) responseFn {
+	return func(wd string) api.VirtualDomain {
+		nextID := 1000
+		lookupPaths := make([]api.LookupPath, 0, len(projectConfigs))
+
+		for project, config := range projectConfigs {
+			if config.projectID == 0 {
+				config.projectID = nextID
+				nextID++
+			}
+
+			sourcePath := fmt.Sprintf("file://%s", filepath.Join(wd, config.pathOnDisk, "public.zip"))
+
+			sum := sha256.Sum256([]byte(sourcePath))
+			sha := hex.EncodeToString(sum[:])
+
+			lookupPaths = append(lookupPaths, api.LookupPath{
+				ProjectID:     config.projectID,
+				AccessControl: config.accessControl,
+				HTTPSOnly:     config.https,
+				Prefix:        ensureEndingSlash(project),
+				Source: api.Source{
+					Type:   "zip",
+					Path:   sourcePath,
+					SHA256: sha,
+				},
+			})
+		}
+
+		return api.VirtualDomain{
+			Certificate: "",
+			Key:         "",
+			LookupPaths: lookupPaths,
+		}
+	}
 }
 
 // generateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
@@ -196,14 +293,6 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 			LookupPaths: lookupPaths,
 		}
 	}
-}
-
-type projectConfig struct {
-	// refer to makeGitLabPagesAccessStub for custom HTTP responses per projectID
-	projectID     int
-	accessControl bool
-	https         bool
-	pathOnDisk    string
 }
 
 // customDomain with per project config
