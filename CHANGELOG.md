@@ -8,6 +8,10 @@ No changes.
 
 - [Merge branch 'kassio/update-golang' into 'master'](gitlab-org/gitlab-pages@a0766fc3152993b320824d73055b903f624387f5) ([merge request](gitlab-org/gitlab-pages!851))
 
+## 15.9.4 (2023-03-30)
+
+No changes.
+
 ## 15.9.3 (2023-03-09)
 
 No changes.
