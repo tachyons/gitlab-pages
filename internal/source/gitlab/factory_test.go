@@ -20,7 +20,8 @@ func TestFabricateLookupPath(t *testing.T) {
 	})
 
 	t.Run("when lookup path is a namespace project", func(t *testing.T) {
-		lookup := api.LookupPath{Prefix: "/"}
+		lookup := api.LookupPath{Prefix: "/",
+			RootDirectory: "foo"}
 
 		path := fabricateLookupPath(2, lookup)
 
@@ -36,8 +37,9 @@ func TestFabricateServing(t *testing.T) {
 		}
 
 		lookup := api.LookupPath{
-			Prefix: "/",
-			Source: api.Source{Type: "file"},
+			Prefix:        "/",
+			Source:        api.Source{Type: "file"},
+			RootDirectory: "foo",
 		}
 		srv, err := g.fabricateServing(lookup)
 		require.NoError(t, err)

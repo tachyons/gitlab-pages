@@ -32,6 +32,7 @@ func fabricateLookupPath(size int, lookup api.LookupPath) *serving.LookupPath {
 		HasAccessControl:   lookup.AccessControl,
 		ProjectID:          uint64(lookup.ProjectID),
 		UniqueHost:         lookup.UniqueHost,
+		RootDirectory:      lookup.RootDirectory,
 	}
 }
 

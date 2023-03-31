@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,10 +20,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
 
-const (
-	dirPrefix      = "public/"
-	maxSymlinkSize = 256
-)
+const maxSymlinkSize = 256
 
 var (
 	errNotSymlink  = errors.New("not a symlink")
@@ -144,10 +140,6 @@ func (a *zipArchive) readArchive(url string) {
 
 	// TODO: Improve preprocessing of zip archives https://gitlab.com/gitlab-org/gitlab-pages/-/issues/432
 	for _, file := range archive.File {
-		if !strings.HasPrefix(file.Name, dirPrefix) {
-			continue
-		}
-
 		// Each Modified timestamp contains a pointer to a unique timezone
 		// object. This wastes a lot of memory. By setting the timezone to UTC on
 		// each timestamp, we allow the unique timezone objects to be
@@ -193,13 +185,13 @@ func (a *zipArchive) addPathDirectory(pathname string) {
 }
 
 func (a *zipArchive) findFile(name string) *zip.File {
-	name = path.Clean(dirPrefix + name)
+	name = path.Clean(name)
 
 	return a.files[name]
 }
 
 func (a *zipArchive) findDirectory(name string) *zip.FileHeader {
-	name = path.Clean(dirPrefix + name)
+	name = path.Clean(name)
 
 	return a.directories[name+"/"]
 }

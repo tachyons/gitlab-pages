@@ -77,7 +77,15 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 		return served
 	}
 
-	fullPath, err := reader.resolvePath(ctx, root, h.SubPath)
+	pagesRoot := h.LookupPath.RootDirectory
+
+	if pagesRoot == "" {
+		// In case the Internal API is not current it may not return a
+		// value. In this case default to the historical behaviour.
+		pagesRoot = "public"
+	}
+
+	fullPath, err := reader.resolvePath(ctx, root, pagesRoot, h.SubPath)
 
 	request := h.Request
 	urlPath := request.URL.Path
@@ -85,7 +93,8 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	var locationDirError *locationDirectoryError
 	if errors.As(err, &locationDirError) {
 		if endsWithSlash(urlPath) {
-			fullPath, err = reader.resolvePath(ctx, root, h.SubPath, "index.html")
+			fullPath, err = reader.resolvePath(ctx, root,
+				pagesRoot, h.SubPath, "index.html")
 		} else {
 			http.Redirect(h.Writer, h.Request, redirectPath(h.Request), http.StatusFound)
 			return true
@@ -94,7 +103,8 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 
 	var locationFileError *locationFileNoExtensionError
 	if errors.As(err, &locationFileError) {
-		fullPath, err = reader.resolvePath(ctx, root, strings.TrimSuffix(h.SubPath, "/")+".html")
+		fullPath, err = reader.resolvePath(ctx, root,
+			pagesRoot, strings.TrimSuffix(h.SubPath, "/")+".html")
 	}
 
 	if err != nil {

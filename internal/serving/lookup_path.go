@@ -11,4 +11,5 @@ type LookupPath struct {
 	HasAccessControl   bool
 	ProjectID          uint64
 	UniqueHost         string
+	RootDirectory      string
 }

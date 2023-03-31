@@ -8,6 +8,7 @@ type LookupPath struct {
 	Prefix        string `json:"prefix,omitempty"`
 	Source        Source `json:"source,omitempty"`
 	UniqueHost    string `json:"unique_host,omitempty"`
+	RootDirectory string `json:"root_directory,omitempty"`
 }
 
 // Source describes GitLab Page serving variant

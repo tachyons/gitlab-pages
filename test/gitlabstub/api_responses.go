@@ -234,6 +234,7 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 					SHA256: sha,
 				},
 				UniqueHost: cfg.uniqueHost,
+				RootDirectory: "public",
 			}
 
 			lookupPaths = append(lookupPaths, lookupPath)

@@ -13,3 +13,7 @@ shared/pages/.update
 /.GOPATH
 /.cover
 /bin
+
+# IDEs and environments
+.idea
+.DS_Store
