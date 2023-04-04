@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	path2 "path"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -46,35 +46,42 @@ func testOpen(t *testing.T, zip *zipArchive) {
 		file            string
 		expectedContent string
 		expectedErr     error
+		rootDirectory   string
 	}{
 		"file_exists": {
 			file:            "index.html",
+			rootDirectory:   "public",
 			expectedContent: "zip.gitlab.io/project/index.html\n",
 			expectedErr:     nil,
 		},
 		"file_exists_in_subdir": {
 			file:            "subdir/hello.html",
+			rootDirectory:   "public",
 			expectedContent: "zip.gitlab.io/project/subdir/hello.html\n",
 			expectedErr:     nil,
 		},
 		"file_exists_symlink": {
 			file:            "symlink.html",
+			rootDirectory:   "public",
 			expectedContent: "subdir/linked.html",
 			expectedErr:     errNotFile,
 		},
 		"is_dir": {
-			file:        "subdir",
-			expectedErr: errNotFile,
+			file:          "subdir",
+			rootDirectory: "public",
+			expectedErr:   errNotFile,
 		},
 		"file_does_not_exist": {
-			file:        "unknown.html",
-			expectedErr: fs.ErrNotExist,
+			file:          "unknown.html",
+			rootDirectory: "public",
+			expectedErr:   fs.ErrNotExist,
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			f, err := zip.Open(context.Background(), tt.file)
+			path := path2.Clean(tt.rootDirectory + "/" + tt.file)
+			f, err := zip.Open(context.Background(), path)
 			if tt.expectedErr != nil {
 				require.ErrorIs(t, err, tt.expectedErr)
 				return
@@ -113,7 +120,7 @@ func TestOpenCached(t *testing.T) {
 			name:     "open file first time",
 			vfsPath:  testServerURL + "/public.zip",
 			sha256:   "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
-			filePath: "index.html",
+			filePath: "public/index.html",
 			// we expect five requests to:
 			// read resource and zip metadata
 			// read file: data offset and content
@@ -124,7 +131,7 @@ func TestOpenCached(t *testing.T) {
 			name:     "open file second time",
 			vfsPath:  testServerURL + "/public.zip",
 			sha256:   "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
-			filePath: "index.html",
+			filePath: "public/index.html",
 			// we expect one request to read file with cached data offset
 			expectedRequests:      1,
 			expectedArchiveStatus: archiveOpened,
@@ -133,7 +140,7 @@ func TestOpenCached(t *testing.T) {
 			name:                  "when the URL changes",
 			vfsPath:               testServerURL + "/public.zip?new-secret",
 			sha256:                "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
-			filePath:              "index.html",
+			filePath:              "public/index.html",
 			expectedRequests:      1,
 			expectedArchiveStatus: archiveOpened,
 		},
@@ -141,7 +148,7 @@ func TestOpenCached(t *testing.T) {
 			name:             "when opening cached file and content changes",
 			vfsPath:          testServerURL + "/public.zip?changed-content=1",
 			sha256:           "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
-			filePath:         "index.html",
+			filePath:         "public/index.html",
 			expectedRequests: 1,
 			// we receive an error on `read` as `open` offset is already cached
 			expectedReadErr:       vfs.NewReadError(httprange.ErrRangeRequestsNotSupported),
@@ -151,7 +158,7 @@ func TestOpenCached(t *testing.T) {
 			name:                  "after content change archive is reloaded",
 			vfsPath:               testServerURL + "/public.zip?new-secret",
 			sha256:                "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
-			filePath:              "index.html",
+			filePath:              "public/index.html",
 			expectedRequests:      5,
 			expectedArchiveStatus: archiveOpened,
 		},
@@ -159,7 +166,7 @@ func TestOpenCached(t *testing.T) {
 			name:             "when opening non-cached file and content changes",
 			vfsPath:          testServerURL + "/public.zip?changed-content=1",
 			sha256:           "d6b318b399cfe9a1c8483e49847ee49a2676d8cfd6df57ec64d971ad03640a75",
-			filePath:         "subdir/hello.html",
+			filePath:         "public/subdir/hello.html",
 			expectedRequests: 1,
 			// we receive an error on `read` as `open` offset is already cached
 			expectedOpenErr:       vfs.NewReadError(httprange.ErrRangeRequestsNotSupported),
@@ -209,54 +216,64 @@ func TestLstat(t *testing.T) {
 
 func testLstat(t *testing.T, zip *zipArchive) {
 	tests := map[string]struct {
-		file         string
-		isDir        bool
-		isSymlink    bool
-		expectedName string
-		expectedErr  error
+		file          string
+		isDir         bool
+		isSymlink     bool
+		expectedName  string
+		expectedErr   error
+		rootDirectory string
 	}{
 		"file_exists": {
-			file:         "index.html",
-			expectedName: "index.html",
+			file:          "index.html",
+			rootDirectory: "public",
+			expectedName:  "index.html",
 		},
 		"file_exists_in_subdir": {
-			file:         "subdir/hello.html",
-			expectedName: "hello.html",
+			file:          "subdir/hello.html",
+			rootDirectory: "public",
+			expectedName:  "hello.html",
 		},
 		"file_exists_symlink": {
-			file:         "symlink.html",
-			isSymlink:    true,
-			expectedName: "symlink.html",
+			file:          "symlink.html",
+			rootDirectory: "public",
+			isSymlink:     true,
+			expectedName:  "symlink.html",
 		},
 		"has_root": {
-			file:         "",
-			isDir:        true,
-			expectedName: "public",
+			file:          "/",
+			rootDirectory: "public",
+			isDir:         true,
+			expectedName:  "public",
 		},
 		"has_root_dot": {
-			file:         ".",
-			isDir:        true,
-			expectedName: "public",
+			file:          "/.",
+			rootDirectory: "public",
+			isDir:         true,
+			expectedName:  "public",
 		},
 		"has_root_slash": {
-			file:         "/",
-			isDir:        true,
-			expectedName: "public",
+			file:          "/",
+			rootDirectory: "public",
+			isDir:         true,
+			expectedName:  "public",
 		},
 		"is_dir": {
-			file:         "subdir",
-			isDir:        true,
-			expectedName: "subdir",
+			file:          "subdir",
+			rootDirectory: "public",
+			isDir:         true,
+			expectedName:  "subdir",
 		},
 		"file_does_not_exist": {
-			file:        "unknown.html",
-			expectedErr: fs.ErrNotExist,
+			file:          "unknown.html",
+			rootDirectory: "public",
+			expectedErr:   fs.ErrNotExist,
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			fi, err := zip.Lstat(context.Background(), tt.file)
+			path := path2.Clean(tt.rootDirectory + "/" + tt.file)
+			fi, err := zip.Lstat(context.Background(), path)
 			if tt.expectedErr != nil {
 				require.ErrorIs(t, err, tt.expectedErr)
 				return
@@ -291,33 +308,40 @@ func TestReadLink(t *testing.T) {
 
 func testReadLink(t *testing.T, zip *zipArchive) {
 	tests := map[string]struct {
-		file        string
-		expectedErr error
+		file          string
+		rootDirectory string
+		expectedErr   error
 	}{
 		"symlink_success": {
-			file: "symlink.html",
+			file:          "symlink.html",
+			rootDirectory: "public",
 		},
 		"file": {
-			file:        "index.html",
-			expectedErr: errNotSymlink,
+			file:          "index.html",
+			rootDirectory: "public",
+			expectedErr:   errNotSymlink,
 		},
 		"dir": {
-			file:        "subdir",
-			expectedErr: errNotSymlink,
+			file:          "subdir",
+			rootDirectory: "public",
+			expectedErr:   errNotSymlink,
 		},
 		"symlink_too_big": {
-			file:        "bad_symlink.html",
-			expectedErr: errSymlinkSize,
+			file:          "bad_symlink.html",
+			rootDirectory: "public",
+			expectedErr:   errSymlinkSize,
 		},
 		"file_does_not_exist": {
-			file:        "unknown.html",
-			expectedErr: fs.ErrNotExist,
+			file:          "unknown.html",
+			rootDirectory: "public",
+			expectedErr:   fs.ErrNotExist,
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			link, err := zip.Readlink(context.Background(), tt.file)
+			path := path2.Clean(tt.rootDirectory + "/" + tt.file)
+			link, err := zip.Readlink(context.Background(), path)
 			if tt.expectedErr != nil {
 				require.ErrorIs(t, err, tt.expectedErr)
 				return
@@ -336,14 +360,14 @@ func TestReadlinkCached(t *testing.T) {
 
 	t.Run("readlink first time", func(t *testing.T) {
 		requestsStart := atomic.LoadInt64(&requests)
-		_, err := zip.Readlink(context.Background(), "symlink.html")
+		_, err := zip.Readlink(context.Background(), "public/symlink.html")
 		require.NoError(t, err)
 		require.Equal(t, int64(2), atomic.LoadInt64(&requests)-requestsStart, "we expect two requests to read symlink: data offset and link")
 	})
 
 	t.Run("readlink second time", func(t *testing.T) {
 		requestsStart := atomic.LoadInt64(&requests)
-		_, err := zip.Readlink(context.Background(), "symlink.html")
+		_, err := zip.Readlink(context.Background(), "public/symlink.html")
 		require.NoError(t, err)
 		require.Equal(t, int64(0), atomic.LoadInt64(&requests)-requestsStart, "we expect no additional requests to read cached symlink")
 	})
@@ -363,7 +387,7 @@ func TestArchiveCanBeReadAfterOpenCtxCanceled(t *testing.T) {
 
 	<-zip.done
 
-	file, err := zip.Open(context.Background(), "index.html")
+	file, err := zip.Open(context.Background(), "public/index.html")
 	require.NoError(t, err)
 	data, err := io.ReadAll(file)
 	require.NoError(t, err)
@@ -453,7 +477,7 @@ func TestMinimalRangeRequests(t *testing.T) {
 			continue
 		}
 
-		f, err := zip.Open(context.Background(), strings.TrimPrefix(zf.Name, "public/"))
+		f, err := zip.Open(context.Background(), zf.Name)
 		require.NoError(t, err)
 
 		io.Copy(io.Discard, f)
@@ -564,7 +588,7 @@ func benchmarkArchiveRead(b *testing.B, size int64) {
 		err := z.openArchive(context.Background(), ts.URL+"/public.zip")
 		require.NoError(b, err)
 
-		f, err := z.Open(context.Background(), "file.txt")
+		f, err := z.Open(context.Background(), "public/file.txt")
 		require.NoError(b, err)
 
 		_, err = io.Copy(io.Discard, f)

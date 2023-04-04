@@ -20,34 +20,40 @@ func TestDisk_ServeFileHTTP(t *testing.T) {
 		path           string
 		expectedStatus int
 		expectedBody   string
+		rootDirectory  string
 	}{
 		"accessing /index.html": {
-			vfsPath:        "group/serving/public",
+			vfsPath:        "group/serving",
 			path:           "/index.html",
+			rootDirectory:  "public",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "HTML Document",
 		},
 		"accessing /": {
-			vfsPath:        "group/serving/public",
+			vfsPath:        "group/serving",
 			path:           "/",
+			rootDirectory:  "public",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "HTML Document",
 		},
 		"accessing without /": {
-			vfsPath:        "group/serving/public",
+			vfsPath:        "group/serving",
 			path:           "",
+			rootDirectory:  "public",
 			expectedStatus: http.StatusFound,
 			expectedBody:   `<a href="//group.gitlab-example.com/serving/">Found</a>.`,
 		},
 		"accessing vfs path that is missing": {
-			vfsPath: "group/serving/public-missing",
-			path:    "/index.html",
+			vfsPath:       "group/serving/public-missing",
+			path:          "/index.html",
+			rootDirectory: "public",
 			// we expect the status to not be set
 			expectedStatus: 0,
 		},
 		"accessing vfs path that is forbidden (like file)": {
 			vfsPath:        "group/serving/public/index.html",
 			path:           "/index.html",
+			rootDirectory:  "public",
 			expectedStatus: http.StatusInternalServerError,
 		},
 	}
@@ -64,8 +70,9 @@ func TestDisk_ServeFileHTTP(t *testing.T) {
 				Writer:  w,
 				Request: r,
 				LookupPath: &serving.LookupPath{
-					Prefix: "/serving/",
-					Path:   test.vfsPath,
+					Prefix:        "/serving/",
+					Path:          test.vfsPath,
+					RootDirectory: test.rootDirectory,
 				},
 				SubPath: test.path,
 			}

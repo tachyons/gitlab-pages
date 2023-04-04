@@ -80,8 +80,8 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	pagesRoot := h.LookupPath.RootDirectory
 
 	if pagesRoot == "" {
-		// In case the Internal API is not current it may not return a
-		// value. In this case default to the historical behaviour.
+		// In case the GitLab API is not up-to-date this string may be empty.
+		// In that case default to the legacy behavior
 		pagesRoot = "public"
 	}
 
