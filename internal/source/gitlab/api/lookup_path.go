@@ -7,6 +7,7 @@ type LookupPath struct {
 	HTTPSOnly     bool   `json:"https_only,omitempty"`
 	Prefix        string `json:"prefix,omitempty"`
 	Source        Source `json:"source,omitempty"`
+	UniqueHost    string `json:"unique_host,omitempty"`
 }
 
 // Source describes GitLab Page serving variant

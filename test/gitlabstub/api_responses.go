@@ -14,6 +14,15 @@ import (
 
 type responseFn func(string) api.VirtualDomain
 
+type projectConfig struct {
+	// refer to makeGitLabPagesAccessStub for custom HTTP responses per projectID
+	projectID     int
+	accessControl bool
+	https         bool
+	pathOnDisk    string
+	uniqueHost    string
+}
+
 // domainResponses holds the predefined API responses for certain domains
 // that can be used with the GitLab API stub in acceptance tests
 // Assume the working dir is inside shared/pages/
@@ -114,6 +123,43 @@ var domainResponses = map[string]responseFn{
 		projectID:  1008,
 		pathOnDisk: "group.acme/with.redirects",
 	}),
+	"group.unique-url.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
+		"/with-unique-url": {
+			uniqueHost: "unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com",
+			pathOnDisk: "group/project",
+		},
+		"/subgroup1/subgroup2/with-unique-url": {
+			uniqueHost: "unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com",
+			pathOnDisk: "group/project",
+		},
+		"/with-unique-url-with-port": {
+			uniqueHost: "unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com",
+			pathOnDisk: "group/project",
+		},
+		"/with-malformed-unique-url": {
+			uniqueHost: "unique-url@gitlab-example.com:",
+			pathOnDisk: "group/project",
+		},
+		"/with-different-protocol": {
+			uniqueHost: "unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com",
+			pathOnDisk: "group/project",
+		},
+		"/without-unique-url": {
+			pathOnDisk: "group/project",
+		},
+	}),
+	"unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
+		"/": {
+			uniqueHost: "unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com",
+			pathOnDisk: "group/project",
+		},
+	}),
+	"unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com:8080": generateVirtualDomain(map[string]projectConfig{
+		"/": {
+			uniqueHost: "unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com",
+			pathOnDisk: "group/project",
+		},
+	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
 	// make zip PROJECT_SUBDIR=group/serving
 	// make zip PROJECT_SUBDIR=group/project2
@@ -187,6 +233,7 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 					Path:   sourcePath,
 					SHA256: sha,
 				},
+				UniqueHost: cfg.uniqueHost,
 			}
 
 			lookupPaths = append(lookupPaths, lookupPath)
@@ -198,12 +245,39 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 	}
 }
 
-type projectConfig struct {
-	// refer to makeGitLabPagesAccessStub for custom HTTP responses per projectID
-	projectID     int
-	accessControl bool
-	https         bool
-	pathOnDisk    string
+func generateVirtualDomain(projectConfigs map[string]projectConfig) responseFn {
+	return func(wd string) api.VirtualDomain {
+		nextID := 1000
+		lookupPaths := make([]api.LookupPath, 0, len(projectConfigs))
+
+		for project, config := range projectConfigs {
+			if config.projectID == 0 {
+				config.projectID = nextID
+				nextID++
+			}
+
+			sourcePath := fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk)
+			sum := sha256.Sum256([]byte(sourcePath))
+			sha := hex.EncodeToString(sum[:])
+
+			lookupPaths = append(lookupPaths, api.LookupPath{
+				ProjectID:     config.projectID,
+				AccessControl: config.accessControl,
+				HTTPSOnly:     config.https,
+				Prefix:        ensureEndingSlash(project),
+				UniqueHost:    config.uniqueHost,
+				Source: api.Source{
+					Type:   "zip",
+					Path:   sourcePath,
+					SHA256: sha,
+				},
+			})
+		}
+
+		return api.VirtualDomain{
+			LookupPaths: lookupPaths,
+		}
+	}
 }
 
 // customDomain with per project config
@@ -230,6 +304,7 @@ func customDomain(config projectConfig) responseFn {
 						SHA256: sha,
 						Path:   sourcePath,
 					},
+					UniqueHost: config.uniqueHost,
 				},
 			},
 		}

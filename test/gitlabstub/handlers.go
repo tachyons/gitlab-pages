@@ -29,7 +29,7 @@ func defaultAPIHandler(delay time.Duration, pagesRoot string) http.HandlerFunc {
 		// check if predefined response exists
 		if responseFn, ok := domainResponses[domain]; ok {
 			if err := json.NewEncoder(w).Encode(responseFn(pagesRoot)); err != nil {
-				log.Fatal(err)
+				log.Fatalf("fail to encode response for domain %q: %v", domain, err)
 			}
 			return
 		}
