@@ -40,6 +40,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/tls"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/uniqueDomain"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/urilimiter"
 	"gitlab.com/gitlab-org/gitlab-pages/metrics"
 )
@@ -133,6 +134,7 @@ func setRequestScheme(r *http.Request) *http.Request {
 func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	// Handlers should be applied in a reverse order
 	handler := a.serveFileOrNotFoundHandler()
+	handler = uniqueDomain.NewMiddleware(handler)
 	handler = a.Auth.AuthorizationMiddleware(handler)
 	handler = routing.NewMiddleware(handler, a.source)
 
