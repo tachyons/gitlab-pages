@@ -70,4 +70,4 @@ endif
 
 zip:
 	cd $(PWD)/shared/pages/$(PROJECT_SUBDIR)/ && \
-	zip -r public.zip public/
+	zip -r ../public.zip ./

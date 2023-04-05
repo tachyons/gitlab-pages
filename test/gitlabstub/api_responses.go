@@ -21,6 +21,7 @@ type projectConfig struct {
 	https         bool
 	pathOnDisk    string
 	uniqueHost    string
+	rootDirectory string
 }
 
 // domainResponses holds the predefined API responses for certain domains
@@ -160,9 +161,29 @@ var domainResponses = map[string]responseFn{
 			pathOnDisk: "group/project",
 		},
 	}),
+	"custom-root.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
+		"/": {
+			uniqueHost:    "custom-root.gitlab-example.com",
+			pathOnDisk:    "group.customroot/customroot",
+			rootDirectory: "foo",
+		},
+	}),
+	"custom-root-legacy.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
+		"/": {
+			uniqueHost: "custom-root-legacy.gitlab-example.com",
+			pathOnDisk: "group.customroot/legacy",
+		},
+	}),
+	"custom-root-explicit-public.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
+		"/": {
+			uniqueHost:    "custom-root-explicit-public.gitlab-example.com",
+			pathOnDisk:    "group.customroot/legacy",
+			rootDirectory: "public",
+		},
+	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)
-	// make zip PROJECT_SUBDIR=group/serving
-	// make zip PROJECT_SUBDIR=group/project2
+	// make zip PROJECT_SUBDIR=group/project2/public
+	// make zip PROJECT_SUBDIR=group/customroot/foo
 }
 
 // generateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
@@ -233,8 +254,8 @@ func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[st
 					Path:   sourcePath,
 					SHA256: sha,
 				},
-				UniqueHost: cfg.uniqueHost,
-				RootDirectory: "public",
+				UniqueHost:    cfg.uniqueHost,
+				RootDirectory: cfg.rootDirectory,
 			}
 
 			lookupPaths = append(lookupPaths, lookupPath)
@@ -267,6 +288,7 @@ func generateVirtualDomain(projectConfigs map[string]projectConfig) responseFn {
 				HTTPSOnly:     config.https,
 				Prefix:        ensureEndingSlash(project),
 				UniqueHost:    config.uniqueHost,
+				RootDirectory: config.rootDirectory,
 				Source: api.Source{
 					Type:   "zip",
 					Path:   sourcePath,
@@ -305,7 +327,8 @@ func customDomain(config projectConfig) responseFn {
 						SHA256: sha,
 						Path:   sourcePath,
 					},
-					UniqueHost: config.uniqueHost,
+					UniqueHost:    config.uniqueHost,
+					RootDirectory: config.rootDirectory,
 				},
 			},
 		}
