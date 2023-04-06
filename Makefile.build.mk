@@ -3,6 +3,11 @@ GO_BUILD_TAGS   := continuous_profiler_stackdriver
 MOCKGEN_VERSION=v1.6.0
 FIPS_MODE       ?= 0
 ifeq ($(FIPS_MODE), 1)
+    BORINGCRYPTO_SUPPORT := $(shell GOEXPERIMENT=boringcrypto go version &> /dev/null; echo $$?)
+    ifeq ($(BORINGCRYPTO_SUPPORT), 0)
+        GO_BUILD_ENV=GOEXPERIMENT=boringcrypto
+    endif
+
     GO_BUILD_TAGS := $(GO_BUILD_TAGS),fips
 endif
 
@@ -23,11 +28,11 @@ generate-mocks:
 	$Q go run github.com/golang/mock/mockgen@$(MOCKGEN_VERSION) -source=internal/domain/resolver.go -destination=internal/domain/mock/resolver_mock.go -package=mock
 
 build:
-	$Q GOBIN=$(BINDIR) go install $(if $V,-v) -ldflags="$(VERSION_FLAGS)" -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
+	$Q GOBIN=$(BINDIR) $(GO_BUILD_ENV) go install $(if $V,-v) -ldflags="$(VERSION_FLAGS)" -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
 ifndef WITHOUT_BUILD_ID
 	GO_BUILD_ID=$$( go tool buildid $(BINDIR)/gitlab-pages ) && \
 	GNU_BUILD_ID=$$( echo $$GO_BUILD_ID | sha1sum | cut -d' ' -f1 ) && \
-	$Q GOBIN=$(BINDIR) go install $(if $V,-v) -ldflags="$(VERSION_FLAGS) -B 0x$$GNU_BUILD_ID" -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
+	$Q GOBIN=$(BINDIR) $(GO_BUILD_ENV) go install $(if $V,-v) -ldflags="$(VERSION_FLAGS) -B 0x$$GNU_BUILD_ID" -tags "${GO_BUILD_TAGS}" -buildmode exe $(IMPORT_PATH)
 endif
 ifeq ($(FIPS_MODE), 1)
 	go tool nm $(BINDIR)/gitlab-pages | grep boringcrypto >/dev/null &&  echo "binary is correctly built in FIPS mode" || (echo "binary is not correctly built in FIPS mode" && exit 1)
