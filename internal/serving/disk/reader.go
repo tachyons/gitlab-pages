@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/projectroot"
 	"io"
 	"io/fs"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/projectroot"
 
 	"github.com/prometheus/client_golang/prometheus"
 

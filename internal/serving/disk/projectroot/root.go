@@ -3,8 +3,9 @@ package projectroot
 import (
 	"context"
 	"fmt"
-	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	"os"
+
+	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 )
 
 // Root implements the more low-level vfs.Root interface and can be used in its
