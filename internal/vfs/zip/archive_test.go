@@ -240,13 +240,13 @@ func testLstat(t *testing.T, zip *zipArchive) {
 			expectedName:  "symlink.html",
 		},
 		"has_root": {
-			file:          "/",
+			file:          "",
 			rootDirectory: "public",
 			isDir:         true,
 			expectedName:  "public",
 		},
 		"has_root_dot": {
-			file:          "/.",
+			file:          ".",
 			rootDirectory: "public",
 			isDir:         true,
 			expectedName:  "public",

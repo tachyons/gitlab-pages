@@ -86,8 +86,7 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	var locationDirError *locationDirectoryError
 	if errors.As(err, &locationDirError) {
 		if endsWithSlash(urlPath) {
-			fullPath, err = reader.resolvePath(ctx, root, h.SubPath,
-				"index.html")
+			fullPath, err = reader.resolvePath(ctx, root, h.SubPath, "index.html")
 		} else {
 			http.Redirect(h.Writer, h.Request, redirectPath(h.Request), http.StatusFound)
 			return true
@@ -96,8 +95,7 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 
 	var locationFileError *locationFileNoExtensionError
 	if errors.As(err, &locationFileError) {
-		fullPath, err = reader.resolvePath(ctx, root,
-			strings.TrimSuffix(h.SubPath, "/")+".html")
+		fullPath, err = reader.resolvePath(ctx, root, strings.TrimSuffix(h.SubPath, "/")+".html")
 	}
 
 	if err != nil {
@@ -178,7 +176,6 @@ func (reader *Reader) resolvePath(ctx context.Context, root vfs.Root, subPath ..
 	}
 
 	fi, err := root.Lstat(ctx, fullPath)
-
 	if err != nil {
 		return "", err
 	}
