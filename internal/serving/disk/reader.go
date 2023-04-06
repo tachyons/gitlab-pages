@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/projectroot"
-
 	"github.com/prometheus/client_golang/prometheus"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/errortracking"
@@ -20,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/logging"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/redirects"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/projectroot"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/symlink"
 	"gitlab.com/gitlab-org/gitlab-pages/internal/vfs"
 	vfsServing "gitlab.com/gitlab-org/gitlab-pages/internal/vfs/serving"
