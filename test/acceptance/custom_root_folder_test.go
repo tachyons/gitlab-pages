@@ -34,6 +34,16 @@ func TestCustomRoot(t *testing.T) {
 			requestDomain: "custom-root-explicit-public.gitlab-example.com",
 			httpStatus:    http.StatusOK,
 		},
+		{
+			name:          "no subdir",
+			requestDomain: "custom-root-no-subdir.gitlab-example.com",
+			httpStatus:    http.StatusNotFound,
+		},
+		{
+			name:          "wrong directory",
+			requestDomain: "custom-root-wrong-dir.gitlab-example.com",
+			httpStatus:    http.StatusNotFound,
+		},
 	}
 
 	for _, test := range tests {

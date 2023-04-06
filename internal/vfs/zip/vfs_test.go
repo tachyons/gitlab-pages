@@ -55,18 +55,18 @@ func TestVFSRoot(t *testing.T) {
 			require.NoError(t, err)
 			require.IsType(t, &zipArchive{}, root)
 
-			f, err := root.Open(context.Background(), "index.html")
+			f, err := root.Open(context.Background(), "public/index.html")
 			require.NoError(t, err)
 
 			content, err := io.ReadAll(f)
 			require.NoError(t, err)
 			require.Equal(t, "zip.gitlab.io/project/index.html\n", string(content))
 
-			fi, err := root.Lstat(context.Background(), "index.html")
+			fi, err := root.Lstat(context.Background(), "public/index.html")
 			require.NoError(t, err)
 			require.Equal(t, "index.html", fi.Name())
 
-			link, err := root.Readlink(context.Background(), "symlink.html")
+			link, err := root.Readlink(context.Background(), "public/symlink.html")
 			require.NoError(t, err)
 			require.Equal(t, "subdir/linked.html", link)
 		})
@@ -249,7 +249,7 @@ func TestVFSReconfigureTransport(t *testing.T) {
 	root, err := vfs.Root(context.Background(), fileURL, key)
 	require.NoError(t, err)
 
-	fi, err := root.Lstat(context.Background(), "index.html")
+	fi, err := root.Lstat(context.Background(), "public/index.html")
 	require.NoError(t, err)
 	require.Equal(t, "index.html", fi.Name())
 }

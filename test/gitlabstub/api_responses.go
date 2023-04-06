@@ -163,22 +163,31 @@ var domainResponses = map[string]responseFn{
 	}),
 	"custom-root.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
 		"/": {
-			uniqueHost:    "custom-root.gitlab-example.com",
 			pathOnDisk:    "group.customroot/customroot",
 			rootDirectory: "foo",
 		},
 	}),
 	"custom-root-legacy.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
 		"/": {
-			uniqueHost: "custom-root-legacy.gitlab-example.com",
-			pathOnDisk: "group.customroot/legacy",
+			pathOnDisk: "group/project",
 		},
 	}),
 	"custom-root-explicit-public.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
 		"/": {
-			uniqueHost:    "custom-root-explicit-public.gitlab-example.com",
-			pathOnDisk:    "group.customroot/legacy",
+			pathOnDisk:    "group/project",
 			rootDirectory: "public",
+		},
+	}),
+	"custom-root-no-subdir.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
+		"/": {
+			pathOnDisk:    "group.customroot/nosubdir",
+			rootDirectory: "/",
+		},
+	}),
+	"custom-root-wrong-dir.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
+		"/": {
+			pathOnDisk:    "group/project",
+			rootDirectory: "foo",
 		},
 	}),
 	// NOTE: before adding more domains here, generate the zip archive by running (per project)

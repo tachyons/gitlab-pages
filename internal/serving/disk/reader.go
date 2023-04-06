@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gitlab.com/gitlab-org/gitlab-pages/internal/serving/disk/projectroot"
 	"io"
 	"io/fs"
 	"net/http"
@@ -77,15 +78,7 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 		return served
 	}
 
-	pagesRoot := h.LookupPath.RootDirectory
-
-	if pagesRoot == "" {
-		// In case the GitLab API is not up-to-date this string may be empty.
-		// In that case default to the legacy behavior
-		pagesRoot = "public"
-	}
-
-	fullPath, err := reader.resolvePath(ctx, root, pagesRoot, h.SubPath)
+	fullPath, err := reader.resolvePath(ctx, root, h.SubPath)
 
 	request := h.Request
 	urlPath := request.URL.Path
@@ -93,8 +86,8 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	var locationDirError *locationDirectoryError
 	if errors.As(err, &locationDirError) {
 		if endsWithSlash(urlPath) {
-			fullPath, err = reader.resolvePath(ctx, root,
-				pagesRoot, h.SubPath, "index.html")
+			fullPath, err = reader.resolvePath(ctx, root, h.SubPath,
+				"index.html")
 		} else {
 			http.Redirect(h.Writer, h.Request, redirectPath(h.Request), http.StatusFound)
 			return true
@@ -104,7 +97,7 @@ func (reader *Reader) tryFile(h serving.Handler) bool {
 	var locationFileError *locationFileNoExtensionError
 	if errors.As(err, &locationFileError) {
 		fullPath, err = reader.resolvePath(ctx, root,
-			pagesRoot, strings.TrimSuffix(h.SubPath, "/")+".html")
+			strings.TrimSuffix(h.SubPath, "/")+".html")
 	}
 
 	if err != nil {
@@ -185,6 +178,7 @@ func (reader *Reader) resolvePath(ctx context.Context, root vfs.Root, subPath ..
 	}
 
 	fi, err := root.Lstat(ctx, fullPath)
+
 	if err != nil {
 		return "", err
 	}
@@ -294,11 +288,15 @@ func (reader *Reader) serveCustomFile(ctx context.Context, w http.ResponseWriter
 	return nil
 }
 
-// root tries to resolve the vfs.Root and handles errors for it.
+// root tries to resolve the vfs.Root, wrap it in a projectroot.Root and handles
+// errors for it.
 // It returns whether we served the response or not.
-func (reader *Reader) root(h serving.Handler) (vfs.Root, bool) {
-	root, err := reader.vfs.Root(h.Request.Context(), h.LookupPath.Path, h.LookupPath.SHA256)
+func (reader *Reader) root(h serving.Handler) (*projectroot.Root, bool) {
+	vfsRoot, err := reader.vfs.Root(h.Request.Context(), h.LookupPath.Path,
+		h.LookupPath.SHA256)
+
 	if err == nil {
+		root := projectroot.New(h.LookupPath.RootDirectory, vfsRoot)
 		return root, false
 	}
 
