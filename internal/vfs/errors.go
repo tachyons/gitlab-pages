@@ -27,7 +27,7 @@ func (r *ReadError) Unwrap() error {
 }
 
 func (r *ReadError) Is(target error) bool {
-	// nolint: errorlint // implementing type equality for errors.Is
+	//nolint: errorlint // implementing type equality for errors.Is
 	_, ok := target.(*ReadError)
 	return ok
 }

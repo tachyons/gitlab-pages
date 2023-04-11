@@ -28,7 +28,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source"
 )
 
-// nolint: gosec // auth constants, not credentials
+//nolint: gosec // auth constants, not credentials
 // gosec: G101: Potential hardcoded credentials
 const (
 	apiURLUserTemplate     = "%s/api/v4/user"
@@ -198,7 +198,7 @@ func (a *Auth) domainAllowed(ctx context.Context, name string, domains source.So
 	return (domain != nil && err == nil)
 }
 
-// nolint: gocyclo // TODO refactor this function https://gitlab.com/gitlab-org/gitlab-pages/-/issues/813
+//nolint: gocyclo // TODO refactor this function https://gitlab.com/gitlab-org/gitlab-pages/-/issues/813
 func (a *Auth) handleProxyingAuth(session *hostSession, w http.ResponseWriter, r *http.Request, domains source.Source) bool {
 	// handle auth callback e.g. https://gitlab.io/auth?domain=domain&state=state
 	if shouldProxyAuthToGitlab(r) {

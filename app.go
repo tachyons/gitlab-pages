@@ -183,7 +183,7 @@ func (a *theApp) buildHandlerPipeline() (http.Handler, error) {
 	return handler, nil
 }
 
-// nolint: gocyclo // ignore this
+//nolint: gocyclo // ignore this
 func (a *theApp) Run() error {
 	var limiter *netutil.Limiter
 	if a.config.General.MaxConns > 0 {

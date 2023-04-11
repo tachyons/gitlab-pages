@@ -117,7 +117,7 @@ func TestRedirectsValidateRule(t *testing.T) {
 			expectedErr: errNoStartingForwardSlashInURLPath,
 		},
 		"no_parameters": {
-			rule: "/	/something	302	foo=bar",
+			rule:        "/ /something 302 foo=bar",
 			expectedErr: errNoParams,
 		},
 		"invalid_status": {

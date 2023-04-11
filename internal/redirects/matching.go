@@ -20,12 +20,12 @@ var (
 //
 // For example, given a "from" URL like this:
 //
-//    /a/*/url/with/:placeholders
+//	/a/*/url/with/:placeholders
 //
 // this function would match URLs like this:
 //
-//    /a/nice/url/with/text
-//    /a/super/extra/nice/url/with/matches
+//	/a/nice/url/with/text
+//	/a/super/extra/nice/url/with/matches
 //
 // If the first return value is `true`, the second return value is the path that this
 // rule should redirect/rewrite to. This path is effectively the rule's "to" path that

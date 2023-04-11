@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 	os.Exit(v)
 }
 
-// nolint: gocyclo // this is vendored code
+//nolint: gocyclo // this is vendored code
 func interestingGoroutines() (gs []string) {
 	buf := make([]byte, 2<<20)
 	buf = buf[:runtime.Stack(buf, true)]
