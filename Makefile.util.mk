@@ -4,7 +4,7 @@ OUT_FORMAT ?= colored-line-number
 LINT_FLAGS ?=  $(if $V,-v)
 REPORT_FILE ?=
 GOLANGCI_VERSION=v1.46.2
-GOTESTSUM_VERSION=v1.7.0
+GOTESTSUM_VERSION=v1.10.0
 COVERAGE_PACKAGES=$(shell (go list ./... | grep -v -e "test/acceptance" | tr "\n", "," | sed 's/\(.*\),/\1 /'))
 
 lint:
