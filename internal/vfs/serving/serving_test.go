@@ -22,7 +22,7 @@ var (
 	lastMod = time.Now()
 )
 
-// nolint: gocyclo // this is vendored code
+//nolint: gocyclo // this is vendored code
 func TestServeContent(t *testing.T) {
 	defer afterTest(t)
 	type serveParam struct {

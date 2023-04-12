@@ -62,7 +62,7 @@ func (a *Handlers) HandleArtifactRequest(w http.ResponseWriter, r *http.Request)
 		return true
 	}
 
-	// nolint: bodyclose // false positive
+	//nolint: bodyclose // false positive
 	// a.checkIfLoginRequiredOrInvalidToken returns a response.Body, closing this body is responsibility
 	// of the TryMakeRequest implementation
 	return a.Artifact.TryMakeRequest(w, r, token, a.checkIfLoginRequiredOrInvalidToken(w, r, token))
