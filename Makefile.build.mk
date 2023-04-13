@@ -3,7 +3,7 @@ GO_BUILD_TAGS   := continuous_profiler_stackdriver
 MOCKGEN_VERSION=v1.6.0
 FIPS_MODE       ?= 0
 ifeq ($(FIPS_MODE), 1)
-    BORINGCRYPTO_SUPPORT := $(shell GOEXPERIMENT=boringcrypto go version &> /dev/null; echo $$?)
+    BORINGCRYPTO_SUPPORT := $(shell GOEXPERIMENT=boringcrypto go version > /dev/null 2>&1; echo $$?)
     ifeq ($(BORINGCRYPTO_SUPPORT), 0)
         GO_BUILD_ENV=GOEXPERIMENT=boringcrypto
     endif
