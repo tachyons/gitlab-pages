@@ -21,6 +21,14 @@ func (l *Lookup) ParseDomain(r io.Reader) {
 	}
 }
 
+func (l *Lookup) LookupPaths() []LookupPath {
+	if l == nil || l.Domain == nil {
+		return []LookupPath{}
+	}
+
+	return l.Domain.LookupPaths
+}
+
 // Ensure lookupPaths are sorted by prefix length to ensure the group level
 // domain with prefix "/" is the last one to be checked.
 // See https://gitlab.com/gitlab-org/gitlab-pages/-/issues/576

@@ -55,7 +55,7 @@ func (r *Retriever) Retrieve(correlationID, domain string) (lookup api.Lookup) {
 		"correlation_id":   correlationID,
 		"requested_domain": domain,
 		"lookup_name":      lookup.Name,
-		"lookup_paths":     lookup.Domain,
+		"lookup_paths":     lookup.LookupPaths(),
 		"lookup_error":     lookup.Error,
 	}).WithError(ctx.Err()).Debug(logMsg)
 
