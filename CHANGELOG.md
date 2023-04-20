@@ -66,6 +66,10 @@ No changes.
 
 - [Restrict arbitrary protocol redirection to only https or http URLs](gitlab-org/gitlab-pages@973d93daeaa0e31f0cec2e09db8838cf38c67dc5) ([merge request](gitlab-org/gitlab-pages!845))
 
+## 15.7.9 (2023-04-20)
+
+No changes.
+
 ## 15.7.8 (2023-03-02)
 
 No changes.
