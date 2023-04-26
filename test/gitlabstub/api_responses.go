@@ -4,126 +4,281 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-pages/internal/source/gitlab/api"
 )
 
-type responseFn func(string) api.VirtualDomain
+// APIResponses abstracts the stubbed responses for gitlabstub.
+// The collection of responses is a map on the following format:
+//
+//	"domain": {
+//		"prefix": {
+//			ProjectID:     0,
+//			AccessControl: false,
+//			HTTPS:         false,
+//			PathOnDisk:    "base/path/for/the/public.zip/file",
+//		},
+//	}
+//
+// For Example:
+//
+//	"group.gitlab-example.com": {
+//		"/project1": {
+//			ProjectID: 1000,
+//			AccessControl: true,
+//			HTTPS: true,
+//			PathOnDisk: "group/project",
+//		},
+//		"/project2": {
+//			ProjectID: 1001,
+//			AccessControl: true,
+//			HTTPS: true,
+//			PathOnDisk: "group/project",
+//		},
+//	}
+type APIResponses map[string]Responses
 
-type projectConfig struct {
-	// refer to makeGitLabPagesAccessStub for custom HTTP responses per projectID
+type Responses map[string]Response
+
+// A Response is the struct responsible for creating a project LookupPath.
+type Response struct {
 	projectID     int
 	accessControl bool
-	https         bool
-	pathOnDisk    string
+	httpsOnly     bool
+	pathOnDisk    string // base directory is gitlab-pages/shared/pages
 	uniqueHost    string
 }
 
-// domainResponses holds the predefined API responses for certain domains
+func (responses Responses) virtualDomain(wd string) api.VirtualDomain {
+	return api.VirtualDomain{
+		Certificate: "",
+		Key:         "",
+		LookupPaths: responses.lookupPaths(wd),
+	}
+}
+
+func (responses Responses) lookupPaths(wd string) []api.LookupPath {
+	lookupPaths := make([]api.LookupPath, 0, len(responses))
+
+	for prefix, response := range responses {
+		lookupPaths = append(lookupPaths, response.lookupPath(prefix, wd))
+	}
+
+	return lookupPaths
+}
+
+func (response Response) lookupPath(prefix, wd string) api.LookupPath {
+	sourcePath := fmt.Sprintf("file://%s/%s/public.zip", wd, response.pathOnDisk)
+	sum := sha256.Sum256([]byte(sourcePath))
+	sha := hex.EncodeToString(sum[:])
+
+	return api.LookupPath{
+		Prefix:        prefix,
+		ProjectID:     response.projectID,
+		AccessControl: response.accessControl,
+		HTTPSOnly:     response.httpsOnly,
+		UniqueHost:    response.uniqueHost,
+		Source: api.Source{
+			Type:   "zip",
+			Path:   sourcePath,
+			SHA256: sha,
+		},
+	}
+}
+
+// apiResponses holds the predefined API responses for certain domains
 // that can be used with the GitLab API stub in acceptance tests
-// Assume the working dir is inside shared/pages/
-var domainResponses = map[string]responseFn{
-	"zip-from-disk.gitlab.io": customDomain(projectConfig{
-		projectID:  123,
-		pathOnDisk: "@hashed/zip-from-disk.gitlab.io",
-	}),
-	"zip-from-disk-not-found.gitlab.io": customDomain(projectConfig{}),
-	// outside of working dir
-	"zip-not-allowed-path.gitlab.io":  customDomain(projectConfig{pathOnDisk: "../../../../"}),
-	"group.gitlab-example.com":        generateVirtualDomainFromDir("group", "group.gitlab-example.com", nil),
-	"CapitalGroup.gitlab-example.com": generateVirtualDomainFromDir("CapitalGroup", "CapitalGroup.gitlab-example.com", nil),
-	"group.404.gitlab-example.com": generateVirtualDomainFromDir("group.404", "group.404.gitlab-example.com", map[string]projectConfig{
+var apiResponses = APIResponses{
+	"zip-from-disk.gitlab.io": {
+		"/": {
+			projectID:  123,
+			pathOnDisk: "@hashed/zip-from-disk.gitlab.io",
+		},
+	},
+	"zip-not-allowed-path.gitlab.io": {
+		"/": {
+			pathOnDisk: "../../../../",
+		},
+	},
+	"group.gitlab-example.com": {
+		"/": {
+			pathOnDisk: "group/group.gitlab-example.com",
+		},
+		"/CapitalProject": {
+			pathOnDisk: "group/CapitalProject",
+		},
+		"/group.test.io": {
+			pathOnDisk: "group/group.test.io",
+		},
+		"/new-source-test.gitlab.io": {
+			pathOnDisk: "group/new-source-test.gitlab.io",
+		},
+		"/project": {
+			pathOnDisk: "group/project",
+		},
+		"/project2": {
+			pathOnDisk: "group/project2",
+		},
+		"/serving": {
+			pathOnDisk: "group/serving",
+		},
+		"/subgroup/project": {
+			pathOnDisk: "group/subgroup/project",
+		},
+		"/zip.gitlab.io": {
+			pathOnDisk: "group/zip.gitlab.io",
+		},
+	},
+	"group.404.gitlab-example.com": {
+		"/": {
+			pathOnDisk: "group.404/group.404.gitlab-example.com",
+		},
+		"/project.404": {
+			pathOnDisk: "group.404/project.404",
+		},
+		"/project.no.404": {
+			pathOnDisk: "group/project",
+		},
 		"/private_project": {
+			pathOnDisk:    "group.404/private_project",
 			projectID:     1300,
 			accessControl: true,
 		},
 		"/private_unauthorized": {
+			pathOnDisk:    "group.404/private_unauthorized",
 			projectID:     2000,
 			accessControl: true,
 		},
-	}),
-	"group.https-only.gitlab-example.com": generateVirtualDomainFromDir("group.https-only", "group.https-only.gitlab-example.com", map[string]projectConfig{
+	},
+	"domain.404.com": {
+		"/": {
+			projectID:  1000,
+			pathOnDisk: "group.404/domain.404",
+		},
+	},
+	"CapitalGroup.gitlab-example.com": {
+		"/CapitalProject": {
+			pathOnDisk: "/CapitalGroup/CapitalProject",
+		},
+		"/project": {
+			pathOnDisk: "/CapitalGroup/project",
+		},
+	},
+	"group.https-only.gitlab-example.com": {
 		"/project1": {
-			projectID: 1000,
-			https:     true,
+			projectID:  1000,
+			httpsOnly:  true,
+			pathOnDisk: "group.https-only/project1",
 		},
 		"/project2": {
-			projectID: 1100,
-			https:     false,
+			projectID:  1100,
+			pathOnDisk: "group.https-only/project2",
 		},
-	}),
-	"domain.404.com": customDomain(projectConfig{
-		projectID:  1000,
-		pathOnDisk: "group.404/domain.404",
-	}),
-	"withacmechallenge.domain.com": customDomain(projectConfig{
-		projectID:  1234,
-		pathOnDisk: "group.acme/with.acme.challenge",
-	}),
-	"group.redirects.gitlab-example.com": generateVirtualDomainFromDir("group.redirects", "group.redirects.gitlab-example.com", nil),
-	"redirects.custom-domain.com": customDomain(projectConfig{
-		projectID:  1001,
-		pathOnDisk: "group.redirects/custom-domain",
-	}),
-	"test.my-domain.com": customDomain(projectConfig{
-		projectID:  1002,
-		https:      true,
-		pathOnDisk: "group.https-only/project3",
-	}),
-	"test2.my-domain.com": customDomain(projectConfig{
-		projectID:  1003,
-		https:      false,
-		pathOnDisk: "group.https-only/project4",
-	}),
-	"no.cert.com": customDomain(projectConfig{
-		projectID:  1004,
-		https:      true,
-		pathOnDisk: "group.https-only/project5",
-	}),
-	"group.auth.gitlab-example.com": generateVirtualDomainFromDir("group.auth", "group.auth.gitlab-example.com", map[string]projectConfig{
+		"/project3": {
+			pathOnDisk: "group.https-only/project3",
+		},
+		"/project4": {
+			pathOnDisk: "group.https-only/project4",
+		},
+		"/project5": {
+			pathOnDisk: "group.https-only/project5",
+		},
+	},
+	"withacmechallenge.domain.com": {
+		"/": {
+			projectID:  1234,
+			pathOnDisk: "group.acme/with.acme.challenge",
+		},
+	},
+	"group.redirects.gitlab-example.com": {
+		"/": {
+			pathOnDisk: "group.redirects/group.redirects.gitlab-example.com",
+		},
+		"/custom-domain/": {
+			pathOnDisk: "group.redirects/custom-domain",
+		},
+		"/project-redirects/": {
+			pathOnDisk: "group.redirects/project-redirects",
+		},
+	},
+	"redirects.custom-domain.com": {
+		"/": {
+			projectID:  1001,
+			pathOnDisk: "group.redirects/custom-domain",
+		},
+	},
+	"test.my-domain.com": {
+		"/": {
+			projectID:  1002,
+			httpsOnly:  true,
+			pathOnDisk: "group.https-only/project3",
+		},
+	},
+	"test2.my-domain.com": {
+		"/": {
+			projectID:  1003,
+			httpsOnly:  false,
+			pathOnDisk: "group.https-only/project4",
+		},
+	},
+	"no.cert.com": {
+		"/": {
+			projectID:  1004,
+			httpsOnly:  true,
+			pathOnDisk: "group.https-only/project5",
+		},
+	},
+	"group.auth.gitlab-example.com": {
 		"/": {
 			projectID:     1005,
 			accessControl: true,
+			pathOnDisk:    "group.auth/group.auth.gitlab-example.com/",
 		},
 		"/private.project": {
 			projectID:     1006,
 			accessControl: true,
+			pathOnDisk:    "group.auth/private.project/",
 		},
 		"/private.project.1": {
 			projectID:     2006,
 			accessControl: true,
+			pathOnDisk:    "group.auth/private.project.1/",
 		},
 		"/private.project.2": {
 			projectID:     3006,
 			accessControl: true,
+			pathOnDisk:    "group.auth/private.project.2/",
 		},
 		"/subgroup/private.project": {
 			projectID:     1007,
 			accessControl: true,
+			pathOnDisk:    "group.auth/subgroup/private.project",
 		},
 		"/subgroup/private.project.1": {
 			projectID:     2007,
 			accessControl: true,
+			pathOnDisk:    "group.auth/subgroup/private.project.1",
 		},
 		"/subgroup/private.project.2": {
 			projectID:     3007,
 			accessControl: true,
+			pathOnDisk:    "group.auth/subgroup/private.project.2",
 		},
-	}),
-	"private.domain.com": customDomain(projectConfig{
-		projectID:     1007,
-		accessControl: true,
-		pathOnDisk:    "group.auth/private.project",
-	}),
-	"acmewithredirects.domain.com": customDomain(projectConfig{
-		projectID:  1008,
-		pathOnDisk: "group.acme/with.redirects",
-	}),
-	"group.unique-url.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
+	},
+	"private.domain.com": {
+		"/": {
+			projectID:     1007,
+			accessControl: true,
+			pathOnDisk:    "group.auth/private.project",
+		},
+	},
+	"acmewithredirects.domain.com": {
+		"/": {
+			projectID:  1008,
+			pathOnDisk: "group.acme/with.redirects",
+		},
+	},
+	"group.unique-url.gitlab-example.com": {
 		"/with-unique-url": {
 			uniqueHost: "unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com",
 			pathOnDisk: "group/project",
@@ -147,174 +302,22 @@ var domainResponses = map[string]responseFn{
 		"/without-unique-url": {
 			pathOnDisk: "group/project",
 		},
-	}),
-	"unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com": generateVirtualDomain(map[string]projectConfig{
+	},
+	"unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com": {
 		"/": {
 			uniqueHost: "unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com",
 			pathOnDisk: "group/project",
 		},
-	}),
-	"unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com:8080": generateVirtualDomain(map[string]projectConfig{
+	},
+	"unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com:8080": {
 		"/": {
 			uniqueHost: "unique-url-group-unique-url-a1b2c3d4e5f6.gitlab-example.com",
 			pathOnDisk: "group/project",
 		},
-	}),
-	// NOTE: before adding more domains here, generate the zip archive by running (per project)
-	// make zip PROJECT_SUBDIR=group/serving
-	// make zip PROJECT_SUBDIR=group/project2
-}
-
-// generateVirtualDomainFromDir walks the subdirectory inside of shared/pages/ to find any zip archives.
-// It works for subdomains of pages-domain but not for custom domains (yet)
-func generateVirtualDomainFromDir(dir, rootDomain string, perPrefixConfig map[string]projectConfig) responseFn {
-	return func(wd string) api.VirtualDomain {
-		var foundZips []string
-
-		// walk over dir and save any paths containing a `.zip` file
-		// $(GITLAB_PAGES_DIR)/shared/pages + "/" + group
-
-		cleanDir := filepath.Join(wd, dir)
-
-		// make sure resolved path inside dir is under wd to avoid https://securego.io/docs/rules/g304.html
-		if !strings.HasPrefix(cleanDir, wd) {
-			log.Fatalf("path %q outside of wd %q", cleanDir, wd)
-		}
-
-		walkErr := filepath.Walk(cleanDir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if strings.HasSuffix(info.Name(), ".zip") {
-				project := strings.TrimPrefix(path, wd+"/"+dir)
-				foundZips = append(foundZips, project)
-			}
-
-			return nil
-		})
-
-		if walkErr != nil {
-			log.Fatal(walkErr)
-		}
-
-		lookupPaths := make([]api.LookupPath, 0, len(foundZips))
-		// generate lookup paths
-		for _, project := range foundZips {
-			// if project = "group/subgroup/project/public.zip
-			// trim prefix group and suffix /public.zip
-			// so prefix = "/subgroup/project"
-			prefix := strings.TrimPrefix(project, dir)
-			prefix = strings.TrimSuffix(prefix, "/"+filepath.Base(project))
-
-			// use / as prefix when the current prefix matches the rootDomain, e.g.
-			// if request is group.gitlab-example.com/ and group/group.gitlab-example.com/public.zip exists
-			if prefix == "/"+rootDomain {
-				prefix = "/"
-			}
-
-			cfg, ok := perPrefixConfig[prefix]
-			if !ok {
-				cfg = projectConfig{}
-			}
-
-			sourcePath := fmt.Sprintf("file://%s", wd+"/"+dir+project)
-			sum := sha256.Sum256([]byte(sourcePath))
-			sha := hex.EncodeToString(sum[:])
-
-			lookupPath := api.LookupPath{
-				ProjectID:     cfg.projectID,
-				AccessControl: cfg.accessControl,
-				HTTPSOnly:     cfg.https,
-				// gitlab.Resolve logic expects prefix to have ending slash
-				Prefix: ensureEndingSlash(prefix),
-				Source: api.Source{
-					Type:   "zip",
-					Path:   sourcePath,
-					SHA256: sha,
-				},
-				UniqueHost: cfg.uniqueHost,
-			}
-
-			lookupPaths = append(lookupPaths, lookupPath)
-		}
-
-		return api.VirtualDomain{
-			LookupPaths: lookupPaths,
-		}
-	}
-}
-
-func generateVirtualDomain(projectConfigs map[string]projectConfig) responseFn {
-	return func(wd string) api.VirtualDomain {
-		nextID := 1000
-		lookupPaths := make([]api.LookupPath, 0, len(projectConfigs))
-
-		for project, config := range projectConfigs {
-			if config.projectID == 0 {
-				config.projectID = nextID
-				nextID++
-			}
-
-			sourcePath := fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk)
-			sum := sha256.Sum256([]byte(sourcePath))
-			sha := hex.EncodeToString(sum[:])
-
-			lookupPaths = append(lookupPaths, api.LookupPath{
-				ProjectID:     config.projectID,
-				AccessControl: config.accessControl,
-				HTTPSOnly:     config.https,
-				Prefix:        ensureEndingSlash(project),
-				UniqueHost:    config.uniqueHost,
-				Source: api.Source{
-					Type:   "zip",
-					Path:   sourcePath,
-					SHA256: sha,
-				},
-			})
-		}
-
-		return api.VirtualDomain{
-			LookupPaths: lookupPaths,
-		}
-	}
-}
-
-// customDomain with per project config
-func customDomain(config projectConfig) responseFn {
-	return func(wd string) api.VirtualDomain {
-		sourcePath := fmt.Sprintf("file://%s/%s/public.zip", wd, config.pathOnDisk)
-		sum := sha256.Sum256([]byte(sourcePath))
-		sha := hex.EncodeToString(sum[:])
-
-		return api.VirtualDomain{
-			Certificate: "",
-			Key:         "",
-			LookupPaths: []api.LookupPath{
-				{
-					ProjectID:     config.projectID,
-					AccessControl: config.accessControl,
-					HTTPSOnly:     config.https,
-					// prefix should always be `/` for custom domains, otherwise `resolvePath` will try
-					// to look for files under public/prefix/ when serving content instead of just public/
-					// see internal/serving/disk/ for details
-					Prefix: "/",
-					Source: api.Source{
-						Type:   "zip",
-						SHA256: sha,
-						Path:   sourcePath,
-					},
-					UniqueHost: config.uniqueHost,
-				},
-			},
-		}
-	}
-}
-
-func ensureEndingSlash(path string) string {
-	if strings.HasSuffix(path, "/") {
-		return path
-	}
-
-	return path + "/"
+	},
+	// NOTE: before adding more domains here, you can:
+	// use an existing project or generate a new zip archive.
+	// To generate a new zip archive run the following command, where PROJECT_SUBDIR
+	// is a project folder within `gitlab-pages/shared/pages`
+	// `make zip PROJECT_SUBDIR=group/serving`
 }
