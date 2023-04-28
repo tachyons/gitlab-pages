@@ -27,10 +27,10 @@ require (
 	gitlab.com/feistel/go-contentencoding v1.0.0
 	gitlab.com/gitlab-org/go-mimedb v1.45.0
 	gitlab.com/gitlab-org/labkit v1.17.0
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
-	golang.org/x/net v0.0.0-20211008194852-3b03d305991f
+	golang.org/x/crypto v0.1.0
+	golang.org/x/net v0.1.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
+	golang.org/x/sys v0.1.0
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
 )
 
@@ -60,7 +60,7 @@ require (
 	github.com/tj/assert v0.0.3 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20210805134026-6f1e6394065a // indirect
-	golang.org/x/text v0.3.8 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	google.golang.org/api v0.54.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210813162853-db860fec028c // indirect
